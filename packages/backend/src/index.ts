@@ -11,17 +11,26 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
-import { HttpApp, HttpRouter, HttpServerResponse } from "@effect/platform";
+import { Container, getRandom } from "@cloudflare/containers"
 
-const router = HttpRouter.empty.pipe(
-	HttpRouter.get("/", HttpServerResponse.text("content 1")),
-	HttpRouter.get("/foo", HttpServerResponse.text("content 2")),
-);
+export class SitelinkBackendContainer extends Container {
+	override defaultPort = 3000
+	override sleepAfter = "5m"
 
-const handler = HttpApp.toWebHandler(router);
+	override onStart() {
+		console.log("Container successfully started")
+	}
+	override onStop() {
+		console.log("Container successfully shut down")
+	}
+	override onError(error: unknown) {
+		console.log("Container error:", error)
+	}
+}
 
 export default {
-	async fetch(request, env, ctx): Promise<Response> {
-		return await handler(request);
+	async fetch(request, env, _ctx): Promise<Response> {
+		const container = await getRandom(env.SITELINK_BACKEND_CONTAINER, 2)
+		return await container.fetch(request)
 	},
-} satisfies ExportedHandler<Env>;
+} satisfies ExportedHandler<Env>

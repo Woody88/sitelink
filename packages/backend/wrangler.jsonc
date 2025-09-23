@@ -3,13 +3,37 @@
  * https://developers.cloudflare.com/workers/wrangler/configuration/
  */
 {
-	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "d1-tutorial",
+	"$schema": "../../node_modules/wrangler/config-schema.json",
+	"name": "sitelink-backend",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-09-23",
+	"containers": [
+		{
+			"max_instances": 2,
+			"name": "sitelink-backend-container",
+			"class_name": "SitelinkBackendContainer",
+			"image": "../../infra/docker/backend.Dockerfile",
+			"image_build_context": "../../",
+			"instance_type": "standard"
+		}
+	],
 	"observability": {
 		"enabled": true
-	}
+	},
+	"durable_objects": {
+		"bindings": [
+			{
+				"class_name": "SitelinkBackendContainer",
+				"name": "SITELINK_BACKEND_CONTAINER",
+			},
+		],
+	},
+	"migrations": [
+		{
+			"new_sqlite_classes": ["SitelinkBackendContainer"],
+			"tag": "v1",
+		},
+	],
 	/**
 	 * Smart Placement
 	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement

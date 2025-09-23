@@ -4,7 +4,9 @@
   "type": "module",
   "private": true,
   "dependencies": {
+    "@cloudflare/containers": "^0.0.28",
     "@effect/platform": "catalog:effect",
+    "@effect/platform-bun": "^0.80.0",
     "effect": "catalog:effect"
   },
   "devDependencies": {
