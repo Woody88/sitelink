@@ -4,11 +4,14 @@
   "type": "module",
   "private": true,
   "dependencies": {
-    "@effect/platform-bun": "^0.79.1",
+    "@effect/platform": "catalog:effect",
     "effect": "catalog:effect"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "wrangler": "^4.38.0",
+    "@cloudflare/vitest-pool-workers": "^0.8.19",
+    "vitest": "~3.2.0"
   },
   "peerDependencies": {
     "typescript": "^5"
