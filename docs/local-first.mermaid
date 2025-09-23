@@ -1,0 +1,23 @@
+graph TD
+    %% Auth & Billing
+    subgraph "Clerk (Auth Provider)"
+        Users[Users]
+        Companies[Companies]
+        Subscriptions[Subscriptions Stripe]
+    end
+
+    %% Your Local Database
+    subgraph "D1 Database"
+        Projects[Projects]
+        Plans[Plans]
+        Files[Files R2]
+        Media[Pictures & Videos]
+    end
+
+    %% Relationships
+    Users -->|member of| Companies
+    Companies -->|owns| Projects
+    Projects -->|has| Plans
+    Plans -->|points to| Files
+    Projects -->|has| Media
+    Users -->|subscription| Subscriptions
