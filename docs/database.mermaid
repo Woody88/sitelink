@@ -1,107 +1,67 @@
 erDiagram
+    %% Clerk-managed entities (external)
+    USERS ||--o{ ORGANIZATIONS : member_of
+    USERS ||--o{ SUBSCRIPTIONS : has
 
-    users {
-        TEXT id PK "Clerk user_id"
-        TEXT email
-        TEXT display_name
-        TIMESTAMP last_seen
+    %% Local D1 database entities
+    ORGANIZATIONS ||--o{ PROJECTS : owns
+    PROJECTS ||--o{ PLANS : has
+    PLANS ||--o{ FILES : points_to
+    PROJECTS ||--o{ MEDIA : has
+
+    %% Entity definitions
+    USERS {
+        string id PK
+        string email
+        string name
     }
 
-    organizations {
-        TEXT id PK
-        TEXT name
-        TEXT stripe_customer_id
-        TIMESTAMP created_at
+    ORGANIZATIONS {
+        string id PK
+        string name
+        string clerk_organization_id
     }
 
-    organization_members {
-        TEXT id PK
-        TEXT org_id FK
-        TEXT user_id FK
-        TEXT role
-        TIMESTAMP created_at
+    SUBSCRIPTIONS {
+        string id PK
+        string stripe_subscription_id
+        string user_id FK
+        string plan
+        date start_date
+        date end_date
     }
 
-    projects {
-        TEXT id PK
-        TEXT org_id FK
-        TEXT name
-        TEXT description
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
+    PROJECTS {
+        string id PK
+        string name
+        string description
+        string organization_id FK
+        date created_at
+        date updated_at
     }
 
-    project_members {
-        TEXT id PK
-        TEXT project_id FK
-        TEXT user_id FK
-        TEXT role
-        TIMESTAMP created_at
+    PLANS {
+        string id PK
+        string project_id FK
+        string name
+        string description
+        string r2_directory_path
+        date created_at
+        date updated_at
     }
 
-    plans {
-        TEXT id PK
-        TEXT project_id FK
-        TEXT name
-        TEXT r2_key
-        INTEGER sheet_count
-        TIMESTAMP created_at
+    FILES {
+        string id PK
+        string plan_id FK
+        string r2_file_path
+        string file_type
+        date uploaded_at
     }
 
-    sheets {
-        TEXT id PK
-        TEXT plan_id FK
-        INTEGER page_number
-        TEXT dzi_key
-        INTEGER width
-        INTEGER height
-        TIMESTAMP created_at
+    MEDIA {
+        string id PK
+        string project_id FK
+        string file_path
+        string media_type
+        date uploaded_at
     }
-
-    media {
-        TEXT id PK
-        TEXT project_id FK
-        TEXT sheet_id FK
-        TEXT user_id FK
-        TEXT type
-        TEXT r2_key
-        TEXT thumbnail_key
-        TIMESTAMP created_at
-    }
-
-    annotations {
-        TEXT id PK
-        TEXT sheet_id FK
-        TEXT user_id FK
-        TEXT type
-        JSON geometry
-        TEXT color
-        TEXT linked_media_id FK
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-    }
-
-    subscriptions {
-        TEXT id PK
-        TEXT org_id FK
-        TEXT stripe_subscription_id
-        TEXT plan
-        TEXT status
-        TIMESTAMP current_period_end
-        TIMESTAMP updated_at
-    }
-
-    %% Relationships
-    users ||--o{ organization_members : "member of"
-    organizations ||--o{ organization_members : "has members"
-    organizations ||--o{ projects : "owns"
-    projects ||--o{ project_members : "has members"
-    users ||--o{ project_members : "collaborates"
-    projects ||--o{ plans : "has"
-    plans ||--o{ sheets : "contains"
-    projects ||--o{ media : "stores"
-    sheets ||--o{ media : "has media"
-    sheets ||--o{ annotations : "has"
-    users ||--o{ annotations : "created"
-    media ||--o{ annotations : "linked to"
-    organizations ||--o{ subscriptions : "subscribed with"

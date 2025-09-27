@@ -1,36 +1,51 @@
-/**
- * Welcome to Cloudflare Workers! This is your first worker.
- *
- * - Run `npm run dev` in your terminal to start a development server
- * - Open a browser tab at http://localhost:8787/ to see your worker in action
- * - Run `npm run deploy` to publish your worker
- *
- * Bind resources to your worker in `wrangler.jsonc`. After adding bindings, a type definition for the
- * `Env` object can be regenerated with `npm run cf-typegen`.
- *
- * Learn more at https://developers.cloudflare.com/workers/
- */
+// import { Container, getRandom } from "@cloudflare/containers"
 
-import { Container, getRandom } from "@cloudflare/containers"
+// export class SitelinkBackendContainer extends Container {
+// 	override defaultPort = 3000
+// 	override sleepAfter = "5m"
 
-export class SitelinkBackendContainer extends Container {
-	override defaultPort = 3000
-	override sleepAfter = "5m"
-
-	override onStart() {
-		console.log("Container successfully started")
-	}
-	override onStop() {
-		console.log("Container successfully shut down")
-	}
-	override onError(error: unknown) {
-		console.log("Container error:", error)
-	}
-}
+// 	override onStart() {
+// 		console.log("Container successfully started")
+// 	}
+// 	override onStop() {
+// 		console.log("Container successfully shut down")
+// 	}
+// 	override onError(error: unknown) {
+// 		console.log("Container error:", error)
+// 	}
+// }
 
 export default {
 	async fetch(request, env, _ctx): Promise<Response> {
-		const container = await getRandom(env.SITELINK_BACKEND_CONTAINER, 2)
-		return await container.fetch(request)
+		const url = new URL(request.url)
+
+		if (url.pathname === "/api/health/db") {
+			const response = await env.SitelinkDB.prepare("SELECT 1 as test")
+				.first()
+				.then(
+					(res) =>
+						new Response(
+							JSON.stringify({
+								database: "connected",
+								query: res,
+							}),
+							{ status: 200, headers: { "Content-Type": "application/json" } },
+						),
+				)
+				.catch(
+					(err) =>
+						new Response(
+							JSON.stringify({
+								database: "error",
+								error: err instanceof Error ? err.message : String(err),
+							}),
+							{ status: 500, headers: { "Content-Type": "application/json" } },
+						),
+				)
+
+			return response
+		}
+
+		return new Response("Hello World!", { status: 200 })
 	},
 } satisfies ExportedHandler<Env>

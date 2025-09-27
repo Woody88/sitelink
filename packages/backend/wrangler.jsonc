@@ -7,32 +7,46 @@
 	"name": "sitelink-backend",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-09-23",
-	"containers": [
-		{
-			"max_instances": 2,
-			"name": "sitelink-backend-container",
-			"class_name": "SitelinkBackendContainer",
-			"image": "../../infra/docker/backend.Dockerfile",
-			"image_build_context": "../../",
-			"instance_type": "standard"
-		}
+	"compatibility_flags": [
+		"nodejs_compat"
 	],
+	// "containers": [
+	// 	{
+
+	// 		"max_instances": 0,
+	// 		"name": "sitelink-backend-container",
+	// 		"class_name": "SitelinkBackendContainer",
+	// 		"image": "../../infra/docker/backend.Dockerfile",
+	// 		"image_build_context": "../../",
+	// 		"instance_type": "standard"
+	// 	}
+	// ],
 	"observability": {
 		"enabled": true
 	},
-	"durable_objects": {
-		"bindings": [
-			{
-				"class_name": "SitelinkBackendContainer",
-				"name": "SITELINK_BACKEND_CONTAINER",
-			},
-		],
-	},
-	"migrations": [
+	// "durable_objects": {
+	// 	"bindings": [
+	// 		{
+	// 			"class_name": "SitelinkBackendContainer",
+	// 			"name": "SITELINK_BACKEND_CONTAINER",
+	// 		},
+	// 	],
+	// },
+	// "migrations": [
+	// 	{
+	// 		"new_sqlite_classes": [
+	// 			"SitelinkBackendContainer"
+	// 		],
+	// 		"tag": "v1",
+	// 	},
+	// ],
+	"d1_databases": [
 		{
-			"new_sqlite_classes": ["SitelinkBackendContainer"],
-			"tag": "v1",
-		},
+			"binding": "SitelinkDB",
+			"database_name": "sitelink-db",
+			"database_id": "e6d94a86-f88c-4536-84d8-d4e121c9e72a",
+			"migrations_dir": "./drizzle"
+		}
 	],
 	/**
 	 * Smart Placement

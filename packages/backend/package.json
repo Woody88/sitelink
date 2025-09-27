@@ -3,17 +3,27 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "scripts": {
+    "db:local:studio": "bunx drizzle-kit studio --host=127.0.0.1",
+    "db:local:apply:migration": "bun wrangler d1 migrations apply sitelink-db --local",
+    "db:gen:migration": "bunx drizzle-kit generate"
+  },
   "dependencies": {
     "@cloudflare/containers": "^0.0.28",
     "@effect/platform": "catalog:effect",
     "@effect/platform-bun": "^0.80.0",
+    "@effect/sql": "^0.45.0",
+    "@effect/sql-drizzle": "^0.44.0",
+    "@libsql/client": "^0.15.15",
+    "drizzle-orm": "^0.44.5",
     "effect": "catalog:effect"
   },
   "devDependencies": {
-    "@types/bun": "latest",
-    "wrangler": "^4.38.0",
     "@cloudflare/vitest-pool-workers": "^0.8.19",
-    "vitest": "~3.2.0"
+    "@types/bun": "^1.2.22",
+    "drizzle-kit": "^0.31.4",
+    "vitest": "~3.2.0",
+    "wrangler": "^4.40.1"
   },
   "peerDependencies": {
     "typescript": "^5"
