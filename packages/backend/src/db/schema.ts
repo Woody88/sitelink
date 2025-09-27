@@ -1,5 +1,4 @@
 import * as D from "drizzle-orm/sqlite-core"
-import { end } from "effect/ScheduleIntervals"
 
 export const users = D.sqliteTable("users", {
 	id: D.text().primaryKey(),
