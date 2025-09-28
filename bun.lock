@@ -19,8 +19,6 @@
         "@cloudflare/containers": "^0.0.28",
         "@effect/platform": "catalog:effect",
         "@effect/platform-bun": "^0.80.0",
-        "@effect/sql": "^0.45.0",
-        "@effect/sql-drizzle": "^0.44.0",
         "@libsql/client": "^0.15.15",
         "drizzle-orm": "^0.44.5",
         "effect": "catalog:effect",
@@ -82,6 +80,8 @@
 
     "@cloudflare/workerd-windows-64": ["@cloudflare/workerd-windows-64@1.20250924.0", "", { "os": "win32", "cpu": "x64" }, "sha512-PntewemtjgLO2+8Gjw3G/NowDjpWZNKpKk/n4KmOQaWS9jIRq3IG1LkTqxj/BbMXqa4Oyrywk2kdqspj6QllOw=="],
 
+    "@cloudflare/workers-types": ["@cloudflare/workers-types@4.20250927.0", "", {}, "sha512-XcFVTMNhHROLQ+AbmK6KQuis72iGCdQXrjVl2xX98ac7w3fzUiNfTsu+SKBXN9dSEjgJEhhj0EXSAXh0b8lSww=="],
+
     "@cspotcode/source-map-support": ["@cspotcode/source-map-support@0.8.1", "", { "dependencies": { "@jridgewell/trace-mapping": "0.3.9" } }, "sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw=="],
 
     "@drizzle-team/brocli": ["@drizzle-team/brocli@0.10.2", "", {}, "sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w=="],
@@ -103,8 +103,6 @@
     "@effect/rpc": ["@effect/rpc@0.70.0", "", { "dependencies": { "msgpackr": "^1.11.4" }, "peerDependencies": { "@effect/platform": "^0.91.0", "effect": "^3.17.14" } }, "sha512-DGRdFuCSjazGPG16D6QQ3jWGbyWvwUGQtexR5mE8EWip0PMU7fnGDv5NopOQQyPnja13NCRZy2h87XH9G9RvRg=="],
 
     "@effect/sql": ["@effect/sql@0.45.0", "", { "dependencies": { "uuid": "^11.0.3" }, "peerDependencies": { "@effect/experimental": "^0.55.0", "@effect/platform": "^0.91.0", "effect": "^3.17.14" } }, "sha512-250w6apb25GTj5T5zxXN1Yw3RJPeaE4xozghOImx5iZn/DHYXWPrTvEM9b/RNmSX5+JaeComObeNgpZbMzKfVQ=="],
-
-    "@effect/sql-drizzle": ["@effect/sql-drizzle@0.44.0", "", { "peerDependencies": { "@effect/sql": "^0.45.0", "drizzle-orm": ">=0.43.1 <0.50", "effect": "^3.17.14" } }, "sha512-/SAqIicgXYKFUjAAKT1EFCOZuM/K4qgym/u6z9Mm300Itg0U/Y2nULP/hHP1L00C6pe5Wppi6su0+l8tAJnjqg=="],
 
     "@effect/workflow": ["@effect/workflow@0.10.0", "", { "peerDependencies": { "@effect/platform": "^0.91.0", "@effect/rpc": "^0.70.0", "effect": "^3.17.14" } }, "sha512-N/WWvOp+6QKAJsqrD1P/9Nc5tbgmDwWFNtv2leaT4y//xm7bKy3CLlpqF9GzluJYZBlXnygCeqDfNkaGsrVv7g=="],
 

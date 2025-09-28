@@ -12,8 +12,6 @@
     "@cloudflare/containers": "^0.0.28",
     "@effect/platform": "catalog:effect",
     "@effect/platform-bun": "^0.80.0",
-    "@effect/sql": "^0.45.0",
-    "@effect/sql-drizzle": "^0.44.0",
     "@libsql/client": "^0.15.15",
     "drizzle-orm": "^0.44.5",
     "effect": "catalog:effect"

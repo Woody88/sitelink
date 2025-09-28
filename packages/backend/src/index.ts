@@ -1,5 +1,10 @@
 // import { Container, getRandom } from "@cloudflare/containers"
 
+import { HttpApiBuilder, HttpServer } from "@effect/platform"
+import { Layer } from "effect"
+import { SiteLinkApi } from "./api"
+import { CloudflareEnv } from "./core/database"
+
 // export class SitelinkBackendContainer extends Container {
 // 	override defaultPort = 3000
 // 	override sleepAfter = "5m"
@@ -17,35 +22,14 @@
 
 export default {
 	async fetch(request, env, _ctx): Promise<Response> {
-		const url = new URL(request.url)
+		// const url = new URL(request.url)
+		const cloudflareEnv = Layer.succeed(CloudflareEnv, env)
+		const ApiLive = SiteLinkApi.pipe(Layer.provide(cloudflareEnv))
 
-		if (url.pathname === "/api/health/db") {
-			const response = await env.SitelinkDB.prepare("SELECT 1 as test")
-				.first()
-				.then(
-					(res) =>
-						new Response(
-							JSON.stringify({
-								database: "connected",
-								query: res,
-							}),
-							{ status: 200, headers: { "Content-Type": "application/json" } },
-						),
-				)
-				.catch(
-					(err) =>
-						new Response(
-							JSON.stringify({
-								database: "error",
-								error: err instanceof Error ? err.message : String(err),
-							}),
-							{ status: 500, headers: { "Content-Type": "application/json" } },
-						),
-				)
+		const { handler } = HttpApiBuilder.toWebHandler(
+			Layer.mergeAll(ApiLive, HttpServer.layerContext),
+		)
 
-			return response
-		}
-
-		return new Response("Hello World!", { status: 200 })
+		return handler(request)
 	},
 } satisfies ExportedHandler<Env>
