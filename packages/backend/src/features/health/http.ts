@@ -1,6 +1,6 @@
 import { HttpApiBuilder, HttpApiEndpoint, HttpApiGroup } from "@effect/platform"
 import { Effect } from "effect"
-import { Api } from "../../core/api"
+import { BaseApi } from "../../core/api"
 import { HealthService, SystemHealth } from "./service"
 
 export const HealthAPI = HttpApiGroup.make("Health")
@@ -8,7 +8,7 @@ export const HealthAPI = HttpApiGroup.make("Health")
 	.prefix("/health")
 
 export const HealthApiLive = HttpApiBuilder.group(
-	Api.add(HealthAPI),
+	BaseApi.add(HealthAPI),
 	"Health",
 	(handlers) =>
 		Effect.gen(function* () {

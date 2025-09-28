@@ -1,3 +1,3 @@
-import { HttpApi, HttpApiEndpoint, HttpApiGroup } from "@effect/platform"
+import { HttpApi } from "@effect/platform"
 
-export const Api = HttpApi.make("SiteLinkAPI")
+export const BaseApi = HttpApi.make("SiteLinkAPI")

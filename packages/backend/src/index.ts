@@ -2,7 +2,7 @@
 
 import { HttpApiBuilder, HttpServer } from "@effect/platform"
 import { Layer } from "effect"
-import { SiteLinkApi } from "./api"
+import { Api } from "./api"
 import { CloudflareEnv } from "./core/database"
 
 // export class SitelinkBackendContainer extends Container {
@@ -24,10 +24,10 @@ export default {
 	async fetch(request, env, _ctx): Promise<Response> {
 		// const url = new URL(request.url)
 		const cloudflareEnv = Layer.succeed(CloudflareEnv, env)
-		const ApiLive = SiteLinkApi.pipe(Layer.provide(cloudflareEnv))
+		const SiteLinkApiLive = Api.pipe(Layer.provide(cloudflareEnv))
 
 		const { handler } = HttpApiBuilder.toWebHandler(
-			Layer.mergeAll(ApiLive, HttpServer.layerContext),
+			Layer.mergeAll(SiteLinkApiLive, HttpServer.layerContext),
 		)
 
 		return handler(request)
