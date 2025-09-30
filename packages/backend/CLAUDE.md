@@ -1,106 +1,124 @@
 
-Default to using Bun instead of Node.js.
+# Backend Package Guidelines
 
-- Use `bun <file>` instead of `node <file>` or `ts-node <file>`
-- Use `bun test` instead of `jest` or `vitest`
-- Use `bun build <file.html|file.ts|file.css>` instead of `webpack` or `esbuild`
-- Use `bun install` instead of `npm install` or `yarn install` or `pnpm install`
-- Use `bun run <script>` instead of `npm run <script>` or `yarn run <script>` or `pnpm run <script>`
-- Bun automatically loads .env, so don't use dotenv.
+## Cloudflare Workers + Effect-TS Architecture
 
-## APIs
+This backend is a **Cloudflare Worker** using **Effect-TS HTTP API** with **D1 database**.
 
-- `Bun.serve()` supports WebSockets, HTTPS, and routes. Don't use `express`.
-- `bun:sqlite` for SQLite. Don't use `better-sqlite3`.
-- `Bun.redis` for Redis. Don't use `ioredis`.
-- `Bun.sql` for Postgres. Don't use `pg` or `postgres.js`.
-- `WebSocket` is built-in. Don't use `ws`.
-- Prefer `Bun.file` over `node:fs`'s readFile/writeFile
-- Bun.$`ls` instead of execa.
+## Folder Structure
+
+Follow this exact structure for all backend code:
+
+```
+packages/backend/src/
+├── core/                    # Core infrastructure services
+│   ├── database.ts          # DrizzleD1Client service
+│   ├── api.ts              # Base HttpApi definition
+│   └── index.ts            # CoreLayer composition
+│
+├── features/               # Business feature modules
+│   ├── health/
+│   │   ├── service.ts      # HealthService (business logic)
+│   │   ├── http.ts         # HTTP endpoints (HealthAPI)
+│   │   └── index.ts        # HealthModule (layer composition)
+│   │
+│   └── [feature]/          # Organizations, Projects, Plans, Files
+│       ├── service.ts      # Business logic
+│       ├── http.ts         # HTTP API endpoints
+│       └── index.ts        # Module layer composition
+│
+├── db/
+│   └── schema.ts           # Drizzle schema definitions
+│
+├── api.ts                  # Main SiteLinkApi composition
+└── index.ts               # Cloudflare Worker entry point
+```
+
+## Architecture Rules
+
+### 1. Core Layer (Infrastructure)
+- **Purpose**: Provides foundational services (Database, Config, etc.)
+- **Dependencies**: Cloudflare environment bindings only
+- **Exports**: Service layers that other modules depend on
+
+### 2. Feature Modules (Business Logic)
+- **Structure**: Each feature has `service.ts`, `http.ts`, and `index.ts`
+- **Dependencies**: Core layer services only (no cross-feature dependencies)
+- **Composition**: Use `Layer.provideMerge()` to satisfy internal dependencies
+- **Exports**: Single module layer + HTTP API definitions
+
+### 3. Layer Composition Rules
+- **Services**: Declare dependencies by yielding other services in `Effect.gen`
+- **Modules**: Use `Layer.provideMerge()` to satisfy feature-internal dependencies
+- **App Level**: Use `Layer.provide()` to inject core infrastructure into features
+
+## Effect-TS Patterns
+
+### Service Definition
+```typescript
+export class MyService extends Effect.Service<MyService>()("MyService", {
+  effect: Effect.gen(function* () {
+    const database = yield* DrizzleD1Client  // Declares dependency
+
+    return {
+      myMethod: () => Effect.succeed("result")
+    }
+  })
+}) {}
+```
+
+### Module Composition
+```typescript
+// In features/myfeature/index.ts
+export const MyModule = MyHttpLive.pipe(
+  Layer.provideMerge(MyService.Default)  // Satisfy HTTP layer's service dependency
+)
+```
+
+### HTTP API Definition
+```typescript
+// In features/myfeature/http.ts
+export const MyAPI = HttpApiGroup.make("My").pipe(
+  HttpApiGroup.addEndpoint(/* endpoints */)
+)
+```
 
 ## Testing
 
-Use `bun test` to run tests.
+**Use Vitest** (not bun test) for Cloudflare Workers testing:
 
-```ts#index.test.ts
-import { test, expect } from "bun:test";
-
-test("hello world", () => {
-  expect(1).toBe(1);
-});
+```bash
+bun run vitest
 ```
 
-## Frontend
+Test structure:
+```typescript
+import { describe, expect, it } from "vitest"
+import { createExecutionContext, env, waitOnExecutionContext } from "cloudflare:test"
+import worker from "../src/index"
 
-Use HTML imports with `Bun.serve()`. Don't use `vite`. HTML imports fully support React, CSS, Tailwind.
+describe("My Feature", () => {
+  it("should work", async () => {
+    const request = new Request("http://example.com/api/my-endpoint")
+    const ctx = createExecutionContext()
+    const response = await worker.fetch(request, env, ctx)
+    await waitOnExecutionContext(ctx)
 
-Server:
-
-```ts#index.ts
-import index from "./index.html"
-
-Bun.serve({
-  routes: {
-    "/": index,
-    "/api/users/:id": {
-      GET: (req) => {
-        return new Response(JSON.stringify({ id: req.params.id }));
-      },
-    },
-  },
-  // optional websocket support
-  websocket: {
-    open: (ws) => {
-      ws.send("Hello, world!");
-    },
-    message: (ws, message) => {
-      ws.send(message);
-    },
-    close: (ws) => {
-      // handle close
-    }
-  },
-  development: {
-    hmr: true,
-    console: true,
-  }
+    expect(response.status).toBe(200)
+  })
 })
 ```
 
-HTML files can import .tsx, .jsx or .js files directly and Bun's bundler will transpile & bundle automatically. `<link>` tags can point to stylesheets and Bun's CSS bundler will bundle.
+## Development Commands
 
-```html#index.html
-<html>
-  <body>
-    <h1>Hello, world!</h1>
-    <script type="module" src="./frontend.tsx"></script>
-  </body>
-</html>
-```
+- **Development**: `bun run dev` (uses Wrangler)
+- **Testing**: `bun run vitest`
+- **Database**: `bun run db:local:studio`
+- **Migrations**: `bun run db:gen:migration`
 
-With the following `frontend.tsx`:
+## Key Dependencies
 
-```tsx#frontend.tsx
-import React from "react";
-
-// import .css files directly and it works
-import './index.css';
-
-import { createRoot } from "react-dom/client";
-
-const root = createRoot(document.body);
-
-export default function Frontend() {
-  return <h1>Hello, world!</h1>;
-}
-
-root.render(<Frontend />);
-```
-
-Then, run index.ts
-
-```sh
-bun --hot ./index.ts
-```
-
-For more information, read the Bun API docs in `node_modules/bun-types/docs/**.md`.
+- **Effect-TS**: `effect`, `@effect/platform`
+- **Database**: `drizzle-orm`, `@libsql/client`
+- **Testing**: `vitest`, `@cloudflare/vitest-pool-workers`
+- **Cloudflare**: `wrangler`, `@cloudflare/workers-types`

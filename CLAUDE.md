@@ -1,8 +1,56 @@
 
+# Sitelink Project Guidelines
+
+## Project Architecture
+
+This is a **monorepo** using **composable module architecture** inspired by PaulJPhilp's Effect-TS patterns.
+
+### Core Architectural Principles
+
+1. **Composable Modules**: Each business domain is a self-contained module with clear dependencies
+2. **Layer Composition**: Use Effect-TS layers for dependency injection and service composition
+3. **Separation of Concerns**: Core infrastructure separate from business features
+4. **Type Safety**: Full type safety across all layers and boundaries
+5. **Hybrid Architecture**: Cloudflare Workers for API + Containers for processing
+
+### Monorepo Structure
+
+```
+packages/
+├── backend/                 # Cloudflare Worker (Effect-TS HTTP API)
+│   └── src/
+│       ├── core/           # Infrastructure services
+│       ├── features/       # Business domain modules
+│       └── api.ts          # Main API composition
+│
+├── processing/             # Containerized PDF processing service
+├── mobile/                 # React Native app
+└── web/                    # Web dashboard (future)
+```
+
+### Module Composition Rules
+
+1. **Core Layer**: Infrastructure services (Database, Storage, Config)
+2. **Feature Modules**: Business domains (Organizations, Projects, Plans, Files)
+3. **App Layer**: Composes features with core using `Layer.provide()`
+4. **No Cross-Dependencies**: Features only depend on core, never on each other
+
+### Package-Specific Guidelines
+
+Each package has its own `CLAUDE.md` with specific architectural rules:
+
+- **`packages/backend/CLAUDE.md`**: Effect-TS patterns, folder structure, Cloudflare Workers setup
+- **`packages/mobile/CLAUDE.md`**: React Native patterns, API integration
+- **`packages/processing/CLAUDE.md`**: Container architecture, Sharp processing
+
+---
+
+## Development Standards
+
 Default to using Bun instead of Node.js.
 
 - Use `bun <file>` instead of `node <file>` or `ts-node <file>`
-- Use `bun test` instead of `jest` or `vitest`
+- Use `bun test` instead of `jest` or `vitest` (except backend package - see `packages/backend/CLAUDE.md`)
 - Use `bun build <file.html|file.ts|file.css>` instead of `webpack` or `esbuild`
 - Use `bun install` instead of `npm install` or `yarn install` or `pnpm install`
 - Use `bun run <script>` instead of `npm run <script>` or `yarn run <script>` or `pnpm run <script>`

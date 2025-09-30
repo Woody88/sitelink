@@ -19,6 +19,7 @@
         "@cloudflare/containers": "^0.0.28",
         "@effect/platform": "catalog:effect",
         "@effect/platform-bun": "^0.80.0",
+        "@effect/vitest": "^0.26.0",
         "@libsql/client": "^0.15.15",
         "drizzle-orm": "^0.44.5",
         "effect": "catalog:effect",
@@ -103,6 +104,8 @@
     "@effect/rpc": ["@effect/rpc@0.70.0", "", { "dependencies": { "msgpackr": "^1.11.4" }, "peerDependencies": { "@effect/platform": "^0.91.0", "effect": "^3.17.14" } }, "sha512-DGRdFuCSjazGPG16D6QQ3jWGbyWvwUGQtexR5mE8EWip0PMU7fnGDv5NopOQQyPnja13NCRZy2h87XH9G9RvRg=="],
 
     "@effect/sql": ["@effect/sql@0.45.0", "", { "dependencies": { "uuid": "^11.0.3" }, "peerDependencies": { "@effect/experimental": "^0.55.0", "@effect/platform": "^0.91.0", "effect": "^3.17.14" } }, "sha512-250w6apb25GTj5T5zxXN1Yw3RJPeaE4xozghOImx5iZn/DHYXWPrTvEM9b/RNmSX5+JaeComObeNgpZbMzKfVQ=="],
+
+    "@effect/vitest": ["@effect/vitest@0.26.0", "", { "peerDependencies": { "effect": "^3.18.0", "vitest": "^3.2.0" } }, "sha512-h7r21XRtHpl8CQmIuplCK54bYJkUij4c6bUxK27y4d9dTXn4s7c/I3Lilb4VZxv3P3S3sChCu5YIGW4pdQFjZg=="],
 
     "@effect/workflow": ["@effect/workflow@0.10.0", "", { "peerDependencies": { "@effect/platform": "^0.91.0", "@effect/rpc": "^0.70.0", "effect": "^3.17.14" } }, "sha512-N/WWvOp+6QKAJsqrD1P/9Nc5tbgmDwWFNtv2leaT4y//xm7bKy3CLlpqF9GzluJYZBlXnygCeqDfNkaGsrVv7g=="],
 
