@@ -154,137 +154,237 @@ Roles:
 ### Multi-Tenant Database Architecture
 
 ```sql
--- Core tenant structure
-CREATE TABLE organizations (
+-- ============================================
+-- Better-Auth Core Tables
+-- ============================================
+
+-- Users (managed by Better-Auth)
+CREATE TABLE user (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
-  owner_email TEXT UNIQUE NOT NULL,
-  subscription_tier TEXT DEFAULT 'trial', -- trial|pro|enterprise
-  subscription_status TEXT DEFAULT 'trialing', -- trialing|active|past_due|cancelled
-  trial_ends_at TIMESTAMP,
-  stripe_customer_id TEXT,
-  stripe_subscription_id TEXT,
-  mrr INTEGER DEFAULT 0, -- Monthly recurring revenue in cents
-  seats_used INTEGER DEFAULT 1,
-  seats_limit INTEGER DEFAULT 3,
-  storage_used_bytes INTEGER DEFAULT 0,
-  storage_limit_bytes INTEGER,
-  current_period_ends_at TIMESTAMP,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  email TEXT NOT NULL UNIQUE,
+  emailVerified INTEGER NOT NULL DEFAULT 0, -- Boolean
+  image TEXT,
+  createdAt INTEGER NOT NULL, -- Timestamp
+  updatedAt INTEGER NOT NULL, -- Timestamp
+  INDEX idx_user_email (email)
 );
 
--- User management
-CREATE TABLE users (
+-- Sessions (managed by Better-Auth)
+CREATE TABLE session (
   id TEXT PRIMARY KEY,
-  clerk_user_id TEXT UNIQUE, -- Clerk auth reference
+  expiresAt INTEGER NOT NULL, -- Timestamp
+  token TEXT NOT NULL UNIQUE,
+  createdAt INTEGER NOT NULL,
+  updatedAt INTEGER NOT NULL,
+  ipAddress TEXT,
+  userAgent TEXT,
+  userId TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+  activeOrganizationId TEXT REFERENCES organization(id) ON DELETE SET NULL,
+  INDEX idx_session_token (token),
+  INDEX idx_session_user (userId)
+);
+
+-- Accounts (OAuth providers)
+CREATE TABLE account (
+  id TEXT PRIMARY KEY,
+  accountId TEXT NOT NULL,
+  providerId TEXT NOT NULL,
+  userId TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+  accessToken TEXT,
+  refreshToken TEXT,
+  idToken TEXT,
+  accessTokenExpiresAt INTEGER,
+  refreshTokenExpiresAt INTEGER,
+  scope TEXT,
+  createdAt INTEGER NOT NULL,
+  updatedAt INTEGER NOT NULL,
+  INDEX idx_account_user (userId)
+);
+
+-- Verification tokens (magic links, email verification)
+CREATE TABLE verification (
+  id TEXT PRIMARY KEY,
+  identifier TEXT NOT NULL,
+  value TEXT NOT NULL,
+  expiresAt INTEGER NOT NULL,
+  createdAt INTEGER,
+  updatedAt INTEGER
+);
+
+-- ============================================
+-- Better-Auth Organization Plugin Tables
+-- ============================================
+
+-- Organizations
+CREATE TABLE organization (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  slug TEXT UNIQUE,
+  logo TEXT,
+  createdAt INTEGER NOT NULL,
+  deletedAt INTEGER, -- Soft delete timestamp
+  metadata TEXT, -- JSON: {business_type, address, phone, etc}
+  INDEX idx_org_slug (slug)
+);
+
+-- Organization Members
+CREATE TABLE member (
+  id TEXT PRIMARY KEY,
+  organizationId TEXT NOT NULL REFERENCES organization(id) ON DELETE CASCADE,
+  userId TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+  role TEXT NOT NULL, -- owner|admin|member
+  createdAt INTEGER NOT NULL,
+  UNIQUE(organizationId, userId),
+  INDEX idx_member_org (organizationId),
+  INDEX idx_member_user (userId)
+);
+
+-- Organization Invitations
+CREATE TABLE invitation (
+  id TEXT PRIMARY KEY,
+  organizationId TEXT NOT NULL REFERENCES organization(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
-  name TEXT,
-  phone TEXT,
-  org_id TEXT REFERENCES organizations(id),
-  role TEXT DEFAULT 'member', -- owner|admin|member
-  last_active_at TIMESTAMP,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_users_org (org_id),
-  INDEX idx_users_clerk (clerk_user_id)
+  role TEXT NOT NULL,
+  status TEXT NOT NULL, -- pending|accepted|rejected
+  expiresAt INTEGER NOT NULL,
+  inviterId TEXT NOT NULL REFERENCES user(id),
+  createdAt INTEGER NOT NULL,
+  INDEX idx_invitation_org (organizationId),
+  INDEX idx_invitation_email (email)
 );
 
--- Project management
-CREATE TABLE projects (
+-- ============================================
+-- Subscription Management (Polar Integration)
+-- ============================================
+
+-- Subscriptions (linked to organizations)
+CREATE TABLE subscription (
   id TEXT PRIMARY KEY,
-  org_id TEXT REFERENCES organizations(id),
+  polarSubscriptionId TEXT UNIQUE,
+  organizationId TEXT NOT NULL REFERENCES organization(id) ON DELETE CASCADE,
+  plan TEXT NOT NULL, -- trial|pro|enterprise
+  status TEXT NOT NULL, -- active|canceled|past_due
+  startDate INTEGER NOT NULL,
+  endDate INTEGER,
+  seats INTEGER NOT NULL DEFAULT 1,
+  trialEndsAt INTEGER,
+  currentPeriodEndsAt INTEGER,
+  createdAt INTEGER NOT NULL,
+  updatedAt INTEGER NOT NULL,
+  INDEX idx_subscription_org (organizationId),
+  INDEX idx_subscription_polar (polarSubscriptionId)
+);
+
+-- ============================================
+-- Project Management
+-- ============================================
+
+CREATE TABLE project (
+  id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT,
-  created_by TEXT REFERENCES users(id),
-  is_archived BOOLEAN DEFAULT FALSE,
-  deleted_at TIMESTAMP,
-  share_token TEXT UNIQUE, -- For quick sharing
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_projects_org (org_id),
-  INDEX idx_projects_share (share_token)
+  organizationId TEXT NOT NULL REFERENCES organization(id) ON DELETE CASCADE,
+  isArchived INTEGER DEFAULT 0, -- Boolean
+  deletedAt INTEGER, -- Soft delete
+  shareToken TEXT UNIQUE, -- For quick sharing
+  createdAt INTEGER NOT NULL,
+  updatedAt INTEGER NOT NULL,
+  INDEX idx_project_org (organizationId),
+  INDEX idx_project_share (shareToken)
 );
 
--- Sheet/Plan storage
-CREATE TABLE sheets (
+-- ============================================
+-- Plan/Sheet Management
+-- ============================================
+
+CREATE TABLE plan (
   id TEXT PRIMARY KEY,
-  project_id TEXT REFERENCES projects(id),
-  org_id TEXT, -- Denormalized for performance
+  projectId TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  sheet_number TEXT,
-  original_file_key TEXT, -- R2 reference
-  dzi_metadata JSON, -- Tile structure info
-  thumbnail_key TEXT, -- R2 reference
+  sheetNumber TEXT,
+  originalFileKey TEXT, -- R2 path to original PDF
+  dziMetadata TEXT, -- JSON: tile structure info
+  thumbnailKey TEXT, -- R2 path to thumbnail
   width INTEGER,
   height INTEGER,
-  tile_size INTEGER DEFAULT 256,
-  max_zoom_level INTEGER,
-  processing_status TEXT DEFAULT 'pending', -- pending|processing|complete|failed
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_sheets_project (project_id),
-  INDEX idx_sheets_org (org_id)
+  tileSize INTEGER DEFAULT 256,
+  maxZoomLevel INTEGER,
+  processingStatus TEXT DEFAULT 'pending', -- pending|processing|complete|failed
+  createdAt INTEGER NOT NULL,
+  updatedAt INTEGER NOT NULL,
+  INDEX idx_plan_project (projectId)
 );
 
--- Sheet linking (Critical feature)
-CREATE TABLE sheet_links (
+-- ============================================
+-- Sheet Linking (Critical Feature)
+-- ============================================
+
+CREATE TABLE sheetLink (
   id TEXT PRIMARY KEY,
-  org_id TEXT, -- Denormalized
-  project_id TEXT, -- Denormalized
-  from_sheet_id TEXT REFERENCES sheets(id),
-  to_sheet_id TEXT REFERENCES sheets(id),
-  coordinates JSON, -- {x, y, width, height} in pixels
+  projectId TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+  fromSheetId TEXT NOT NULL REFERENCES plan(id) ON DELETE CASCADE,
+  toSheetId TEXT NOT NULL REFERENCES plan(id) ON DELETE CASCADE,
+  coordinates TEXT, -- JSON: {x, y, width, height} in pixels
   label TEXT,
   color TEXT DEFAULT '#0066CC',
-  created_by TEXT REFERENCES users(id),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_links_from (from_sheet_id),
-  INDEX idx_links_to (to_sheet_id)
+  createdBy TEXT NOT NULL REFERENCES user(id),
+  createdAt INTEGER NOT NULL,
+  INDEX idx_link_from (fromSheetId),
+  INDEX idx_link_to (toSheetId),
+  INDEX idx_link_project (projectId)
 );
 
--- Media captures
-CREATE TABLE media_captures (
+-- ============================================
+-- Media Captures (Photos/Videos on Plans)
+-- ============================================
+
+CREATE TABLE mediaCapture (
   id TEXT PRIMARY KEY,
-  org_id TEXT, -- Denormalized
-  project_id TEXT REFERENCES projects(id),
-  sheet_id TEXT REFERENCES sheets(id),
+  projectId TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+  planId TEXT REFERENCES plan(id) ON DELETE SET NULL,
   type TEXT NOT NULL, -- photo|video
-  file_key TEXT, -- R2 reference
-  thumbnail_key TEXT, -- For videos
-  coordinates JSON, -- {x, y} on sheet
+  fileKey TEXT NOT NULL, -- R2 path
+  thumbnailKey TEXT, -- R2 path for videos
+  coordinates TEXT, -- JSON: {x, y} on sheet
   description TEXT,
-  captured_by TEXT REFERENCES users(id),
-  device_info JSON, -- Device type, OS version
-  sync_status TEXT DEFAULT 'pending', -- pending|synced|failed
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  synced_at TIMESTAMP,
-  INDEX idx_media_sheet (sheet_id),
-  INDEX idx_media_sync (sync_status)
+  capturedBy TEXT NOT NULL REFERENCES user(id),
+  deviceInfo TEXT, -- JSON: device type, OS version
+  syncStatus TEXT DEFAULT 'pending', -- pending|synced|failed
+  createdAt INTEGER NOT NULL,
+  syncedAt INTEGER,
+  INDEX idx_media_plan (planId),
+  INDEX idx_media_project (projectId),
+  INDEX idx_media_sync (syncStatus)
 );
 
--- Annotations
-CREATE TABLE annotations (
+-- ============================================
+-- Annotations (Circles on Plans - MVP)
+-- ============================================
+
+CREATE TABLE annotation (
   id TEXT PRIMARY KEY,
-  org_id TEXT, -- Denormalized
-  sheet_id TEXT REFERENCES sheets(id),
+  planId TEXT NOT NULL REFERENCES plan(id) ON DELETE CASCADE,
   type TEXT DEFAULT 'circle', -- circle only for MVP
   color TEXT NOT NULL, -- red|yellow|green
-  coordinates JSON, -- {cx, cy, radius} for circles
-  created_by TEXT REFERENCES users(id),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_annotations_sheet (sheet_id)
+  coordinates TEXT, -- JSON: {cx, cy, radius} for circles
+  createdBy TEXT NOT NULL REFERENCES user(id),
+  createdAt INTEGER NOT NULL,
+  updatedAt INTEGER NOT NULL,
+  INDEX idx_annotation_plan (planId)
 );
 
--- Usage tracking for billing
-CREATE TABLE usage_events (
+-- ============================================
+-- Usage Tracking (for Analytics/Billing)
+-- ============================================
+
+CREATE TABLE usageEvent (
   id TEXT PRIMARY KEY,
-  org_id TEXT REFERENCES organizations(id),
-  event_type TEXT NOT NULL, -- project_created|sheet_uploaded|media_uploaded
-  metadata JSON,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_usage_org_date (org_id, created_at)
+  organizationId TEXT NOT NULL REFERENCES organization(id) ON DELETE CASCADE,
+  eventType TEXT NOT NULL, -- project_created|sheet_uploaded|media_uploaded
+  metadata TEXT, -- JSON
+  createdAt INTEGER NOT NULL,
+  INDEX idx_usage_org_date (organizationId, createdAt)
 );
 ```
 
@@ -310,43 +410,97 @@ CREATE TABLE usage_events (
 
 ### Authentication Strategy
 
-**Provider**: Clerk (Selected over alternatives)
+**Provider**: Better-Auth (Selected over Clerk)
 
-**Why Clerk:**
-- Free for first 10,000 monthly active users and 100 monthly active orgs
-- Pre-built UI components for rapid development
-- Native Expo/React Native support
-- SOC 2 Type II compliant
-- Better developer experience than Auth0
-- More cost-effective than Better Auth for small teams
+**Why Better-Auth:**
+- **Passwordless Authentication**: Magic link + OAuth (Google, Microsoft) - no password management
+- **Lightweight & Open Source**: Less vendor lock-in, self-hostable
+- **Native Drizzle + D1 Support**: Perfect fit for Cloudflare stack
+- **Built-in Multi-Org Plugin**: Organization management out of the box
+- **Lower Cost at Scale**: No per-user pricing, pay only for infrastructure
+- **Modern Auth Flow**: Email verification via Cloudflare Email Workers
+- **Type-Safe**: Full TypeScript support with Effect-TS integration
+
+**Authentication Methods:**
+1. **Magic Link** (Primary for MVP)
+   - Send email with one-time login link
+   - Uses Cloudflare Email Workers for delivery
+   - No password storage or management
+
+2. **OAuth Providers** (MVP)
+   - Google (primary for small businesses)
+   - Microsoft (for larger contractors)
+   - Apple (future consideration)
+
+**First-Time User Flow:**
+1. User signs in with Google/Microsoft OAuth
+2. If new user: collect business information
+3. Auto-create organization (user becomes owner)
+4. Create session with active organization context
+5. Other users join via email invitations
 
 **Implementation:**
-```javascript
-// Clerk integration with Cloudflare Workers
+```typescript
+// Better-Auth integration with Effect-TS + Cloudflare Workers
+import { betterAuth } from "better-auth"
+import { drizzleAdapter } from "better-auth/adapters/drizzle"
+import { organization } from "better-auth/plugins"
+
+export const auth = betterAuth({
+  database: drizzleAdapter(db, {
+    provider: "sqlite",
+    schema: {
+      user: users,
+      session: sessions,
+      account: accounts,
+      verification: verifications,
+      organization: organizations,
+      member: organizationMembers,
+      invitation: organizationInvitations,
+    },
+  }),
+  emailAndPassword: {
+    enabled: false, // No passwords
+  },
+  socialProviders: {
+    google: {
+      clientId: env.GOOGLE_CLIENT_ID,
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
+    },
+    microsoft: {
+      clientId: env.MICROSOFT_CLIENT_ID,
+      clientSecret: env.MICROSOFT_CLIENT_SECRET,
+    },
+  },
+  plugins: [
+    organization({
+      allowUserToCreateOrganization: true,
+      organizationLimit: 1, // One org per user (can be invited to others)
+    }),
+  ],
+  trustedOrigins: [env.APP_URL],
+})
+
+// Authentication middleware with session context
 export async function authenticate(request, env) {
-  const clerk = new Clerk({ 
-    secretKey: env.CLERK_SECRET_KEY 
-  });
-  
-  const session = await clerk.verifySession(
-    request.headers.get('Authorization')
-  );
-  
-  if (!session) throw new Error('Unauthorized');
-  
-  // Get user with org context
-  const user = await env.DB.prepare(`
-    SELECT u.*, o.subscription_status, o.subscription_tier
-    FROM users u
-    JOIN organizations o ON u.org_id = o.id
-    WHERE u.clerk_user_id = ?
-  `).bind(session.userId).first();
-  
-  request.user = user;
-  request.orgId = user.org_id;
-  return request;
+  const session = await auth.api.getSession({
+    headers: request.headers,
+  })
+
+  if (!session) throw new Error('Unauthorized')
+
+  // Session includes active organization context
+  request.user = session.user
+  request.orgId = session.session.activeOrganizationId
+
+  return request
 }
 ```
+
+**Migration Path:**
+- Abstract auth layer behind service interface
+- All business logic uses AuthService, not Better-Auth directly
+- Can switch providers later if needed without rewriting features
 
 ### Payment Processing
 
@@ -360,9 +514,37 @@ export async function authenticate(request, env) {
 - Better for SaaS than raw Stripe implementation
 - Simpler than Stripe for subscription management
 
+**Key Benefits:**
+- **External User ID Support**: Pass user IDs directly, no customer sync required
+- **Tax Compliance**: Handles GST/HST (Canada) and US state sales tax
+- **Subscription Management**: Seat-based pricing built-in
+- **Simpler Integration**: No webhook complexity for basic subscription flows
+
+**Implementation:**
+```typescript
+// Polar integration with external user IDs
+import { Polar } from "@polar-sh/sdk"
+
+export const polar = new Polar({
+  accessToken: env.POLAR_ACCESS_TOKEN,
+})
+
+// Create subscription - no customer sync needed
+await polar.subscriptions.create({
+  external_user_id: user.id, // Just use your user ID
+  product_id: env.POLAR_PRO_PRODUCT_ID,
+  seats: 1,
+})
+
+// Update seats as team grows
+await polar.subscriptions.update(subscriptionId, {
+  seats: newSeatCount,
+})
+```
+
 **Pricing Comparison for $10,000 MRR:**
-- Stripe: ~$290 (2.9%) + tax compliance costs + development time
-- Polar: $400 (4%) all-inclusive with tax handling
+- Stripe Direct: ~$290 (2.9%) + tax compliance costs + development time
+- Polar: $400 (4%) all-inclusive with tax handling + no customer sync overhead
 
 ### Observability & Monitoring
 

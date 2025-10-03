@@ -1,67 +1,148 @@
 erDiagram
-    %% Clerk-managed entities (external)
-    USERS ||--o{ ORGANIZATIONS : member_of
-    USERS ||--o{ SUBSCRIPTIONS : has
+    %% Better-Auth managed entities
+    USERS ||--o{ SESSIONS : has
+    USERS ||--o{ ACCOUNTS : has
+    USERS ||--o{ MEMBERS : has
 
-    %% Local D1 database entities
+    %% Organization structure
+    ORGANIZATIONS ||--o{ MEMBERS : has
+    ORGANIZATIONS ||--o{ INVITATIONS : sends
+    ORGANIZATIONS ||--o{ SUBSCRIPTIONS : has
     ORGANIZATIONS ||--o{ PROJECTS : owns
+
+    %% Project structure
     PROJECTS ||--o{ PLANS : has
     PLANS ||--o{ FILES : points_to
     PROJECTS ||--o{ MEDIA : has
 
-    %% Entity definitions
+    %% Sessions track active organization
+    SESSIONS }o--|| ORGANIZATIONS : active_org
+
+    %% Better-Auth Core Tables
     USERS {
         string id PK
-        string email
         string name
+        string email UK
+        boolean emailVerified
+        string image
+        timestamp createdAt
+        timestamp updatedAt
     }
 
+    SESSIONS {
+        string id PK
+        timestamp expiresAt
+        string token UK
+        timestamp createdAt
+        timestamp updatedAt
+        string ipAddress
+        string userAgent
+        string userId FK
+        string activeOrganizationId FK
+    }
+
+    ACCOUNTS {
+        string id PK
+        string accountId
+        string providerId "google|microsoft"
+        string userId FK
+        string accessToken
+        string refreshToken
+        string idToken
+        timestamp accessTokenExpiresAt
+        timestamp refreshTokenExpiresAt
+        string scope
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    VERIFICATIONS {
+        string id PK
+        string identifier
+        string value
+        timestamp expiresAt
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    %% Organization Tables
     ORGANIZATIONS {
         string id PK
         string name
-        string clerk_organization_id
+        string slug UK
+        string logo
+        timestamp createdAt
+        timestamp deletedAt "soft delete"
+        json metadata "business info"
     }
 
+    MEMBERS {
+        string id PK
+        string organizationId FK
+        string userId FK
+        string role "owner|admin|member"
+        timestamp createdAt
+    }
+
+    INVITATIONS {
+        string id PK
+        string organizationId FK
+        string email
+        string role
+        string status "pending|accepted|rejected"
+        timestamp expiresAt
+        string inviterId FK
+        timestamp createdAt
+    }
+
+    %% Subscription Tables (Polar Integration)
     SUBSCRIPTIONS {
         string id PK
-        string stripe_subscription_id
-        string user_id FK
-        string plan
-        date start_date
-        date end_date
+        string polarSubscriptionId UK
+        string organizationId FK
+        string plan "trial|pro|enterprise"
+        string status "active|canceled|past_due"
+        timestamp startDate
+        timestamp endDate
+        int seats
+        timestamp trialEndsAt
+        timestamp currentPeriodEndsAt
+        timestamp createdAt
+        timestamp updatedAt
     }
 
+    %% Project Management
     PROJECTS {
         string id PK
         string name
         string description
-        string organization_id FK
-        date created_at
-        date updated_at
+        string organizationId FK
+        timestamp createdAt
+        timestamp updatedAt
     }
 
     PLANS {
         string id PK
-        string project_id FK
+        string projectId FK
         string name
         string description
         string r2_directory_path
-        date created_at
-        date updated_at
+        timestamp createdAt
+        timestamp updatedAt
     }
 
     FILES {
         string id PK
-        string plan_id FK
+        string planId FK
         string r2_file_path
-        string file_type
-        date uploaded_at
+        string file_type "pdf|dwg|etc"
+        timestamp uploadedAt
     }
 
     MEDIA {
         string id PK
-        string project_id FK
+        string projectId FK
         string file_path
-        string media_type
-        date uploaded_at
+        string media_type "photo|video|audio"
+        timestamp uploadedAt
     }
