@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/d1"
 import { Context, Effect, Schema } from "effect"
-import * as schema from "./schema"
+import * as schema from "./schemas"
 
 export class CloudflareEnv extends Context.Tag("CloudflareEnv")<
 	CloudflareEnv,

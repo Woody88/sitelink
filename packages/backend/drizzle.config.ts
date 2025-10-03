@@ -2,12 +2,12 @@ import { defineConfig } from "drizzle-kit"
 
 export default defineConfig({
 	out: "./drizzle",
-	schema: "./src/core/database/schema.ts",
+	schema: "./src/core/database/schemas",
 	dialect: "sqlite",
 	...(process.env.NODE_ENV !== "production" // Use local SQLite file for development
 		? {
 				dbCredentials: {
-					url: ".wrangler/state/v3/d1/miniflare-D1DatabaseObject/466b4a89f8d1a8de474e8a13f8a6e15c3ae79660deea427e1d3beef0a6ab599a.sqlite",
+					url: ".wrangler/state/v3/d1/miniflare-D1DatabaseObject/1bfa5e8ee82606601526f90ef320195702c729e781f59e4dd2577221ec89c2e9.sqlite",
 				},
 			}
 		: {

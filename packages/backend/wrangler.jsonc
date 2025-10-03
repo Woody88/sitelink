@@ -12,7 +12,6 @@
 	],
 	// "containers": [
 	// 	{
-
 	// 		"max_instances": 0,
 	// 		"name": "sitelink-backend-container",
 	// 		"class_name": "SitelinkBackendContainer",
@@ -44,7 +43,7 @@
 		{
 			"binding": "SitelinkDB",
 			"database_name": "sitelink-db",
-			"database_id": "e6d94a86-f88c-4536-84d8-d4e121c9e72a",
+			"database_id": "9b97a3b7-f357-48a2-83fe-d041c393820f",
 			"migrations_dir": "./drizzle"
 		}
 	],
