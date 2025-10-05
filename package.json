@@ -7,10 +7,9 @@
     "packages": ["packages/*"],
     "catalogs": {
       "effect": {
-        "effect": "^3.17.14",
-        "@effect/platform": "^0.90.10",
-        "@effect/experimental": "^0.54.6",
-        "@effect/rpc": "^0.69.4"
+        "effect": "^3.18.2",
+        "@effect/platform": "^0.92.1",
+        "@effect/experimental": "^0.56.0"
       }
     }
   },

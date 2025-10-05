@@ -5,5 +5,4 @@ import { HealthService } from "./service"
 
 export const HealthModule = HealthApiLive.pipe(
 	Layer.provideMerge(HealthService.Default),
-	Layer.provide(CoreLayer),
 )

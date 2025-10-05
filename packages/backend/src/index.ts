@@ -2,8 +2,10 @@
 
 import { HttpApiBuilder, HttpServer } from "@effect/platform"
 import { Layer } from "effect"
+import { Resend } from "resend"
 import { Api } from "./api"
-import { CloudflareEnv } from "./core/database"
+import { CoreLayer } from "./core"
+import { D1Binding, ResendBinding } from "./core/bindings"
 
 // export class SitelinkBackendContainer extends Container {
 // 	override defaultPort = 3000
@@ -23,8 +25,21 @@ import { CloudflareEnv } from "./core/database"
 export default {
 	async fetch(request, env, _ctx): Promise<Response> {
 		// const url = new URL(request.url)
-		const cloudflareEnv = Layer.succeed(CloudflareEnv, env)
-		const SiteLinkApiLive = Api.pipe(Layer.provide(cloudflareEnv))
+
+		// Create Cloudflare Binding Layers
+		const D1Layer = Layer.succeed(D1Binding, env.SitelinkDB)
+		const ResendLayer = Layer.succeed(
+			ResendBinding,
+			new Resend(env.RESEND_API_KEY),
+		)
+
+		// Assemble App Layer by providing binding layers
+		const AppLayer = CoreLayer.pipe(
+			Layer.provide(D1Layer),
+			Layer.provide(ResendLayer),
+		)
+
+		const SiteLinkApiLive = Api.pipe(Layer.provide(AppLayer))
 
 		const { handler } = HttpApiBuilder.toWebHandler(
 			Layer.mergeAll(SiteLinkApiLive, HttpServer.layerContext),
