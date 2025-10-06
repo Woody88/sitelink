@@ -1,8 +1,31 @@
 import { betterAuth } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
-import { magicLink, organization } from "better-auth/plugins"
+import {
+	magicLink,
+	type OrganizationOptions,
+	openAPI,
+	organization,
+} from "better-auth/plugins"
 
-export const auth = betterAuth({
+export const magicLinkOptions = {
+	sendMagicLink: async (_, request) => {},
+} satisfies Parameters<typeof magicLink>[0]
+
+export const organizationOptions = {
+	schema: {
+		organization: {
+			additionalFields: {
+				deletedAt: {
+					type: "date",
+					input: false,
+					required: false,
+				},
+			},
+		},
+	},
+} satisfies OrganizationOptions
+
+export const betterAuthConfig = {
 	database: drizzleAdapter(
 		{},
 		{
@@ -13,22 +36,13 @@ export const auth = betterAuth({
 	emailAndPassword: {
 		enabled: false,
 	},
+} satisfies Parameters<typeof betterAuth>[0]
+
+export const auth = betterAuth({
+	...betterAuthConfig,
 	plugins: [
-		magicLink({
-			sendMagicLink: async ({ email, token, url }, request) => {},
-		}),
-		organization({
-			schema: {
-				organization: {
-					additionalFields: {
-						deletedAt: {
-							type: "date",
-							input: false,
-							required: false,
-						},
-					},
-				},
-			},
-		}),
+		magicLink(magicLinkOptions),
+		organization(organizationOptions),
+		openAPI(),
 	],
 })

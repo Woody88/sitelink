@@ -1,13 +1,20 @@
+import * as Respondable from "@effect/platform/HttpServerRespondable"
+import * as ServerResponse from "@effect/platform/HttpServerResponse"
 import { drizzle } from "drizzle-orm/d1"
 import { Effect, Schema } from "effect"
 import { D1Binding } from "../bindings"
 import * as schema from "./schemas"
 
-export class DatabaseError extends Schema.TaggedError<DatabaseError>(
-	"DatabaseError",
-)("DatabaseError", {
-	cause: Schema.Defect,
-}) {}
+export class DatabaseError
+	extends Schema.TaggedError<DatabaseError>("DatabaseError")("DatabaseError", {
+		cause: Schema.Defect,
+	})
+	implements Respondable.Respondable
+{
+	[Respondable.symbol]() {
+		return ServerResponse.empty({ status: 500 })
+	}
+}
 
 export class DatabaseService extends Effect.Service<DatabaseService>()(
 	"DatabaseService",
