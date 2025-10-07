@@ -12,6 +12,8 @@
     "@cloudflare/containers": "^0.0.28",
     "@effect/platform": "catalog:effect",
     "@effect/platform-bun": "^0.80.0",
+    "@effect/sql-d1": "^0.44.0",
+    "@effect/sql-drizzle": "^0.45.0",
     "@effect/vitest": "^0.26.0",
     "@libsql/client": "^0.15.15",
     "@polar-sh/better-auth": "^1.1.7",

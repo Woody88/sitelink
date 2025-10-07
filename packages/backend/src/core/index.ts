@@ -1,9 +1,9 @@
 import { Layer } from "effect"
 import { AuthService } from "./auth"
-import { DatabaseService } from "./database"
+import { Drizzle } from "./database"
 import { EmailService } from "./email"
 
 export const CoreLayer = AuthService.Default.pipe(
-	Layer.merge(DatabaseService.Default),
+	Layer.merge(Drizzle.Default),
 	Layer.provide(EmailService.Default),
 )

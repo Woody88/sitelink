@@ -1,6 +1,7 @@
 import { performance } from "node:perf_hooks"
-import { Effect, Schema } from "effect"
-import { DatabaseError, DatabaseService } from "../../core/database"
+import { Effect, Option, Schema } from "effect"
+import { sql } from 'drizzle-orm' 
+import { Drizzle } from "../../core/database"
 
 export class HealthStatus extends Schema.Class<HealthStatus>("HealthStatus")({
 	status: Schema.Union(
@@ -21,27 +22,21 @@ export class HealthService extends Effect.Service<HealthService>()(
 	"HealthService",
 	{
 		effect: Effect.gen(function* () {
-			const db = yield* DatabaseService
+			const db = yield* Drizzle
 
 			const checkDatabase = Effect.gen(function* () {
 				const perfStart = yield* Effect.sync(() => performance.now())
-				const result = yield* db.use((d1) =>
-					d1.$client.prepare("SELECT 1").all(),
-				)
+				const result = yield* db.run(sql`select 1`)
 				const perfEnd = yield* Effect.sync(() => performance.now())
+				
+				yield* Effect.fromNullable(result.rows?.length === 0 ? null : result.rows)
 
-				if (!result.success) {
-					return yield* new DatabaseError({ cause: result.error })
-				}
+				return yield* Effect.succeed(new HealthStatus({
+					status: "healthy",
+				}))
 
-				return yield* Effect.succeed(
-					new HealthStatus({
-						status: "healthy",
-						responseTime: perfEnd - perfStart,
-					}),
-				)
 			}).pipe(
-				Effect.catchTag("DatabaseError", (err) =>
+				Effect.catchAll((err) =>
 					Effect.succeed(
 						new HealthStatus({
 							status: "unhealthy",

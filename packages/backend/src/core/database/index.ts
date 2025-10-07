@@ -4,6 +4,12 @@ import { drizzle } from "drizzle-orm/d1"
 import { Effect, Schema } from "effect"
 import { D1Binding } from "../bindings"
 import * as schema from "./schemas"
+import * as Sqlite from "@effect/sql-drizzle/Sqlite"
+
+
+export class Drizzle extends Effect.Service<Drizzle>()("Drizzle", { effect: Sqlite.make({ schema, casing: "snake_case" }) }){} 
+
+
 
 export class DatabaseError
 	extends Schema.TaggedError<DatabaseError>("DatabaseError")("DatabaseError", {
@@ -21,7 +27,6 @@ export class DatabaseService extends Effect.Service<DatabaseService>()(
 	{
 		effect: Effect.gen(function* () {
 			const d1 = yield* D1Binding
-
 			const database = drizzle(d1, { schema, casing: "snake_case" })
 
 			const use = Effect.fn("AuthService.use")(function* <A>(

@@ -1,11 +1,12 @@
 // import { Container, getRandom } from "@cloudflare/containers"
 
 import { HttpApiBuilder, HttpServer } from "@effect/platform"
-import { Layer } from "effect"
+import { ConfigProvider, Layer } from "effect"
 import { Resend } from "resend"
 import { Api } from "./api"
 import { CoreLayer } from "./core"
 import { D1Binding, ResendBinding } from "./core/bindings"
+import { D1Client } from "@effect/sql-d1"
 
 // export class SitelinkBackendContainer extends Container {
 // 	override defaultPort = 3000
@@ -26,8 +27,14 @@ export default {
 	async fetch(request, env, _ctx): Promise<Response> {
 		// const url = new URL(request.url)
 
+		const ConfigLayer = Layer.setConfigProvider(
+			ConfigProvider.fromMap(
+				new Map(Object.entries(env).filter(([_, v]) => typeof v === "string")),
+			),
+		)
+
 		// Create Cloudflare Binding Layers
-		const D1Layer = Layer.succeed(D1Binding, env.SitelinkDB)
+		const D1Layer = D1Client.layer({ db: env.SitelinkDB })
 		const ResendLayer = Layer.succeed(
 			ResendBinding,
 			new Resend(env.RESEND_API_KEY),
@@ -35,6 +42,7 @@ export default {
 
 		// Assemble App Layer by providing binding layers
 		const AppLayer = CoreLayer.pipe(
+			Layer.provide(ConfigLayer),
 			Layer.provide(D1Layer),
 			Layer.provide(ResendLayer),
 		)
