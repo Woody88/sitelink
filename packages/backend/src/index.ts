@@ -6,8 +6,7 @@ import { ConfigProvider, Layer } from "effect"
 import { Resend } from "resend"
 import { Api } from "./api"
 import { CoreLayer } from "./core"
-import { D1Binding, ResendBinding } from "./core/bindings"
-import { AuthorizationMiddlewareLive } from "./core/middleware"
+import { ResendBinding } from "./core/bindings"
 
 // export class SitelinkBackendContainer extends Container {
 // 	override defaultPort = 3000
