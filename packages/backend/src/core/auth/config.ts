@@ -46,3 +46,5 @@ export const auth = betterAuth({
 		openAPI(),
 	],
 })
+
+export type BetterAuthSession = typeof auth.$Infer.Session

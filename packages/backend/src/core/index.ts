@@ -3,7 +3,8 @@ import { AuthService } from "./auth"
 import { Drizzle } from "./database"
 import { EmailService } from "./email"
 
-export const CoreLayer = AuthService.Default.pipe(
-	Layer.merge(Drizzle.Default),
-	Layer.provide(EmailService.Default),
+export const CoreLayer = Layer.mergeAll(
+	AuthService.Default,
+	Drizzle.Default,
+	EmailService.Default,
 )

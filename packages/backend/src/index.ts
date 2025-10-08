@@ -1,12 +1,13 @@
 // import { Container, getRandom } from "@cloudflare/containers"
 
 import { HttpApiBuilder, HttpServer } from "@effect/platform"
+import { D1Client } from "@effect/sql-d1"
 import { ConfigProvider, Layer } from "effect"
 import { Resend } from "resend"
 import { Api } from "./api"
 import { CoreLayer } from "./core"
 import { D1Binding, ResendBinding } from "./core/bindings"
-import { D1Client } from "@effect/sql-d1"
+import { AuthorizationMiddlewareLive } from "./core/middleware"
 
 // export class SitelinkBackendContainer extends Container {
 // 	override defaultPort = 3000
