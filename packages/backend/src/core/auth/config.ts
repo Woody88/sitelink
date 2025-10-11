@@ -8,7 +8,7 @@ import {
 } from "better-auth/plugins"
 
 export const magicLinkOptions = {
-	sendMagicLink: async (_, request) => {},
+	sendMagicLink: async (_, _request) => {},
 } satisfies Parameters<typeof magicLink>[0]
 
 export const organizationOptions = {

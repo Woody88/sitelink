@@ -1,9 +1,4 @@
-import {
-	HttpApiBuilder,
-	HttpApiEndpoint,
-	HttpApiGroup,
-	HttpClientRequest,
-} from "@effect/platform"
+import { HttpApiBuilder, HttpApiEndpoint, HttpApiGroup } from "@effect/platform"
 import { Effect } from "effect"
 import { BaseApi } from "../../core/api"
 import { AuthError } from "../../core/auth"
