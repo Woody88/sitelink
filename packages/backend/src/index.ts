@@ -25,7 +25,7 @@ import { ResendBinding } from "./core/bindings"
 
 export default {
 	async fetch(request, env, _ctx): Promise<Response> {
-		// const url = new URL(request.url)
+		const resend = new Resend(env.RESEND_API_KEY)
 
 		const ConfigLayer = Layer.setConfigProvider(
 			ConfigProvider.fromMap(
@@ -35,10 +35,7 @@ export default {
 
 		// Create Cloudflare Binding Layers
 		const D1Layer = D1Client.layer({ db: env.SitelinkDB })
-		const ResendLayer = Layer.succeed(
-			ResendBinding,
-			new Resend(env.RESEND_API_KEY),
-		)
+		const ResendLayer = Layer.succeed(ResendBinding, resend)
 
 		// Assemble App Layer by providing binding layers
 		const AppLayer = CoreLayer.pipe(
@@ -53,6 +50,6 @@ export default {
 			Layer.mergeAll(SiteLinkApiLive, HttpServer.layerContext),
 		)
 
-		return handler(request)
+		return await handler(request)
 	},
 } satisfies ExportedHandler<Env>

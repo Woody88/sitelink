@@ -10,7 +10,12 @@ import { AuthError, AuthService } from "../../core/auth"
 
 export const AuthAPI = HttpApiGroup.make("Auth")
 	.add(
-		HttpApiEndpoint.get("auth")`/auth/*`
+		HttpApiEndpoint.get("getAuth")`/auth/*`
+			.addSuccess(Schema.Unknown)
+			.addError(AuthError),
+	)
+	.add(
+		HttpApiEndpoint.post("postAuth")`/auth/*`
 			.addSuccess(Schema.Unknown)
 			.addError(AuthError),
 	)
@@ -23,22 +28,40 @@ export const AuthAPILive = HttpApiBuilder.group(
 		Effect.gen(function* () {
 			const auth = yield* AuthService
 
-			return handlers.handle("auth", ({ request: _request }) =>
-				Effect.gen(function* () {
-					const req = _request.source as Request
-					const response = yield* auth.use((auth) => auth.handler(req))
+			return handlers
+				.handle("getAuth", ({ request: _request }) =>
+					Effect.gen(function* () {
+						const req = _request.source as Request
+						const response = yield* auth.use((auth) => auth.handler(req))
 
-					const arrayBuffer = yield* Effect.promise(() =>
-						response.arrayBuffer(),
-					)
-					const body = new Uint8Array(arrayBuffer)
+						const arrayBuffer = yield* Effect.promise(() =>
+							response.arrayBuffer(),
+						)
+						const body = new Uint8Array(arrayBuffer)
 
-					return HttpServerResponse.uint8Array(body, {
-						status: response.status,
-						statusText: response.statusText,
-						headers: response.headers,
-					})
-				}),
-			)
+						return HttpServerResponse.uint8Array(body, {
+							status: response.status,
+							statusText: response.statusText,
+							headers: response.headers,
+						})
+					}),
+				)
+				.handle("postAuth", ({ request: _request }) =>
+					Effect.gen(function* () {
+						const req = _request.source as Request
+						const response = yield* auth.use((auth) => auth.handler(req))
+
+						const arrayBuffer = yield* Effect.promise(() =>
+							response.arrayBuffer(),
+						)
+						const body = new Uint8Array(arrayBuffer)
+
+						return HttpServerResponse.uint8Array(body, {
+							status: response.status,
+							statusText: response.statusText,
+							headers: response.headers,
+						})
+					}),
+				)
 		}),
 )
