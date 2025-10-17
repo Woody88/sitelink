@@ -5,8 +5,8 @@ export * from "./_auth"
 
 export const subscriptions = D.sqliteTable("subscriptions", {
 	id: D.text().primaryKey(),
-	polarSubscriptionId: D.text().notNull().unique(), // Polar's external ID
-	organizationId: D.text() // Organizations have subscriptions, not users
+	polarSubscriptionId: D.text("polar_subscription_id").notNull().unique(), // Polar's external ID
+	organizationId: D.text("organization_id") // Organizations have subscriptions, not users
 		.notNull()
 		.references(() => organizations.id, { onDelete: "cascade" }),
 	plan: D.text().notNull(), // "free", "pro", "enterprise"
@@ -26,7 +26,7 @@ export const subscriptions = D.sqliteTable("subscriptions", {
 
 export const projects = D.sqliteTable("projects", {
 	id: D.text().primaryKey(),
-	organizationId: D.text()
+	organizationId: D.text("organization_id")
 		.notNull()
 		.references(() => organizations.id, {
 			onDelete: "cascade",
@@ -41,7 +41,7 @@ export const projects = D.sqliteTable("projects", {
 
 export const plans = D.sqliteTable("plans", {
 	id: D.text().primaryKey(),
-	projectId: D.text()
+	projectId: D.text("project_id")
 		.notNull()
 		.references(() => projects.id, {
 			onDelete: "cascade",
@@ -49,7 +49,7 @@ export const plans = D.sqliteTable("plans", {
 		}),
 	name: D.text().notNull(),
 	description: D.text(),
-	directoryPath: D.text(),
+	directoryPath: D.text("directory_path"),
 	createdAt: D.integer("created_at", { mode: "timestamp_ms" })
 		.$defaultFn(() => new Date())
 		.notNull(),
@@ -57,14 +57,14 @@ export const plans = D.sqliteTable("plans", {
 
 export const medias = D.sqliteTable("medias", {
 	id: D.text().primaryKey(),
-	projectId: D.text()
+	projectId: D.text("project_id")
 		.notNull()
 		.references(() => projects.id, {
 			onDelete: "cascade",
 			onUpdate: "cascade",
 		}),
-	filePath: D.text().notNull(),
-	mediaType: D.text(),
+	filePath: D.text("file_path").notNull(),
+	mediaType: D.text("media_type"),
 	createdAt: D.integer("created_at", { mode: "timestamp_ms" })
 		.$defaultFn(() => new Date())
 		.notNull(),
@@ -72,14 +72,14 @@ export const medias = D.sqliteTable("medias", {
 
 export const files = D.sqliteTable("files", {
 	id: D.text().primaryKey(),
-	planId: D.text()
+	planId: D.text("plan_id")
 		.notNull()
 		.references(() => plans.id, {
 			onDelete: "cascade",
 			onUpdate: "cascade",
 		}),
-	filePath: D.text(),
-	fileType: D.text(),
+	filePath: D.text("file_path"),
+	fileType: D.text("file_type"),
 	createdAt: D.integer("created_at", { mode: "timestamp_ms" })
 		.$defaultFn(() => new Date())
 		.notNull(),
@@ -87,13 +87,13 @@ export const files = D.sqliteTable("files", {
 
 export const annotations = D.sqliteTable("annotations", {
 	id: D.text().primaryKey(),
-	fileId: D.text()
+	fileId: D.text("file_id")
 		.notNull()
 		.references(() => files.id, { onDelete: "cascade" }),
 	type: D.text().notNull(), // "text", "arrow", "circle", "rectangle"
 	data: D.text().notNull(), // JSON data for annotation
-	pageNumber: D.integer(),
-	createdBy: D.text()
+	pageNumber: D.integer("page_number"),
+	createdBy: D.text("created_by")
 		.notNull()
 		.references(() => users.id),
 	createdAt: D.integer("created_at", { mode: "timestamp_ms" })
@@ -103,14 +103,14 @@ export const annotations = D.sqliteTable("annotations", {
 
 export const usageEvents = D.sqliteTable("usage_events", {
 	id: D.text().primaryKey(),
-	organizationId: D.text()
+	organizationId: D.text("organization_id")
 		.notNull()
 		.references(() => organizations.id, { onDelete: "cascade" }),
-	userId: D.text()
+	userId: D.text("user_id")
 		.notNull()
 		.references(() => users.id),
-	eventType: D.text().notNull(), // "file_upload", "annotation_created", etc.
-	eventData: D.text(), // JSON metadata
+	eventType: D.text("event_type").notNull(), // "file_upload", "annotation_created", etc.
+	eventData: D.text("event_data"), // JSON metadata
 	createdAt: D.integer("created_at", { mode: "timestamp_ms" })
 		.$defaultFn(() => new Date())
 		.notNull(),

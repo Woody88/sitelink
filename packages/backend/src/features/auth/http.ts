@@ -54,6 +54,7 @@ export const AuthAPILive = HttpApiBuilder.group(
 						const arrayBuffer = yield* Effect.promise(() =>
 							response.arrayBuffer(),
 						)
+
 						const body = new Uint8Array(arrayBuffer)
 
 						return HttpServerResponse.uint8Array(body, {

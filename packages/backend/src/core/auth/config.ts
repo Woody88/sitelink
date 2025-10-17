@@ -31,6 +31,7 @@ export const betterAuthConfig = {
 		{
 			provider: "sqlite",
 			usePlural: true,
+			camelCase: false,
 		},
 	),
 	emailAndPassword: {

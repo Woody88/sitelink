@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "7e9bffff-3fa2-47e6-87be-7e5d00fca30b",
+  "id": "ff07b9f6-ffed-406e-a66c-046cd169d2cb",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "accounts": {
@@ -89,7 +89,8 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": "(cast(unixepoch('subsecond') * 1000 as integer))"
         },
         "updated_at": {
           "name": "updated_at",
@@ -375,7 +376,8 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": "(cast(unixepoch('subsecond') * 1000 as integer))"
         },
         "updated_at": {
           "name": "updated_at",
@@ -485,14 +487,16 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": "(cast(unixepoch('subsecond') * 1000 as integer))"
         },
         "updated_at": {
           "name": "updated_at",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": "(cast(unixepoch('subsecond') * 1000 as integer))"
         }
       },
       "indexes": {
@@ -545,14 +549,16 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": "(cast(unixepoch('subsecond') * 1000 as integer))"
         },
         "updated_at": {
           "name": "updated_at",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": "(cast(unixepoch('subsecond') * 1000 as integer))"
         }
       },
       "indexes": {},
@@ -571,8 +577,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "fileId": {
-          "name": "fileId",
+        "file_id": {
+          "name": "file_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -592,15 +598,15 @@
           "notNull": true,
           "autoincrement": false
         },
-        "pageNumber": {
-          "name": "pageNumber",
+        "page_number": {
+          "name": "page_number",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "createdBy": {
-          "name": "createdBy",
+        "created_by": {
+          "name": "created_by",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -616,12 +622,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "annotations_fileId_files_id_fk": {
-          "name": "annotations_fileId_files_id_fk",
+        "annotations_file_id_files_id_fk": {
+          "name": "annotations_file_id_files_id_fk",
           "tableFrom": "annotations",
           "tableTo": "files",
           "columnsFrom": [
-            "fileId"
+            "file_id"
           ],
           "columnsTo": [
             "id"
@@ -629,12 +635,12 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "annotations_createdBy_users_id_fk": {
-          "name": "annotations_createdBy_users_id_fk",
+        "annotations_created_by_users_id_fk": {
+          "name": "annotations_created_by_users_id_fk",
           "tableFrom": "annotations",
           "tableTo": "users",
           "columnsFrom": [
-            "createdBy"
+            "created_by"
           ],
           "columnsTo": [
             "id"
@@ -657,22 +663,22 @@
           "notNull": true,
           "autoincrement": false
         },
-        "planId": {
-          "name": "planId",
+        "plan_id": {
+          "name": "plan_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "filePath": {
-          "name": "filePath",
+        "file_path": {
+          "name": "file_path",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "fileType": {
-          "name": "fileType",
+        "file_type": {
+          "name": "file_type",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -688,12 +694,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "files_planId_plans_id_fk": {
-          "name": "files_planId_plans_id_fk",
+        "files_plan_id_plans_id_fk": {
+          "name": "files_plan_id_plans_id_fk",
           "tableFrom": "files",
           "tableTo": "plans",
           "columnsFrom": [
-            "planId"
+            "plan_id"
           ],
           "columnsTo": [
             "id"
@@ -716,22 +722,22 @@
           "notNull": true,
           "autoincrement": false
         },
-        "projectId": {
-          "name": "projectId",
+        "project_id": {
+          "name": "project_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "filePath": {
-          "name": "filePath",
+        "file_path": {
+          "name": "file_path",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "mediaType": {
-          "name": "mediaType",
+        "media_type": {
+          "name": "media_type",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -747,12 +753,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "medias_projectId_projects_id_fk": {
-          "name": "medias_projectId_projects_id_fk",
+        "medias_project_id_projects_id_fk": {
+          "name": "medias_project_id_projects_id_fk",
           "tableFrom": "medias",
           "tableTo": "projects",
           "columnsFrom": [
-            "projectId"
+            "project_id"
           ],
           "columnsTo": [
             "id"
@@ -775,8 +781,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "projectId": {
-          "name": "projectId",
+        "project_id": {
+          "name": "project_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -796,8 +802,8 @@
           "notNull": false,
           "autoincrement": false
         },
-        "directoryPath": {
-          "name": "directoryPath",
+        "directory_path": {
+          "name": "directory_path",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -813,12 +819,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "plans_projectId_projects_id_fk": {
-          "name": "plans_projectId_projects_id_fk",
+        "plans_project_id_projects_id_fk": {
+          "name": "plans_project_id_projects_id_fk",
           "tableFrom": "plans",
           "tableTo": "projects",
           "columnsFrom": [
-            "projectId"
+            "project_id"
           ],
           "columnsTo": [
             "id"
@@ -841,8 +847,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "organizationId": {
-          "name": "organizationId",
+        "organization_id": {
+          "name": "organization_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -872,12 +878,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "projects_organizationId_organizations_id_fk": {
-          "name": "projects_organizationId_organizations_id_fk",
+        "projects_organization_id_organizations_id_fk": {
+          "name": "projects_organization_id_organizations_id_fk",
           "tableFrom": "projects",
           "tableTo": "organizations",
           "columnsFrom": [
-            "organizationId"
+            "organization_id"
           ],
           "columnsTo": [
             "id"
@@ -900,15 +906,15 @@
           "notNull": true,
           "autoincrement": false
         },
-        "polarSubscriptionId": {
-          "name": "polarSubscriptionId",
+        "polar_subscription_id": {
+          "name": "polar_subscription_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "organizationId": {
-          "name": "organizationId",
+        "organization_id": {
+          "name": "organization_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -966,21 +972,21 @@
         }
       },
       "indexes": {
-        "subscriptions_polarSubscriptionId_unique": {
-          "name": "subscriptions_polarSubscriptionId_unique",
+        "subscriptions_polar_subscription_id_unique": {
+          "name": "subscriptions_polar_subscription_id_unique",
           "columns": [
-            "polarSubscriptionId"
+            "polar_subscription_id"
           ],
           "isUnique": true
         }
       },
       "foreignKeys": {
-        "subscriptions_organizationId_organizations_id_fk": {
-          "name": "subscriptions_organizationId_organizations_id_fk",
+        "subscriptions_organization_id_organizations_id_fk": {
+          "name": "subscriptions_organization_id_organizations_id_fk",
           "tableFrom": "subscriptions",
           "tableTo": "organizations",
           "columnsFrom": [
-            "organizationId"
+            "organization_id"
           ],
           "columnsTo": [
             "id"
@@ -1003,29 +1009,29 @@
           "notNull": true,
           "autoincrement": false
         },
-        "organizationId": {
-          "name": "organizationId",
+        "organization_id": {
+          "name": "organization_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "userId": {
-          "name": "userId",
+        "user_id": {
+          "name": "user_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "eventType": {
-          "name": "eventType",
+        "event_type": {
+          "name": "event_type",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "eventData": {
-          "name": "eventData",
+        "event_data": {
+          "name": "event_data",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -1041,12 +1047,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "usage_events_organizationId_organizations_id_fk": {
-          "name": "usage_events_organizationId_organizations_id_fk",
+        "usage_events_organization_id_organizations_id_fk": {
+          "name": "usage_events_organization_id_organizations_id_fk",
           "tableFrom": "usage_events",
           "tableTo": "organizations",
           "columnsFrom": [
-            "organizationId"
+            "organization_id"
           ],
           "columnsTo": [
             "id"
@@ -1054,12 +1060,12 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "usage_events_userId_users_id_fk": {
-          "name": "usage_events_userId_users_id_fk",
+        "usage_events_user_id_users_id_fk": {
+          "name": "usage_events_user_id_users_id_fk",
           "tableFrom": "usage_events",
           "tableTo": "users",
           "columnsFrom": [
-            "userId"
+            "user_id"
           ],
           "columnsTo": [
             "id"

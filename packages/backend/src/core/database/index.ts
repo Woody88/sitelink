@@ -6,8 +6,9 @@ import { D1Binding } from "../bindings"
 import * as schema from "./schemas"
 import * as Sqlite from "@effect/sql-drizzle/Sqlite"
 
-
-export class Drizzle extends Effect.Service<Drizzle>()("Drizzle", { effect: Sqlite.make({ schema, casing: "snake_case" }) }){} 
+export class Drizzle extends Effect.Service<Drizzle>()("Drizzle", {
+	effect: Sqlite.make({ schema, casing: "snake_case" })
+}) {} 
 
 
 

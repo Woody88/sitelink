@@ -6,6 +6,7 @@ import { magicLink, openAPI, organization } from "better-auth/plugins"
 import { Config, Effect, Runtime, Schema } from "effect"
 import { Drizzle } from "../database"
 import { EmailService } from "../email"
+import { OrganizationService } from "../organization/service"
 import {
 	betterAuthConfig,
 	magicLinkOptions,
@@ -24,19 +25,25 @@ export class AuthError extends Schema.TaggedError<AuthError>("AuthError")(
 }
 
 export class AuthService extends Effect.Service<AuthService>()("AuthService", {
-	dependencies: [Drizzle.Default, EmailService.Default],
+	dependencies: [
+		Drizzle.Default,
+		EmailService.Default,
+		OrganizationService.Default,
+	],
 	effect: Effect.gen(function* () {
 		const EMAIL_ADDRESS = yield* Config.string("EMAIL_ADDRESS")
 		const email = yield* EmailService
 		const db = yield* Drizzle
+		const orgService = yield* OrganizationService
 
-		const runtime = yield* Effect.runtime<EmailService>()
+		const runtime = yield* Effect.runtime<EmailService | OrganizationService>()
 
 		const _auth = betterAuth({
 			...betterAuthConfig,
 			database: drizzleAdapter(db, {
 				provider: "sqlite",
 				usePlural: true,
+				camelCase: false,
 			}),
 
 			plugins: [
@@ -61,6 +68,49 @@ export class AuthService extends Effect.Service<AuthService>()("AuthService", {
 
 				organization({
 					...organizationOptions,
+					disableOrganizationDeletion: true,
+					organizationHooks: {
+						beforeUpdateOrganization: async (data) => {
+							console.log(
+								"[Hook] beforeUpdateOrganization called for:",
+								data.organization.id,
+							)
+							const program = orgService.ensureNotDeleted(data.organization.id)
+							await Runtime.runPromise(runtime, program)
+						},
+
+						beforeDeleteOrganization: async (data) => {
+							console.log(
+								"[Hook] beforeDeleteOrganization called for:",
+								data.organization.id,
+							)
+							const program = orgService.softDeleted(data.organization.id)
+							await Runtime.runPromise(runtime, program)
+						},
+
+						beforeAddMember: async ({ organization }) => {
+							console.log(
+								"[Hook] beforeAddMember called for org:",
+								organization.id,
+							)
+							const program = orgService.ensureCanAddMember(organization.id)
+
+							await Runtime.runPromise(runtime, program)
+						},
+
+						beforeCreateInvitation: async (data) => {
+							console.log(
+								"[Hook] beforeCreateInvitation called for org:",
+								data.organization.id,
+							)
+							const program = Effect.all([
+								orgService.ensureNotDeleted(data.organization.id),
+								orgService.ensureCanAddMember(data.organization.id),
+							])
+
+							await Runtime.runPromise(runtime, program)
+						},
+					},
 				}),
 			],
 		})

@@ -4,6 +4,7 @@ export default defineConfig({
 	out: "./drizzle",
 	schema: "./src/core/database/schemas",
 	dialect: "sqlite",
+	casing: "snake_case",
 	...(process.env.NODE_ENV !== "production" // Use local SQLite file for development
 		? {
 				dbCredentials: {
