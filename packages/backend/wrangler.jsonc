@@ -7,9 +7,7 @@
 	"name": "sitelink-backend",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-09-23",
-	"compatibility_flags": [
-		"nodejs_compat"
-	],
+	"compatibility_flags": ["nodejs_compat"],
 	// "containers": [
 	// 	{
 	// 		"max_instances": 0,
@@ -39,6 +37,13 @@
 	// 		"tag": "v1",
 	// 	},
 	// ],
+	"r2_buckets": [
+		{
+			"binding": "SitelinkStorage",
+			"bucket_name": "sitelink-storage",
+			"preview_bucket_name": "sitelink-storage-preview"
+		}
+	],
 	"d1_databases": [
 		{
 			"binding": "SitelinkDB",
@@ -46,7 +51,7 @@
 			"database_id": "9b97a3b7-f357-48a2-83fe-d041c393820f",
 			"migrations_dir": "./drizzle"
 		}
-	],
+	]
 	/**
 	 * Smart Placement
 	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement

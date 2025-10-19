@@ -10,3 +10,8 @@ export class ResendBinding extends Context.Tag("ResendBinding")<
 	ResendBinding,
 	Resend
 >() {}
+
+export class R2Binding extends Context.Tag("R2Binding")<
+	R2Binding,
+	R2Bucket
+>() {}

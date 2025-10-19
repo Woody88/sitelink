@@ -4,7 +4,7 @@ import { ConfigProvider, Layer } from "effect"
 import { Resend } from "resend"
 import { Api } from "./api"
 import { CoreLayer } from "./core"
-import { ResendBinding } from "./core/bindings"
+import { R2Binding, ResendBinding } from "./core/bindings"
 
 export default {
 	async fetch(request, env, _ctx): Promise<Response> {
@@ -20,12 +20,14 @@ export default {
 		// Create Cloudflare Binding Layers
 		const D1Layer = D1Client.layer({ db: env.SitelinkDB }) // Effect SQL client
 		const ResendLayer = Layer.succeed(ResendBinding, resend)
+		const R2Layer = Layer.succeed(R2Binding, env.SitelinkStorage)
 
 		// Assemble App Layer by providing binding layers
 		const AppLayer = CoreLayer.pipe(
 			Layer.provide(ConfigLayer),
-				Layer.provide(D1Layer),
+			Layer.provide(D1Layer),
 			Layer.provide(ResendLayer),
+			Layer.provide(R2Layer),
 		)
 
 		const SiteLinkApiLive = Api.pipe(Layer.provide(AppLayer))
