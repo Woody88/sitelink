@@ -43,6 +43,21 @@ Each package has its own `CLAUDE.md` with specific architectural rules:
 - **`packages/mobile/CLAUDE.md`**: React Native patterns, API integration
 - **`packages/processing/CLAUDE.md`**: Container architecture, Sharp processing
 
+### Effect-TS Source Reference
+
+The `.effect/` directory contains the Effect-TS source code repository as a git subtree for reference purposes.
+
+**When to use:**
+- When you need to understand Effect-TS internals, implementation details, or patterns
+- To look up source code for Effect modules like `Layer`, `Effect`, `Schema`, `Runtime`, etc.
+- To find examples of advanced Effect-TS patterns and best practices
+- To understand how Effect-TS services, layers, and dependency injection work internally
+
+**Common reference paths:**
+- `.effect/packages/effect/src/` - Core Effect library source
+- `.effect/packages/platform/src/` - Platform-specific implementations (HTTP, etc.)
+- `.effect/packages/schema/src/` - Schema validation and transformation
+
 ---
 
 ## Development Standards

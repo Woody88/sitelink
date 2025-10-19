@@ -6,14 +6,19 @@ import { AuthAPIModule } from "./features/auth"
 import { AuthAPI } from "./features/auth/http"
 import { HealthModule } from "./features/health"
 import { HealthAPI } from "./features/health/http"
+import { OrganizationModule } from "./features/organization"
+import { OrganizationAPI } from "./features/organization/http"
 import { RegistrationModule } from "./features/registration"
 import { RegistrationAPI } from "./features/registration/http"
 
 export const Api = HttpApiBuilder.api(
-	BaseApi.add(HealthAPI).add(AuthAPI).add(RegistrationAPI),
+	BaseApi.add(HealthAPI).add(AuthAPI).add(RegistrationAPI).add(
+		OrganizationAPI,
+	),
 ).pipe(
 	Layer.provide(AuthAPIModule),
 	Layer.provide(HealthModule),
 	Layer.provide(RegistrationModule),
+	Layer.provide(OrganizationModule),
 	Layer.provide(AuthorizationMiddlewareLive),
 )

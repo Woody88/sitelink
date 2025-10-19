@@ -1,6 +1,7 @@
 import {
 	HttpApiBuilder,
 	HttpApiEndpoint,
+	HttpApiError,
 	HttpApiGroup,
 	HttpApiSchema,
 } from "@effect/platform"
@@ -16,9 +17,10 @@ export const OrganizationAPI = HttpApiGroup.make("Organization")
 			Schema.Void,
 		),
 	)
+	.addError(HttpApiError.InternalServerError)
 	.prefix("/organization")
 
-export const HealthApiLive = HttpApiBuilder.group(
+export const OrganizationApiLive = HttpApiBuilder.group(
 	BaseApi.add(OrganizationAPI),
 	"Organization",
 	(handlers) =>
@@ -26,9 +28,10 @@ export const HealthApiLive = HttpApiBuilder.group(
 			const orgService = yield* OrganizationService
 
 			return handlers.handle("deleteOrganization", ({ path: { orgId } }) =>
-				Effect.gen(function* () {
-					yield* orgService.softDeleted(orgId)
-				}),
+				orgService.softDeleted(orgId).pipe(
+					Effect.asVoid,
+					Effect.mapError(() => new HttpApiError.InternalServerError()),
+				),
 			)
 		}),
 )
