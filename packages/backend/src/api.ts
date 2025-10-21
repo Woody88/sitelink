@@ -7,6 +7,7 @@ import { AuthAPI } from "./features/auth/http"
 import { FileModule, FileAPI } from "./features/files"
 import { HealthModule } from "./features/health"
 import { HealthAPI } from "./features/health/http"
+import { MediaModule, MediaAPI } from "./features/media"
 import { OrganizationModule } from "./features/organization"
 import { OrganizationAPI } from "./features/organization/http"
 import { PlanModule, PlanAPI } from "./features/plans"
@@ -21,7 +22,8 @@ export const Api = HttpApiBuilder.api(
 		.add(OrganizationAPI)
 		.add(ProjectAPI)
 		.add(PlanAPI)
-		.add(FileAPI),
+		.add(FileAPI)
+		.add(MediaAPI),
 ).pipe(
 	Layer.provide(AuthAPIModule),
 	Layer.provide(HealthModule),
@@ -30,5 +32,6 @@ export const Api = HttpApiBuilder.api(
 	Layer.provide(ProjectModule),
 	Layer.provide(PlanModule),
 	Layer.provide(FileModule),
+	Layer.provide(MediaModule),
 	Layer.provide(AuthorizationMiddlewareLive),
 )
