@@ -6,6 +6,7 @@
   "scripts": {
     "db:local:studio": "bunx drizzle-kit studio --host=127.0.0.1",
     "db:local:apply:migration": "bun wrangler d1 migrations apply sitelink-db --local",
+    "db:local:reset": "rm -f .wrangler/state/v3/d1/miniflare-D1DatabaseObject/*.sqlite",
     "db:gen:migration": "bunx drizzle-kit generate"
   },
   "dependencies": {

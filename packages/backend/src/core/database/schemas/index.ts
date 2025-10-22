@@ -50,6 +50,8 @@ export const plans = D.sqliteTable("plans", {
 	name: D.text().notNull(),
 	description: D.text(),
 	directoryPath: D.text("directory_path"),
+	processingStatus: D.text("processing_status"),
+	tileMetadata: D.text("tile_metadata"),
 	createdAt: D.integer("created_at", { mode: "timestamp_ms" })
 		.$defaultFn(() => new Date())
 		.notNull(),

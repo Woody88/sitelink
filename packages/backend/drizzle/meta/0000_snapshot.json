@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "ff07b9f6-ffed-406e-a66c-046cd169d2cb",
+  "id": "bc6cde12-90b4-472c-8ac9-145e0b253411",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "accounts": {
@@ -804,6 +804,20 @@
         },
         "directory_path": {
           "name": "directory_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "processing_status": {
+          "name": "processing_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "tile_metadata": {
+          "name": "tile_metadata",
           "type": "text",
           "primaryKey": false,
           "notNull": false,

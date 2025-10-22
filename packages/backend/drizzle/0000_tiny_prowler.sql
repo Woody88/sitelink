@@ -118,6 +118,8 @@ CREATE TABLE `plans` (
 	`name` text NOT NULL,
 	`description` text,
 	`directory_path` text,
+	`processing_status` text,
+	`tile_metadata` text,
 	`created_at` integer NOT NULL,
 	FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON UPDATE cascade ON DELETE cascade
 );

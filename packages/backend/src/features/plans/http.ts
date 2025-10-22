@@ -29,6 +29,8 @@ const PlanResponse = Schema.Struct({
 	name: Schema.String,
 	description: Schema.NullOr(Schema.String),
 	directoryPath: Schema.NullOr(Schema.String),
+	processingStatus: Schema.NullOr(Schema.String),
+	tileMetadata: Schema.NullOr(Schema.String),
 	createdAt: Schema.Date,
 })
 
@@ -39,6 +41,8 @@ const PlanListResponse = Schema.Struct({
 			name: Schema.String,
 			description: Schema.NullOr(Schema.String),
 			directoryPath: Schema.NullOr(Schema.String),
+			processingStatus: Schema.NullOr(Schema.String),
+			tileMetadata: Schema.NullOr(Schema.String),
 			createdAt: Schema.Date,
 		}),
 	),
@@ -114,31 +118,31 @@ export const PlanAPILive = HttpApiBuilder.group(
 			/**
 			 * Helper: Verify project belongs to user's active organization
 			 */
-			const verifyProjectAccess = Effect.fn("verifyProjectAccess")(
-				function* (projectId: string) {
-					const session = yield* CurrentSession
-					const activeOrgId = session.session.activeOrganizationId
+			const verifyProjectAccess = Effect.fn("verifyProjectAccess")(function* (
+				projectId: string,
+			) {
+				const session = yield* CurrentSession
+				const activeOrgId = session.session.activeOrganizationId
 
-					if (!activeOrgId) {
-						return yield* new ProjectAccessDeniedError({
-							projectId,
-							message: "No active organization in session",
-						})
-					}
+				if (!activeOrgId) {
+					return yield* new ProjectAccessDeniedError({
+						projectId,
+						message: "No active organization in session",
+					})
+				}
 
-					// Get project to verify it exists and belongs to org
-					const project = yield* projectService.get(projectId)
+				// Get project to verify it exists and belongs to org
+				const project = yield* projectService.get(projectId)
 
-					if (project.organizationId !== activeOrgId) {
-						return yield* new ProjectAccessDeniedError({
-							projectId,
-							message: "Project does not belong to active organization",
-						})
-					}
+				if (project.organizationId !== activeOrgId) {
+					return yield* new ProjectAccessDeniedError({
+						projectId,
+						message: "Project does not belong to active organization",
+					})
+				}
 
-					return project
-				},
-			)
+				return project
+			})
 
 			/**
 			 * Helper: Verify plan's project belongs to user's active organization
