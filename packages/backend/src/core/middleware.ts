@@ -69,7 +69,14 @@ export const AuthorizationMiddlewareLive = Layer.effect(
 
 			const rawSession = yield* authService
 				.use((auth) => auth.api.getSession({ headers: req.headers }))
-				.pipe(Effect.mapError(() => new HttpApiError.Unauthorized()))
+				.pipe(
+					Effect.mapError(() => new HttpApiError.Unauthorized()),
+					Effect.filterOrFail(
+						(session): session is BetterAuthSession =>
+							session !== null && session.session !== null,
+						() => new HttpApiError.Unauthorized(),
+					),
+				)
 
 			// Better Auth returns the session already properly typed
 			// Just wrap it in our Session class without schema validation

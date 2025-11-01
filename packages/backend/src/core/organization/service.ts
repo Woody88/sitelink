@@ -1,3 +1,4 @@
+import { HttpApiSchema } from "@effect/platform"
 import { eq } from "drizzle-orm"
 import { Effect, Schema } from "effect"
 import { Drizzle } from "../database"
@@ -22,17 +23,31 @@ export class SeatLimitReachedError extends Schema.TaggedError<SeatLimitReachedEr
 
 export class OrganizationDeletedError extends Schema.TaggedError<OrganizationDeletedError>(
 	"OrganizationDeletedError",
-)("OrganizationDeletedError", {
-	message: Schema.String,
-	organizationId: Schema.String,
-}) {}
+)(
+	"OrganizationDeletedError",
+	{
+		message: Schema.String,
+		organizationId: Schema.String,
+	},
+	HttpApiSchema.annotations({
+		status: 404,
+		description: "Organization has been deleted",
+	}),
+) {}
 
 export class OrganizationNotFoundError extends Schema.TaggedError<OrganizationNotFoundError>(
 	"OrganizationNotFoundError",
-)("OrganizationNotFoundError", {
-	message: Schema.String,
-	organizationId: Schema.String,
-}) {}
+)(
+	"OrganizationNotFoundError",
+	{
+		message: Schema.String,
+		organizationId: Schema.String,
+	},
+	HttpApiSchema.annotations({
+		status: 404,
+		description: "Organization not found",
+	}),
+) {}
 
 export class OrganizationService extends Effect.Service<OrganizationService>()(
 	"OrganizationService",
