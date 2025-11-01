@@ -68,8 +68,9 @@ export const ProjectAPI = HttpApiGroup.make("projects")
 			.addError(ProjectNotFoundError),
 	)
 	.add(
-		HttpApiEndpoint.get("listProjects")`/organizations/${orgIdParam}/projects`
-			.addSuccess(ProjectListResponse),
+		HttpApiEndpoint.get(
+			"listProjects",
+		)`/organizations/${orgIdParam}/projects`.addSuccess(ProjectListResponse),
 	)
 	.add(
 		HttpApiEndpoint.patch("updateProject")`/${projectIdParam}`
@@ -101,8 +102,7 @@ export const ProjectAPILive = HttpApiBuilder.group(
 						const session = yield* CurrentSession
 
 						// Use activeOrganizationId from session (already validated by Better Auth)
-						const organizationId =
-							session.session.activeOrganizationId ?? null
+						const organizationId = session.session.activeOrganizationId ?? null
 
 						if (!organizationId) {
 							return yield* new OrganizationNotFoundError({
@@ -111,38 +111,40 @@ export const ProjectAPILive = HttpApiBuilder.group(
 							})
 						}
 
-						const { projectId } = yield* projects.create({
-							organizationId,
-							name: payload.name,
-							description: payload.description,
-						})
+						const { projectId } = yield* projects
+							.create({
+								organizationId,
+								name: payload.name,
+								description: payload.description,
+							})
+							.pipe(Effect.orDie)
 
 						return { projectId }
 					}),
 				)
-				.handle("getProject", ({ path }) =>
-					Effect.gen(function* () {
-						return yield* projects.get(path.id)
-					}),
-				)
+				.handle("getProject", ({ path }) => projects.get(path.id))
 				.handle("listProjects", ({ path }) =>
 					Effect.gen(function* () {
-						const projectList = yield* projects.list(path.orgId)
+						const projectList = yield* projects
+							.list(path.orgId)
+							.pipe(Effect.orDie)
 						return { projects: projectList }
 					}),
 				)
 				.handle("updateProject", ({ path, payload }) =>
 					Effect.gen(function* () {
-						yield* projects.update({
-							projectId: path.id,
-							data: payload,
-						})
+						yield* projects
+							.update({
+								projectId: path.id,
+								data: payload,
+							})
+							.pipe(Effect.orDie)
 						return { success: true as const }
 					}),
 				)
 				.handle("deleteProject", ({ path }) =>
 					Effect.gen(function* () {
-						yield* projects.delete(path.id)
+						yield* projects.delete(path.id).pipe(Effect.orDie)
 						return { success: true as const }
 					}),
 				)

@@ -1,3 +1,4 @@
+import { HttpApiSchema } from "@effect/platform"
 import { eq } from "drizzle-orm"
 import { Effect, Schema } from "effect"
 import { Drizzle } from "../../core/database"
@@ -12,6 +13,10 @@ export class ProjectNotFoundError extends Schema.TaggedError<ProjectNotFoundErro
 	{
 		projectId: Schema.String,
 	},
+	HttpApiSchema.annotations({
+		status: 404,
+		description: "Project not found",
+	}),
 ) {}
 
 /**
@@ -46,15 +51,13 @@ export class ProjectService extends Effect.Service<ProjectService>()(
 				const projectId = crypto.randomUUID()
 
 				// Insert project
-				yield* db.use((db) =>
-					db.insert(projects).values({
-						id: projectId,
-						organizationId: params.organizationId,
-						name: params.name,
-						description: params.description ?? null,
-						createdAt: new Date(),
-					}),
-				)
+				yield* db.insert(projects).values({
+					id: projectId,
+					organizationId: params.organizationId,
+					name: params.name,
+					description: params.description ?? null,
+					createdAt: new Date(),
+				})
 
 				return { projectId }
 			})
@@ -63,23 +66,14 @@ export class ProjectService extends Effect.Service<ProjectService>()(
 			 * Get project by ID
 			 */
 			const get = Effect.fn("Project.get")(function* (projectId: string) {
-				const project = yield* db.use((db) =>
-					db.select().from(projects).where(eq(projects.id, projectId)).get(),
-				)
-
-				return yield* Effect.filterOrFail(
-					Effect.succeed(project),
-					(p) => !!p,
-					() => new ProjectNotFoundError({ projectId }),
-				).pipe(
-					Effect.map((p) => ({
-						id: p.id,
-						name: p.name,
-						description: p.description,
-						organizationId: p.organizationId,
-						createdAt: p.createdAt,
-					})),
-				)
+				return yield* db
+					.select()
+					.from(projects)
+					.where(eq(projects.id, projectId))
+					.pipe(
+						Effect.head,
+						Effect.mapError(() => new ProjectNotFoundError({ projectId })),
+					)
 			})
 
 			/**
@@ -90,21 +84,10 @@ export class ProjectService extends Effect.Service<ProjectService>()(
 			const list = Effect.fn("Project.list")(function* (
 				organizationId: string,
 			) {
-				// Query all projects for organization
-				const projectList = yield* db.use((db) =>
-					db
-						.select()
-						.from(projects)
-						.where(eq(projects.organizationId, organizationId))
-						.all(),
-				)
-
-				return projectList.map((p) => ({
-					id: p.id,
-					name: p.name,
-					description: p.description,
-					createdAt: p.createdAt,
-				}))
+				return yield* db
+					.select()
+					.from(projects)
+					.where(eq(projects.organizationId, organizationId))
 			})
 
 			/**
@@ -114,21 +97,16 @@ export class ProjectService extends Effect.Service<ProjectService>()(
 				projectId: string
 				data: { name?: string; description?: string }
 			}) {
-				// Get project to verify it exists
-				yield* get(params.projectId)
-
-				// Update project
-				yield* db.use((db) =>
-					db
-						.update(projects)
-						.set({
-							...(params.data.name && { name: params.data.name }),
-							...(params.data.description !== undefined && {
-								description: params.data.description,
-							}),
-						})
-						.where(eq(projects.id, params.projectId)),
-				)
+				// Update project (will succeed with 0 rows if project doesn't exist)
+				yield* db
+					.update(projects)
+					.set({
+						...(params.data.name && { name: params.data.name }),
+						...(params.data.description !== undefined && {
+							description: params.data.description,
+						}),
+					})
+					.where(eq(projects.id, params.projectId))
 			})
 
 			/**
@@ -137,13 +115,8 @@ export class ProjectService extends Effect.Service<ProjectService>()(
 			const deleteProject = Effect.fn("Project.delete")(function* (
 				projectId: string,
 			) {
-				// Get project to verify it exists
-				yield* get(projectId)
-
 				// Delete project (cascade deletes plans/files/media)
-				yield* db.use((db) =>
-					db.delete(projects).where(eq(projects.id, projectId)),
-				)
+				yield* db.delete(projects).where(eq(projects.id, projectId))
 			})
 
 			return {
