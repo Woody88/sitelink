@@ -1,7 +1,9 @@
+import { HttpApiSchema } from "@effect/platform"
 import { eq } from "drizzle-orm"
-import { Effect, Option, Schema } from "effect"
+import { Effect, Schema } from "effect"
 import { Drizzle } from "../../core/database"
-import { plans, projects } from "../../core/database/schemas"
+import { files, plans } from "../../core/database/schemas"
+import { StorageService } from "../../core/storage"
 
 /**
  * Plan not found error
@@ -11,6 +13,10 @@ export class PlanNotFoundError extends Schema.TaggedError<PlanNotFoundError>()(
 	{
 		planId: Schema.String,
 	},
+	HttpApiSchema.annotations({
+		status: 404,
+		description: "Plan not found",
+	}),
 ) {}
 
 /**
@@ -20,12 +26,13 @@ export class PlanNotFoundError extends Schema.TaggedError<PlanNotFoundError>()(
  * Access control relies on project's organizationId matching session.
  */
 export class PlanService extends Effect.Service<PlanService>()("PlanService", {
-	dependencies: [Drizzle.Default],
+	dependencies: [Drizzle.Default, StorageService.Default],
 	effect: Effect.gen(function* () {
 		const db = yield* Drizzle
+		const storage = yield* StorageService
 
 		/**
-		 * Create a new plan
+		 * Create a new plan with PDF upload
 		 *
 		 * Assumes projectId belongs to user's active organization
 		 * (validated in HTTP layer)
@@ -34,52 +41,61 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 			projectId: string
 			name: string
 			description?: string
+			fileData: Uint8Array | ArrayBuffer
+			fileName: string
+			fileType: string
 		}) {
-			// Verify project exists
-			const project = yield* db
-				.select()
-				.from(projects)
-				.where(eq(projects.id, params.projectId))
-				.pipe(Effect.map((row) => Option.fromNullable(row[0])))
-
-			if (Option.isNone(project)) {
-				return yield* Effect.fail(
-					new Error(`Project not found: ${params.projectId}`),
-				)
-			}
-
-			// Generate plan ID
+			// Generate IDs
 			const planId = crypto.randomUUID()
+			const fileId = crypto.randomUUID()
+			const uploadId = crypto.randomUUID()
 
-			// Insert plan
+			// Build R2 storage path
+			const filePath = `/plans/${planId}/uploads/${uploadId}/original.pdf`
+
+			// Upload PDF to R2
+			yield* storage.use((r2) =>
+				r2.put(filePath, params.fileData, {
+					httpMetadata: { contentType: params.fileType },
+				}),
+			)
+
+			// Insert plan metadata (FK constraint will validate projectId exists)
 			yield* db.insert(plans).values({
 				id: planId,
 				projectId: params.projectId,
 				name: params.name,
 				description: params.description ?? null,
-				directoryPath: null, // Will be set during PDF processing
+				directoryPath: `/plans/${planId}`, // Base path for this plan
 				createdAt: new Date(),
 			})
 
-			return { planId }
+			// Insert file record
+			yield* db.insert(files).values({
+				id: fileId,
+				uploadId,
+				planId,
+				filePath,
+				fileType: params.fileType,
+				isActive: true,
+				createdAt: new Date(),
+			})
+
+			return { planId, fileId, uploadId, filePath }
 		})
 
 		/**
 		 * Get plan by ID
 		 */
 		const get = Effect.fn("Plan.get")(function* (planId: string) {
-			const plan = yield* db
+			return yield* db
 				.select()
 				.from(plans)
 				.where(eq(plans.id, planId))
-				.pipe(Effect.map((row) => Effect.fromNullable(row[0])))
-
-			return yield* plan.pipe(
-				Effect.catchTag(
-					"NoSuchElementException",
-					() => new PlanNotFoundError({ planId }),
-				),
-			)
+				.pipe(
+					Effect.head,
+					Effect.mapError(() => new PlanNotFoundError({ planId })),
+				)
 		})
 
 		/**
@@ -102,10 +118,7 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 			planId: string
 			data: { name?: string; description?: string }
 		}) {
-			// Get plan to verify it exists
-			yield* get(params.planId)
-
-			// Update plan
+			// Update plan (will succeed with 0 rows if plan doesn't exist)
 			yield* db
 				.update(plans)
 				.set({
@@ -121,9 +134,6 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 		 * Delete a plan (cascade handled by database)
 		 */
 		const deletePlan = Effect.fn("Plan.delete")(function* (planId: string) {
-			// Get plan to verify it exists
-			yield* get(planId)
-
 			// Delete plan (cascade deletes files)
 			yield* db.delete(plans).where(eq(plans.id, planId))
 		})
