@@ -4,14 +4,14 @@ import { BaseApi } from "./core/api"
 import { AuthorizationMiddlewareLive } from "./core/middleware"
 import { AuthAPIModule } from "./features/auth"
 import { AuthAPI } from "./features/auth/http"
-import { FileModule, FileAPI } from "./features/files"
+import { FileAPI, FileModule } from "./features/files"
 import { HealthModule } from "./features/health"
 import { HealthAPI } from "./features/health/http"
-import { MediaModule, MediaAPI } from "./features/media"
+import { MediaAPI, MediaModule } from "./features/media"
 import { OrganizationModule } from "./features/organization"
 import { OrganizationAPI } from "./features/organization/http"
-import { PlanModule, PlanAPI } from "./features/plans"
-import { ProjectModule, ProjectAPI } from "./features/projects"
+import { PlanAPI, PlanModule } from "./features/plans"
+import { ProjectAPI, ProjectModule } from "./features/projects"
 import { RegistrationModule } from "./features/registration"
 import { RegistrationAPI } from "./features/registration/http"
 
@@ -21,17 +21,17 @@ export const Api = HttpApiBuilder.api(
 		.add(RegistrationAPI)
 		.add(OrganizationAPI)
 		.add(ProjectAPI)
-		.add(PlanAPI)
-		.add(FileAPI)
-		.add(MediaAPI),
+		.add(PlanAPI),
+	// .add(FileAPI)
+	// .add(MediaAPI),
 ).pipe(
-	Layer.provide(AuthAPIModule),
-	Layer.provide(HealthModule),
-	Layer.provide(RegistrationModule),
-	Layer.provide(OrganizationModule),
-	Layer.provide(ProjectModule),
-	Layer.provide(PlanModule),
-	Layer.provide(FileModule),
-	Layer.provide(MediaModule),
+	Layer.provideMerge(AuthAPIModule),
+	Layer.provideMerge(HealthModule),
+	Layer.provideMerge(RegistrationModule),
+	Layer.provideMerge(OrganizationModule),
+	Layer.provideMerge(ProjectModule),
+	Layer.provideMerge(PlanModule),
+	// Layer.provideMerge(FileModule),
+	// Layer.provideMerge(MediaModule),
 	Layer.provide(AuthorizationMiddlewareLive),
 )
