@@ -74,6 +74,7 @@ export const medias = D.sqliteTable("medias", {
 
 export const files = D.sqliteTable("files", {
 	id: D.text().primaryKey(),
+	uploadId: D.text("upload_id").notNull().unique(), // Unique upload identifier for versioning
 	planId: D.text("plan_id")
 		.notNull()
 		.references(() => plans.id, {
@@ -82,6 +83,9 @@ export const files = D.sqliteTable("files", {
 		}),
 	filePath: D.text("file_path"),
 	fileType: D.text("file_type"),
+	isActive: D.integer("is_active", { mode: "boolean" })
+		.notNull()
+		.default(true), // Track which version is currently active
 	createdAt: D.integer("created_at", { mode: "timestamp_ms" })
 		.$defaultFn(() => new Date())
 		.notNull(),

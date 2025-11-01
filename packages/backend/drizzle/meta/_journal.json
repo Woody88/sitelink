@@ -8,6 +8,13 @@
       "when": 1761073019697,
       "tag": "0000_tiny_prowler",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1761980641557,
+      "tag": "0001_cloudy_alice",
+      "breakpoints": true
     }
   ]
 }
