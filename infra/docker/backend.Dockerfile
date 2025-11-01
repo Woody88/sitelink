@@ -10,7 +10,7 @@ COPY packages/backend/package.json ./packages/backend/
 RUN bun install
 
 # Copy source files
-COPY packages/backend/src ./packages/backend/src/
+COPY packages/backend/src/features/processing/main.ts ./packages/backend/src/main.ts
 
 EXPOSE 3000
 

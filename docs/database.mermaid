@@ -127,6 +127,8 @@ erDiagram
         string name
         string description
         string r2_directory_path
+        string processingStatus "pending|processing|complete|failed|null"
+        text tileMetadata "JSON: DZI metadata and progress"
         timestamp createdAt
         timestamp updatedAt
     }
