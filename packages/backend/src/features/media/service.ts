@@ -83,16 +83,9 @@ export class MediaService extends Effect.Service<MediaService>()(
 				})
 
 				// Upload to R2 using StorageService
-				yield* storage.use((r2) =>
-					Effect.tryPromise({
-						try: () =>
-							r2.put(filePath, params.mediaData, {
-								httpMetadata: { contentType: params.contentType },
-							}),
-						catch: (cause) =>
-							new Error(`Failed to upload media to storage: ${cause}`),
-					}),
-				)
+				yield* storage.put(filePath, params.mediaData, {
+					httpMetadata: { contentType: params.contentType },
+				})
 
 				// TODO: Generate thumbnail using Sharp
 				// For photos: Resize to 300x300 thumbnail
@@ -100,15 +93,13 @@ export class MediaService extends Effect.Service<MediaService>()(
 				// Store thumbnail at: `${filePath}_thumb.jpg`
 
 				// Create D1 metadata record
-				yield* db.use((db) =>
-					db.insert(medias).values({
-						id: mediaId,
-						projectId: params.projectId,
-						filePath,
-						mediaType: params.mediaType,
-						createdAt: new Date(),
-					}),
-				)
+				yield* db.insert(medias).values({
+					id: mediaId,
+					projectId: params.projectId,
+					filePath,
+					mediaType: params.mediaType,
+					createdAt: new Date(),
+				})
 
 				return { mediaId, filePath }
 			})
@@ -117,23 +108,14 @@ export class MediaService extends Effect.Service<MediaService>()(
 			 * Get media metadata by ID
 			 */
 			const get = Effect.fn("Media.get")(function* (mediaId: string) {
-				const media = yield* db.use((db) =>
-					db.select().from(medias).where(eq(medias.id, mediaId)).get(),
-				)
-
-				return yield* Effect.filterOrFail(
-					Effect.succeed(media),
-					(m) => !!m,
-					() => new MediaNotFoundError({ mediaId }),
-				).pipe(
-					Effect.map((m) => ({
-						id: m.id,
-						projectId: m.projectId,
-						filePath: m.filePath,
-						mediaType: m.mediaType,
-						createdAt: m.createdAt,
-					})),
-				)
+				return yield* db
+					.select()
+					.from(medias)
+					.where(eq(medias.id, mediaId))
+					.pipe(
+						Effect.head,
+						Effect.mapError(() => new MediaNotFoundError({ mediaId })),
+					)
 			})
 
 			/**
@@ -152,31 +134,19 @@ export class MediaService extends Effect.Service<MediaService>()(
 				}
 
 				// Download from R2 using StorageService
-				const data = yield* storage.use((r2) =>
-					Effect.gen(function* () {
-						const object = yield* Effect.tryPromise({
-							try: () => r2.get(media.filePath!),
-							catch: (cause) =>
-								new Error(`Failed to download media from storage: ${cause}`),
-						})
+				const object = yield* storage.get(media.filePath)
 
-						if (!object) {
-							return yield* Effect.fail(
-								new Error(`Media not found in storage: ${media.filePath}`),
-							)
-						}
+				if (!object) {
+					return yield* Effect.fail(
+						new Error(`Media not found in storage: ${media.filePath}`),
+					)
+				}
 
-						const arrayBuffer = yield* Effect.promise(() =>
-							object.arrayBuffer(),
-						)
-						return {
-							data: arrayBuffer,
-							contentType: media.mediaType === "photo" ? "image/jpeg" : "video/mp4",
-						}
-					}),
-				)
-
-				return data
+				const arrayBuffer = yield* Effect.promise(() => object.arrayBuffer())
+				return {
+					data: arrayBuffer,
+					contentType: media.mediaType === "photo" ? "image/jpeg" : "video/mp4",
+				}
 			})
 
 			/**
@@ -185,16 +155,10 @@ export class MediaService extends Effect.Service<MediaService>()(
 			const listByProject = Effect.fn("Media.listByProject")(function* (
 				projectId: string,
 			) {
-				const mediaList = yield* db.use((db) =>
-					db.select().from(medias).where(eq(medias.projectId, projectId)).all(),
-				)
-
-				return mediaList.map((m) => ({
-					id: m.id,
-					filePath: m.filePath,
-					mediaType: m.mediaType,
-					createdAt: m.createdAt,
-				}))
+				return yield* db
+					.select()
+					.from(medias)
+					.where(eq(medias.projectId, projectId))
 			})
 
 			/**
@@ -214,7 +178,7 @@ export class MediaService extends Effect.Service<MediaService>()(
 				}
 
 				// Delete from D1
-				yield* db.use((db) => db.delete(medias).where(eq(medias.id, mediaId)))
+				yield* db.delete(medias).where(eq(medias.id, mediaId))
 			})
 
 			return {
