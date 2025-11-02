@@ -4,6 +4,7 @@ import { Effect, Schema } from "effect"
 import { Drizzle } from "../../core/database"
 import { files, plans } from "../../core/database/schemas"
 import { StorageService } from "../../core/storage"
+import { PdfProcessor } from "../processing/service"
 
 /**
  * Plan not found error
@@ -30,6 +31,7 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 	effect: Effect.gen(function* () {
 		const db = yield* Drizzle
 		const storage = yield* StorageService
+		// const pdfProcessor = yield* PdfProcessor
 
 		/**
 		 * Create a new plan with PDF upload
@@ -39,6 +41,7 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 		 */
 		const create = Effect.fn("Plan.create")(function* (params: {
 			projectId: string
+			organizationId: string
 			name: string
 			description?: string
 			fileData: Uint8Array | ArrayBuffer
@@ -46,12 +49,15 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 			fileType: string
 		}) {
 			// Generate IDs
+			const organizationId = params.organizationId
+			const projectId = params.projectId
 			const planId = crypto.randomUUID()
 			const fileId = crypto.randomUUID()
 			const uploadId = crypto.randomUUID()
+			const jobId = `${fileId}`
 
 			// Build R2 storage path
-			const filePath = `/plans/${planId}/uploads/${uploadId}/original.pdf`
+			const filePath = `organizations/${organizationId}/projects/${projectId}/plans/${planId}/uploads/${uploadId}/original.pdf`
 
 			// Upload PDF to R2
 			yield* storage.use((r2) =>
@@ -60,14 +66,15 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 				}),
 			)
 
+			const createdAt = new Date()
 			// Insert plan metadata (FK constraint will validate projectId exists)
 			yield* db.insert(plans).values({
 				id: planId,
 				projectId: params.projectId,
 				name: params.name,
 				description: params.description ?? null,
-				directoryPath: `/plans/${planId}`, // Base path for this plan
-				createdAt: new Date(),
+				directoryPath: `organizations/${organizationId}/projects/${projectId}/plans/${planId}`, // Base path for this plan
+				createdAt,
 			})
 
 			// Insert file record
@@ -80,6 +87,18 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 				isActive: true,
 				createdAt: new Date(),
 			})
+
+			// yield* pdfProcessor.process({
+			// 	jobId,
+			// 	uploadId,
+			// 	planId,
+			// 	organizationId,
+			// 	projectId,
+			// 	pdfPath: filePath,
+			// 	filename: params.fileName,
+			// 	fileSize: params.fileData.byteLength,
+			// 	uploadedAt: createdAt.getTime(),
+			// })
 
 			return { planId, fileId, uploadId, filePath }
 		})

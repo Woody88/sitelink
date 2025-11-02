@@ -1,13 +1,14 @@
 import {
 	HttpApiBuilder,
 	HttpApiEndpoint,
+	HttpApiError,
 	HttpApiGroup,
 	HttpApiSchema,
 	Multipart,
 } from "@effect/platform"
 import { Effect, Schema, Stream } from "effect"
 import { BaseApi } from "../../core/api"
-import { Authorization } from "../../core/middleware"
+import { Authorization, CurrentSession } from "../../core/middleware"
 import { PlanNotFoundError, PlanService } from "./service"
 
 /**
@@ -86,8 +87,9 @@ export const PlanAPI = HttpApiGroup.make("plans")
 			.addError(PlanNotFoundError),
 	)
 	.add(
-		HttpApiEndpoint.get("listPlans")`/projects/${projectIdParam}/plans`
-			.addSuccess(PlanListResponse),
+		HttpApiEndpoint.get(
+			"listPlans",
+		)`/projects/${projectIdParam}/plans`.addSuccess(PlanListResponse),
 	)
 	.add(
 		HttpApiEndpoint.patch("updatePlan")`/plans/${planIdParam}`
@@ -116,6 +118,11 @@ export const PlanAPILive = HttpApiBuilder.group(
 			return handlers
 				.handle("createPlan", ({ path, payload }) =>
 					Effect.gen(function* () {
+						const { session } = yield* CurrentSession
+
+						if (!session.activeOrganizationId)
+							return yield* new HttpApiError.Unauthorized()
+
 						// Parse multipart stream to get file and fields
 						const parts = yield* Stream.runCollect(payload)
 
@@ -150,20 +157,25 @@ export const PlanAPILive = HttpApiBuilder.group(
 						}
 
 						// Create plan with file upload
-						const { planId, fileId, uploadId } = yield* planService.create({
-							projectId: path.projectId,
-							name,
-							description: description || undefined,
-							fileData,
-							fileName,
-							fileType: fileType ?? "application/pdf",
-						}).pipe(
-							Effect.catchAll((error) =>
-								Effect.fail(new PlanUploadError({
-									message: `Failed to create plan: ${error}`,
-								})),
-							),
-						)
+						const { planId, fileId, uploadId } = yield* planService
+							.create({
+								organizationId: session.activeOrganizationId,
+								projectId: path.projectId,
+								name,
+								description: description || undefined,
+								fileData,
+								fileName,
+								fileType: fileType ?? "application/pdf",
+							})
+							.pipe(
+								Effect.catchAll((error) =>
+									Effect.fail(
+										new PlanUploadError({
+											message: `Failed to create plan: ${error}`,
+										}),
+									),
+								),
+							)
 
 						return { planId, fileId, uploadId }
 					}),
@@ -172,21 +184,21 @@ export const PlanAPILive = HttpApiBuilder.group(
 				.handle("listPlans", ({ path }) =>
 					Effect.gen(function* () {
 						// List plans for project
-						const planList = yield* planService.list(path.projectId).pipe(
-							Effect.orDie,
-						)
+						const planList = yield* planService
+							.list(path.projectId)
+							.pipe(Effect.orDie)
 						return { plans: planList }
 					}),
 				)
 				.handle("updatePlan", ({ path, payload }) =>
 					Effect.gen(function* () {
 						// Update plan
-						yield* planService.update({
-							planId: path.id,
-							data: payload,
-						}).pipe(
-							Effect.orDie,
-						)
+						yield* planService
+							.update({
+								planId: path.id,
+								data: payload,
+							})
+							.pipe(Effect.orDie)
 
 						return { success: true as const }
 					}),
@@ -194,9 +206,7 @@ export const PlanAPILive = HttpApiBuilder.group(
 				.handle("deletePlan", ({ path }) =>
 					Effect.gen(function* () {
 						// Delete plan
-						yield* planService.delete(path.id).pipe(
-							Effect.orDie,
-						)
+						yield* planService.delete(path.id).pipe(Effect.orDie)
 
 						return { success: true as const }
 					}),

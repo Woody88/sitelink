@@ -5,7 +5,7 @@ import { ConfigProvider, Layer } from "effect"
 import { Resend } from "resend"
 import { Api } from "./api"
 import { CoreLayer } from "./core"
-import { R2Binding, ResendBinding } from "./core/bindings"
+import { PdfProcessorManager, R2Binding, ResendBinding } from "./core/bindings"
 import { SitelinkPdfProcessor } from "./features/processing/pdf-processing-job.do"
 
 export { SitelinkPdfProcessor } from "./features/processing/pdf-processing-job.do"
@@ -19,10 +19,15 @@ export default {
 				new Map(Object.entries(env).filter(([_, v]) => typeof v === "string")),
 			),
 		)
+
 		// Create Cloudflare Binding Layers
 		const D1Layer = D1Client.layer({ db: env.SitelinkDB }) // Effect SQL client
 		const ResendLayer = Layer.succeed(ResendBinding, resend)
 		const R2Layer = Layer.succeed(R2Binding, env.SitelinkStorage)
+		const PdfProcessorManagerLayer = Layer.succeed(
+			PdfProcessorManager,
+			env.SITELINK_PDF_PROCESSOR,
+		)
 
 		const AppLayer = Api.pipe(
 			Layer.provide(CoreLayer),
