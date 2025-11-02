@@ -1,175 +1,17 @@
-import { env, SELF } from "cloudflare:test"
+import { env } from "cloudflare:test"
 import { eq } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/d1"
 import { describe, expect, it } from "vitest"
-import { createTestAuthClient } from "../../src/core/auth/client"
 import * as schema from "../../src/core/database/schemas"
+import {
+	createAuthenticatedUser,
+	createOrgWithSubscription,
+	createProject,
+	loadSamplePDF,
+	wrappedFetch,
+} from "../helpers"
 
 describe("Plan Module", () => {
-	const wrappedFetch: typeof fetch = (input, init) => SELF.fetch(input, init)
-
-	/**
-	 * Helper: Create and authenticate a user via magic link
-	 */
-	async function createAuthenticatedUser(email: string) {
-		const db = drizzle(env.SitelinkDB, { schema, casing: "snake_case" })
-		const authClient = createTestAuthClient("http://localhost", wrappedFetch)
-
-		await authClient.signIn.magicLink({
-			email,
-			name: "Test User",
-			callbackURL: "/",
-			newUserCallbackURL: "/registration",
-			errorCallbackURL: "/error",
-		})
-
-		const verifications = await db
-			.select({ identifier: schema.verifications.identifier })
-			.from(schema.verifications)
-			.orderBy(schema.verifications.createdAt)
-			.limit(1)
-
-		expect(verifications).toHaveLength(1)
-		const verification = verifications[0]
-		if (!verification) throw new Error("No verification found")
-
-		const magicLinkUrl = `http://localhost/api/auth/magic-link/verify?token=${verification.identifier}&callbackURL=/`
-		const verifyResponse = await wrappedFetch(magicLinkUrl, {
-			redirect: "manual",
-		})
-
-		expect(verifyResponse.status).toBe(302)
-
-		const sessionCookie = verifyResponse.headers.get("set-cookie")
-		expect(sessionCookie).toContain("better-auth.session_token")
-		if (!sessionCookie) throw new Error("No session cookie")
-
-		const authenticatedClient = createTestAuthClient(
-			"http://localhost",
-			(input, init) => {
-				const headers = new Headers(init?.headers)
-				headers.set("cookie", sessionCookie)
-				return SELF.fetch(input, { ...init, headers })
-			},
-		)
-
-		const { data: sessionData } = await authenticatedClient.getSession()
-		expect(sessionData?.user).toBeDefined()
-		if (!sessionData?.user) throw new Error("No user in session")
-
-		return {
-			authClient: authenticatedClient,
-			userId: sessionData.user.id,
-			sessionCookie: sessionCookie,
-		}
-	}
-
-	/**
-	 * Helper: Create an organization with a subscription
-	 */
-	async function createOrgWithSubscription(
-		authClient: ReturnType<typeof createTestAuthClient>,
-		orgName: string,
-	) {
-		const db = drizzle(env.SitelinkDB, { schema, casing: "snake_case" })
-
-		const { data: orgData, error } = await authClient.organization.create({
-			name: orgName,
-			slug: orgName.toLowerCase().replace(/\s+/g, "-"),
-		})
-
-		expect(error).toBeNull()
-		expect(orgData).toBeDefined()
-		if (!orgData) throw new Error("No organization data")
-
-		await db.insert(schema.subscriptions).values({
-			id: `sub-${Date.now()}`,
-			polarSubscriptionId: `polar-${Date.now()}`,
-			organizationId: orgData.id,
-			plan: "pro",
-			seats: 5,
-			status: "active",
-			currentPeriodStart: new Date(),
-			currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-			createdAt: new Date(),
-			updatedAt: new Date(),
-		})
-
-		return {
-			organizationId: orgData.id as string,
-			organizationSlug: orgData.slug as string,
-		}
-	}
-
-	/**
-	 * Helper: Create a project
-	 */
-	async function createProject(
-		sessionCookie: string,
-		_organizationId: string,
-		projectName: string,
-	) {
-		const createResponse = await wrappedFetch("http://localhost/projects/", {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				cookie: sessionCookie,
-			},
-			body: JSON.stringify({
-				name: projectName,
-				description: "Test project",
-			}),
-		})
-
-		expect(createResponse.status).toBe(200)
-		const { projectId } = (await createResponse.json()) as { projectId: string }
-		return projectId
-	}
-
-	/**
-	 * Helper: Create a sample PDF file
-	 */
-	function createSamplePDF(): Uint8Array {
-		// Minimal valid PDF
-		const pdfContent = `%PDF-1.4
-1 0 obj
-<< /Type /Catalog /Pages 2 0 R >>
-endobj
-2 0 obj
-<< /Type /Pages /Kids [3 0 R] /Count 1 >>
-endobj
-3 0 obj
-<< /Type /Page /Parent 2 0 R /Resources 4 0 R /MediaBox [0 0 612 792] /Contents 5 0 R >>
-endobj
-4 0 obj
-<< /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>
-endobj
-5 0 obj
-<< /Length 44 >>
-stream
-BT
-/F1 12 Tf
-100 700 Td
-(Test PDF) Tj
-ET
-endstream
-endobj
-xref
-0 6
-0000000000 65535 f
-0000000009 00000 n
-0000000058 00000 n
-0000000115 00000 n
-0000000229 00000 n
-0000000327 00000 n
-trailer
-<< /Size 6 /Root 1 0 R >>
-startxref
-420
-%%EOF`
-		return new TextEncoder().encode(pdfContent)
-	}
-
 	describe("Plan CRUD Operations", () => {
 		it("should create a plan with PDF upload and store in correct R2 path", async () => {
 			// Setup: Create authenticated user, organization, and project
@@ -188,9 +30,13 @@ startxref
 			)
 
 			// Create multipart form data with PDF
-			const pdfData = createSamplePDF()
+			const pdfData = await loadSamplePDF()
 			const formData = new FormData()
-			formData.append("file", new Blob([pdfData], { type: "application/pdf" }), "test-plan.pdf")
+			formData.append(
+				"file",
+				new Blob([pdfData], { type: "application/pdf" }),
+				"test-plan.pdf",
+			)
 			formData.append("name", "Test Construction Plan")
 			formData.append("description", "A test plan for construction")
 
@@ -235,7 +81,7 @@ startxref
 				projectId: projectId,
 				name: "Test Construction Plan",
 				description: "A test plan for construction",
-				directoryPath: `/plans/${data.planId}`,
+				directoryPath: `organizations/${organizationId}/projects/${projectId}/plans/${data.planId}`,
 			})
 
 			// Check file record
@@ -248,13 +94,13 @@ startxref
 				id: data.fileId,
 				uploadId: data.uploadId,
 				planId: data.planId,
-				filePath: `/plans/${data.planId}/uploads/${data.uploadId}/original.pdf`,
+				filePath: `organizations/${organizationId}/projects/${projectId}/plans/${data.planId}/uploads/${data.uploadId}/original.pdf`,
 				fileType: "application/pdf",
 				isActive: true,
 			})
 
 			// Verify R2 storage path
-			const expectedR2Path = `/plans/${data.planId}/uploads/${data.uploadId}/original.pdf`
+			const expectedR2Path = `organizations/${organizationId}/projects/${projectId}/plans/${data.planId}/uploads/${data.uploadId}/original.pdf`
 			const r2Object = await env.SitelinkStorage.get(expectedR2Path)
 			expect(r2Object).not.toBeNull()
 			if (r2Object) {
@@ -282,7 +128,11 @@ startxref
 
 			// Create plan
 			const formData = new FormData()
-			formData.append("file", new Blob([createSamplePDF()], { type: "application/pdf" }), "plan.pdf")
+			formData.append(
+				"file",
+				new Blob([await loadSamplePDF()], { type: "application/pdf" }),
+				"plan.pdf",
+			)
 			formData.append("name", "Get Test Plan")
 
 			const createResponse = await wrappedFetch(
@@ -332,7 +182,11 @@ startxref
 
 			// Create multiple plans
 			const formData1 = new FormData()
-			formData1.append("file", new Blob([createSamplePDF()], { type: "application/pdf" }), "plan1.pdf")
+			formData1.append(
+				"file",
+				new Blob([await loadSamplePDF()], { type: "application/pdf" }),
+				"plan1.pdf",
+			)
 			formData1.append("name", "Plan Alpha")
 
 			await wrappedFetch(`http://localhost/api/projects/${projectId}/plans`, {
@@ -342,7 +196,11 @@ startxref
 			})
 
 			const formData2 = new FormData()
-			formData2.append("file", new Blob([createSamplePDF()], { type: "application/pdf" }), "plan2.pdf")
+			formData2.append(
+				"file",
+				new Blob([await loadSamplePDF()], { type: "application/pdf" }),
+				"plan2.pdf",
+			)
 			formData2.append("name", "Plan Beta")
 
 			await wrappedFetch(`http://localhost/api/projects/${projectId}/plans`, {
@@ -387,7 +245,11 @@ startxref
 
 			// Create plan
 			const formData = new FormData()
-			formData.append("file", new Blob([createSamplePDF()], { type: "application/pdf" }), "plan.pdf")
+			formData.append(
+				"file",
+				new Blob([await loadSamplePDF()], { type: "application/pdf" }),
+				"plan.pdf",
+			)
 			formData.append("name", "Original Plan Name")
 
 			const createResponse = await wrappedFetch(
@@ -454,7 +316,11 @@ startxref
 
 			// Create plan
 			const formData = new FormData()
-			formData.append("file", new Blob([createSamplePDF()], { type: "application/pdf" }), "plan.pdf")
+			formData.append(
+				"file",
+				new Blob([await loadSamplePDF()], { type: "application/pdf" }),
+				"plan.pdf",
+			)
 			formData.append("name", "Plan to Delete")
 
 			const createResponse = await wrappedFetch(
@@ -538,7 +404,11 @@ startxref
 
 			// Try to create plan in non-existent project
 			const formData = new FormData()
-			formData.append("file", new Blob([createSamplePDF()], { type: "application/pdf" }), "plan.pdf")
+			formData.append(
+				"file",
+				new Blob([await loadSamplePDF()], { type: "application/pdf" }),
+				"plan.pdf",
+			)
 			formData.append("name", "Plan in Bad Project")
 
 			const createResponse = await wrappedFetch(
@@ -551,7 +421,7 @@ startxref
 			)
 
 			// FK constraint failure returns 400 (not 404) since we don't do defensive checks
-		expect(createResponse.status).toBe(400)
+			expect(createResponse.status).toBe(400)
 		})
 
 		it("should block access to plan from different organization", async () => {
@@ -575,7 +445,11 @@ startxref
 
 			// User 1 creates a plan
 			const formData = new FormData()
-			formData.append("file", new Blob([createSamplePDF()], { type: "application/pdf" }), "plan.pdf")
+			formData.append(
+				"file",
+				new Blob([await loadSamplePDF()], { type: "application/pdf" }),
+				"plan.pdf",
+			)
 			formData.append("name", "Org 1 Plan")
 
 			const createResponse = await wrappedFetch(
@@ -599,7 +473,7 @@ startxref
 			)
 
 			// Succeeds because we don't do defensive cross-org checks - FK constraints provide data isolation
-		expect(getResponse.status).toBe(200)
+			expect(getResponse.status).toBe(200)
 		})
 
 		it("should return 404 for non-existent plan", async () => {

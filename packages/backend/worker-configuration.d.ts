@@ -13,6 +13,7 @@ declare namespace Cloudflare {
 		SITELINK_PDF_PROCESSOR: DurableObjectNamespace<import("./src/index").SitelinkPdfProcessor>;
 		SitelinkStorage: R2Bucket;
 		SitelinkDB: D1Database;
+		FIXTURE_LOADER: Fetcher; // Service binding for loading test fixtures
 	}
 }
 interface Env extends Cloudflare.Env {}
