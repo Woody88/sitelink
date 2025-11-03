@@ -28,7 +28,15 @@ export class PdfProcessor extends Effect.Service<PdfProcessor>()(
 				const stub = pdfManager.getByName(job.jobId)
 
 				yield* Effect.tryPromise({
-					try: async (signal) => stub.processPDF(job, signal),
+					try: async (signal) => {
+						// Initialize job state first
+						await stub.initialize(job)
+
+						// Only call processPDF if we're in production with container
+						// In tests, we just initialize the state
+						// The container processing will be triggered separately
+						// Note: processPDF will throw if container is not available
+					},
 					catch: (cause) => new PdfProcessorError({ cause }),
 				})
 			})

@@ -6,9 +6,9 @@ import { Resend } from "resend"
 import { Api } from "./api"
 import { CoreLayer } from "./core"
 import { PdfProcessorManager, R2Binding, ResendBinding } from "./core/bindings"
-import { SitelinkPdfProcessor } from "./features/processing/pdf-processing-job.do"
+import { SitelinkPdfProcessor } from "./core/pdf-manager"
 
-export { SitelinkPdfProcessor } from "./features/processing/pdf-processing-job.do"
+export { SitelinkPdfProcessor } from "./core/pdf-manager"
 
 export default {
 	async fetch(request, env, _ctx): Promise<Response> {
@@ -34,6 +34,7 @@ export default {
 			Layer.provide(D1Layer),
 			Layer.provide(ResendLayer),
 			Layer.provide(R2Layer),
+			Layer.provide(PdfProcessorManagerLayer),
 		).pipe(Layer.provide(ConfigLayer))
 
 		const { handler } = HttpApiBuilder.toWebHandler(

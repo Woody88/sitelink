@@ -75,6 +75,7 @@ export const PlanAPI = HttpApiGroup.make("plans")
 					planId: Schema.String,
 					fileId: Schema.String,
 					uploadId: Schema.String,
+					jobId: Schema.String,
 				}),
 			)
 			.addError(Multipart.MultipartError)
@@ -157,7 +158,7 @@ export const PlanAPILive = HttpApiBuilder.group(
 						}
 
 						// Create plan with file upload
-						const { planId, fileId, uploadId } = yield* planService
+						const { planId, fileId, uploadId, jobId } = yield* planService
 							.create({
 								organizationId: session.activeOrganizationId,
 								projectId: path.projectId,
@@ -177,7 +178,7 @@ export const PlanAPILive = HttpApiBuilder.group(
 								),
 							)
 
-						return { planId, fileId, uploadId }
+						return { planId, fileId, uploadId, jobId }
 					}),
 				)
 				.handle("getPlan", ({ path }) => planService.get(path.id))

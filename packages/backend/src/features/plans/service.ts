@@ -27,11 +27,11 @@ export class PlanNotFoundError extends Schema.TaggedError<PlanNotFoundError>()(
  * Access control relies on project's organizationId matching session.
  */
 export class PlanService extends Effect.Service<PlanService>()("PlanService", {
-	dependencies: [Drizzle.Default, StorageService.Default],
+	dependencies: [Drizzle.Default, StorageService.Default, PdfProcessor.Default],
 	effect: Effect.gen(function* () {
 		const db = yield* Drizzle
 		const storage = yield* StorageService
-		// const pdfProcessor = yield* PdfProcessor
+		const pdfProcessor = yield* PdfProcessor
 
 		/**
 		 * Create a new plan with PDF upload
@@ -88,19 +88,20 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 				createdAt: new Date(),
 			})
 
-			// yield* pdfProcessor.process({
-			// 	jobId,
-			// 	uploadId,
-			// 	planId,
-			// 	organizationId,
-			// 	projectId,
-			// 	pdfPath: filePath,
-			// 	filename: params.fileName,
-			// 	fileSize: params.fileData.byteLength,
-			// 	uploadedAt: createdAt.getTime(),
-			// })
+			// Initialize PDF processing job in Durable Object
+			yield* pdfProcessor.process({
+				jobId,
+				uploadId,
+				planId,
+				organizationId,
+				projectId,
+				pdfPath: filePath,
+				filename: params.fileName,
+				fileSize: params.fileData.byteLength,
+				uploadedAt: createdAt.getTime(),
+			})
 
-			return { planId, fileId, uploadId, filePath }
+			return { planId, fileId, uploadId, filePath, jobId }
 		})
 
 		/**

@@ -31,8 +31,7 @@ export interface ProcessingJobState extends NewProcessingJob {
 		timestamp: number
 	}
 }
-
-export class SitelinkPdfProcessor extends DurableObject<Env> {
+class SitelinkPdfProcessor extends DurableObject<Env> {
 	defaultPort = 3000
 	container: globalThis.Container
 	monitor?: Promise<unknown>

@@ -170,12 +170,18 @@ export async function setupUserOrgAndProject(
 	const { sessionCookie, authClient, userId } =
 		await createAuthenticatedUser(email)
 
-	const { organizationId, organizationSlug } =
-		await createOrgWithSubscription(authClient, orgName)
+	const { organizationId, organizationSlug } = await createOrgWithSubscription(
+		authClient,
+		orgName,
+	)
 
 	await authClient.organization.setActive({ organizationId })
 
-	const projectId = await createProject(sessionCookie, organizationId, projectName)
+	const projectId = await createProject(
+		sessionCookie,
+		organizationId,
+		projectName,
+	)
 
 	return {
 		sessionCookie,
@@ -185,4 +191,83 @@ export async function setupUserOrgAndProject(
 		organizationSlug,
 		projectId,
 	}
+}
+
+/**
+ * Upload a PDF plan and trigger processing
+ *
+ * @param sessionCookie - Session cookie for authenticated requests
+ * @param projectId - Project ID to upload to
+ * @param pdfData - PDF file data
+ * @param planName - Name for the plan
+ * @returns Plan ID, upload ID, and job ID
+ */
+export async function createPlan(
+	sessionCookie: string,
+	projectId: string,
+	pdfData: Uint8Array,
+	planName: string,
+) {
+	const formData = new FormData()
+	const pdfBlob = new Blob([pdfData], { type: "application/pdf" })
+	formData.append("file", pdfBlob, `${planName}.pdf`)
+	formData.append("projectId", projectId)
+	formData.append("name", planName)
+
+	const uploadResponse = await wrappedFetch(
+		`http://localhost/api/projects/${projectId}/plans`,
+		{
+			method: "POST",
+			headers: {
+				cookie: sessionCookie,
+			},
+			body: formData,
+		},
+	)
+
+	if (!uploadResponse.ok) {
+		const errorText = await uploadResponse.text()
+		throw new Error(
+			`Failed to upload plan: ${uploadResponse.status} - ${errorText}`,
+		)
+	}
+
+	const result = (await uploadResponse.json()) as {
+		jobId: string
+		planId: string
+		uploadId: string
+		fileId: string
+	}
+
+	return result
+}
+
+/**
+ * Poll for a condition with timeout
+ *
+ * @param condition - Async function that returns true when condition is met
+ * @param options - Timeout and polling interval options
+ * @returns Resolves when condition is met
+ * @throws Error if timeout is reached
+ */
+export async function waitFor(
+	condition: () => Promise<boolean>,
+	options: { timeout?: number; interval?: number } = {},
+): Promise<void> {
+	const { timeout = 30000, interval = 1000 } = options
+	const startTime = Date.now()
+
+	while (Date.now() - startTime < timeout) {
+		try {
+			if (await condition()) {
+				return
+			}
+		} catch (error) {
+			// Ignore errors during polling, they might be expected (e.g., 404 while resource is being created)
+		}
+
+		await new Promise((resolve) => setTimeout(resolve, interval))
+	}
+
+	throw new Error(`Timeout after ${timeout}ms waiting for condition`)
 }
