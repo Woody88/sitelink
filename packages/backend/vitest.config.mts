@@ -11,7 +11,7 @@ export default defineWorkersProject(async () => {
 
 	return {
 		test: {
-			setupFiles: ["./test/setup.ts"],
+			setupFiles: ["./tests/setup.ts"],
 			poolOptions: {
 				workers: {
 					wrangler: { configPath: "./wrangler.jsonc" },
