@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import {
+	apiKey,
 	magicLink,
 	type OrganizationOptions,
 	openAPI,
@@ -42,6 +43,7 @@ export const betterAuthConfig = {
 export const auth = betterAuth({
 	...betterAuthConfig,
 	plugins: [
+		apiKey(),
 		magicLink(magicLinkOptions),
 		organization(organizationOptions),
 		openAPI(),

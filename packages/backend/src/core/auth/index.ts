@@ -2,7 +2,7 @@ import * as Respondable from "@effect/platform/HttpServerRespondable"
 import * as ServerResponse from "@effect/platform/HttpServerResponse"
 import { betterAuth } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
-import { magicLink, openAPI, organization } from "better-auth/plugins"
+import { apiKey, magicLink, openAPI, organization } from "better-auth/plugins"
 import { Config, Effect, Runtime, Schema } from "effect"
 import { Drizzle } from "../database"
 import { EmailService } from "../email"
@@ -47,6 +47,7 @@ export class AuthService extends Effect.Service<AuthService>()("AuthService", {
 			}),
 
 			plugins: [
+				apiKey(),
 				openAPI(),
 				magicLink({
 					...magicLinkOptions,

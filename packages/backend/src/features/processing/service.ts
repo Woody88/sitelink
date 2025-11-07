@@ -1,5 +1,6 @@
 import { HttpApiSchema } from "@effect/platform"
 import { Effect, Schema } from "effect"
+import { AuthService } from "../../core/auth"
 import { PdfProcessorManager } from "../../core/bindings"
 import type { NewProcessingJob } from "../../core/pdf-manager"
 
@@ -21,11 +22,21 @@ export class PdfProcessor extends Effect.Service<PdfProcessor>()(
 	{
 		effect: Effect.gen(function* () {
 			const pdfManager = yield* PdfProcessorManager
+			const authService = yield* AuthService
 
 			const process = Effect.fn("PdfProcessor.process")(function* (
 				job: NewProcessingJob,
 			) {
 				const stub = pdfManager.getByName(job.jobId)
+				const apiKey = yield* authService.use((auth) => {
+					return auth.api.createApiKey({
+						body: {
+							userId: "___PLACEHOLDER_",
+							name: `pdf-processing-${job.jobId}`,
+							expiresIn: 30 * 60,
+						},
+					})
+				})
 
 				yield* Effect.tryPromise({
 					try: async (signal) => {
