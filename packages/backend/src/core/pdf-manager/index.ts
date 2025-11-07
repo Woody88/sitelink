@@ -158,23 +158,12 @@ export class SitelinkPdfProcessor extends DurableObject<Env> {
 		})
 	}
 
-	override async alarm(): Promise<void> {
-		// Alarm has 30s CPU time (default) or up to 5 min (configured)
-		const jobs = await this.ctx.storage.list<ProcessingJobState>()
-
-		for (const [_, progress] of jobs) {
-			if (progress.status === "pending") {
-				// Start WebSocket - this uses some CPU time
-				await this.processPDF(progress)
-			}
-		}
-	}
-
 	/**
 	 * Process a PDF using the container (production only)
 	 */
 	async processPDF(
 		job: NewProcessingJob,
+		apiKey: any,
 		signal?: AbortSignal,
 	): Promise<Response> {
 		// Initialize job state first
@@ -190,31 +179,11 @@ export class SitelinkPdfProcessor extends DurableObject<Env> {
 		const conn = this.container.getTcpPort(this.defaultPort)
 
 		const res = await conn.fetch(
-			new Request("http://localhost/ws", { headers: { Upgrade: "websocket" } }),
+			new Request("http://localhost/processPdf", { headers: { apiKey } }),
 			{
 				signal,
 			},
 		)
-
-		if (res.webSocket === null) throw new Error("websocket server is faulty")
-
-		res.webSocket.accept()
-		res.webSocket.addEventListener("message", (msg) => {
-			if (this.resolveResolve !== undefined)
-				this.resolveResolve(
-					typeof msg.data === "string"
-						? msg.data
-						: new TextDecoder().decode(msg.data),
-				)
-		})
-
-		res.webSocket.addEventListener("close", () => {
-			this.ctx.abort()
-		})
-
-		this.conn = res.webSocket
-
-		res.webSocket.send("job kick offf")
 
 		return Response.json({ message: "job kicked off" })
 	}

@@ -3,7 +3,11 @@ import { Effect, Schema } from "effect"
 import { AuthService } from "../../core/auth"
 import { PdfProcessorManager } from "../../core/bindings"
 import type { NewProcessingJob } from "../../core/pdf-manager"
+import { Drizzle } from "../../core/database"
+import * as schema from "../../core/database/schemas"
+import { eq } from "drizzle-orm"
 
+const SYSTEM_PDF_PROCESSOR_EMAIL = "system-pdf-processor@sitelink.com"
 export class PdfProcessorError extends Schema.TaggedError<PdfProcessorError>(
 	"PdfProcessorError",
 )(
@@ -17,12 +21,34 @@ export class PdfProcessorError extends Schema.TaggedError<PdfProcessorError>(
 	}),
 ) {}
 
+export class SystemPdfProcessorUserNotFound extends Schema.TaggedError<SystemPdfProcessorUserNotFound>(
+	"SystemPdfProcessorUserNotFound",
+)(
+	"SystemPdfProcessorUserNotFound",
+	{},
+	HttpApiSchema.annotations({
+		status: 404,
+		description: "System Processor User Not Found ",
+	}),
+) {}
+
 export class PdfProcessor extends Effect.Service<PdfProcessor>()(
 	"PdfProcessor",
 	{
 		effect: Effect.gen(function* () {
 			const pdfManager = yield* PdfProcessorManager
 			const authService = yield* AuthService
+			const db = yield* Drizzle
+
+			const systemPdfUser = yield* db.select({
+				id: schema.users.id,
+			})
+			.from(schema.users)
+			.where(eq(schema.users.email, SYSTEM_PDF_PROCESSOR_EMAIL))
+			.pipe(
+				Effect.head,
+				Effect.mapError(() => new SystemPdfProcessorUserNotFound())
+			)
 
 			const process = Effect.fn("PdfProcessor.process")(function* (
 				job: NewProcessingJob,
@@ -31,7 +57,7 @@ export class PdfProcessor extends Effect.Service<PdfProcessor>()(
 				const apiKey = yield* authService.use((auth) => {
 					return auth.api.createApiKey({
 						body: {
-							userId: "___PLACEHOLDER_",
+							userId: systemPdfUser.id,
 							name: `pdf-processing-${job.jobId}`,
 							expiresIn: 30 * 60,
 						},
@@ -41,12 +67,7 @@ export class PdfProcessor extends Effect.Service<PdfProcessor>()(
 				yield* Effect.tryPromise({
 					try: async (signal) => {
 						// Initialize job state first
-						await stub.initialize(job)
-
-						// Only call processPDF if we're in production with container
-						// In tests, we just initialize the state
-						// The container processing will be triggered separately
-						// Note: processPDF will throw if container is not available
+						await stub.processPDF(job, apiKey, signal)
 					},
 					catch: (cause) => new PdfProcessorError({ cause }),
 				})
