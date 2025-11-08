@@ -35,6 +35,7 @@ export class SystemPdfProcessorUserNotFound extends Schema.TaggedError<SystemPdf
 export class PdfProcessor extends Effect.Service<PdfProcessor>()(
 	"PdfProcessor",
 	{
+		dependencies: [Drizzle.Default, AuthService.Default],
 		effect: Effect.gen(function* () {
 			const pdfManager = yield* PdfProcessorManager
 			const authService = yield* AuthService
@@ -53,7 +54,7 @@ export class PdfProcessor extends Effect.Service<PdfProcessor>()(
 			const process = Effect.fn("PdfProcessor.process")(function* (
 				job: NewProcessingJob,
 			) {
-				const stub = pdfManager.getByName(job.jobId)
+				const container = pdfManager.getByName(job.jobId)
 				const apiKey = yield* authService.use((auth) => {
 					return auth.api.createApiKey({
 						body: {
@@ -66,8 +67,17 @@ export class PdfProcessor extends Effect.Service<PdfProcessor>()(
 
 				yield* Effect.tryPromise({
 					try: async (signal) => {
-						// Initialize job state first
-						await stub.processPDF(job, apiKey, signal)
+						const request = new Request("http://sitelink.com", {
+							headers: {
+								apiKey: apiKey.key
+							},
+							signal
+						})
+						const res = await container.fetch(request)
+
+						if (!res.ok) {
+							throw  Error(`container failed with ${res.status} code: ${res.statusText}`)
+						}
 					},
 					catch: (cause) => new PdfProcessorError({ cause }),
 				})

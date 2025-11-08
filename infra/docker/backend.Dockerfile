@@ -10,8 +10,9 @@ COPY packages/backend/package.json ./packages/backend/
 RUN bun install
 
 # Copy source files
-COPY packages/backend/src/features/processing/main.ts ./packages/backend/src/main.ts
+COPY packages/backend/src/core/pdf-manager/server.ts ./packages/backend/src/server.ts
+COPY packages/backend/src/core/pdf-manager/tile-processor.ts ./packages/backend/src/tile-processor.ts
 
 EXPOSE 3000
 
-ENTRYPOINT ["bun", "packages/backend/src/main.ts"]
+ENTRYPOINT ["bun", "packages/backend/src/server.ts"]

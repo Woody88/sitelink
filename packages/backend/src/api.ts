@@ -1,7 +1,7 @@
 import { HttpApiBuilder } from "@effect/platform"
 import { Layer } from "effect"
 import { BaseApi } from "./core/api"
-import { AuthorizationMiddlewareLive } from "./core/middleware"
+import { AuthorizationApiKeyMiddlewareLayer, AuthorizationMiddlewareLive } from "./core/middleware"
 import { AuthAPIModule } from "./features/auth"
 import { AuthAPI } from "./features/auth/http"
 import { FileAPI, FileModule } from "./features/files"
@@ -14,6 +14,8 @@ import { PlanAPI, PlanModule } from "./features/plans"
 import { ProjectAPI, ProjectModule } from "./features/projects"
 import { RegistrationModule } from "./features/registration"
 import { RegistrationAPI } from "./features/registration/http"
+import { ProcessingAPI } from "./features/processing/http"
+import { ProcessingModule } from "./features/processing"
 
 export const Api = HttpApiBuilder.api(
 	BaseApi.add(HealthAPI)
@@ -21,7 +23,8 @@ export const Api = HttpApiBuilder.api(
 		.add(RegistrationAPI)
 		.add(OrganizationAPI)
 		.add(ProjectAPI)
-		.add(PlanAPI),
+		.add(PlanAPI)
+		.add(ProcessingAPI)
 	// .add(FileAPI)
 	// .add(MediaAPI),
 ).pipe(
@@ -31,7 +34,9 @@ export const Api = HttpApiBuilder.api(
 	Layer.provideMerge(OrganizationModule),
 	Layer.provideMerge(ProjectModule),
 	Layer.provideMerge(PlanModule),
+	Layer.provideMerge(ProcessingModule),
 	// Layer.provideMerge(FileModule),
 	// Layer.provideMerge(MediaModule),
 	Layer.provide(AuthorizationMiddlewareLive),
+	Layer.provide(AuthorizationApiKeyMiddlewareLayer)
 )

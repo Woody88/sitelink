@@ -6,7 +6,6 @@ import { Resend } from "resend"
 import { Api } from "./api"
 import { CoreLayer } from "./core"
 import { PdfProcessorManager, R2Binding, ResendBinding } from "./core/bindings"
-import { SitelinkPdfProcessor } from "./core/pdf-manager"
 
 export { SitelinkPdfProcessor } from "./core/pdf-manager"
 
