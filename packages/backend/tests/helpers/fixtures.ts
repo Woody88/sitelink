@@ -8,7 +8,7 @@ import { env } from "cloudflare:test"
  */
 export async function loadSamplePDF(): Promise<Uint8Array> {
 	const response = await env.FIXTURE_LOADER.fetch(
-		new Request("http://localhost/test/fixtures/sample-plan.pdf"),
+		new Request("http://localhost/tests/fixtures/sample-plan.pdf"),
 	)
 
 	if (!response.ok) {

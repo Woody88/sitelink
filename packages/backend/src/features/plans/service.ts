@@ -4,7 +4,7 @@ import { Effect, Schema } from "effect"
 import { Drizzle } from "../../core/database"
 import { files, plans } from "../../core/database/schemas"
 import { StorageService } from "../../core/storage"
-import { PdfProcessor } from "../processing/service"
+import { ProcessorService } from "../processing/service"
 
 /**
  * Plan not found error
@@ -27,11 +27,11 @@ export class PlanNotFoundError extends Schema.TaggedError<PlanNotFoundError>()(
  * Access control relies on project's organizationId matching session.
  */
 export class PlanService extends Effect.Service<PlanService>()("PlanService", {
-	dependencies: [Drizzle.Default, StorageService.Default, PdfProcessor.Default],
+	dependencies: [Drizzle.Default, StorageService.Default, ProcessorService.Default],
 	effect: Effect.gen(function* () {
 		const db = yield* Drizzle
 		const storage = yield* StorageService
-		const pdfProcessor = yield* PdfProcessor
+		const pdfProcessor = yield* ProcessorService
 
 		/**
 		 * Create a new plan with PDF upload

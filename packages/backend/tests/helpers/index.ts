@@ -15,3 +15,9 @@ export {
 } from "./setup"
 
 export { createMinimalPDF, loadSamplePDF } from "./fixtures"
+
+export {
+	createApiKeyForUser,
+	createSystemPdfProcessorUser,
+	SYSTEM_PDF_PROCESSOR_EMAIL,
+} from "./api-keys"

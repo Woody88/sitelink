@@ -152,6 +152,29 @@ CREATE TABLE `plans` (
 	FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON UPDATE cascade ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE TABLE `processing_jobs` (
+	`id` text PRIMARY KEY NOT NULL,
+	`upload_id` text NOT NULL,
+	`plan_id` text NOT NULL,
+	`organization_id` text NOT NULL,
+	`project_id` text NOT NULL,
+	`pdf_path` text NOT NULL,
+	`status` text DEFAULT 'pending' NOT NULL,
+	`total_pages` integer,
+	`completed_pages` integer DEFAULT 0,
+	`failed_pages` text,
+	`progress` integer DEFAULT 0,
+	`started_at` integer,
+	`completed_at` integer,
+	`last_error` text,
+	`created_at` integer NOT NULL,
+	`updated_at` integer NOT NULL,
+	FOREIGN KEY (`upload_id`) REFERENCES `files`(`upload_id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`plan_id`) REFERENCES `plans`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
 CREATE TABLE `projects` (
 	`id` text PRIMARY KEY NOT NULL,
 	`organization_id` text NOT NULL,

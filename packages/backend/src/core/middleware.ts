@@ -4,10 +4,9 @@ import {
 	HttpApiSecurity,
 	HttpServerRequest,
 } from "@effect/platform"
-import { Context, Effect, Layer, Schema, Redacted } from "effect"
+import { Context, Effect, Layer, Redacted, Schema } from "effect"
 import { AuthService } from "./auth"
 import type { BetterAuthSession } from "./auth/config"
-import { apiKey } from "better-auth/plugins"
 
 // This will error if any field in BetterAuthSession is missing from our schema
 type ValidateSessionFields = {
@@ -69,29 +68,36 @@ export class AuthorizationApiKey extends HttpApiMiddleware.Tag<Authorization>()(
 		security: {
 			apiKey: HttpApiSecurity.apiKey({
 				in: "header",
-				key: "apiKey"
-			})
-		}
+				key: "apiKey",
+			}),
+		},
 	},
 ) {}
 
 export const AuthorizationApiKeyMiddlewareLayer = Layer.effect(
 	AuthorizationApiKey,
-	Effect.gen(function*(){
+	Effect.gen(function* () {
 		const authService = yield* AuthService
 
 		return {
-			apiKey: (key) => Effect.gen(function*(){
-				yield* authService.use(auth => auth.api.verifyApiKey({
-					body: {
-						key: Redacted.value(key)
+			apiKey: (key) =>
+				Effect.gen(function* () {
+					const keyValue = Redacted.value(key)
+
+					if (!keyValue || keyValue === "") {
+						return yield* Effect.fail(new HttpApiError.Unauthorized())
 					}
-				}))
-			}).pipe(
-				Effect.mapError(() => new HttpApiError.Unauthorized()),
-			)
+
+					return yield* authService.use((auth) =>
+						auth.api.verifyApiKey({
+							body: {
+								key: keyValue,
+							},
+						}),
+					)
+				}).pipe(Effect.mapError(() => new HttpApiError.Unauthorized())),
 		}
-	})
+	}),
 )
 
 export const AuthorizationMiddlewareLive = Layer.effect(

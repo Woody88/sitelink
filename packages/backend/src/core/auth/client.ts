@@ -5,11 +5,16 @@ export function createTestAuthClient(
 	baseURL: string,
 	customFetch?: typeof fetch,
 ) {
-	return createAuthClient({
+	const config: Parameters<typeof createAuthClient>[0] = {
 		plugins: [magicLinkClient(), organizationClient()],
 		baseURL,
-		fetchOptions: {
+	}
+
+	if (customFetch) {
+		config.fetchOptions = {
 			customFetchImpl: customFetch,
-		},
-	})
+		}
+	}
+
+	return createAuthClient(config)
 }

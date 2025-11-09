@@ -83,7 +83,7 @@ export const ProjectAPI = HttpApiGroup.make("projects")
 			.addSuccess(Schema.Struct({ success: Schema.Literal(true) }))
 			.addError(ProjectNotFoundError),
 	)
-	.prefix("/projects")
+	.prefix("/api/projects")
 	.middleware(Authorization)
 
 /**

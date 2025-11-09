@@ -10,7 +10,7 @@
 		"catalogs": {
 			"effect": {
 				"effect": "^3.18.4",
-				"@effect/platform": "^0.92.1",
+				"@effect/platform": "^0.93.0",
 				"@effect/experimental": "^0.56.0"
 			}
 		}

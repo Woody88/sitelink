@@ -271,3 +271,95 @@ export async function waitFor(
 
 	throw new Error(`Timeout after ${timeout}ms waiting for condition`)
 }
+
+/**
+ * Create a complete test environment with user, organization, project, and plan
+ * This is useful for testing container-based PDF processing
+ *
+ * @param email - Email for the test user
+ * @param orgName - Organization name
+ * @param projectName - Project name
+ * @param planName - Plan name
+ * @param pdfData - PDF file data (optional, uses sample PDF if not provided)
+ * @param baseUrl - Base URL for API requests (default: http://localhost, use http://localhost:8787 for dev server)
+ * @returns Complete test context including IDs, session, and plan upload response
+ */
+export async function createCompleteTestEnvironment(options: {
+	email: string
+	orgName: string
+	projectName: string
+	planName: string
+	pdfData?: Uint8Array
+	baseUrl?: string
+}) {
+	const {
+		email,
+		orgName,
+		projectName,
+		planName,
+		pdfData,
+		baseUrl = "http://localhost",
+	} = options
+
+	// 1. Create authenticated user with session
+	const { sessionCookie, authClient } = await createAuthenticatedUser(email)
+
+	// 2. Create organization with subscription
+	const { organizationId } = await createOrgWithSubscription(authClient, orgName)
+
+	// 3. Set active organization (important for permissions)
+	await authClient.organization.setActive({ organizationId })
+
+	// 4. Create project
+	const projectId = await createProject(sessionCookie, organizationId, projectName)
+
+	// 5. Load PDF data if not provided
+	const { loadSamplePDF } = await import("./fixtures")
+	const pdfToUpload = pdfData ?? (await loadSamplePDF())
+
+	// 6. Create plan with PDF upload - this triggers container processing
+	const formData = new FormData()
+	const pdfBlob = new Blob([pdfToUpload], { type: "application/pdf" })
+	formData.append("file", pdfBlob, `${planName}.pdf`)
+	formData.append("projectId", projectId)
+	formData.append("name", planName)
+
+	const uploadResponse = await fetch(
+		`${baseUrl}/api/projects/${projectId}/plans`,
+		{
+			method: "POST",
+			headers: {
+				cookie: sessionCookie,
+			},
+			body: formData,
+		},
+	)
+
+	if (!uploadResponse.ok) {
+		const errorText = await uploadResponse.text()
+		throw new Error(
+			`Failed to upload plan: ${uploadResponse.status} - ${errorText}`,
+		)
+	}
+
+	const planUploadResponse = (await uploadResponse.json()) as {
+		jobId: string
+		planId: string
+		uploadId: string
+		fileId: string
+	}
+
+	console.log("✅ Plan upload response:", JSON.stringify(planUploadResponse, null, 2))
+
+	return {
+		sessionCookie,
+		authClient,
+		organizationId,
+		projectId,
+		planId: planUploadResponse.planId,
+		uploadId: planUploadResponse.uploadId,
+		fileId: planUploadResponse.fileId,
+		jobId: planUploadResponse.jobId,
+		planUploadResponse,
+	}
+}

@@ -6,12 +6,30 @@ import { Resend } from "resend"
 import { Api } from "./api"
 import { CoreLayer } from "./core"
 import { PdfProcessorManager, R2Binding, ResendBinding } from "./core/bindings"
+import { ensureSystemPdfProcessorUser } from "./core/startup"
+import { handleTestSetup } from "./features/test"
 
 export { SitelinkPdfProcessor } from "./core/pdf-manager"
 
+// Track if startup tasks have run
+let startupTasksCompleted = false
+
 export default {
 	async fetch(request, env, _ctx): Promise<Response> {
+		// Handle test endpoint early (bypasses Effect-TS)
+		const url = new URL(request.url)
+		if (url.pathname === "/api/test/setup" && request.method === "GET") {
+			return handleTestSetup(request, env)
+		}
+
 		const resend = new Resend(env.RESEND_API_KEY)
+
+		// Run startup tasks once on first request
+		if (!startupTasksCompleted) {
+			await ensureSystemPdfProcessorUser(env.SitelinkDB)
+			startupTasksCompleted = true
+		}
+
 		// Inject cf environment variables in config
 		const ConfigLayer = Layer.setConfigProvider(
 			ConfigProvider.fromMap(

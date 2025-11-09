@@ -45,6 +45,7 @@
 		{
 			"binding": "SitelinkDB",
 			"database_name": "sitelink-db",
+			"preview_database_id": "29203158-8ecf-4082-844d-07d4baae4e9c",
 			"database_id": "9b97a3b7-f357-48a2-83fe-d041c393820f",
 			"migrations_dir": "./drizzle"
 		}
