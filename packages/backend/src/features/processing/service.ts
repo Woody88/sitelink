@@ -48,14 +48,6 @@ export class ProcessorService extends Effect.Service<ProcessorService>()(
 			const pdfManager = yield* PdfProcessorManager
 			const authService = yield* AuthService
 			const db = yield* Drizzle
-			const R2_URL = yield* Config.redacted("R2_URL")
-			const R2_ACCOUNT_ID = yield* Config.redacted("R2_ACCOUNT_ID")
-			const R2_ACCESS_KEY_ID = yield* Config.redacted("R2_ACCESS_KEY_ID")
-			const R2_SECRET_ACCESS_KEY = yield* Config.redacted(
-				"R2_SECRET_ACCESS_KEY",
-			)
-			const R2_TOKEN = yield* Config.redacted("R2_TOKEN")
-
 			// Lazy function to get system PDF user (only called when needed)
 			const getSystemPdfUser = () =>
 				db
@@ -92,11 +84,6 @@ export class ProcessorService extends Effect.Service<ProcessorService>()(
 						const request = new Request("http://sitelink.com/processPdf", {
 							headers: {
 								apiKey: apiKey.key,
-								"X-R2-URL": Redacted.value(R2_URL),
-								"X-R2-TOKEN": Redacted.value(R2_TOKEN),
-								"X-R2-ACCOUNT-ID": Redacted.value(R2_ACCOUNT_ID),
-								"X-R2-ACCESS-KEY-ID": Redacted.value(R2_ACCESS_KEY_ID),
-								"X-R2-SECRET-ACCESS-KEY": Redacted.value(R2_SECRET_ACCESS_KEY),
 							},
 							signal,
 						})

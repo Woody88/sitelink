@@ -108,14 +108,28 @@ export const AuthorizationMiddlewareLive = Layer.effect(
 		return Effect.gen(function* () {
 			const req = yield* HttpServerRequest.HttpServerRequest
 
+			// Debug: log request headers
+			console.log("🔍 Authorization middleware - cookie header:", req.headers.cookie)
+
 			const rawSession = yield* authService
 				.use((auth) => auth.api.getSession({ headers: req.headers }))
 				.pipe(
-					Effect.mapError(() => new HttpApiError.Unauthorized()),
+					Effect.mapError((error) => {
+						console.log("❌ getSession error:", error)
+						return new HttpApiError.Unauthorized()
+					}),
 					Effect.filterOrFail(
 						(session): session is BetterAuthSession =>
 							session !== null && session.session !== null,
-						() => new HttpApiError.Unauthorized(),
+						() => {
+							console.log("❌ Session is null or session.session is null")
+							return new HttpApiError.Unauthorized()
+						},
+					),
+					Effect.tap((session) =>
+						Effect.sync(() => {
+							console.log("✅ Session found:", session)
+						}),
 					),
 				)
 

@@ -338,69 +338,21 @@ export async function handleTestSetup(
 		console.log("2️⃣ Getting/creating organization...")
 		const organizationId = await getOrCreateOrganization(db, userId, orgName)
 
-		// 3. Set active organization
-		console.log("3️⃣ Setting active organization...")
-		await setActiveOrganization(db, userId, organizationId)
-
-		// 4. Get or create project
-		console.log("4️⃣ Getting/creating project...")
+		// 3. Get or create project
+		console.log("3️⃣ Getting/creating project...")
 		const projectId = await getOrCreateProject(db, organizationId, projectName)
 
-		// 5. Create authenticated session
-		console.log("5️⃣ Creating authenticated session...")
-		const sessionCookie = await createAuthenticatedSession(db, userId)
-
-		// 6. Upload plan (ALWAYS creates new plan)
-		console.log("6️⃣ Uploading NEW plan...")
-		const pdfData = createTestPDF()
-		const formData = new FormData()
-		const pdfBlob = new Blob([pdfData], { type: "application/pdf" })
-		formData.append("file", pdfBlob, `${planName}.pdf`)
-		formData.append("projectId", projectId)
-		formData.append("name", planName)
-
-		const uploadResponse = await fetch(
-			`${baseUrl}/api/projects/${projectId}/plans`,
-			{
-				method: "POST",
-				headers: {
-					cookie: sessionCookie,
-				},
-				body: formData,
-			},
-		)
-
-		if (!uploadResponse.ok) {
-			const errorText = await uploadResponse.text()
-			console.error("Failed to upload plan:", errorText)
-			throw new Error(
-				`Failed to upload plan: ${uploadResponse.status} - ${errorText}`,
-			)
-		}
-
-		const planUploadResponse = (await uploadResponse.json()) as {
-			jobId: string
-			planId: string
-			uploadId: string
-			fileId: string
-		}
-
-		console.log("✅ Plan uploaded successfully!")
+		console.log("✅ Test environment ready!")
 
 		return new Response(
 			JSON.stringify(
 				{
 					success: true,
-					message: "Test environment created and NEW plan uploaded",
+					message: "Test environment created successfully",
 					data: {
 						userId,
 						organizationId,
 						projectId,
-						planId: planUploadResponse.planId,
-						uploadId: planUploadResponse.uploadId,
-						fileId: planUploadResponse.fileId,
-						jobId: planUploadResponse.jobId,
-						planName,
 					},
 				},
 				null,

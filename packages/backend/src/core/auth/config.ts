@@ -38,6 +38,7 @@ export const betterAuthConfig = {
 	emailAndPassword: {
 		enabled: false,
 	},
+	trustedOrigins: ["http://localhost:8787"],
 } satisfies Parameters<typeof betterAuth>[0]
 
 export const auth = betterAuth({
