@@ -62,6 +62,7 @@ const server = Bun.serve({
 					) => {
 						// No-op: R2 upload is handled in tile-processor
 						console.log(`Completed processing for ${sheetId}`)
+						return await Promise.resolve(void 0)
 					}
 
 					const totalPages = await executePlanTileGeneration({

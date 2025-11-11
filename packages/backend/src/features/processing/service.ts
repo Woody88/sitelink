@@ -21,6 +21,17 @@ export class PdfProcessorError extends Schema.TaggedError<PdfProcessorError>(
 	}),
 ) {}
 
+export class JobNotFoundError extends Schema.TaggedError<JobNotFoundError>()(
+	"JobNotFoundError",
+	{
+		jobId: Schema.String,
+	},
+	HttpApiSchema.annotations({
+		status: 404,
+		description: "Processing job not found",
+	}),
+) {}
+
 export class SystemPdfProcessorUserNotFound extends Schema.TaggedError<SystemPdfProcessorUserNotFound>(
 	"SystemPdfProcessorUserNotFound",
 )(
@@ -118,7 +129,41 @@ export class ProcessorService extends Effect.Service<ProcessorService>()(
 				},
 			)
 
-			return { process, progressUpdate }
+			const getJobStatus = Effect.fn("ProcessorService.getJobStatus")(
+				function* (jobId: string) {
+					// Join processing_jobs with plans, projects, and organizations
+					// to get full context and verify access
+					const result = yield* db
+						.select({
+							id: schema.processingJobs.id,
+							status: schema.processingJobs.status,
+							progress: schema.processingJobs.progress,
+							totalPages: schema.processingJobs.totalPages,
+							completedPages: schema.processingJobs.completedPages,
+							failedPages: schema.processingJobs.failedPages,
+							startedAt: schema.processingJobs.startedAt,
+							completedAt: schema.processingJobs.completedAt,
+							lastError: schema.processingJobs.lastError,
+							planId: schema.plans.id,
+							planName: schema.plans.name,
+							projectId: schema.projects.id,
+							organizationId: schema.organizations.id,
+						})
+						.from(schema.processingJobs)
+						.innerJoin(schema.plans, eq(schema.processingJobs.planId, schema.plans.id))
+						.innerJoin(schema.projects, eq(schema.plans.projectId, schema.projects.id))
+						.innerJoin(schema.organizations, eq(schema.projects.organizationId, schema.organizations.id))
+						.where(eq(schema.processingJobs.id, jobId))
+						.pipe(
+							Effect.head,
+							Effect.mapError(() => new JobNotFoundError({ jobId })),
+						)
+
+					return result
+				},
+			)
+
+			return { process, progressUpdate, getJobStatus }
 		}),
 	},
 ) {}

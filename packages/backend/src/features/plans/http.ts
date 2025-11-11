@@ -9,7 +9,13 @@ import {
 import { Effect, Schema, Stream } from "effect"
 import { BaseApi } from "../../core/api"
 import { Authorization, CurrentSession } from "../../core/middleware"
-import { PlanNotFoundError, PlanService } from "./service"
+import {
+	DziNotFoundError,
+	PlanNotFoundError,
+	PlanService,
+	SheetNotFoundError,
+	TileNotFoundError,
+} from "./service"
 
 /**
  * Plan upload validation error
@@ -58,11 +64,32 @@ const PlanListResponse = Schema.Struct({
 	),
 })
 
+const SheetResponse = Schema.Struct({
+	id: Schema.String,
+	planId: Schema.String,
+	pageNumber: Schema.Number,
+	sheetName: Schema.NullOr(Schema.String),
+	dziPath: Schema.String,
+	tileDirectory: Schema.String,
+	width: Schema.NullOr(Schema.Number),
+	height: Schema.NullOr(Schema.Number),
+	tileCount: Schema.NullOr(Schema.Number),
+	processingStatus: Schema.String,
+	createdAt: Schema.Date,
+})
+
+const SheetListResponse = Schema.Struct({
+	sheets: Schema.Array(SheetResponse),
+})
+
 /**
  * URL Parameters
  */
 const planIdParam = HttpApiSchema.param("id", Schema.String)
 const projectIdParam = HttpApiSchema.param("projectId", Schema.String)
+const sheetIdParam = HttpApiSchema.param("sheetId", Schema.String)
+const tileLevelParam = HttpApiSchema.param("level", Schema.String)
+const tileFileParam = HttpApiSchema.param("tile", Schema.String)
 
 /**
  * Plan API Endpoints
@@ -102,6 +129,34 @@ export const PlanAPI = HttpApiGroup.make("plans")
 		HttpApiEndpoint.del("deletePlan")`/plans/${planIdParam}`
 			.addSuccess(Schema.Struct({ success: Schema.Literal(true) }))
 			.addError(PlanNotFoundError),
+	)
+	.add(
+		HttpApiEndpoint.get(
+			"listSheets",
+		)`/plans/${planIdParam}/sheets`.addSuccess(SheetListResponse),
+	)
+	.add(
+		HttpApiEndpoint.get(
+			"getSheet",
+		)`/plans/${planIdParam}/sheets/${sheetIdParam}`
+			.addSuccess(SheetResponse)
+			.addError(SheetNotFoundError),
+	)
+	.add(
+		HttpApiEndpoint.get(
+			"getDzi",
+		)`/plans/${planIdParam}/sheets/${sheetIdParam}/dzi`
+			.addSuccess(HttpApiSchema.Text({ contentType: "application/xml" }))
+			.addError(SheetNotFoundError)
+			.addError(DziNotFoundError),
+	)
+	.add(
+		HttpApiEndpoint.get(
+			"getTile",
+		)`/plans/${planIdParam}/sheets/${sheetIdParam}/tiles/${tileLevelParam}/${tileFileParam}`
+			.addSuccess(HttpApiSchema.Uint8Array({ contentType: "image/jpeg" }))
+			.addError(SheetNotFoundError)
+			.addError(TileNotFoundError),
 	)
 	.prefix("/api")
 	.middleware(Authorization)
@@ -210,6 +265,51 @@ export const PlanAPILive = HttpApiBuilder.group(
 						yield* planService.delete(path.id).pipe(Effect.orDie)
 
 						return { success: true as const }
+					}),
+				)
+				.handle("listSheets", ({ path }) =>
+					Effect.gen(function* () {
+						// List all sheets for the plan
+						const sheetList = yield* planService
+							.listSheets(path.id)
+							.pipe(Effect.orDie)
+
+						return { sheets: sheetList }
+					}),
+				)
+				.handle("getSheet", ({ path }) =>
+					Effect.gen(function* () {
+						// Get the specific sheet
+						const sheet = yield* planService
+							.getSheet(path.sheetId)
+							.pipe(Effect.orDie)
+
+						return sheet
+					}),
+				)
+				.handle("getDzi", ({ path }) =>
+					Effect.gen(function* () {
+						// Get the DZI file content
+						const { content } = yield* planService
+							.getDziFile({ sheetId: path.sheetId })
+							.pipe(Effect.orDie)
+
+						return content
+					}),
+				)
+				.handle("getTile", ({ path }) =>
+					Effect.gen(function* () {
+						// Get the tile file
+						const { data } = yield* planService
+							.getTile({
+								sheetId: path.sheetId,
+								level: path.level,
+								tile: path.tile,
+							})
+							.pipe(Effect.orDie)
+
+						// Return as Uint8Array
+						return new Uint8Array(data)
 					}),
 				)
 		}),

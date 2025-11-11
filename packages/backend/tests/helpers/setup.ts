@@ -131,7 +131,7 @@ export async function createProject(
 	_organizationId: string,
 	projectName: string,
 ) {
-	const createResponse = await wrappedFetch("http://localhost/projects/", {
+	const createResponse = await wrappedFetch("http://localhost/api/projects/", {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",

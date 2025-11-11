@@ -139,7 +139,7 @@ describe("Project Module", () => {
 
 			// Create project
 			const createResponse = await wrappedFetch(
-				"http://localhost/projects/",
+				"http://localhost/api/projects/",
 				{
 					method: "POST",
 					headers: {
@@ -174,7 +174,7 @@ describe("Project Module", () => {
 
 			// Create project
 			const createResponse = await wrappedFetch(
-				"http://localhost/projects/",
+				"http://localhost/api/projects/",
 				{
 					method: "POST",
 					headers: {
@@ -299,7 +299,7 @@ describe("Project Module", () => {
 
 			// Create project
 			const createResponse = await wrappedFetch(
-				"http://localhost/projects/",
+				"http://localhost/api/projects/",
 				{
 					method: "POST",
 					headers: {
@@ -371,7 +371,7 @@ describe("Project Module", () => {
 
 			// Create project
 			const createResponse = await wrappedFetch(
-				"http://localhost/projects/",
+				"http://localhost/api/projects/",
 				{
 					method: "POST",
 					headers: {
@@ -443,7 +443,7 @@ describe("Project Module", () => {
 
 			// Try to create project in deleted organization
 			const createResponse = await wrappedFetch(
-				"http://localhost/projects/",
+				"http://localhost/api/projects/",
 				{
 					method: "POST",
 					headers: {
@@ -484,7 +484,7 @@ describe("Project Module", () => {
 		it("should require authentication for all project endpoints", async () => {
 			// Try to create project without authentication
 			const createResponse = await wrappedFetch(
-				"http://localhost/projects/",
+				"http://localhost/api/projects/",
 				{
 					method: "POST",
 					headers: {

@@ -1,8 +1,8 @@
 import { HttpApiSchema } from "@effect/platform"
-import { eq } from "drizzle-orm"
+import { asc, eq } from "drizzle-orm"
 import { Effect, Schema } from "effect"
 import { Drizzle } from "../../core/database"
-import { files, plans } from "../../core/database/schemas"
+import { files, plans, sheets } from "../../core/database/schemas"
 import { StorageService } from "../../core/storage"
 import { ProcessorService } from "../processing/service"
 
@@ -17,6 +17,49 @@ export class PlanNotFoundError extends Schema.TaggedError<PlanNotFoundError>()(
 	HttpApiSchema.annotations({
 		status: 404,
 		description: "Plan not found",
+	}),
+) {}
+
+/**
+ * Sheet not found error
+ */
+export class SheetNotFoundError extends Schema.TaggedError<SheetNotFoundError>()(
+	"SheetNotFoundError",
+	{
+		sheetId: Schema.String,
+	},
+	HttpApiSchema.annotations({
+		status: 404,
+		description: "Sheet not found",
+	}),
+) {}
+
+/**
+ * DZI file not found error
+ */
+export class DziNotFoundError extends Schema.TaggedError<DziNotFoundError>()(
+	"DziNotFoundError",
+	{
+		sheetId: Schema.String,
+	},
+	HttpApiSchema.annotations({
+		status: 404,
+		description: "DZI file not found",
+	}),
+) {}
+
+/**
+ * Tile file not found error
+ */
+export class TileNotFoundError extends Schema.TaggedError<TileNotFoundError>()(
+	"TileNotFoundError",
+	{
+		sheetId: Schema.String,
+		tilePath: Schema.String,
+	},
+	HttpApiSchema.annotations({
+		status: 404,
+		description: "Tile file not found",
 	}),
 ) {}
 
@@ -168,12 +211,135 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 			yield* db.delete(plans).where(eq(plans.id, planId))
 		})
 
+		/**
+		 * Verify plan exists and get it (used for authorization checks)
+		 */
+		const verifyPlanAccess = Effect.fn("Plan.verifyAccess")(function* (
+			planId: string,
+		) {
+			// Get plan - will fail with PlanNotFoundError if doesn't exist
+			return yield* get(planId)
+		})
+
+		/**
+		 * List all sheets for a plan
+		 */
+		const listSheets = Effect.fn("Plan.listSheets")(function* (
+			planId: string,
+		) {
+			// Verify plan exists first
+			yield* verifyPlanAccess(planId)
+
+			// Query all sheets for plan ordered by page number
+			const sheetList = yield* db
+				.select()
+				.from(sheets)
+				.where(eq(sheets.planId, planId))
+				.orderBy(asc(sheets.pageNumber))
+
+			return sheetList
+		})
+
+		/**
+		 * Get a single sheet by ID
+		 */
+		const getSheet = Effect.fn("Plan.getSheet")(function* (sheetId: string) {
+			return yield* db
+				.select()
+				.from(sheets)
+				.where(eq(sheets.id, sheetId))
+				.pipe(
+					Effect.head,
+					Effect.mapError(() => new SheetNotFoundError({ sheetId })),
+				)
+		})
+
+		/**
+		 * Get DZI XML file for a sheet
+		 *
+		 * Retrieves the DZI metadata file from R2 storage.
+		 * DZI path format: organizations/{orgId}/projects/{projectId}/plans/{planId}/sheets/{sheetId}/tiles/{sheetId}.dzi
+		 */
+		const getDziFile = Effect.fn("Plan.getDziFile")(function* (params: {
+			sheetId: string
+		}) {
+			// Get sheet to verify it exists and get the DZI path
+			const sheet = yield* getSheet(params.sheetId)
+
+			// Fetch DZI file from R2
+			const dziObject = yield* storage.use((r2) => r2.get(sheet.dziPath))
+
+			// Check if file exists
+			if (!dziObject) {
+				return yield* Effect.fail(
+					new DziNotFoundError({ sheetId: params.sheetId }),
+				)
+			}
+
+			// Read the XML content
+			const dziContent = yield* Effect.promise(() => dziObject.text())
+
+			return { content: dziContent, sheet }
+		})
+
+		/**
+		 * Get tile image file for a sheet
+		 *
+		 * Retrieves a specific tile file from R2 storage.
+		 * Tile path format: organizations/{orgId}/projects/{projectId}/plans/{planId}/sheets/{sheetId}/tiles/{sheetId}_files/{level}/{tile}
+		 */
+		const getTile = Effect.fn("Plan.getTile")(function* (params: {
+			sheetId: string
+			level: string
+			tile: string
+		}) {
+			// Get sheet to verify it exists and build the tile path
+			const sheet = yield* getSheet(params.sheetId)
+
+			// Build tile path from sheet's tile directory
+			// tile_directory is stored as: organizations/{orgId}/projects/{projectId}/plans/{planId}/sheets/{sheetId}/tiles/{sheetId}_files
+			const tilePath = `${sheet.tileDirectory}/${params.level}/${params.tile}`
+
+			// Fetch tile file from R2
+			const tileObject = yield* storage.use((r2) => r2.get(tilePath))
+
+			// Check if file exists
+			if (!tileObject) {
+				return yield* Effect.fail(
+					new TileNotFoundError({
+						sheetId: params.sheetId,
+						tilePath,
+					}),
+				)
+			}
+
+			// Read the binary content
+			const tileData = yield* Effect.promise(() => tileObject.arrayBuffer())
+
+			// Determine content type based on file extension
+			const contentType =
+				params.tile.toLowerCase().endsWith(".jpeg") ||
+				params.tile.toLowerCase().endsWith(".jpg")
+					? "image/jpeg"
+					: "application/octet-stream"
+
+			return {
+				data: tileData,
+				contentType,
+				sheet,
+			}
+		})
+
 		return {
 			create,
 			get,
 			list,
 			update,
 			delete: deletePlan,
+			listSheets,
+			getSheet,
+			getDziFile,
+			getTile,
 		} as const
 	}),
 }) {}

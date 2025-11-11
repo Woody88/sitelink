@@ -39,23 +39,62 @@ export const projects = D.sqliteTable("projects", {
 		.notNull(),
 })
 
-export const plans = D.sqliteTable("plans", {
-	id: D.text().primaryKey(),
-	projectId: D.text("project_id")
-		.notNull()
-		.references(() => projects.id, {
-			onDelete: "cascade",
-			onUpdate: "cascade",
-		}),
-	name: D.text().notNull(),
-	description: D.text(),
-	directoryPath: D.text("directory_path"),
-	processingStatus: D.text("processing_status"),
-	tileMetadata: D.text("tile_metadata"),
-	createdAt: D.integer("created_at", { mode: "timestamp_ms" })
-		.$defaultFn(() => new Date())
-		.notNull(),
-})
+export const plans = D.sqliteTable(
+	"plans",
+	{
+		id: D.text().primaryKey(),
+		projectId: D.text("project_id")
+			.notNull()
+			.references(() => projects.id, {
+				onDelete: "cascade",
+				onUpdate: "cascade",
+			}),
+		name: D.text().notNull(),
+		description: D.text(),
+		directoryPath: D.text("directory_path"),
+		processingStatus: D.text("processing_status")
+			.notNull()
+			.default("pending"),
+		tileMetadata: D.text("tile_metadata"),
+		createdAt: D.integer("created_at", { mode: "timestamp_ms" })
+			.$defaultFn(() => new Date())
+			.notNull(),
+	},
+	(table) => ({
+		processingStatusIdx: D.index("plans_processing_status_idx").on(
+			table.processingStatus,
+		),
+	}),
+)
+
+export const sheets = D.sqliteTable(
+	"sheets",
+	{
+		id: D.text().primaryKey(),
+		planId: D.text("plan_id")
+			.notNull()
+			.references(() => plans.id, { onDelete: "cascade" }),
+		pageNumber: D.integer("page_number").notNull(),
+		sheetName: D.text("sheet_name"),
+		dziPath: D.text("dzi_path").notNull(),
+		tileDirectory: D.text("tile_directory").notNull(),
+		width: D.integer(),
+		height: D.integer(),
+		tileCount: D.integer("tile_count"),
+		processingStatus: D.text("processing_status")
+			.notNull()
+			.default("pending"),
+		createdAt: D.integer("created_at", { mode: "timestamp_ms" })
+			.$defaultFn(() => new Date())
+			.notNull(),
+	},
+	(table) => ({
+		planPageUnique: D.unique("sheets_plan_page_unique").on(
+			table.planId,
+			table.pageNumber,
+		),
+	}),
+)
 
 export const medias = D.sqliteTable("medias", {
 	id: D.text().primaryKey(),
