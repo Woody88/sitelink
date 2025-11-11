@@ -1,5 +1,5 @@
 import fs from "node:fs/promises"
-import { $ } from "bun"
+import { $, S3Client } from "bun"
 import { PDFDocument } from "pdf-lib"
 
 export interface TileGeneratorData {
@@ -17,12 +17,63 @@ export interface TileGeneratorData {
 	) => Promise<void>
 	tempOutputDir?: string
 	tempOutputCleanup?: boolean
+	s3Client?: S3Client
 }
 
-declare function uploadDirectory(
+/**
+ * Recursively upload a directory to R2 using Bun's S3Client
+ * @param client S3Client instance with R2 credentials
+ * @param localDir Local directory path to upload
+ * @param r2BasePath Base path in R2 bucket
+ * @returns Upload metrics (file count and total bytes)
+ */
+async function uploadDirectoryToR2(
+	client: S3Client,
 	localDir: string,
-	r2Path: string,
-): Promise<void>
+	r2BasePath: string,
+): Promise<{ fileCount: number; totalBytes: number }> {
+	let fileCount = 0
+	let totalBytes = 0
+
+	async function uploadDir(currentLocalPath: string, currentR2Path: string) {
+		const entries = await fs.readdir(currentLocalPath, { withFileTypes: true })
+
+		for (const entry of entries) {
+			const localPath = `${currentLocalPath}/${entry.name}`
+			const r2Path = `${currentR2Path}/${entry.name}`
+
+			if (entry.isDirectory()) {
+				// Recursively upload subdirectories
+				await uploadDir(localPath, r2Path)
+			} else if (entry.isFile()) {
+				// Upload file
+				const fileData = await Bun.file(localPath).arrayBuffer()
+				const fileSize = fileData.byteLength
+
+				// Infer content type from file extension
+				let contentType = "application/octet-stream"
+				if (entry.name.endsWith(".jpeg") || entry.name.endsWith(".jpg")) {
+					contentType = "image/jpeg"
+				} else if (entry.name.endsWith(".dzi")) {
+					contentType = "application/xml"
+				}
+
+				await client.write(r2Path, fileData, { type: contentType })
+
+				fileCount++
+				totalBytes += fileSize
+
+				console.info(`Uploaded: ${r2Path} (${fileSize} bytes)`)
+			}
+		}
+	}
+
+	await uploadDir(localDir, r2BasePath)
+
+	console.info(`Upload complete: ${fileCount} files, ${totalBytes} bytes total`)
+
+	return { fileCount, totalBytes }
+}
 
 export async function executePlanTileGeneration({
 	pdfPath,
@@ -33,15 +84,33 @@ export async function executePlanTileGeneration({
 	uploadCallback,
 	tempOutputDir,
 	tempOutputCleanup = true,
+	s3Client,
 }: TileGeneratorData) {
 	console.info("Starting tile processing...")
 
-	// 1. Load PDF to get page count
-	const pdfBuffer = await Bun.file(pdfPath).arrayBuffer()
+	// 1. Download PDF from R2 if using s3Client, otherwise use local path
+	let localPdfPath = pdfPath
+	let downloadedPdf = false
+
+	if (s3Client) {
+		console.info(`Downloading PDF from R2: ${pdfPath}`)
+		const pdfBuffer = await s3Client.file(pdfPath).arrayBuffer()
+
+		// Save to temp location for vips processing
+		localPdfPath = `/tmp/${uploadId}/original.pdf`
+		await fs.mkdir(`/tmp/${uploadId}`, { recursive: true })
+		await Bun.write(localPdfPath, pdfBuffer)
+		downloadedPdf = true
+
+		console.info(`PDF downloaded to: ${localPdfPath}`)
+	}
+
+	// 2. Load PDF to get page count
+	const pdfBuffer = await Bun.file(localPdfPath).arrayBuffer()
 	const pdfDoc = await PDFDocument.load(pdfBuffer)
 	const totalPages = pdfDoc.getPageCount()
 
-	console.info(`Processing ${totalPages} pages from ${pdfPath}`)
+	console.info(`Processing ${totalPages} pages from ${localPdfPath}`)
 
 	// 2. Process each page sequentially
 	for (let pageNum = 0; pageNum < totalPages; pageNum++) {
@@ -61,11 +130,42 @@ export async function executePlanTileGeneration({
 		const dziPath = `${tmpOutputDir}/${sheetId}`
 
 		// 3. Generate tiles with vips (0-indexed page parameter)
-		await $`vips dzsave ${pdfPath}[page=${pageNum},dpi=300] ${dziPath} --tile-size 256 --overlap 1`
+		await $`vips dzsave ${localPdfPath}[page=${pageNum},dpi=300] ${dziPath} --tile-size 256 --overlap 1`
 
-		// const r2BasePath = `organizations/${organizationId}/projects/${projectId}/plans/${planId}/sheets/${sheetId}/tiles`
+		// 4. Upload to R2 if s3Client is provided
+		if (s3Client) {
+			const r2BasePath = `organizations/${organizationId}/projects/${projectId}/plans/${planId}/sheets/${sheetId}/tiles`
 
-		// Upload the entire directory (includes .dzi file and _files/ directory)
+			try {
+				console.info(`Uploading ${sheetId} to R2...`)
+
+				// Upload .dzi file
+				const dziFilePath = `${tmpOutputDir}/${sheetId}.dzi`
+				const dziData = await Bun.file(dziFilePath).arrayBuffer()
+				await s3Client.write(`${r2BasePath}/${sheetId}.dzi`, dziData, {
+					type: "application/xml",
+				})
+
+				// Upload tiles directory
+				const tilesDir = `${tmpOutputDir}/${sheetId}_files`
+				const { fileCount, totalBytes } = await uploadDirectoryToR2(
+					s3Client,
+					tilesDir,
+					`${r2BasePath}/${sheetId}_files`,
+				)
+
+				console.info(
+					`Successfully uploaded ${sheetId}: ${fileCount} tiles (${totalBytes} bytes)`,
+				)
+			} catch (error) {
+				console.error(`Failed to upload ${sheetId} to R2:`, error)
+				throw new Error(
+					`R2 upload failed for ${sheetId}: ${error instanceof Error ? error.message : String(error)}`,
+				)
+			}
+		}
+
+		// 5. Call the upload callback (for any additional processing)
 		await uploadCallback(
 			tmpOutputDir,
 			organizationId,
@@ -80,6 +180,12 @@ export async function executePlanTileGeneration({
 		}
 
 		console.info(`Completed page ${pageNumber}/${totalPages}`)
+	}
+
+	// Cleanup downloaded PDF if we created it
+	if (downloadedPdf && tempOutputCleanup) {
+		console.info("Cleaning up downloaded PDF...")
+		await fs.rm(`/tmp/${uploadId}`, { recursive: true, force: true })
 	}
 
 	console.info("Tile processing complete")

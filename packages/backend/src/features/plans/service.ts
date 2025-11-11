@@ -27,7 +27,11 @@ export class PlanNotFoundError extends Schema.TaggedError<PlanNotFoundError>()(
  * Access control relies on project's organizationId matching session.
  */
 export class PlanService extends Effect.Service<PlanService>()("PlanService", {
-	dependencies: [Drizzle.Default, StorageService.Default, ProcessorService.Default],
+	dependencies: [
+		Drizzle.Default,
+		StorageService.Default,
+		ProcessorService.Default,
+	],
 	effect: Effect.gen(function* () {
 		const db = yield* Drizzle
 		const storage = yield* StorageService
@@ -59,12 +63,18 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 			// Build R2 storage path
 			const filePath = `organizations/${organizationId}/projects/${projectId}/plans/${planId}/uploads/${uploadId}/original.pdf`
 
+			console.log(`📤 Uploading PDF to R2: ${filePath}`)
+			console.log(`   File size: ${params.fileData.byteLength} bytes`)
+			console.log(`   Organization ID: ${organizationId}`)
+
 			// Upload PDF to R2
 			yield* storage.use((r2) =>
 				r2.put(filePath, params.fileData, {
 					httpMetadata: { contentType: params.fileType },
 				}),
 			)
+
+			console.log(`✅ PDF uploaded successfully to R2`)
 
 			const createdAt = new Date()
 			// Insert plan metadata (FK constraint will validate projectId exists)
@@ -88,18 +98,18 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 				createdAt: new Date(),
 			})
 
-			// Initialize PDF processing job in Durable Object
-			yield* pdfProcessor.process({
-				jobId,
-				uploadId,
-				planId,
-				organizationId,
-				projectId,
-				pdfPath: filePath,
-				filename: params.fileName,
-				fileSize: params.fileData.byteLength,
-				uploadedAt: createdAt.getTime(),
-			})
+			// // Initialize PDF processing job in Durable Object
+			// yield* pdfProcessor.process({
+			// 	jobId,
+			// 	uploadId,
+			// 	planId,
+			// 	organizationId,
+			// 	projectId,
+			// 	pdfPath: filePath,
+			// 	filename: params.fileName,
+			// 	fileSize: params.fileData.byteLength,
+			// 	uploadedAt: createdAt.getTime(),
+			// })
 
 			return { planId, fileId, uploadId, filePath, jobId }
 		})
