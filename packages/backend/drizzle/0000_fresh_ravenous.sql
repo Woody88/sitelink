@@ -109,35 +109,48 @@ CREATE TABLE `verifications` (
 --> statement-breakpoint
 CREATE TABLE `annotations` (
 	`id` text PRIMARY KEY NOT NULL,
-	`file_id` text NOT NULL,
+	`upload_id` text NOT NULL,
+	`plan_id` text NOT NULL,
+	`sheet_number` integer NOT NULL,
+	`user_id` text NOT NULL,
 	`type` text NOT NULL,
 	`data` text NOT NULL,
+	`content` text,
+	`color` text,
 	`page_number` integer,
 	`created_by` text NOT NULL,
 	`created_at` integer NOT NULL,
-	FOREIGN KEY (`file_id`) REFERENCES `files`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`upload_id`) REFERENCES `plan_uploads`(`upload_id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`plan_id`) REFERENCES `plans`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
-CREATE TABLE `files` (
+CREATE TABLE `subscriptions` (
 	`id` text PRIMARY KEY NOT NULL,
-	`upload_id` text NOT NULL,
-	`plan_id` text NOT NULL,
-	`file_path` text,
-	`file_type` text,
-	`is_active` integer DEFAULT true NOT NULL,
+	`polar_subscription_id` text NOT NULL,
+	`organization_id` text NOT NULL,
+	`plan` text NOT NULL,
+	`status` text NOT NULL,
+	`start_date` integer,
+	`end_date` integer,
+	`seats` integer DEFAULT 1 NOT NULL,
+	`trial_ends_at` integer,
+	`current_period_ends_at` integer,
 	`created_at` integer NOT NULL,
-	FOREIGN KEY (`plan_id`) REFERENCES `plans`(`id`) ON UPDATE cascade ON DELETE cascade
+	`updated_at` integer NOT NULL,
+	FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `files_upload_id_unique` ON `files` (`upload_id`);--> statement-breakpoint
-CREATE TABLE `medias` (
+CREATE UNIQUE INDEX `subscriptions_polar_subscription_id_unique` ON `subscriptions` (`polar_subscription_id`);--> statement-breakpoint
+CREATE TABLE `projects` (
 	`id` text PRIMARY KEY NOT NULL,
-	`project_id` text NOT NULL,
-	`file_path` text NOT NULL,
-	`media_type` text,
+	`name` text NOT NULL,
+	`description` text,
+	`organization_id` text NOT NULL,
 	`created_at` integer NOT NULL,
-	FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON UPDATE cascade ON DELETE cascade
+	`updated_at` integer NOT NULL,
+	FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`) ON UPDATE cascade ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `plans` (
@@ -145,13 +158,45 @@ CREATE TABLE `plans` (
 	`project_id` text NOT NULL,
 	`name` text NOT NULL,
 	`description` text,
-	`directory_path` text,
-	`processing_status` text,
-	`tile_metadata` text,
 	`created_at` integer NOT NULL,
+	`updated_at` integer NOT NULL,
 	FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON UPDATE cascade ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE TABLE `plan_uploads` (
+	`id` text PRIMARY KEY NOT NULL,
+	`upload_id` text NOT NULL,
+	`plan_id` text NOT NULL,
+	`file_path` text NOT NULL,
+	`file_type` text,
+	`file_size` integer,
+	`is_active` integer DEFAULT true NOT NULL,
+	`uploaded_by` text NOT NULL,
+	`uploaded_at` integer NOT NULL,
+	`created_at` integer NOT NULL,
+	FOREIGN KEY (`plan_id`) REFERENCES `plans`(`id`) ON UPDATE cascade ON DELETE cascade,
+	FOREIGN KEY (`uploaded_by`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `plan_uploads_upload_id_unique` ON `plan_uploads` (`upload_id`);--> statement-breakpoint
+CREATE TABLE `plan_sheets` (
+	`id` text PRIMARY KEY NOT NULL,
+	`upload_id` text NOT NULL,
+	`plan_id` text NOT NULL,
+	`sheet_number` integer NOT NULL,
+	`sheet_key` text NOT NULL,
+	`sheet_size` integer,
+	`status` text DEFAULT 'pending' NOT NULL,
+	`tile_count` integer,
+	`processing_started_at` integer,
+	`processing_completed_at` integer,
+	`error_message` text,
+	`created_at` integer NOT NULL,
+	FOREIGN KEY (`upload_id`) REFERENCES `plan_uploads`(`upload_id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`plan_id`) REFERENCES `plans`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `plan_sheets_upload_sheet_unique` ON `plan_sheets` (`upload_id`,`sheet_number`);--> statement-breakpoint
 CREATE TABLE `processing_jobs` (
 	`id` text PRIMARY KEY NOT NULL,
 	`upload_id` text NOT NULL,
@@ -169,36 +214,21 @@ CREATE TABLE `processing_jobs` (
 	`last_error` text,
 	`created_at` integer NOT NULL,
 	`updated_at` integer NOT NULL,
-	FOREIGN KEY (`upload_id`) REFERENCES `files`(`upload_id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`upload_id`) REFERENCES `plan_uploads`(`upload_id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`plan_id`) REFERENCES `plans`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE TABLE `projects` (
+CREATE TABLE `media` (
 	`id` text PRIMARY KEY NOT NULL,
-	`organization_id` text NOT NULL,
-	`name` text NOT NULL,
-	`description` text,
-	`created_at` integer NOT NULL,
-	FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`) ON UPDATE cascade ON DELETE cascade
+	`project_id` text NOT NULL,
+	`file_path` text NOT NULL,
+	`media_type` text,
+	`uploaded_at` integer NOT NULL,
+	FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON UPDATE cascade ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE TABLE `subscriptions` (
-	`id` text PRIMARY KEY NOT NULL,
-	`polar_subscription_id` text NOT NULL,
-	`organization_id` text NOT NULL,
-	`plan` text NOT NULL,
-	`seats` integer DEFAULT 1 NOT NULL,
-	`status` text NOT NULL,
-	`current_period_start` integer,
-	`current_period_end` integer,
-	`created_at` integer NOT NULL,
-	`updated_at` integer NOT NULL,
-	FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`) ON UPDATE no action ON DELETE cascade
-);
---> statement-breakpoint
-CREATE UNIQUE INDEX `subscriptions_polar_subscription_id_unique` ON `subscriptions` (`polar_subscription_id`);--> statement-breakpoint
 CREATE TABLE `usage_events` (
 	`id` text PRIMARY KEY NOT NULL,
 	`organization_id` text NOT NULL,

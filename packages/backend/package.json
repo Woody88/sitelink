@@ -21,8 +21,9 @@
 		"@libsql/client": "^0.15.15",
 		"@polar-sh/better-auth": "^1.1.7",
 		"@polar-sh/sdk": "^0.35.4",
-		"better-auth": "^1.3.25",
+		"better-auth": "^1.3.34",
 		"drizzle-orm": "^0.44.5",
+		"drizzle-effect": "workspace:*",
 		"effect": "catalog:effect",
 		"resend": "^6.1.2"
 	},

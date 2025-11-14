@@ -16,7 +16,8 @@ describe("Registration Endpoints", () => {
 		const db = drizzle(env.SitelinkDB, { schema, casing: "snake_case" })
 
 		// Wrap SELF.fetch to preserve context
-		const wrappedFetch: typeof fetch = (input, init) => SELF.fetch(input, init)
+		const wrappedFetch = (input: RequestInfo | URL, init?: RequestInit) =>
+			SELF.fetch(input, init)
 
 		const authclient = createTestAuthClient("http://localhost", wrappedFetch)
 		const email = "delivered@resend.dev"

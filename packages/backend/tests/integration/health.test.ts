@@ -10,4 +10,4 @@ describe("Health Endpoints", () => {
 		expect(response.status).toBe(200)
 		expect(data.database.status).toBe("healthy")
 	})
-})``
+})

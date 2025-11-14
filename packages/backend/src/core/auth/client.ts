@@ -4,17 +4,19 @@ import { apiKey } from "better-auth/plugins"
 
 export function createTestAuthClient(
 	baseURL: string,
-	customFetch?: typeof fetch,
+	customFetch?: (
+		input: RequestInfo | URL,
+		init?: RequestInit,
+	) => Promise<Response>,
 ) {
-	const config: Parameters<typeof createAuthClient>[0] = {
+	const config = {
 		plugins: [apiKey(), magicLinkClient(), organizationClient()],
 		baseURL,
-	}
-
-	if (customFetch) {
-		config.fetchOptions = {
-			customFetchImpl: customFetch,
-		}
+		...(customFetch && {
+			fetchOptions: {
+				customFetchImpl: customFetch,
+			},
+		}),
 	}
 
 	return createAuthClient(config)

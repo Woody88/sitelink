@@ -12,7 +12,10 @@ erDiagram
 
     %% Project structure
     PROJECTS ||--o{ PLANS : has
-    PLANS ||--o{ FILES : points_to
+    PLANS ||--o{ PLAN_UPLOADS : has_versions
+    PLAN_UPLOADS ||--o{ PLAN_SHEETS : has
+    PLAN_UPLOADS ||--o{ PROCESSING_JOBS : tracks
+    PLAN_UPLOADS ||--o{ ANNOTATIONS : has
     PROJECTS ||--o{ MEDIA : has
 
     %% Sessions track active organization
@@ -126,19 +129,55 @@ erDiagram
         string projectId FK
         string name
         string description
-        string r2_directory_path
-        string processingStatus "pending|processing|complete|failed|null"
-        text tileMetadata "JSON: DZI metadata and progress"
         timestamp createdAt
         timestamp updatedAt
     }
 
-    FILES {
+    PLAN_UPLOADS {
         string id PK
+        string uploadId UK "Unique per upload for versioning"
         string planId FK
-        string r2_file_path
-        string file_type "pdf|dwg|etc"
+        string filePath "R2 path with uploadId"
+        string fileType "pdf|dwg|etc"
+        integer fileSize
+        boolean isActive "Which version is active"
+        string uploadedBy FK
         timestamp uploadedAt
+        timestamp createdAt
+    }
+
+    PROCESSING_JOBS {
+        string id PK
+        string uploadId FK "References plan_uploads.uploadId"
+        string planId FK
+        string organizationId FK
+        string projectId FK
+        string pdfPath "R2 path to original PDF"
+        string status "pending|processing|complete|failed"
+        integer totalPages
+        integer completedPages
+        string failedPages "JSON array"
+        integer progress "0-100"
+        timestamp startedAt
+        timestamp completedAt
+        string lastError
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    PLAN_SHEETS {
+        string id PK
+        string uploadId FK "References plan_uploads.uploadId"
+        string planId FK
+        integer sheetNumber "0-indexed"
+        string sheetKey "R2 path to sheet PDF"
+        integer sheetSize
+        string status "pending|processing|ready|failed"
+        integer tileCount
+        timestamp processingStartedAt
+        timestamp processingCompletedAt
+        string errorMessage
+        timestamp createdAt
     }
 
     MEDIA {
@@ -147,4 +186,19 @@ erDiagram
         string file_path
         string media_type "photo|video|audio"
         timestamp uploadedAt
+    }
+
+    ANNOTATIONS {
+        string id PK
+        string uploadId FK "References plan_uploads.uploadId for versioning"
+        string planId FK
+        integer sheetNumber
+        string userId FK
+        string type "marker|polygon|line|text|measurement"
+        string data "JSON: coordinates and properties"
+        string content "Text content for text annotations"
+        string color
+        integer pageNumber
+        string createdBy FK
+        timestamp createdAt
     }

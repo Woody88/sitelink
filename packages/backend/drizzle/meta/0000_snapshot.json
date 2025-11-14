@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "dd39ff64-98ef-4ec6-9af4-45d0f16d39c9",
+  "id": "74a6947c-7fa9-468d-bbfa-458c66b1e5f6",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "accounts": {
@@ -753,8 +753,29 @@
           "notNull": true,
           "autoincrement": false
         },
-        "file_id": {
-          "name": "file_id",
+        "upload_id": {
+          "name": "upload_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "plan_id": {
+          "name": "plan_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "sheet_number": {
+          "name": "sheet_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -772,6 +793,20 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false
+        },
+        "content": {
+          "name": "content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "color": {
+          "name": "color",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
           "autoincrement": false
         },
         "page_number": {
@@ -798,17 +833,43 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "annotations_file_id_files_id_fk": {
-          "name": "annotations_file_id_files_id_fk",
+        "annotations_upload_id_plan_uploads_upload_id_fk": {
+          "name": "annotations_upload_id_plan_uploads_upload_id_fk",
           "tableFrom": "annotations",
-          "tableTo": "files",
+          "tableTo": "plan_uploads",
           "columnsFrom": [
-            "file_id"
+            "upload_id"
+          ],
+          "columnsTo": [
+            "upload_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "annotations_plan_id_plans_id_fk": {
+          "name": "annotations_plan_id_plans_id_fk",
+          "tableFrom": "annotations",
+          "tableTo": "plans",
+          "columnsFrom": [
+            "plan_id"
           ],
           "columnsTo": [
             "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "annotations_user_id_users_id_fk": {
+          "name": "annotations_user_id_users_id_fk",
+          "tableFrom": "annotations",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
           "onUpdate": "no action"
         },
         "annotations_created_by_users_id_fk": {
@@ -829,8 +890,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "files": {
-      "name": "files",
+    "subscriptions": {
+      "name": "subscriptions",
       "columns": {
         "id": {
           "name": "id",
@@ -839,44 +900,79 @@
           "notNull": true,
           "autoincrement": false
         },
-        "upload_id": {
-          "name": "upload_id",
+        "polar_subscription_id": {
+          "name": "polar_subscription_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "plan_id": {
-          "name": "plan_id",
+        "organization_id": {
+          "name": "organization_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "file_path": {
-          "name": "file_path",
+        "plan": {
+          "name": "plan",
           "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "start_date": {
+          "name": "start_date",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "file_type": {
-          "name": "file_type",
-          "type": "text",
+        "end_date": {
+          "name": "end_date",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "is_active": {
-          "name": "is_active",
+        "seats": {
+          "name": "seats",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": true
+          "default": 1
+        },
+        "trial_ends_at": {
+          "name": "trial_ends_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "current_period_ends_at": {
+          "name": "current_period_ends_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         },
         "created_at": {
           "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
@@ -884,35 +980,35 @@
         }
       },
       "indexes": {
-        "files_upload_id_unique": {
-          "name": "files_upload_id_unique",
+        "subscriptions_polar_subscription_id_unique": {
+          "name": "subscriptions_polar_subscription_id_unique",
           "columns": [
-            "upload_id"
+            "polar_subscription_id"
           ],
           "isUnique": true
         }
       },
       "foreignKeys": {
-        "files_plan_id_plans_id_fk": {
-          "name": "files_plan_id_plans_id_fk",
-          "tableFrom": "files",
-          "tableTo": "plans",
+        "subscriptions_organization_id_organizations_id_fk": {
+          "name": "subscriptions_organization_id_organizations_id_fk",
+          "tableFrom": "subscriptions",
+          "tableTo": "organizations",
           "columnsFrom": [
-            "plan_id"
+            "organization_id"
           ],
           "columnsTo": [
             "id"
           ],
           "onDelete": "cascade",
-          "onUpdate": "cascade"
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "medias": {
-      "name": "medias",
+    "projects": {
+      "name": "projects",
       "columns": {
         "id": {
           "name": "id",
@@ -921,29 +1017,36 @@
           "notNull": true,
           "autoincrement": false
         },
-        "project_id": {
-          "name": "project_id",
+        "name": {
+          "name": "name",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "file_path": {
-          "name": "file_path",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "media_type": {
-          "name": "media_type",
+        "description": {
+          "name": "description",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "created_at": {
           "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
@@ -952,12 +1055,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "medias_project_id_projects_id_fk": {
-          "name": "medias_project_id_projects_id_fk",
-          "tableFrom": "medias",
-          "tableTo": "projects",
+        "projects_organization_id_organizations_id_fk": {
+          "name": "projects_organization_id_organizations_id_fk",
+          "tableFrom": "projects",
+          "tableTo": "organizations",
           "columnsFrom": [
-            "project_id"
+            "organization_id"
           ],
           "columnsTo": [
             "id"
@@ -1001,29 +1104,15 @@
           "notNull": false,
           "autoincrement": false
         },
-        "directory_path": {
-          "name": "directory_path",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "processing_status": {
-          "name": "processing_status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "tile_metadata": {
-          "name": "tile_metadata",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "created_at": {
           "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
@@ -1044,6 +1133,253 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "plan_uploads": {
+      "name": "plan_uploads",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "upload_id": {
+          "name": "upload_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "plan_id": {
+          "name": "plan_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "file_path": {
+          "name": "file_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "file_type": {
+          "name": "file_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "file_size": {
+          "name": "file_size",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "uploaded_by": {
+          "name": "uploaded_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "uploaded_at": {
+          "name": "uploaded_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "plan_uploads_upload_id_unique": {
+          "name": "plan_uploads_upload_id_unique",
+          "columns": [
+            "upload_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "plan_uploads_plan_id_plans_id_fk": {
+          "name": "plan_uploads_plan_id_plans_id_fk",
+          "tableFrom": "plan_uploads",
+          "tableTo": "plans",
+          "columnsFrom": [
+            "plan_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "plan_uploads_uploaded_by_users_id_fk": {
+          "name": "plan_uploads_uploaded_by_users_id_fk",
+          "tableFrom": "plan_uploads",
+          "tableTo": "users",
+          "columnsFrom": [
+            "uploaded_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "plan_sheets": {
+      "name": "plan_sheets",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "upload_id": {
+          "name": "upload_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "plan_id": {
+          "name": "plan_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "sheet_number": {
+          "name": "sheet_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "sheet_key": {
+          "name": "sheet_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "sheet_size": {
+          "name": "sheet_size",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "tile_count": {
+          "name": "tile_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "processing_started_at": {
+          "name": "processing_started_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "processing_completed_at": {
+          "name": "processing_completed_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "error_message": {
+          "name": "error_message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "plan_sheets_upload_sheet_unique": {
+          "name": "plan_sheets_upload_sheet_unique",
+          "columns": [
+            "upload_id",
+            "sheet_number"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "plan_sheets_upload_id_plan_uploads_upload_id_fk": {
+          "name": "plan_sheets_upload_id_plan_uploads_upload_id_fk",
+          "tableFrom": "plan_sheets",
+          "tableTo": "plan_uploads",
+          "columnsFrom": [
+            "upload_id"
+          ],
+          "columnsTo": [
+            "upload_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "plan_sheets_plan_id_plans_id_fk": {
+          "name": "plan_sheets_plan_id_plans_id_fk",
+          "tableFrom": "plan_sheets",
+          "tableTo": "plans",
+          "columnsFrom": [
+            "plan_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1171,10 +1507,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "processing_jobs_upload_id_files_upload_id_fk": {
-          "name": "processing_jobs_upload_id_files_upload_id_fk",
+        "processing_jobs_upload_id_plan_uploads_upload_id_fk": {
+          "name": "processing_jobs_upload_id_plan_uploads_upload_id_fk",
           "tableFrom": "processing_jobs",
-          "tableTo": "files",
+          "tableTo": "plan_uploads",
           "columnsFrom": [
             "upload_id"
           ],
@@ -1228,8 +1564,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "projects": {
-      "name": "projects",
+    "media": {
+      "name": "media",
       "columns": {
         "id": {
           "name": "id",
@@ -1238,29 +1574,29 @@
           "notNull": true,
           "autoincrement": false
         },
-        "organization_id": {
-          "name": "organization_id",
+        "project_id": {
+          "name": "project_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "name": {
-          "name": "name",
+        "file_path": {
+          "name": "file_path",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "description": {
-          "name": "description",
+        "media_type": {
+          "name": "media_type",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "created_at": {
-          "name": "created_at",
+        "uploaded_at": {
+          "name": "uploaded_at",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
@@ -1269,121 +1605,18 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "projects_organization_id_organizations_id_fk": {
-          "name": "projects_organization_id_organizations_id_fk",
-          "tableFrom": "projects",
-          "tableTo": "organizations",
+        "media_project_id_projects_id_fk": {
+          "name": "media_project_id_projects_id_fk",
+          "tableFrom": "media",
+          "tableTo": "projects",
           "columnsFrom": [
-            "organization_id"
+            "project_id"
           ],
           "columnsTo": [
             "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "cascade"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "subscriptions": {
-      "name": "subscriptions",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "polar_subscription_id": {
-          "name": "polar_subscription_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "organization_id": {
-          "name": "organization_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "plan": {
-          "name": "plan",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "seats": {
-          "name": "seats",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 1
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "current_period_start": {
-          "name": "current_period_start",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "current_period_end": {
-          "name": "current_period_end",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "subscriptions_polar_subscription_id_unique": {
-          "name": "subscriptions_polar_subscription_id_unique",
-          "columns": [
-            "polar_subscription_id"
-          ],
-          "isUnique": true
-        }
-      },
-      "foreignKeys": {
-        "subscriptions_organization_id_organizations_id_fk": {
-          "name": "subscriptions_organization_id_organizations_id_fk",
-          "tableFrom": "subscriptions",
-          "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
