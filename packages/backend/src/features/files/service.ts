@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm"
 import { Effect, Schema } from "effect"
 import { Drizzle } from "../../core/database"
-import { files } from "../../core/database/schemas"
+import * as schema from "../../core/database/schemas"
 import { StorageService } from "../../core/storage"
 
 /**
@@ -68,19 +68,14 @@ export class FileService extends Effect.Service<FileService>()(
 
 				// Upload to R2 using StorageService
 				yield* storage.use((r2) =>
-					Effect.tryPromise({
-						try: () =>
-							r2.put(filePath, params.fileData, {
-								httpMetadata: { contentType: params.fileType },
-							}),
-						catch: (cause) =>
-							new Error(`Failed to upload file to storage: ${cause}`),
-					}),
+					r2.put(filePath, params.fileData, {
+						httpMetadata: { contentType: params.fileType },
+					})
 				)
 
 				// Create D1 metadata record
 				yield* db.use((db) =>
-					db.insert(files).values({
+					db.insert(schema.files).values({
 						id: fileId,
 						planId: params.planId,
 						filePath,
@@ -97,7 +92,7 @@ export class FileService extends Effect.Service<FileService>()(
 			 */
 			const get = Effect.fn("File.get")(function* (fileId: string) {
 				const file = yield* db.use((db) =>
-					db.select().from(files).where(eq(files.id, fileId)).get(),
+					db.select().from(schema.files).where(eq(schema.files.id, fileId)).get(),
 				)
 
 				return yield* Effect.filterOrFail(
@@ -129,26 +124,19 @@ export class FileService extends Effect.Service<FileService>()(
 				}
 
 				// Download from R2 using StorageService
-				const data = yield* storage.use((r2) =>
-					Effect.gen(function* () {
-						const object = yield* Effect.tryPromise({
-							try: () => r2.get(file.filePath!),
-							catch: (cause) =>
-								new Error(`Failed to download file from storage: ${cause}`),
-						})
+				const data = yield* storage.use(async (r2) => {
+					const object = await r2.get(file.filePath!)
 
-						if (!object) {
-							return yield* Effect.fail(
-								new Error(`File not found in storage: ${file.filePath}`),
-							)
-						}
+					if (!object) {
+						throw new Error(`File not found in storage: ${file.filePath}`)
+					}
 
-						const arrayBuffer = yield* Effect.promise(() =>
-							object.arrayBuffer(),
-						)
-						return { data: arrayBuffer, contentType: file.fileType }
-					}),
-				)
+					const arrayBuffer = await object.arrayBuffer()
+					
+					return { data: arrayBuffer, contentType: file.fileType }
+
+				})
+				
 
 				return data
 			})
@@ -156,17 +144,12 @@ export class FileService extends Effect.Service<FileService>()(
 			/**
 			 * List all files for a plan
 			 */
-			const list = Effect.fn("File.list")(function* (planId: string) {
-				const fileList = yield* db.use((db) =>
-					db.select().from(files).where(eq(files.planId, planId)).all(),
-				)
+			const list = Effect.fn("File.list")(function* (fileId: string) {
+				const fileList = yield* 
+					db.select().from(schema.files).where(eq(schema.files.id, fileId))
+			
 
-				return fileList.map((f) => ({
-					id: f.id,
-					filePath: f.filePath,
-					fileType: f.fileType,
-					createdAt: f.createdAt,
-				}))
+				return fileList
 			})
 
 			/**
@@ -178,11 +161,11 @@ export class FileService extends Effect.Service<FileService>()(
 
 				// Delete from R2 if path exists
 				if (file.filePath) {
-					yield* storage.batchDelete([file.filePath])
+					yield* storage.use((r2) => r2.delete([file.filePath]))
 				}
 
 				// Delete from D1
-				yield* db.use((db) => db.delete(files).where(eq(files.id, fileId)))
+				yield* db.delete(schema.files).where(eq(schema.files.id, fileId))
 			})
 
 			return {

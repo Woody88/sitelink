@@ -6,20 +6,34 @@
 
 import { and, eq } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/d1"
+import { Effect, Layer } from "effect"
+import { D1Client } from "@effect/sql-d1"
+import { ConfigProvider } from "effect"
+import { Resend } from "resend"
 import * as schema from "../../core/database/schemas"
+import * as Bindings from "../../core/bindings"
+import { QueueService } from "../../core/queues/service"
+import { ProcessorService } from "../processing/service"
+import { Drizzle } from "../../core/database"
+import { AuthService } from "../../core/auth"
+import { OrganizationService } from "../../core/organization/service"
+import { tileGenerationQueueConsumer } from "../../core/queues"
 import type { D1Database, R2Bucket } from "@cloudflare/workers-types"
+import type { TileJob } from "../../core/queues/types"
 
-interface Env {
+interface TestEnv {
 	SitelinkDB: D1Database
 	SitelinkStorage: R2Bucket
+	TILE_GENERATION_QUEUE: Queue
+	SITELINK_PDF_PROCESSOR: DurableObjectNamespace<any>
 	BETTER_AUTH_SECRET: string
 	RESEND_API_KEY: string
 	EMAIL_ADDRESS: string
-	R2_URL: string
-	R2_ACCOUNT_ID: string
-	R2_ACCESS_KEY_ID: string
-	R2_SECRET_ACCESS_KEY: string
-	R2_TOKEN: string
+	R2_URL?: string
+	R2_ACCOUNT_ID?: string
+	R2_ACCESS_KEY_ID?: string
+	R2_SECRET_ACCESS_KEY?: string
+	R2_TOKEN?: string
 	ENVIRONMENT?: string
 }
 
@@ -302,7 +316,7 @@ async function setActiveOrganization(
  */
 export async function handleTestSetup(
 	request: Request,
-	env: Env,
+	env: TestEnv,
 ): Promise<Response> {
 	// Only allow in development mode
 	const isDev = env.ENVIRONMENT === "development" || !env.ENVIRONMENT
@@ -362,6 +376,227 @@ export async function handleTestSetup(
 		)
 	} catch (error) {
 		console.error("❌ Test setup failed:", error)
+		return new Response(
+			JSON.stringify({
+				success: false,
+				error: error instanceof Error ? error.message : String(error),
+			}),
+			{ status: 500, headers: { "Content-Type": "application/json" } },
+		)
+	}
+}
+
+/**
+ * Test queue endpoint handler
+ * Accepts a TileJob and queues it for processing
+ * Only available in development mode
+ */
+export async function handleTestQueue(
+	request: Request,
+	env: TestEnv,
+): Promise<Response> {
+	// Only allow in development mode
+	const isDev = env.ENVIRONMENT === "development" || !env.ENVIRONMENT
+	if (!isDev) {
+		return new Response(
+			JSON.stringify({
+				error: "Test endpoint only available in development mode",
+			}),
+			{ status: 403, headers: { "Content-Type": "application/json" } },
+		)
+	}
+
+	try {
+		// Parse request body
+		const body = await request.json()
+		const tileJob = body as TileJob
+
+		// Validate required fields
+		if (
+			!tileJob.uploadId ||
+			!tileJob.projectId ||
+			!tileJob.planId ||
+			!tileJob.organizationId ||
+			tileJob.sheetNumber === undefined ||
+			!tileJob.sheetKey ||
+			tileJob.totalSheets === undefined
+		) {
+			return new Response(
+				JSON.stringify({
+					success: false,
+					error: "Invalid TileJob: missing required fields",
+				}),
+				{ status: 400, headers: { "Content-Type": "application/json" } },
+			)
+		}
+
+		// Set up minimal Effect-TS layers for ProcessorService
+		const ConfigLayer = Layer.setConfigProvider(
+			ConfigProvider.fromMap(
+				new Map(Object.entries(env).filter(([_, v]) => typeof v === "string")),
+			),
+		)
+
+		const D1Layer = D1Client.layer({ db: env.SitelinkDB })
+		const ResendLayer = Layer.succeed(
+			Bindings.ResendBinding,
+			new Resend(env.RESEND_API_KEY),
+		)
+		const QueueLayer = Layer.succeed(
+			Bindings.TileGenerationQueue,
+			env.TILE_GENERATION_QUEUE,
+		)
+		const PdfProcessorManagerLayer = Layer.succeed(
+			Bindings.PdfProcessorManager,
+			env.SITELINK_PDF_PROCESSOR,
+		)
+
+		// ProcessorService needs Drizzle, AuthService, PdfProcessorManager, and QueueService
+		// AuthService needs EmailService and OrganizationService
+		// EmailService needs ResendBinding
+		// QueueService needs TileGenerationQueue
+		// So we need to provide all these layers
+		const ProcessorServiceLive = ProcessorService.Default.pipe(
+			Layer.provide(Drizzle.Default),
+			Layer.provide(AuthService.Default),
+			Layer.provide(OrganizationService.Default),
+			Layer.provide(QueueService.Default),
+			Layer.provide(PdfProcessorManagerLayer),
+			Layer.provide(ResendLayer),
+			Layer.provide(QueueLayer),
+			Layer.provide(D1Layer),
+			Layer.provide(ConfigLayer),
+		)
+
+		// Queue the job
+		console.log(`📤 [TEST QUEUE] Queuing tile job:`, {
+			uploadId: tileJob.uploadId,
+			planId: tileJob.planId,
+			sheetNumber: tileJob.sheetNumber,
+		})
+		
+		await Effect.gen(function* () {
+			const processor = yield* ProcessorService
+			yield* processor.queueTileGeneration(tileJob)
+		}).pipe(Effect.provide(ProcessorServiceLive), Effect.runPromise)
+		
+		console.log(`✅ [TEST QUEUE] Tile job queued successfully`)
+
+		return new Response(
+			JSON.stringify(
+				{
+					success: true,
+					message: "Tile job queued successfully",
+					data: {
+						queued: true,
+						job: tileJob,
+					},
+				},
+				null,
+				2,
+			),
+			{ status: 200, headers: { "Content-Type": "application/json" } },
+		)
+	} catch (error) {
+		console.error("❌ Test queue failed:", error)
+		return new Response(
+			JSON.stringify({
+				success: false,
+				error: error instanceof Error ? error.message : String(error),
+			}),
+			{ status: 500, headers: { "Content-Type": "application/json" } },
+		)
+	}
+}
+
+/**
+ * Test endpoint to manually trigger queue consumer
+ * This simulates Cloudflare calling the queue consumer
+ * Only available in development mode
+ */
+export async function handleTestQueueTrigger(
+	request: Request,
+	env: TestEnv,
+): Promise<Response> {
+	// Only allow in development mode
+	const isDev = env.ENVIRONMENT === "development" || !env.ENVIRONMENT
+	if (!isDev) {
+		return new Response(
+			JSON.stringify({
+				error: "Test endpoint only available in development mode",
+			}),
+			{ status: 403, headers: { "Content-Type": "application/json" } },
+		)
+	}
+
+	try {
+		// Parse request body for test data (optional - can use sample data)
+		let testJobs: TileJob[] = []
+		try {
+			const body = (await request.json().catch(() => ({}))) as {
+				jobs?: TileJob[]
+			}
+			if (body.jobs && Array.isArray(body.jobs)) {
+				testJobs = body.jobs
+			}
+		} catch {
+			// If no body or invalid JSON, use sample data
+		}
+
+		// If no jobs provided, create a sample job
+		if (testJobs.length === 0) {
+			testJobs = [
+				{
+					uploadId: `test-upload-${Date.now()}`,
+					projectId: "test-project-123",
+					planId: "test-plan-456",
+					organizationId: "test-org-789",
+					sheetNumber: 0,
+					sheetKey: "organizations/test-org-789/projects/test-project-123/plans/test-plan-456/uploads/test-upload-123/sheet-0.pdf",
+					totalSheets: 3,
+				},
+			]
+		}
+
+		// Create a mock MessageBatch
+		const mockBatch = {
+			queue: "tile-generation-queue",
+			messages: testJobs.map((job, index) => ({
+				id: `msg-${index}`,
+				timestamp: new Date(),
+				body: job,
+				attempts: 1,
+				ack: function () {
+					console.log(`✅ [TEST] Message ${this.id} acknowledged`)
+				},
+				retry: function () {
+					console.log(`⚠️ [TEST] Message ${this.id} retried`)
+				},
+			})),
+		}
+
+		console.log(`🚀 [TEST QUEUE TRIGGER] Manually triggering queue consumer with ${testJobs.length} job(s)`)
+		
+		// Call the queue consumer directly
+		await tileGenerationQueueConsumer(mockBatch as any, env as any)
+
+		return new Response(
+			JSON.stringify(
+				{
+					success: true,
+					message: "Queue consumer executed successfully",
+					data: {
+						jobsProcessed: testJobs.length,
+						jobs: testJobs,
+					},
+				},
+				null,
+				2,
+			),
+			{ status: 200, headers: { "Content-Type": "application/json" } },
+		)
+	} catch (error) {
+		console.error("❌ Test queue trigger failed:", error)
 		return new Response(
 			JSON.stringify({
 				success: false,

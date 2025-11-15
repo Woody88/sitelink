@@ -5,21 +5,30 @@ import { ConfigProvider, Layer } from "effect"
 import { Resend } from "resend"
 import { Api } from "./api"
 import { CoreLayer } from "./core"
-import { PdfProcessorManager, R2Binding, ResendBinding } from "./core/bindings"
+import * as Bindings from "./core/bindings"
 import { ensureSystemPdfProcessorUser } from "./core/startup"
-import { handleTestSetup } from "./features/test"
+import { handleTestSetup, handleTestQueue, handleTestQueueTrigger } from "./features/test"
+import { tileGenerationQueueConsumer } from "./core/queues"
+import type { TileJob } from "./core/queues/types"
 
 export { SitelinkPdfProcessor } from "./core/pdf-manager"
+export { tileGenerationQueueConsumer }
 
 // Track if startup tasks have run
 let startupTasksCompleted = false
 
 export default {
 	async fetch(request, env, _ctx): Promise<Response> {
-		// Handle test endpoint early (bypasses Effect-TS)
+		// Handle test endpoints early (bypasses Effect-TS)
 		const url = new URL(request.url)
 		if (url.pathname === "/api/test/setup" && request.method === "GET") {
-			return handleTestSetup(request, env)
+			return handleTestSetup(request, env as Parameters<typeof handleTestSetup>[1])
+		}
+		if (url.pathname === "/api/test/queue" && request.method === "POST") {
+			return handleTestQueue(request, env as Parameters<typeof handleTestQueue>[1])
+		}
+		if (url.pathname === "/api/test/queue/trigger" && request.method === "POST") {
+			return handleTestQueueTrigger(request, env as Parameters<typeof handleTestQueueTrigger>[1])
 		}
 
 		const resend = new Resend(env.RESEND_API_KEY)
@@ -37,12 +46,15 @@ export default {
 			),
 		)
 
+		
+
 		// Create Cloudflare Binding Layers
 		const D1Layer = D1Client.layer({ db: env.SitelinkDB }) // Effect SQL client
-		const ResendLayer = Layer.succeed(ResendBinding, resend)
-		const R2Layer = Layer.succeed(R2Binding, env.SitelinkStorage)
+		const ResendLayer = Layer.succeed(Bindings.ResendBinding, resend)
+		const R2Layer = Layer.succeed	(Bindings.R2Binding, env.SitelinkStorage)
+		const QueueLayer = Layer.succeed(Bindings.TileGenerationQueue, env.TILE_GENERATION_QUEUE)
 		const PdfProcessorManagerLayer = Layer.succeed(
-			PdfProcessorManager,
+			Bindings.PdfProcessorManager,
 			env.SITELINK_PDF_PROCESSOR,
 		)
 
@@ -52,12 +64,20 @@ export default {
 			Layer.provide(ResendLayer),
 			Layer.provide(R2Layer),
 			Layer.provide(PdfProcessorManagerLayer),
+			Layer.provide(QueueLayer),
 		).pipe(Layer.provide(ConfigLayer))
 
 		const { handler } = HttpApiBuilder.toWebHandler(
 			Layer.mergeAll(AppLayer, HttpServer.layerContext),
 		)
 		return await handler(request)
+	},
+	async queue(batch: MessageBatch, env: Env, ctx: ExecutionContext): Promise<void> {
+		await tileGenerationQueueConsumer(
+			batch as MessageBatch<TileJob>,
+			env,
+			ctx,
+		)
 	},
 } satisfies ExportedHandler<Env>
 

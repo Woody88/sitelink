@@ -1,9 +1,8 @@
 import { eq } from "drizzle-orm"
 import { Effect, Schema } from "effect"
 import { Drizzle } from "../../core/database"
-import { medias } from "../../core/database/schemas"
 import { StorageService } from "../../core/storage"
-
+import * as schema from "../../core/database/schemas"
 /**
  * Media not found error
  */
@@ -83,9 +82,9 @@ export class MediaService extends Effect.Service<MediaService>()(
 				})
 
 				// Upload to R2 using StorageService
-				yield* storage.put(filePath, params.mediaData, {
+				yield* storage.use((r2) => r2.put(filePath, params.mediaData, {
 					httpMetadata: { contentType: params.contentType },
-				})
+				}))
 
 				// TODO: Generate thumbnail using Sharp
 				// For photos: Resize to 300x300 thumbnail
@@ -93,7 +92,7 @@ export class MediaService extends Effect.Service<MediaService>()(
 				// Store thumbnail at: `${filePath}_thumb.jpg`
 
 				// Create D1 metadata record
-				yield* db.insert(medias).values({
+				yield* db.insert(schema.media).values({
 					id: mediaId,
 					projectId: params.projectId,
 					filePath,
@@ -110,8 +109,8 @@ export class MediaService extends Effect.Service<MediaService>()(
 			const get = Effect.fn("Media.get")(function* (mediaId: string) {
 				return yield* db
 					.select()
-					.from(medias)
-					.where(eq(medias.id, mediaId))
+					.from(schema.media)
+					.where(eq(schema.media.id, mediaId))
 					.pipe(
 						Effect.head,
 						Effect.mapError(() => new MediaNotFoundError({ mediaId })),
@@ -134,7 +133,7 @@ export class MediaService extends Effect.Service<MediaService>()(
 				}
 
 				// Download from R2 using StorageService
-				const object = yield* storage.get(media.filePath)
+				const object = yield* storage.use((r2) => r2.get(media.filePath))
 
 				if (!object) {
 					return yield* Effect.fail(
@@ -157,8 +156,8 @@ export class MediaService extends Effect.Service<MediaService>()(
 			) {
 				return yield* db
 					.select()
-					.from(medias)
-					.where(eq(medias.projectId, projectId))
+					.from(schema.media)
+					.where(eq(schema.media.projectId, projectId))
 			})
 
 			/**
@@ -174,11 +173,11 @@ export class MediaService extends Effect.Service<MediaService>()(
 				if (media.filePath) {
 					// TODO: Also delete thumbnail when implemented
 					// const thumbPath = `${media.filePath}_thumb.jpg`
-					yield* storage.batchDelete([media.filePath])
+					yield* storage.use((r2) => r2.batchDelete([media.filePath]))
 				}
 
 				// Delete from D1
-				yield* db.delete(medias).where(eq(medias.id, mediaId))
+				yield* db.delete(schema.media).where(eq(schema.media.id, mediaId))
 			})
 
 			return {

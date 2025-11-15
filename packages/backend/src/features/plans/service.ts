@@ -2,7 +2,7 @@ import { HttpApiSchema } from "@effect/platform"
 import { asc, eq } from "drizzle-orm"
 import { Effect, Schema } from "effect"
 import { Drizzle } from "../../core/database"
-import { files, plans, sheets } from "../../core/database/schemas"
+import * as schema from "../../core/database/schemas"
 import { StorageService } from "../../core/storage"
 import { ProcessorService } from "../processing/service"
 
@@ -121,17 +121,16 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 
 			const createdAt = new Date()
 			// Insert plan metadata (FK constraint will validate projectId exists)
-			yield* db.insert(plans).values({
+			yield* db.insert(schema.plans).values({
 				id: planId,
 				projectId: params.projectId,
 				name: params.name,
 				description: params.description ?? null,
-				directoryPath: `organizations/${organizationId}/projects/${projectId}/plans/${planId}`, // Base path for this plan
 				createdAt,
 			})
 
 			// Insert file record
-			yield* db.insert(files).values({
+			yield* db.insert(schema.planUploads).values({
 				id: fileId,
 				uploadId,
 				planId,
@@ -163,8 +162,8 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 		const get = Effect.fn("Plan.get")(function* (planId: string) {
 			return yield* db
 				.select()
-				.from(plans)
-				.where(eq(plans.id, planId))
+				.from(schema.plans)
+				.where(eq(schema.plans.id, planId))
 				.pipe(
 					Effect.head,
 					Effect.mapError(() => new PlanNotFoundError({ planId })),
@@ -178,8 +177,8 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 			// Query all plans for project
 			const planList = yield* db
 				.select()
-				.from(plans)
-				.where(eq(plans.projectId, projectId))
+				.from(schema.plans)
+				.where(eq(schema.plans.projectId, projectId))
 
 			return planList
 		})
@@ -193,14 +192,14 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 		}) {
 			// Update plan (will succeed with 0 rows if plan doesn't exist)
 			yield* db
-				.update(plans)
+				.update(schema.plans)
 				.set({
 					...(params.data.name && { name: params.data.name }),
 					...(params.data.description !== undefined && {
 						description: params.data.description,
 					}),
 				})
-				.where(eq(plans.id, params.planId))
+				.where(eq(schema.plans.id, params.planId))
 		})
 
 		/**
@@ -208,7 +207,7 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 		 */
 		const deletePlan = Effect.fn("Plan.delete")(function* (planId: string) {
 			// Delete plan (cascade deletes files)
-			yield* db.delete(plans).where(eq(plans.id, planId))
+			yield* db.delete(schema.plans).where(eq(schema.plans.id, planId))
 		})
 
 		/**
@@ -233,9 +232,9 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 			// Query all sheets for plan ordered by page number
 			const sheetList = yield* db
 				.select()
-				.from(sheets)
-				.where(eq(sheets.planId, planId))
-				.orderBy(asc(sheets.pageNumber))
+				.from(schema.planSheets)
+				.where(eq(schema.planSheets.planId, planId))
+				.orderBy(asc(schema.planSheets.sheetNumber))
 
 			return sheetList
 		})
@@ -246,8 +245,8 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 		const getSheet = Effect.fn("Plan.getSheet")(function* (sheetId: string) {
 			return yield* db
 				.select()
-				.from(sheets)
-				.where(eq(sheets.id, sheetId))
+				.from(schema.planSheets)
+				.where(eq(schema.planSheets.id, sheetId))
 				.pipe(
 					Effect.head,
 					Effect.mapError(() => new SheetNotFoundError({ sheetId })),
@@ -267,7 +266,7 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 			const sheet = yield* getSheet(params.sheetId)
 
 			// Fetch DZI file from R2
-			const dziObject = yield* storage.use((r2) => r2.get(sheet.dziPath))
+			const dziObject = yield* storage.use((r2) => r2.get(sheet.sheetKey))
 
 			// Check if file exists
 			if (!dziObject) {
@@ -296,9 +295,12 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 			// Get sheet to verify it exists and build the tile path
 			const sheet = yield* getSheet(params.sheetId)
 
-			// Build tile path from sheet's tile directory
-			// tile_directory is stored as: organizations/{orgId}/projects/{projectId}/plans/{planId}/sheets/{sheetId}/tiles/{sheetId}_files
-			const tilePath = `${sheet.tileDirectory}/${params.level}/${params.tile}`
+			// Build tile path from sheet's sheetKey
+			// sheetKey format: organizations/{orgId}/projects/{projectId}/plans/{planId}/uploads/{uploadId}/sheet-{n}.pdf
+			// Tile directory format: organizations/{orgId}/projects/{projectId}/plans/{planId}/uploads/{uploadId}/sheet-{n}/sheet-{n}_files
+			const sheetBasePath = sheet.sheetKey.replace(/\.pdf$/, "") // Remove .pdf extension
+			const tileDirectory = `${sheetBasePath}/sheet-${sheet.sheetNumber}_files`
+			const tilePath = `${tileDirectory}/${params.level}/${params.tile}`
 
 			// Fetch tile file from R2
 			const tileObject = yield* storage.use((r2) => r2.get(tilePath))

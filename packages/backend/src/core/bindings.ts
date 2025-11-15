@@ -21,3 +21,8 @@ export class PdfProcessorManager extends Context.Tag("PdfProcessorManager")<
 	PdfProcessorManager,
 	DurableObjectNamespace<SitelinkPdfProcessor>
 >() {}
+
+export class TileGenerationQueue extends Context.Tag("TileGenerationQueue")<
+	TileGenerationQueue,
+	Queue
+>() {}

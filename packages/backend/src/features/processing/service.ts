@@ -6,6 +6,8 @@ import { PdfProcessorManager } from "../../core/bindings"
 import { Drizzle } from "../../core/database"
 import * as schema from "../../core/database/schemas"
 import type { NewProcessingJob } from "../../core/pdf-manager"
+import { QueueService } from "../../core/queues/service"
+import type { TileJob } from "../../core/queues/types"
 
 const SYSTEM_PDF_PROCESSOR_EMAIL = "system-pdf-processor@sitelink.com"
 export class PdfProcessorError extends Schema.TaggedError<PdfProcessorError>(
@@ -59,6 +61,7 @@ export class ProcessorService extends Effect.Service<ProcessorService>()(
 			const pdfManager = yield* PdfProcessorManager
 			const authService = yield* AuthService
 			const db = yield* Drizzle
+			const queue = yield* QueueService
 			// Lazy function to get system PDF user (only called when needed)
 			const getSystemPdfUser = () =>
 				db
@@ -163,7 +166,15 @@ export class ProcessorService extends Effect.Service<ProcessorService>()(
 				},
 			)
 
-			return { process, progressUpdate, getJobStatus }
+			const queueTileGeneration = Effect.fn("ProcessorService.queueTileGeneration")(function* (job: TileJob) {
+				yield* queue.send(job)
+			})
+
+			const queueMultipleTiles = Effect.fn("ProcessorService.queueMultipleTiles")(function* (jobs: TileJob[]) {
+				yield* queue.sendBatch(jobs.map(job => ({ body: job})))
+			})
+
+			return { process, progressUpdate, getJobStatus, queueTileGeneration, queueMultipleTiles }
 		}),
 	},
 ) {}

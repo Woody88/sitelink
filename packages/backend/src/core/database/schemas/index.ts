@@ -1,9 +1,11 @@
 // Re-export auth tables (managed by better-auth)
 export * from "./_auth"
 
+// Re-export business tables + Effect-TS schemas
 export * from "./subscriptions"
 export * from "./projects"
 export * from "./plans"
+export * from "./files"
 export * from "./plan-uploads"
 export * from "./plan-sheets"
 export * from "./processing-jobs"
@@ -23,6 +25,7 @@ import {
 	verifications,
 } from "./_auth"
 import { annotations } from "./annotations"
+import { files } from "./files"
 import { media } from "./media"
 import { planSheets } from "./plan-sheets"
 import { planUploads } from "./plan-uploads"
@@ -46,6 +49,7 @@ export const schema = {
 	subscriptions,
 	projects,
 	plans,
+	files,
 	planUploads,
 	planSheets,
 	processingJobs,
