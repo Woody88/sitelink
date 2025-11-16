@@ -12,7 +12,7 @@ export const annotations = D.sqliteTable("annotations", {
 	planId: D.text("plan_id")
 		.notNull()
 		.references(() => plans.id, { onDelete: "cascade" }),
-	sheetNumber: D.integer("sheet_number").notNull(), // Which sheet the annotation is on
+	sheetNumber: D.integer("sheet_number").notNull(), // 1-indexed sheet number
 	userId: D.text("user_id")
 		.notNull()
 		.references(() => users.id),

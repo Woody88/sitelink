@@ -8,11 +8,11 @@ import { CoreLayer } from "./core"
 import * as Bindings from "./core/bindings"
 import { ensureSystemPdfProcessorUser } from "./core/startup"
 import { handleTestSetup, handleTestQueue, handleTestQueueTrigger } from "./features/test"
-import { tileGenerationQueueConsumer } from "./core/queues"
-import type { TileJob } from "./core/queues/types"
+import type { R2Notification, TileJob } from "./core/queues/types"
+import { pdfProcessingQueueConsumer, tileGenerationQueueConsumer } from "./core/queues"
 
 export { SitelinkPdfProcessor } from "./core/pdf-manager"
-export { tileGenerationQueueConsumer }
+export { tileGenerationQueueConsumer, pdfProcessingQueueConsumer } from "./core/queues"
 
 // Track if startup tasks have run
 let startupTasksCompleted = false
@@ -73,11 +73,20 @@ export default {
 		return await handler(request)
 	},
 	async queue(batch: MessageBatch, env: Env, ctx: ExecutionContext): Promise<void> {
-		await tileGenerationQueueConsumer(
-			batch as MessageBatch<TileJob>,
-			env,
-			ctx,
-		)
+		switch (batch.queue) {
+			case "tile-generation-queue":
+				await tileGenerationQueueConsumer(
+					batch as MessageBatch<TileJob>,
+					env,
+					ctx,
+				)
+				break
+			case "pdf-processing-queue":
+				await pdfProcessingQueueConsumer(batch as MessageBatch<R2Notification>, env, ctx)
+				break
+			default:
+				throw new Error(`Unknown queue: ${batch.queue}`)
+		}
 	},
 } satisfies ExportedHandler<Env>
 

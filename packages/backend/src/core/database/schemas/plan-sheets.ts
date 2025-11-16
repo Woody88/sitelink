@@ -13,7 +13,7 @@ export const planSheets = D.sqliteTable(
 		planId: D.text("plan_id")
 			.notNull()
 			.references(() => plans.id, { onDelete: "cascade" }),
-		sheetNumber: D.integer("sheet_number").notNull(), // 0-indexed (renamed from pageNumber)
+		sheetNumber: D.integer("sheet_number").notNull(), // 1-indexed (matches file naming: sheet-1.pdf, sheet-2.pdf, etc.)
 		sheetKey: D.text("sheet_key").notNull(), // R2 path to sheet PDF (renamed from dziPath)
 		sheetSize: D.integer("sheet_size"),
 		status: D.text()

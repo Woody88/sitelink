@@ -55,13 +55,23 @@
 			{
 				"binding": "TILE_GENERATION_QUEUE",
 				"queue": "tile-generation-queue"
+			},
+			{
+				"binding": "PDF_PROCESSING_QUEUE",
+				"queue": "pdf-processing-queue"
 			}
 		],
 		"consumers": [
 			{
 				"queue": "tile-generation-queue",
 				"max_batch_size": 10,
-				"max_batch_timeout": 5
+				"max_concurrency": 50,
+				"max_retries": 3,
+			},
+			{
+				"queue": "pdf-processing-queue",
+				"max_batch_size": 1,
+				"max_retries": 3,
 			}
 		]
 	}

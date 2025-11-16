@@ -299,6 +299,7 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 			// sheetKey format: organizations/{orgId}/projects/{projectId}/plans/{planId}/uploads/{uploadId}/sheet-{n}.pdf
 			// Tile directory format: organizations/{orgId}/projects/{projectId}/plans/{planId}/uploads/{uploadId}/sheet-{n}/sheet-{n}_files
 			const sheetBasePath = sheet.sheetKey.replace(/\.pdf$/, "") // Remove .pdf extension
+			// Note: sheet.sheetNumber is 1-indexed (matches file naming: sheet-1.pdf, sheet-2.pdf, etc.)
 			const tileDirectory = `${sheetBasePath}/sheet-${sheet.sheetNumber}_files`
 			const tilePath = `${tileDirectory}/${params.level}/${params.tile}`
 

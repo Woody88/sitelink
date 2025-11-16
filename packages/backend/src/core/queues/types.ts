@@ -15,6 +15,7 @@ export interface TileJob {
   projectId: string
   planId: string
   organizationId: string
+  /** Sheet number (1-indexed, matches file naming: sheet-1.pdf, sheet-2.pdf, etc.) */
   sheetNumber: number
   sheetKey: string
   totalSheets: number
