@@ -130,7 +130,7 @@ export async function executePlanTileGeneration({
 		const dziPath = `${tmpOutputDir}/${sheetId}`
 
 		// 3. Generate tiles with vips (0-indexed page parameter)
-		await $`vips dzsave ${localPdfPath}[page=${pageNum},dpi=300] ${dziPath} --tile-size 256 --overlap 1`
+		await $`vips dzsave ${localPdfPath}[page=${pageNum},dpi=150] ${dziPath} --tile-size 254 --overlap 1 --depth onetile --suffix .jpg[Q=85]`
 
 		// 4. Upload to R2 if s3Client is provided
 		if (s3Client) {
@@ -191,4 +191,39 @@ export async function executePlanTileGeneration({
 	console.info("Tile processing complete")
 
 	return totalPages
+}
+
+
+const TMP_DIR = `/tmp/tiles`
+export async function generateTilesStream(pdfPath: string, sheetId: string): Promise<ReadableStream> {
+	// 1. run vips
+	await $`vips dzsave ${pdfPath}[page=0,dpi=150] ${TMP_DIR} --tile-size 254 --overlap 1 --depth onetile --suffix .jpg[Q=85]`
+
+	const stream = new ReadableStream({
+		start: async (controller) => {
+			// await streamTilesDirectory(controller, TMP_DIR)
+		}
+	})
+	
+
+	// 2. stream all tiles back
+	return new ReadableStream()
+}
+
+async function* streamTilesDirectory(tilesDir: string){
+	// 1. Get all files path using glob
+	
+	// 2. read file
+
+	// 3. construct metadata
+
+	// 4. enqueue metadata with newline
+
+	// 5. stream file
+}
+
+async function streamFile(controller: ReadableByteStreamController, filePath: string){
+	// 1. get file stream
+
+	// 2. enqueue file chunk to stream
 }

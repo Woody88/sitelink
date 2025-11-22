@@ -12,7 +12,45 @@ jobs`)
   await Promise.allSettled(
     batch.messages.map(async (message) => {
       try {
-        await processJob(message, env)
+
+        const sheetPdfBuffer = await env.SitelinkStorage.get(message.body.sheetKey)
+
+        if (!sheetPdfBuffer) {
+          console.log(`sheet for ${message.body.sheetKey} not found!`)
+          message.ack()
+          return
+        }
+
+        const container = env.SITELINK_PDF_PROCESSOR.getByName(message.body.uploadId)
+
+        const headers = new Headers()
+        sheetPdfBuffer.writeHttpMetadata(headers)
+
+        headers.set('Content-Length', sheetPdfBuffer.size.toString())
+        headers.set('X-Sheet-Key', sheetPdfBuffer.key)
+        headers.set('X-Sheet-Number', message.body.sheetNumber.toString())
+        headers.set('X-Sheet-Total-Count', message.body.totalSheets.toString())
+        headers.set('X-Upload-Id', message.body.uploadId)
+        headers.set('X-Organization-Id', message.body.organizationId)
+        headers.set('X-Project-Id', message.body.projectId)
+        headers.set('X-Plan-Id', message.body.planId)
+
+        const response = await container.fetch(new Request(
+          `http://localhost/generate-tiles`,
+          {
+            method: 'POST',
+            headers,
+            body: sheetPdfBuffer.body
+          }
+        ))
+
+        if (!response.ok){
+          const errorText = await response.text()
+          throw new Error(`Container failed: ${response.status} - ${errorText}`)
+        }
+
+        await processTileStream(response.body!, env)
+
         console.log(`✅ Successfully processed sheet ${message.body.sheetNumber}`)
         message.ack()
       } catch (error) {
@@ -25,13 +63,16 @@ jobs`)
   console.log(`✅ [QUEUE CONSUMER] Finished processing batch`)
 }
 
-async function processJob(message: Message<TileJob>, env: Env) {
-  const job = message.body
-  console.log(`✅ [QUEUE CONSUMER] Processing tile job for sheet ${job.sheetNumber}/${job.totalSheets}`)
-  console.log(`   Upload ID: ${job.uploadId}`)
-  console.log(`   Plan ID: ${job.planId}`)
-  console.log(`   Sheet Key: ${job.sheetKey}`)
-  // Acknowledge the message to mark it as processed
+async function processTileStream(stream: ReadableStream, env: Env) {
+  console.log(`✅ [PROCESS_STREAM] Processing tile job for sheet....`)
+
+  // 1. readJsonLine
+
+  // 2. read file bytes
+  
+  
+  // 3. upload to R2
+
 }
 
 
