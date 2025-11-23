@@ -16,7 +16,34 @@
   },
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
+  "typescript.tsserver.maxTsServerMemory": 4096,
+  "typescript.tsserver.watchOptions": {
+    "excludeDirectories": [
+      "**/node_modules",
+      "**/.git",
+      "**/dist",
+      "**/.wrangler",
+      "**/.effect",
+      "**/.effect-source"
+    ]
+  },
+  "typescript.disableAutomaticTypeAcquisition": true,
+  "typescript.tsserver.experimental.enableProjectDiagnostics": false,
   "files.associations": {
     "wrangler.json": "jsonc"
+  },
+  "search.exclude": {
+    "**/.effect": true,
+    "**/.effect-source": true,
+    "**/node_modules": true,
+    "**/.wrangler": true,
+    "**/dist": true
+  },
+  "files.watcherExclude": {
+    "**/.effect/**": true,
+    "**/.effect-source/**": true,
+    "**/node_modules/**": true,
+    "**/.wrangler/**": true,
+    "**/dist/**": true
   }
 }

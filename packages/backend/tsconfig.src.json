@@ -40,7 +40,7 @@
 		/* Skip type checking all .d.ts files. */
 		"skipLibCheck": true
 	},
-	"exclude": ["test"],
+	"exclude": ["test", "node_modules", ".wrangler", "dist"],
 	"include": ["worker-configuration.d.ts", "src/**/*.ts"],
 	"references": []
 }
