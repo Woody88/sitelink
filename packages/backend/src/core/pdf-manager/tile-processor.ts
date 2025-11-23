@@ -1,6 +1,9 @@
 import fs from "node:fs/promises"
-import { $, S3Client } from "bun"
+import { $, Glob, S3Client } from "bun"
 import { PDFDocument } from "pdf-lib"
+import { pack } from 'tar-stream'
+import { Writable } from 'stream'
+import { Readable } from "node:stream"
 
 export interface TileGeneratorData {
 	pdfPath: string // Path to the actual PDF file to process
@@ -130,7 +133,7 @@ export async function executePlanTileGeneration({
 		const dziPath = `${tmpOutputDir}/${sheetId}`
 
 		// 3. Generate tiles with vips (0-indexed page parameter)
-		await $`vips dzsave ${localPdfPath}[page=${pageNum},dpi=300] ${dziPath} --tile-size 256 --overlap 1`
+		await $`vips dzsave ${localPdfPath}[page=${pageNum},dpi=150] ${dziPath} --tile-size 254 --overlap 1 --depth onetile --suffix .jpg[Q=85]`
 
 		// 4. Upload to R2 if s3Client is provided
 		if (s3Client) {
@@ -191,4 +194,45 @@ export async function executePlanTileGeneration({
 	console.info("Tile processing complete")
 
 	return totalPages
+}
+
+
+
+export async function generateTilesStream(pdfPath: string, sheetId: string, uploadId: string) {
+	const TMP_DIR = `/tmp/uploads/${uploadId}/sheet-${sheetId}`
+	// 1. run vips
+	await $`vips dzsave ${pdfPath}[page=0,dpi=150] ${TMP_DIR} --tile-size 254 --overlap 1 --depth onetile --suffix .jpg[Q=85]`
+
+	return streamTilesDirectory(TMP_DIR)
+}
+
+async function streamTilesDirectory(tilesDir: string): Promise<ReadableStream<Uint8Array>>{
+	// 1. Get all files path using glob
+	const glob = new Glob(`**/*`)
+	const packer = pack()
+	
+	// 2. read file
+	for await (const filepath of glob.scan(tilesDir)) {
+		const file = Bun.file(filepath)
+		const stream = file.stream()
+
+		const entry = Writable.toWeb(packer.entry({
+			name: filepath,
+			type: 'file',
+			size: file.size
+		}))
+
+		await stream.pipeTo(entry)	
+	}
+
+	packer.finalize() // no more entries will be added. This allwos the stream to proeprly end.
+
+	return new ReadableStream({
+		start: async (controller) => {
+			for await (const chunk of packer){
+				controller.enqueue(chunk)
+			}
+			controller.close()
+		} 
+	})
 }
