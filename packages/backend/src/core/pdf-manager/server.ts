@@ -47,31 +47,49 @@ const server = Bun.serve({
 		"/health": () => Response.json({ health: "ok" }),
 		"/generate-tiles": {
 			POST: async (req) => {
-				const headers = req.headers
-				const sheetHeaders = {
-					sheetKey: headers.get("X-Sheet-Key") || '',
-					sheetNumber: headers.get("X-Sheet-Number") || '',
-					sheetTotalCount: Number.parseInt(headers.get("X-Sheet-Total-Count") || '0'),
-					uploadId: headers.get("X-Upload-Id") || '',
-					organizationId: headers.get("X-Organization-Id") || '',
-					projectId: headers.get("X-Project-Id") || '',
-					planId: headers.get("X-Plan-Id") || ''
-				} satisfies SheetDataHeaders
-				
+				try {
+					console.log('📨 Received /generate-tiles POST request')
+					const headers = req.headers
+					const sheetHeaders = {
+						sheetKey: headers.get("X-Sheet-Key") || '',
+						sheetNumber: headers.get("X-Sheet-Number") || '',
+						sheetTotalCount: Number.parseInt(headers.get("X-Sheet-Total-Count") || '0'),
+						uploadId: headers.get("X-Upload-Id") || '',
+						organizationId: headers.get("X-Organization-Id") || '',
+						projectId: headers.get("X-Project-Id") || '',
+						planId: headers.get("X-Plan-Id") || ''
+					} satisfies SheetDataHeaders
 
-				const sheetId = `sheet-${sheetHeaders.sheetNumber}`
-				const sheetPdfFilePath = `/tmp/${sheetHeaders.uploadId}/${sheetId}.pdf`
 
-				const fileStream = new Response(req.body, { headers: { 'Content-Type': headers.get('Content-Type') || ''}})
-				await Bun.write(sheetPdfFilePath, fileStream,  { createPath: true } )
+					const sheetId = `sheet-${sheetHeaders.sheetNumber}`
+					const sheetPdfFilePath = `/tmp/${sheetHeaders.uploadId}/${sheetId}.pdf`
 
-				const tilesTarFilename = `${sheetHeaders.organizationId}_${sheetHeaders.projectId}_${sheetHeaders.planId}_${sheetHeaders.uploadId}_${sheetId}.tar`
-				const tiles = await generateTilesStream(sheetPdfFilePath, sheetId, sheetHeaders.uploadId)
+					console.log(`📦 Writing request body to ${sheetPdfFilePath}`)
+					// Buffer the request body to avoid streaming issues
+					const pdfBuffer = await req.arrayBuffer()
+					console.log(`📦 Buffered ${pdfBuffer.byteLength} bytes`)
+					await Bun.write(sheetPdfFilePath, pdfBuffer,  { createPath: true } )
+					console.log('✅ File written successfully')
 
-				return Response.json(tiles, { headers: { 
-					'Content-Type': 'application/x-tar',
-          'Content-Disposition': `attachment; filename="${tilesTarFilename}"`
-				}})
+					const tilesTarFilename = `${sheetHeaders.organizationId}_${sheetHeaders.projectId}_${sheetHeaders.planId}_${sheetHeaders.uploadId}_${sheetId}.tar`
+					const tiles = await generateTilesStream(sheetPdfFilePath, sheetId, sheetHeaders.uploadId)
+
+					return new Response(tiles, {
+						headers: {
+							'Content-Type': 'application/x-tar',
+							'Content-Disposition': `attachment; filename="${tilesTarFilename}"`
+						}
+					})
+				} catch (error) {
+					console.error('Error generating tiles:', error)
+					return new Response(
+						JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
+						{
+							status: 500,
+							headers: { 'Content-Type': 'application/json' }
+						}
+					)
+				}
 			}
 		},
 		"/processPdf": {

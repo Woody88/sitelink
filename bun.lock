@@ -34,6 +34,7 @@
         "drizzle-effect": "workspace:*",
         "drizzle-orm": "^0.44.5",
         "effect": "catalog:effect",
+        "pdf-lib": "^1.17.1",
         "resend": "^6.1.2",
         "tar-stream": "^3.1.7",
       },

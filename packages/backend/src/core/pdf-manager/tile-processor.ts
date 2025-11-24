@@ -199,40 +199,65 @@ export async function executePlanTileGeneration({
 
 
 export async function generateTilesStream(pdfPath: string, sheetId: string, uploadId: string) {
-	const TMP_DIR = `/tmp/uploads/${uploadId}/sheet-${sheetId}`
-	// 1. run vips
-	await $`vips dzsave ${pdfPath}[page=0,dpi=150] ${TMP_DIR} --tile-size 254 --overlap 1 --depth onetile --suffix .jpg[Q=85]`
+	const OUTPUT_DIR = `/tmp/uploads/${uploadId}`
+	const OUTPUT_PREFIX = `${OUTPUT_DIR}/sheet-${sheetId}`
 
-	return streamTilesDirectory(TMP_DIR)
+	// 0. Create output directory
+	await $`mkdir -p ${OUTPUT_DIR}`
+
+	// 1. run vips - creates OUTPUT_PREFIX.dzi and OUTPUT_PREFIX_files/
+	await $`vips dzsave ${pdfPath}[page=0,dpi=150] ${OUTPUT_PREFIX} --tile-size 254 --overlap 1 --depth onetile --suffix .jpg[Q=85]`
+
+	// 2. stream the entire output directory (includes both .dzi and _files/)
+	return streamTilesDirectory(OUTPUT_DIR)
 }
 
 async function streamTilesDirectory(tilesDir: string): Promise<ReadableStream<Uint8Array>>{
 	// 1. Get all files path using glob
 	const glob = new Glob(`**/*`)
 	const packer = pack()
-	
-	// 2. read file
-	for await (const filepath of glob.scan(tilesDir)) {
-		const file = Bun.file(filepath)
-		const stream = file.stream()
 
-		const entry = Writable.toWeb(packer.entry({
-			name: filepath,
-			type: 'file',
-			size: file.size
-		}))
+	// 2. Manually create Web ReadableStream from Node.js Readable
+	const webStream = new ReadableStream<Uint8Array>({
+		async start(controller) {
+			// Start reading from packer
+			packer.on('data', (chunk: Buffer) => {
+				controller.enqueue(new Uint8Array(chunk))
+			})
 
-		await stream.pipeTo(entry)	
-	}
+			packer.on('end', () => {
+				controller.close()
+			})
 
-	packer.finalize() // no more entries will be added. This allwos the stream to proeprly end.
+			packer.on('error', (error) => {
+				controller.error(error)
+			})
 
-	return new ReadableStream({
-		start: async (controller) => {
-			for await (const chunk of packer){
-				controller.enqueue(chunk)
+			// Add files to packer
+			try {
+				for await (const filepath of glob.scan(tilesDir)) {
+					const fullPath = `${tilesDir}/${filepath}`
+					const file = Bun.file(fullPath)
+
+					// Skip directories
+					if ((await file.exists()) && file.size > 0) {
+						const stream = file.stream()
+
+						const entry = Writable.toWeb(packer.entry({
+							name: filepath,
+							type: 'file',
+							size: file.size
+						}))
+
+						await stream.pipeTo(entry)
+					}
+				}
+				packer.finalize() // Signal that no more entries will be added
+			} catch (error) {
+				packer.destroy(error as Error)
 			}
-			controller.close()
-		} 
+		}
 	})
+
+	return webStream
 }
