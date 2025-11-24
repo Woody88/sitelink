@@ -64,11 +64,14 @@ const server = Bun.serve({
 					const sheetId = `sheet-${sheetHeaders.sheetNumber}`
 					const sheetPdfFilePath = `/tmp/${sheetHeaders.uploadId}/${sheetId}.pdf`
 
-					console.log(`📦 Writing request body to ${sheetPdfFilePath}`)
-					// Buffer the request body to avoid streaming issues
-					const pdfBuffer = await req.arrayBuffer()
-					console.log(`📦 Buffered ${pdfBuffer.byteLength} bytes`)
-					await Bun.write(sheetPdfFilePath, pdfBuffer,  { createPath: true } )
+					console.log(`📦 Streaming request body to ${sheetPdfFilePath}`)
+					// Bun.write() requires wrapping ReadableStream in Response for streaming
+					// See: https://bun.sh/guides/write-file/stream
+					if (!req.body) {
+						throw new Error('Request body is empty')
+					}
+					const response = new Response(req.body)
+					await Bun.write(sheetPdfFilePath, response,  { createPath: true } )
 					console.log('✅ File written successfully')
 
 					const tilesTarFilename = `${sheetHeaders.organizationId}_${sheetHeaders.projectId}_${sheetHeaders.planId}_${sheetHeaders.uploadId}_${sheetId}.tar`

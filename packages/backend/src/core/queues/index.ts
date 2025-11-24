@@ -42,14 +42,12 @@ async function processJob(message: Message<TileJob>, env: Env) {
     throw new Error(`Sheet not found: ${job.sheetKey}`)
   }
 
-  // Buffer the R2 body before sending to container to avoid streaming issues through service binding
-  console.log(`📦 Buffering sheet PDF from R2...`)
-  const sheetBuffer = await sheet.arrayBuffer()
-  console.log(`📦 Buffered ${sheetBuffer.byteLength} bytes`)
+  // With wrangler 4.50.0, we can stream R2 bodies directly through service bindings
+  console.log(`📦 Streaming sheet PDF from R2 to container...`)
 
   const request = new Request("http://localhost/generate-tiles", {
     method: "POST",
-    body: sheetBuffer,
+    body: sheet.body,
     headers: {
       "Content-Type": "application/pdf",
       "X-Sheet-Key": job.sheetKey,

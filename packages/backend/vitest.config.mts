@@ -41,19 +41,13 @@ export default defineWorkersProject(async () => {
 								const localUrl = `http://localhost:${CONTAINER_PORT}${url.pathname}`
 
 								try {
-									// Buffer the request body to avoid ReadableStream issues in miniflare
-									// Miniflare's fetch() has a bug with duplex: "half" that causes hangs
-									// Production Cloudflare Workers handle streaming correctly, but for tests we buffer
-									let body: BodyInit | null = null
-									if (request.method !== 'GET' && request.method !== 'HEAD') {
-										body = await request.arrayBuffer()
-									}
-
+									// With wrangler 4.50.0, Miniflare's duplex: "half" bug is fixed (PR #5114)
+									// We can now stream request bodies directly without buffering
 									return await fetch(localUrl, {
 										method: request.method,
 										headers: request.headers,
-										body,
-										// Note: removed duplex: "half" since we're using buffered body
+										body: request.body,
+										duplex: "half",
 									} as RequestInit)
 								} catch (error) {
 									console.error("Failed to reach Docker container:", error)
