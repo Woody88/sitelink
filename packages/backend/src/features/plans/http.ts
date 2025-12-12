@@ -7,7 +7,10 @@ import {
 	Multipart,
 } from "@effect/platform"
 import { Effect, Schema, Stream } from "effect"
+import { eq, sql } from "drizzle-orm"
 import { BaseApi } from "../../core/api"
+import { Drizzle } from "../../core/database"
+import * as schema from "../../core/database/schemas"
 import { Authorization, CurrentSession } from "../../core/middleware"
 import {
 	DziNotFoundError,
@@ -65,6 +68,9 @@ const PlanListResponse = Schema.Struct({
 })
 
 const SheetResponse = Schema.Struct({
+	markerCount: Schema.propertySignature(Schema.Number).pipe(
+		Schema.withConstructorDefault(() => 0),
+	),
 	id: Schema.String,
 	planId: Schema.String,
 	pageNumber: Schema.Number,
@@ -102,6 +108,7 @@ export const PlanAPI = HttpApiGroup.make("plans")
 					planId: Schema.String,
 					fileId: Schema.String,
 					uploadId: Schema.String,
+					filePath: Schema.String,
 					jobId: Schema.String,
 				}),
 			)
@@ -174,13 +181,18 @@ export const PlanAPILive = HttpApiBuilder.group(
 			return handlers
 				.handle("createPlan", ({ path, payload }) =>
 					Effect.gen(function* () {
-						const { session } = yield* CurrentSession
+						console.log('📥 Upload plan endpoint called')
+						const { session, user } = yield* CurrentSession
 
-						if (!session.activeOrganizationId)
+						console.log('Session active org ID:', session.activeOrganizationId)
+						console.log('Session user ID:', user.id)
+
+						if (!session.activeOrganizationId) {
+							console.error('❌ No active organization ID in session')
 							return yield* new HttpApiError.Unauthorized()
+						}
 
-						// Parse multipart stream to get file and fields
-						const parts = yield* Stream.runCollect(payload)
+						console.log('📦 Parsing multipart data...')
 
 						let fileData: Uint8Array | undefined
 						let fileName: string | undefined
@@ -188,35 +200,54 @@ export const PlanAPILive = HttpApiBuilder.group(
 						let name: string = "Untitled Plan"
 						let description: string | undefined
 
-						// Process each multipart part
-						for (const part of parts) {
-							if (Multipart.isFile(part)) {
-								// Get file content
-								fileData = yield* part.contentEffect
-								fileName = part.name
-								fileType = part.contentType
-							} else if (Multipart.isField(part)) {
-								// Handle form fields
-								if (part.key === "name") {
-									name = part.value
-								} else if (part.key === "description") {
-									description = part.value
+						// Parse multipart stream to get file and fields
+						try {
+							const parts = yield* Stream.runCollect(payload)
+							console.log('✅ Multipart data parsed, parts count:', parts.length)
+
+							// Process each multipart part
+							console.log('🔍 Processing multipart parts...')
+							for (const part of parts) {
+								if (Multipart.isFile(part)) {
+									console.log('📎 Found file part:', part.name)
+									// Get file content
+									fileData = yield* part.contentEffect
+									fileName = part.name
+									fileType = part.contentType
+									console.log('✅ File loaded, size:', fileData.byteLength)
+								} else if (Multipart.isField(part)) {
+									console.log('📝 Found field:', part.key, '=', part.value)
+									// Handle form fields
+									if (part.key === "name") {
+										name = part.value
+									} else if (part.key === "description") {
+										description = part.value
+									}
 								}
 							}
-						}
 
-						// Validate file was uploaded
-						if (!fileData || !fileName) {
+							// Validate file was uploaded
+							if (!fileData || !fileName) {
+								console.error('❌ No file data or filename')
+								return yield* new PlanUploadError({
+									message: "No file uploaded",
+								})
+							}
+
+							console.log('✅ Validation passed, calling service...')
+						} catch (parseError) {
+							console.error('❌ Failed to parse multipart data:', parseError)
 							return yield* new PlanUploadError({
-								message: "No file uploaded",
+								message: `Failed to parse upload: ${parseError}`,
 							})
 						}
 
 						// Create plan with file upload
-						const { planId, fileId, uploadId, jobId } = yield* planService
+						const { planId, fileId, uploadId, filePath, jobId } = yield* planService
 							.create({
 								organizationId: session.activeOrganizationId,
 								projectId: path.projectId,
+								userId: user.id,
 								name,
 								description: description || undefined,
 								fileData,
@@ -233,7 +264,7 @@ export const PlanAPILive = HttpApiBuilder.group(
 								),
 							)
 
-						return { planId, fileId, uploadId, jobId }
+						return { planId, fileId, uploadId, filePath, jobId }
 					}),
 				)
 				.handle("getPlan", ({ path }) => planService.get(path.id))
@@ -269,12 +300,66 @@ export const PlanAPILive = HttpApiBuilder.group(
 				)
 				.handle("listSheets", ({ path }) =>
 					Effect.gen(function* () {
+						// Get plan first to access organizationId and projectId
+						const plan = yield* planService.get(path.id).pipe(Effect.orDie)
+						
 						// List all sheets for the plan
 						const sheetList = yield* planService
 							.listSheets(path.id)
 							.pipe(Effect.orDie)
 
-						return { sheets: sheetList }
+						// Get marker counts for each sheet
+						const db = yield* Drizzle
+						const markerCounts = yield* db
+							.select({
+								sheetNumber: schema.planMarkers.sheetNumber,
+								count: sql<number>`count(*)`.as("count"),
+							})
+							.from(schema.planMarkers)
+							.where(eq(schema.planMarkers.planId, path.id))
+							.groupBy(schema.planMarkers.sheetNumber)
+
+						// Create a map of sheetNumber -> marker count
+						const markerCountMap = new Map<number, number>()
+						for (const row of markerCounts) {
+							// Convert count to number (SQLite may return as string or bigint)
+							const count = typeof row.count === 'number' ? row.count : Number(row.count)
+							markerCountMap.set(row.sheetNumber, count)
+						}
+
+						// Transform database rows to API response format
+						const transformedSheets = sheetList.map((sheet) => {
+							// Build DZI path: organizations/{orgId}/projects/{projectId}/plans/{planId}/sheets/sheet-{n}/sheet-sheet-{n}.dzi
+							// Extract organizationId and projectId from plan (they're not in sheet table)
+							// We need to get them from the plan or from the sheet's sheetKey
+							// sheetKey format: organizations/{orgId}/projects/{projectId}/plans/{planId}/uploads/{uploadId}/sheet-{n}.pdf
+							const sheetKeyMatch = sheet.sheetKey.match(/^organizations\/([^\/]+)\/projects\/([^\/]+)\/plans\/([^\/]+)\//)
+							const organizationId = sheetKeyMatch?.[1] || ""
+							const projectId = sheetKeyMatch?.[2] || ""
+							
+							const sheetBasePath = `organizations/${organizationId}/projects/${projectId}/plans/${sheet.planId}/sheets/sheet-${sheet.sheetNumber}`
+							const dziPath = `${sheetBasePath}/sheet-sheet-${sheet.sheetNumber}.dzi`
+							
+							// Build tile directory: organizations/.../plans/{planId}/sheets/sheet-{n}/sheet-sheet-{n}_files
+							const tileDirectory = `${sheetBasePath}/sheet-sheet-${sheet.sheetNumber}_files`
+
+							return {
+								id: sheet.id,
+								planId: sheet.planId,
+								pageNumber: sheet.sheetNumber, // Map sheetNumber to pageNumber
+								sheetName: sheet.sheetName,
+								dziPath,
+								tileDirectory,
+								width: null, // Not stored in database
+								height: null, // Not stored in database
+								tileCount: sheet.tileCount,
+								markerCount: markerCountMap.get(sheet.sheetNumber) || 0, // Add marker count
+								processingStatus: sheet.status, // Map status to processingStatus
+								createdAt: sheet.createdAt,
+							}
+						})
+
+						return { sheets: transformedSheets }
 					}),
 				)
 				.handle("getSheet", ({ path }) =>

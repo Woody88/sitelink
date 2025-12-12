@@ -12,6 +12,7 @@ export interface R2Notification {
 
 export interface TileJob {
   uploadId: string
+  sheetId: string
   projectId: string
   planId: string
   organizationId: string
@@ -19,4 +20,27 @@ export interface TileJob {
   sheetNumber: number
   sheetKey: string
   totalSheets: number
+}
+
+export interface MetadataExtractionJob {
+  uploadId: string
+  planId: string
+  sheetId: string
+  sheetNumber: number
+  sheetKey: string
+  totalSheets: number
+}
+
+export interface MarkerDetectionJob {
+  uploadId: string
+  planId: string
+  organizationId: string
+  projectId: string
+  validSheets: string[]
+  // Chunking metadata for parallel processing
+  isChunked?: boolean
+  chunkIndex?: number
+  totalChunks?: number
+  tileKeys?: string[]  // Specific tiles for this chunk
+  chunkId?: string     // Unique ID for deduplication across chunks
 }

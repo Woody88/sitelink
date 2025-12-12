@@ -17,15 +17,19 @@ import { ProcessorService } from "../processing/service"
 import { Drizzle } from "../../core/database"
 import { AuthService } from "../../core/auth"
 import { OrganizationService } from "../../core/organization/service"
-import { tileGenerationQueueConsumer } from "../../core/queues"
+import { tileGenerationQueueConsumer, pdfProcessingQueueConsumer } from "../../core/queues"
 import type { D1Database, R2Bucket } from "@cloudflare/workers-types"
-import type { TileJob } from "../../core/queues/types"
+import type { TileJob, R2Notification } from "../../core/queues/types"
 
 interface TestEnv {
 	SitelinkDB: D1Database
 	SitelinkStorage: R2Bucket
 	TILE_GENERATION_QUEUE: Queue
+	PDF_PROCESSING_QUEUE: Queue
+	METADATA_EXTRACTION_QUEUE: Queue
+	MARKER_DETECTION_QUEUE: Queue
 	SITELINK_PDF_PROCESSOR: DurableObjectNamespace<any>
+	PLAN_COORDINATOR: DurableObjectNamespace<any>
 	BETTER_AUTH_SECRET: string
 	RESEND_API_KEY: string
 	EMAIL_ADDRESS: string
@@ -35,6 +39,7 @@ interface TestEnv {
 	R2_SECRET_ACCESS_KEY?: string
 	R2_TOKEN?: string
 	ENVIRONMENT?: string
+	PLAN_OCR_SERVICE_URL?: string
 }
 
 /**
@@ -510,7 +515,7 @@ export async function handleTestQueue(
 }
 
 /**
- * Test endpoint to manually trigger queue consumer
+ * Test endpoint to manually trigger tile generation queue consumer
  * This simulates Cloudflare calling the queue consumer
  * Only available in development mode
  */
@@ -576,7 +581,7 @@ export async function handleTestQueueTrigger(
 		}
 
 		console.log(`🚀 [TEST QUEUE TRIGGER] Manually triggering queue consumer with ${testJobs.length} job(s)`)
-		
+
 		// Call the queue consumer directly
 		await tileGenerationQueueConsumer(mockBatch as any, env as any)
 
@@ -597,6 +602,143 @@ export async function handleTestQueueTrigger(
 		)
 	} catch (error) {
 		console.error("❌ Test queue trigger failed:", error)
+		return new Response(
+			JSON.stringify({
+				success: false,
+				error: error instanceof Error ? error.message : String(error),
+			}),
+			{ status: 500, headers: { "Content-Type": "application/json" } },
+		)
+	}
+}
+
+/**
+ * Test endpoint to manually trigger PDF processing queue consumer
+ * This simulates Cloudflare calling the PDF processing queue consumer
+ * Only available in development mode
+ *
+ * Usage after uploading a PDF:
+ * POST /api/test/pdf-processing-trigger
+ * Body: { "filePath": "organizations/{orgId}/projects/{projectId}/plans/{planId}/uploads/{uploadId}/original.pdf" }
+ */
+export async function handleTestPdfProcessingTrigger(
+	request: Request,
+	env: TestEnv,
+): Promise<Response> {
+	// Only allow in development mode
+	const isDev = env.ENVIRONMENT === "development" || !env.ENVIRONMENT
+	if (!isDev) {
+		return new Response(
+			JSON.stringify({
+				error: "Test endpoint only available in development mode",
+			}),
+			{ status: 403, headers: { "Content-Type": "application/json" } },
+		)
+	}
+
+	try {
+		// Parse request body for the uploaded file path
+		const body = await request.json() as { filePath?: string }
+
+		if (!body.filePath) {
+			return new Response(
+				JSON.stringify({
+					success: false,
+					error: "Missing required field: filePath",
+					example: {
+						filePath: "organizations/{orgId}/projects/{projectId}/plans/{planId}/uploads/{uploadId}/original.pdf"
+					}
+				}),
+				{ status: 400, headers: { "Content-Type": "application/json" } },
+			)
+		}
+
+		// Verify the file exists in R2
+		const pdfObject = await env.SitelinkStorage.get(body.filePath)
+		if (!pdfObject) {
+			return new Response(
+				JSON.stringify({
+					success: false,
+					error: `PDF file not found in R2: ${body.filePath}`,
+				}),
+				{ status: 404, headers: { "Content-Type": "application/json" } },
+			)
+		}
+
+		// Extract metadata from the file path
+		const match = body.filePath.match(/^organizations\/([^\/]+)\/projects\/([^\/]+)\/plans\/([^\/]+)\/uploads\/([^\/]+)\/original\.pdf$/)
+		if (!match) {
+			return new Response(
+				JSON.stringify({
+					success: false,
+					error: "Invalid file path format. Expected: organizations/{orgId}/projects/{projectId}/plans/{planId}/uploads/{uploadId}/original.pdf",
+				}),
+				{ status: 400, headers: { "Content-Type": "application/json" } },
+			)
+		}
+
+		const [_, organizationId, projectId, planId, uploadId] = match
+
+		// Create R2Notification message
+		const notification: R2Notification = {
+			account: organizationId,
+			action: "PutObject",
+			bucket: "sitelink-storage",
+			object: {
+				key: body.filePath,
+				size: pdfObject.size,
+			},
+			eventTime: new Date().toISOString(),
+		}
+
+		// Create a mock MessageBatch for PDF processing
+		const mockBatch = {
+			queue: "pdf-processing-queue",
+			messages: [{
+				id: `msg-${Date.now()}`,
+				timestamp: new Date(),
+				body: notification,
+				attempts: 1,
+				ack: function () {
+					console.log(`✅ [TEST] PDF processing message ${this.id} acknowledged`)
+				},
+				retry: function () {
+					console.log(`⚠️ [TEST] PDF processing message ${this.id} retried`)
+				},
+			}],
+		}
+
+		console.log(`🚀 [TEST PDF PROCESSING TRIGGER] Manually triggering PDF processing queue consumer`)
+		console.log(`   File: ${body.filePath}`)
+		console.log(`   Organization: ${organizationId}`)
+		console.log(`   Project: ${projectId}`)
+		console.log(`   Plan: ${planId}`)
+		console.log(`   Upload: ${uploadId}`)
+
+		// Call the PDF processing queue consumer directly
+		await pdfProcessingQueueConsumer(mockBatch as any, env as any, {} as any)
+
+		return new Response(
+			JSON.stringify(
+				{
+					success: true,
+					message: "PDF processing queue consumer executed successfully",
+					data: {
+						filePath: body.filePath,
+						organizationId,
+						projectId,
+						planId,
+						uploadId,
+						notification,
+					},
+				},
+				null,
+				2,
+			),
+			{ status: 200, headers: { "Content-Type": "application/json" } },
+		)
+	} catch (error) {
+		console.error("❌ Test PDF processing trigger failed:", error)
 		return new Response(
 			JSON.stringify({
 				success: false,

@@ -19,6 +19,11 @@ export const AuthAPI = HttpApiGroup.make("Auth")
 			.addSuccess(Schema.Unknown)
 			.addError(AuthError),
 	)
+	.add(
+		HttpApiEndpoint.options("optionsAuth")`/auth/*`
+			.addSuccess(Schema.Unknown)
+			.addError(AuthError),
+	)
 	.prefix("/api")
 
 export const AuthAPILive = HttpApiBuilder.group(
@@ -39,10 +44,17 @@ export const AuthAPILive = HttpApiBuilder.group(
 						)
 						const body = new Uint8Array(arrayBuffer)
 
+						// Add CORS headers to the response
+						const headers = new Headers(response.headers)
+						headers.set("Access-Control-Allow-Origin", "http://localhost:3000")
+						headers.set("Access-Control-Allow-Credentials", "true")
+						headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+						headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
 						return HttpServerResponse.uint8Array(body, {
 							status: response.status,
 							statusText: response.statusText,
-							headers: response.headers,
+							headers: headers,
 						})
 					}),
 				)
@@ -57,10 +69,33 @@ export const AuthAPILive = HttpApiBuilder.group(
 
 						const body = new Uint8Array(arrayBuffer)
 
+						// Add CORS headers to the response
+						const headers = new Headers(response.headers)
+						headers.set("Access-Control-Allow-Origin", "http://localhost:3000")
+						headers.set("Access-Control-Allow-Credentials", "true")
+						headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+						headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
 						return HttpServerResponse.uint8Array(body, {
 							status: response.status,
 							statusText: response.statusText,
-							headers: response.headers,
+							headers: headers,
+						})
+					}),
+				)
+				.handle("optionsAuth", () =>
+					Effect.gen(function* () {
+						// Handle CORS preflight requests
+						const headers = new Headers()
+						headers.set("Access-Control-Allow-Origin", "http://localhost:3000")
+						headers.set("Access-Control-Allow-Credentials", "true")
+						headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+						headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+						headers.set("Access-Control-Max-Age", "86400")
+
+						return HttpServerResponse.empty({
+							status: 204,
+							headers: headers,
 						})
 					}),
 				)

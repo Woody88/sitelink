@@ -26,3 +26,8 @@ export class TileGenerationQueue extends Context.Tag("TileGenerationQueue")<
 	TileGenerationQueue,
 	Queue
 >() {}
+
+export class PdfProcessingQueue extends Context.Tag("PdfProcessingQueue")<
+	PdfProcessingQueue,
+	Queue
+>() {}

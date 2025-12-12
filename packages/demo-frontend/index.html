@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sitelink - PDF Viewer Demo</title>
+  <link rel="stylesheet" href="./styles.css">
+  <!-- OpenSeadragon from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/openseadragon@4.1/build/openseadragon/openseadragon.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🏗️ Sitelink PDF Viewer</h1>
+      <p class="subtitle">Upload construction plans and view them with interactive tiles</p>
+      <div id="user-info" class="user-info"></div>
+    </header>
+
+    <!-- Plan List Section -->
+    <section id="plan-list-section" class="section" style="display: none;">
+      <div class="plan-list-header">
+        <h2>Your Plans</h2>
+        <button id="new-plan-btn" class="btn btn-primary">+ Upload New Plan</button>
+      </div>
+      <div id="plan-grid" class="plan-grid"></div>
+      <div id="empty-state" class="empty-state" style="display: none;">
+        <div class="empty-icon">📋</div>
+        <h3>No plans yet</h3>
+        <p>Upload your first construction plan to get started</p>
+        <button id="empty-upload-btn" class="btn btn-primary">Upload Plan</button>
+      </div>
+    </section>
+
+    <!-- Upload Section -->
+    <section id="upload-section" class="section">
+      <div class="section-header">
+        <button id="back-to-plans-upload" class="btn-back">← Back to Plans</button>
+        <h2>Upload PDF Plan</h2>
+      </div>
+      <div class="upload-form">
+        <div class="form-group">
+          <label for="plan-name">Plan Name (optional):</label>
+          <input type="text" id="plan-name" placeholder="Enter plan name...">
+        </div>
+        <div class="form-group">
+          <label for="file-input">Select PDF:</label>
+          <input type="file" id="file-input" accept=".pdf" required>
+        </div>
+        <button id="upload-btn" class="btn btn-primary" disabled>Upload Plan</button>
+      </div>
+    </section>
+
+    <!-- Processing Section (hidden initially) -->
+    <section id="processing-section" class="section" style="display: none;">
+      <h2>Processing Plan</h2>
+      <div class="processing-info">
+        <div class="progress-container">
+          <div class="progress-bar">
+            <div id="progress-fill" class="progress-fill"></div>
+          </div>
+          <span id="progress-text" class="progress-text">0%</span>
+        </div>
+        <p id="status-text" class="status-text">Initializing...</p>
+        <div id="details-text" class="details-text"></div>
+      </div>
+    </section>
+
+    <!-- Viewer Section (hidden initially) -->
+    <section id="viewer-section" class="section" style="display: none;">
+      <div class="section-header">
+        <button id="back-to-plans-viewer" class="btn-back">← Back to Plans</button>
+        <h2>Plan Sheets</h2>
+      </div>
+
+      <!-- Sheet tabs -->
+      <div id="sheet-tabs" class="sheet-tabs"></div>
+
+      <!-- Sheet info -->
+      <div id="sheet-info" class="sheet-info"></div>
+
+      <!-- OpenSeadragon viewer -->
+      <div id="osd-viewer" class="osd-viewer"></div>
+    </section>
+
+    <footer>
+      <p>Demo Frontend for Sitelink PDF Processing Pipeline</p>
+    </footer>
+  </div>
+
+  <!-- Main application logic -->
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

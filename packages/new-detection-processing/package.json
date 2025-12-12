@@ -1,0 +1,24 @@
+{
+  "name": "detection-processing",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "detect": "bun run src/index.ts",
+    "benchmark": "bun run src/benchmark.ts",
+    "test": "bun test",
+    "test:unit": "bun test tests/unit",
+    "test:integration": "bun test tests/integration"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@types/sharp": "^0.32.0",
+    "sharp": "^0.34.5"
+  }
+}

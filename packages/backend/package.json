@@ -9,7 +9,8 @@
 		"db:local:apply:migration": "bun wrangler d1 migrations apply sitelink-db --local",
 		"db:local:reset": "rm -f .wrangler/state/v3/d1/miniflare-D1DatabaseObject/*.sqlite",
 		"db:gen:migration": "bunx drizzle-kit generate",
-		"auth:gen:schema": "bunx @better-auth/cli@latest generate  --output _auth.ts --config ./src/core/auth/config.ts"
+		"auth:gen:schema": "bunx @better-auth/cli@latest generate  --output _auth.ts --config ./src/core/auth/config.ts",
+		"dev:tile-server": "bun run src/core/pdf-manager/server.ts"
 	},
 	"dependencies": {
 		"@cloudflare/containers": "^0.0.28",
@@ -37,7 +38,7 @@
 		"@types/tar-stream": "^3.1.4",
 		"drizzle-kit": "^0.31.4",
 		"vitest": "~3.2.0",
-		"wrangler": "^4.50.0"
+		"wrangler": "^4.53.0"
 	},
 	"peerDependencies": {
 		"typescript": "^5"

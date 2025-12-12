@@ -8,6 +8,7 @@ export * from "./plans"
 export * from "./files"
 export * from "./plan-uploads"
 export * from "./plan-sheets"
+export * from "./plan-markers"
 export * from "./processing-jobs"
 export * from "./media"
 export * from "./annotations"
@@ -28,6 +29,7 @@ import { annotations } from "./annotations"
 import { files } from "./files"
 import { media } from "./media"
 import { planSheets } from "./plan-sheets"
+import { planMarkers } from "./plan-markers"
 import { planUploads } from "./plan-uploads"
 import { plans } from "./plans"
 import { processingJobs } from "./processing-jobs"
@@ -52,6 +54,7 @@ export const schema = {
 	files,
 	planUploads,
 	planSheets,
+	planMarkers,
 	processingJobs,
 	media,
 	annotations,
