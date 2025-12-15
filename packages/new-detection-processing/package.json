@@ -8,7 +8,10 @@
     "benchmark": "bun run src/benchmark.ts",
     "test": "bun test",
     "test:unit": "bun test tests/unit",
-    "test:integration": "bun test tests/integration"
+    "test:integration": "bun test tests/integration",
+    "demo:tiles": "bun run demo/generate-tiles.ts",
+    "demo:serve": "bun run demo/server.ts",
+    "demo": "bun run demo:tiles && bun run demo:serve"
   },
   "devDependencies": {
     "@types/bun": "latest",

@@ -156,7 +156,8 @@ async function annotateImageWithCallouts(
   outputPath: string
 ): Promise<boolean> {
   const scriptPath = join(import.meta.dir, "annotateImage.py");
-  
+  const venvPython = join(import.meta.dir, "..", "..", "venv", "bin", "python3");
+
   try {
     // Pass the actual bounding boxes for precise contours
     const calloutsJson = JSON.stringify(callouts.map(c => ({
@@ -165,8 +166,8 @@ async function annotateImageWithCallouts(
       ref: c.ref,
       bbox: c.bbox  // Include the actual CV bounding box
     })));
-    
-    const { stdout, stderr } = await $`python3.14 ${scriptPath} ${imagePath} ${calloutsJson} ${outputPath}`.quiet();
+
+    const { stdout, stderr } = await $`${venvPython} ${scriptPath} ${imagePath} ${calloutsJson} ${outputPath}`.quiet();
     
     if (stderr.toString().trim()) {
       console.warn(`Annotation stderr: ${stderr.toString()}`);
@@ -312,9 +313,10 @@ async function detectShapesWithCV(
   outputDir: string
 ): Promise<CVDetectionResult> {
   const scriptPath = join(import.meta.dir, "enhancedShapeDetection.py");
-  
+  const venvPython = join(import.meta.dir, "..", "..", "venv", "bin", "python3");
+
   try {
-    const { stdout, stderr } = await $`python3.14 ${scriptPath} ${imagePath} ${dpi} ${outputDir}`.quiet();
+    const { stdout, stderr } = await $`${venvPython} ${scriptPath} ${imagePath} ${dpi} ${outputDir}`.quiet();
     
     if (stderr.toString().trim()) {
       console.warn(`CV detection stderr: ${stderr.toString()}`);
