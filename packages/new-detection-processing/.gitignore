@@ -11,6 +11,13 @@ output/
 .env.local
 .env.*.local
 
+# Python virtual environment
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
 # IDE
 .vscode/
 .idea/

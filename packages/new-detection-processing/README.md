@@ -30,18 +30,40 @@ See `FINAL_SOLUTION.md` for complete technical details.
 
 ## Setup
 
-1. Install dependencies:
+### 1. Install JavaScript dependencies
+
 ```bash
 bun install
-pip install opencv-python numpy
 ```
 
-2. Create `.env` file:
+### 2. Setup Python environment (required for OpenCV detection)
+
+The detection system requires Python with OpenCV. Use a virtual environment for isolation:
+
+**macOS/Linux:**
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 ```
+
+**Windows:**
+```bash
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+The system will automatically detect and use the venv Python interpreter. If venv is not set up, it will fall back to system Python with a warning.
+
+### 3. Create `.env` file
+
+```bash
 OPENROUTER_API_KEY=your_api_key_here
 ```
 
-3. Verify installations:
+### 4. Verify installations
+
 ```bash
 vips --version
 python3 -c "import cv2; import numpy; print('OpenCV ready')"

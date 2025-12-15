@@ -19,6 +19,7 @@ import { callOpenRouter } from "../api/openrouter";
 import { convertPdfToImage } from "./pdfProcessor";
 import type { DetectedCallout, ImageInfo, AnalysisResult } from "../types/hyperlinks";
 import { normalizeCoordinates } from "../utils/coordinates";
+import { getPythonInterpreter } from "../utils/pythonInterpreter";
 
 interface DetectedShape {
   type: string;
@@ -156,7 +157,7 @@ async function annotateImageWithCallouts(
   outputPath: string
 ): Promise<boolean> {
   const scriptPath = join(import.meta.dir, "annotateImage.py");
-  const venvPython = join(import.meta.dir, "..", "..", "venv", "bin", "python3");
+  const pythonCmd = await getPythonInterpreter();
 
   try {
     // Pass the actual bounding boxes for precise contours
@@ -167,7 +168,7 @@ async function annotateImageWithCallouts(
       bbox: c.bbox  // Include the actual CV bounding box
     })));
 
-    const { stdout, stderr } = await $`${venvPython} ${scriptPath} ${imagePath} ${calloutsJson} ${outputPath}`.quiet();
+    const { stdout, stderr } = await $`${pythonCmd} ${scriptPath} ${imagePath} ${calloutsJson} ${outputPath}`.quiet();
     
     if (stderr.toString().trim()) {
       console.warn(`Annotation stderr: ${stderr.toString()}`);
@@ -308,15 +309,15 @@ Reply with JSON:
  * Run enhanced CV shape detection
  */
 async function detectShapesWithCV(
-  imagePath: string, 
+  imagePath: string,
   dpi: number,
   outputDir: string
 ): Promise<CVDetectionResult> {
   const scriptPath = join(import.meta.dir, "enhancedShapeDetection.py");
-  const venvPython = join(import.meta.dir, "..", "..", "venv", "bin", "python3");
+  const pythonCmd = await getPythonInterpreter();
 
   try {
-    const { stdout, stderr } = await $`${venvPython} ${scriptPath} ${imagePath} ${dpi} ${outputDir}`.quiet();
+    const { stdout, stderr } = await $`${pythonCmd} ${scriptPath} ${imagePath} ${dpi} ${outputDir}`.quiet();
     
     if (stderr.toString().trim()) {
       console.warn(`CV detection stderr: ${stderr.toString()}`);

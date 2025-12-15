@@ -1,0 +1,12 @@
+# Python Dependencies for Callout Detection
+#
+# Setup:
+#   python3 -m venv venv
+#   source venv/bin/activate  (or venv\Scripts\activate on Windows)
+#   pip install -r requirements.txt
+
+# OpenCV for shape detection
+opencv-python==4.12.0.88
+
+# NumPy for array operations
+numpy==2.2.6
