@@ -4,7 +4,7 @@
 declare namespace Cloudflare {
 	interface GlobalProps {
 		mainModule: typeof import("./src/index");
-		durableNamespaces: "SitelinkPdfProcessor" | "PlanCoordinator" | "PlanOcrService";
+		durableNamespaces: "SitelinkPdfProcessor" | "PlanCoordinator" | "PlanOcrService" | "CalloutProcessor";
 	}
 	interface Env {
 		PLAN_OCR_SERVICE_URL: "http://localhost:8000";
@@ -21,6 +21,7 @@ declare namespace Cloudflare {
 		SITELINK_PDF_PROCESSOR: DurableObjectNamespace<import("./src/index").SitelinkPdfProcessor>;
 		PLAN_COORDINATOR: DurableObjectNamespace<import("./src/index").PlanCoordinator>;
 		PLAN_OCR_SERVICE: DurableObjectNamespace<import("./src/index").PlanOcrService>;
+		CALLOUT_PROCESSOR: DurableObjectNamespace<import("./src/index").CalloutProcessor>;
 		SitelinkStorage: R2Bucket;
 		SitelinkDB: D1Database;
 		TILE_GENERATION_QUEUE: Queue;

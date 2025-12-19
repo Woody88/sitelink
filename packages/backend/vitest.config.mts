@@ -78,6 +78,26 @@ export default defineWorkersProject(async () => {
 									})
 								}
 							},
+							// Service binding to proxy requests to callout-processor container on localhost:8001
+							async CALLOUT_PROCESSOR(request: Request) {
+								const CONTAINER_PORT = 8001
+								const url = new URL(request.url)
+								const localUrl = `http://localhost:${CONTAINER_PORT}${url.pathname}${url.search}`
+
+								try {
+									return await fetch(localUrl, {
+										method: request.method,
+										headers: request.headers,
+										body: request.body,
+										duplex: "half",
+									} as RequestInit)
+								} catch (error) {
+									console.error("Failed to reach callout-processor container:", error)
+									return new Response(`Container unavailable: ${error}`, {
+										status: 503,
+									})
+								}
+							},
 						},
 					},
 				},

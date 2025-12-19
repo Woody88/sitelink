@@ -23,6 +23,12 @@
 			"image": "../plan-ocr-service/Dockerfile",
 			"max_instances": 5,
 			"instance_type": "standard"
+		},
+		{
+			"class_name": "CalloutProcessor",
+			"image": "../callout-processor/Dockerfile",
+			"max_instances": 5,
+			"instance_type": "standard"
 		}
 	],
 	"durable_objects": {
@@ -38,6 +44,10 @@
 			{
 				"class_name": "PlanOcrService",
 				"name": "PLAN_OCR_SERVICE"
+			},
+			{
+				"class_name": "CalloutProcessor",
+				"name": "CALLOUT_PROCESSOR"
 			}
 		]
 	},
@@ -53,6 +63,10 @@
 		{
 			"new_sqlite_classes": ["PlanOcrService"],
 			"tag": "v3"
+		},
+		{
+			"new_sqlite_classes": ["CalloutProcessor"],
+			"tag": "v4"
 		}
 	],
 	"r2_buckets": [

@@ -44,3 +44,16 @@ export interface MarkerDetectionJob {
   tileKeys?: string[]  // Specific tiles for this chunk
   chunkId?: string     // Unique ID for deduplication across chunks
 }
+
+export interface SheetMarkerDetectionJob {
+  uploadId: string
+  planId: string
+  organizationId: string
+  projectId: string
+  validSheets: string[]
+  // Per-sheet fields (no chunking)
+  sheetId: string
+  sheetNumber: number
+  sheetKey: string  // R2 path to sheet PDF
+  totalSheets: number
+}

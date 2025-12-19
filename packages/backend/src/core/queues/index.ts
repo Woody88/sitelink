@@ -1,4 +1,4 @@
-import type { R2Notification, TileJob, MetadataExtractionJob, MarkerDetectionJob } from "./types";
+import type { R2Notification, TileJob, MetadataExtractionJob, MarkerDetectionJob, SheetMarkerDetectionJob } from "./types";
 import { PDFDocument } from "pdf-lib";
 import { extract } from "tar-stream"
 import { Readable } from "node:stream"
@@ -1044,4 +1044,128 @@ async function processMarkerDetectionJob(message: Message<MarkerDetectionJob>, e
   } else {
     console.log(`✅ Successfully detected and stored ${result.markers.length} markers`)
   }
+}
+
+/**
+ * NEW: Per-sheet marker detection queue consumer (no chunking, sends PDF directly)
+ * Uses callout-processor container instead of plan-ocr-service
+ */
+export async function sheetMarkerDetectionQueueConsumer(
+  batch: MessageBatch<SheetMarkerDetectionJob>,
+  env: Env,
+  _ctx: ExecutionContext
+) {
+  console.log(`🚀 [SHEET MARKER QUEUE] Processing ${batch.messages.length} sheet marker detection jobs`)
+
+  // Process all messages in parallel
+  await Promise.allSettled(
+    batch.messages.map(async (message) => {
+      try {
+        await processSheetMarkerDetectionJob(message, env)
+        console.log(`✅ Successfully detected markers for sheet ${message.body.sheetNumber}`)
+        message.ack()
+      } catch (error) {
+        console.error(`❌ Error detecting markers for sheet ${message.body.sheetNumber}:`, error)
+        message.retry()
+      }
+    })
+  )
+
+  console.log(`✅ [SHEET MARKER QUEUE] Finished processing batch`)
+}
+
+async function processSheetMarkerDetectionJob(message: Message<SheetMarkerDetectionJob>, env: Env) {
+  const job = message.body
+
+  console.log(`🎯 [SHEET MARKER] Processing sheet ${job.sheetNumber}/${job.totalSheets}`)
+  console.log(`   Upload ID: ${job.uploadId}`)
+  console.log(`   Plan ID: ${job.planId}`)
+  console.log(`   Sheet ID: ${job.sheetId}`)
+  console.log(`   Sheet Key: ${job.sheetKey}`)
+  console.log(`   Valid Sheets: ${job.validSheets.join(", ")}`)
+
+  // Step 1: Get the sheet PDF from R2
+  const sheet = await env.SitelinkStorage.get(job.sheetKey)
+  if (!sheet) {
+    console.error(`❌ Sheet not found: ${job.sheetKey}`)
+    throw new Error(`Sheet not found: ${job.sheetKey}`)
+  }
+
+  console.log(`📄 Retrieved sheet PDF from R2 (${sheet.size} bytes)`)
+
+  // Step 2: Call callout-processor container with PDF body
+  // Use sheetId for container isolation - each sheet gets its own container instance
+  const container = typeof env.CALLOUT_PROCESSOR.getByName === 'function'
+    ? env.CALLOUT_PROCESSOR.getByName(job.sheetId)
+    : env.CALLOUT_PROCESSOR
+
+  // Build headers with sheet metadata
+  const headers = {
+    "Content-Type": "application/pdf",
+    "X-Valid-Sheets": job.validSheets.join(","),
+    "X-Sheet-Number": job.sheetNumber.toString(),
+    "X-Total-Sheets": job.totalSheets.toString(),
+    "X-Plan-Id": job.planId,
+    "X-Sheet-Id": job.sheetId,
+  }
+
+  console.log(`🔍 Calling callout-processor for marker detection...`)
+  console.log(`   Headers:`, headers)
+
+  const response = await container.fetch("http://localhost/api/detect-markers", {
+    method: "POST",
+    headers,
+    body: sheet.body,
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => "No error details")
+    console.error(`❌ Failed to detect markers: ${response.statusText}`, errorText)
+    throw new Error(`Failed to detect markers: ${response.statusText}`)
+  }
+
+  // Step 3: Parse the response
+  const result = await response.json() as {
+    markers: Array<{
+      marker_text: string
+      detail: string
+      sheet: string
+      marker_type: string
+      confidence: number
+      is_valid: boolean
+      fuzzy_matched?: boolean
+      bbox?: { x: number; y: number; w: number; h: number }
+    }>
+  }
+
+  console.log(`✅ Detected ${result.markers.length} markers`)
+
+  // Step 4: Insert markers into plan_markers table
+  if (result.markers.length > 0) {
+    const db = drizzle(env.SitelinkDB)
+    console.log(`💾 Inserting ${result.markers.length} markers into database...`)
+
+    const markerRecords = result.markers.map((marker) => ({
+      id: crypto.randomUUID(),
+      uploadId: job.uploadId,
+      planId: job.planId,
+      sheetNumber: job.sheetNumber,
+      markerText: marker.marker_text,
+      detail: marker.detail,
+      sheet: marker.sheet,
+      markerType: marker.marker_type,
+      confidence: marker.confidence,
+      isValid: marker.is_valid,
+      fuzzyMatched: marker.fuzzy_matched ?? false,
+      sourceTile: null, // No tiles in new approach
+      bbox: marker.bbox ? JSON.stringify(marker.bbox) : null,
+    }))
+
+    await db.insert(planMarkers).values(markerRecords)
+    console.log(`✅ Successfully inserted ${markerRecords.length} markers into database`)
+  } else {
+    console.log(`⚠️ No markers detected for sheet ${job.sheetNumber}, skipping database insert`)
+  }
+
+  console.log(`✅ Successfully processed sheet ${job.sheetNumber}/${job.totalSheets}`)
 }

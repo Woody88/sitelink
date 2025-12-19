@@ -9,12 +9,13 @@ import * as Bindings from "./core/bindings"
 import { ensureSystemPdfProcessorUser } from "./core/startup"
 import { handleTestSetup, handleTestQueue, handleTestQueueTrigger, handleTestPdfProcessingTrigger } from "./features/test"
 import type { R2Notification, TileJob, MetadataExtractionJob, MarkerDetectionJob } from "./core/queues/types"
-import { pdfProcessingQueueConsumer, tileGenerationQueueConsumer, metadataExtractionQueueConsumer, markerDetectionQueueConsumer } from "./core/queues"
+import { pdfProcessingQueueConsumer, tileGenerationQueueConsumer, metadataExtractionQueueConsumer, markerDetectionQueueConsumer, sheetMarkerDetectionQueueConsumer } from "./core/queues"
 
 export { SitelinkPdfProcessor } from "./core/pdf-manager"
 export { PlanCoordinator } from "./core/durable-objects/plan-coordinator"
 export { PlanOcrService } from "./core/plan-ocr-service"
-export { tileGenerationQueueConsumer, pdfProcessingQueueConsumer, metadataExtractionQueueConsumer, markerDetectionQueueConsumer } from "./core/queues"
+export { CalloutProcessor } from "./core/callout-processor"
+export { tileGenerationQueueConsumer, pdfProcessingQueueConsumer, metadataExtractionQueueConsumer, markerDetectionQueueConsumer, sheetMarkerDetectionQueueConsumer } from "./core/queues"
 
 // Track if startup tasks have run
 let startupTasksCompleted = false

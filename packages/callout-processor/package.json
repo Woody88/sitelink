@@ -1,9 +1,11 @@
 {
-  "name": "detection-processing",
+  "name": "callout-processor",
   "version": "1.0.0",
   "type": "module",
   "private": true,
   "scripts": {
+    "start": "bun run src/api/server.ts",
+    "dev": "bun run --hot src/api/server.ts",
     "detect": "bun run src/index.ts",
     "benchmark": "bun run src/benchmark.ts",
     "test": "bun test",

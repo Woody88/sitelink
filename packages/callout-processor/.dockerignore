@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+venv/
+
+# Build artifacts
+dist/
+*.log
+
+# Development files
+.env
+.env.local
+.env.*.local
+
+# Test files
+tests/
+*.test.ts
+coverage/
+
+# Documentation
+*.md
+docs/
+
+# Demo files
+demo/
+
+# IDE
+.vscode/
+.idea/
+
+# Git
+.git/
+.gitignore
+
+# Sample files (not needed in production)
+sample-*.pdf
+sample-*.png
+cropped_example/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# OS files
+.DS_Store
+Thumbs.db
