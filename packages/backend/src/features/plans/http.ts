@@ -437,7 +437,7 @@ export const PlanAPILive = HttpApiBuilder.group(
 							.select()
 							.from(schema.planMarkers)
 							.where(
-								sql`${schema.planMarkers.planId} = ${path.id} AND ${schema.planMarkers.sheetNumber} = ${sheet.pageNumber}`,
+								sql`${schema.planMarkers.planId} = ${path.id} AND ${schema.planMarkers.sheetNumber} = ${sheet.sheetNumber}`,
 							)
 
 						// Transform markers to hyperlinks format

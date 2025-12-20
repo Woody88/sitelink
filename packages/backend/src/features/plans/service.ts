@@ -321,11 +321,15 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 			// Get sheet to verify it exists and get the DZI path
 			const sheet = yield* getSheet(params.sheetId)
 
+			console.log(`🔍 getDziFile: sheetId=${params.sheetId}`)
+			console.log(`🔍 getDziFile: sheetKey=${sheet.sheetKey}, sheetNumber=${sheet.sheetNumber}`)
+
 			// Build DZI path from sheetKey
 			// sheetKey format: organizations/{orgId}/projects/{projectId}/plans/{planId}/uploads/{uploadId}/sheet-{n}.pdf
 			// DZI path format: organizations/{orgId}/projects/{projectId}/plans/{planId}/sheets/sheet-{n}/sheet-sheet-{n}.dzi
 			const sheetKeyMatch = sheet.sheetKey.match(/^(organizations\/[^\/]+\/projects\/[^\/]+\/plans\/[^\/]+)\//)
 			if (!sheetKeyMatch) {
+				console.error(`❌ getDziFile: sheetKey regex did not match: ${sheet.sheetKey}`)
 				return yield* Effect.fail(
 					new DziNotFoundError({ sheetId: params.sheetId }),
 				)
@@ -333,16 +337,20 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 			const basePath = sheetKeyMatch[1]
 			const dziPath = `${basePath}/sheets/sheet-${sheet.sheetNumber}/sheet-sheet-${sheet.sheetNumber}.dzi`
 
+			console.log(`🔍 getDziFile: Looking for DZI at path: ${dziPath}`)
+
 			// Fetch DZI file from R2
 			const dziObject = yield* storage.use((r2) => r2.get(dziPath))
 
 			// Check if file exists
 			if (!dziObject) {
-				console.error(`DZI file not found at path: ${dziPath}`)
+				console.error(`❌ getDziFile: DZI NOT FOUND at path: ${dziPath}`)
 				return yield* Effect.fail(
 					new DziNotFoundError({ sheetId: params.sheetId }),
 				)
 			}
+
+			console.log(`✅ getDziFile: Found DZI, size=${dziObject.size} bytes`)
 
 			// Read the XML content
 			const dziContent = yield* Effect.promise(() => dziObject.text())
@@ -364,11 +372,15 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 			// Get sheet to verify it exists and build the tile path
 			const sheet = yield* getSheet(params.sheetId)
 
+			console.log(`🔍 getTile: sheetId=${params.sheetId}, level=${params.level}, tile=${params.tile}`)
+			console.log(`🔍 getTile: sheetKey=${sheet.sheetKey}, sheetNumber=${sheet.sheetNumber}`)
+
 			// Build tile path from sheet's sheetKey
 			// sheetKey format: organizations/{orgId}/projects/{projectId}/plans/{planId}/uploads/{uploadId}/sheet-{n}.pdf
 			// Tile path format: organizations/{orgId}/projects/{projectId}/plans/{planId}/sheets/sheet-{n}/sheet-sheet-{n}_files/{level}/{tile}
 			const sheetKeyMatch = sheet.sheetKey.match(/^(organizations\/[^\/]+\/projects\/[^\/]+\/plans\/[^\/]+)\//)
 			if (!sheetKeyMatch) {
+				console.error(`❌ getTile: sheetKey regex did not match: ${sheet.sheetKey}`)
 				return yield* Effect.fail(
 					new TileNotFoundError({
 						sheetId: params.sheetId,
@@ -380,11 +392,14 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 			const tileDirectory = `${basePath}/sheets/sheet-${sheet.sheetNumber}/sheet-sheet-${sheet.sheetNumber}_files`
 			const tilePath = `${tileDirectory}/${params.level}/${params.tile}`
 
+			console.log(`🔍 getTile: Looking for tile at R2 path: ${tilePath}`)
+
 			// Fetch tile file from R2
 			const tileObject = yield* storage.use((r2) => r2.get(tilePath))
 
 			// Check if file exists
 			if (!tileObject) {
+				console.error(`❌ getTile: Tile NOT FOUND at path: ${tilePath}`)
 				return yield* Effect.fail(
 					new TileNotFoundError({
 						sheetId: params.sheetId,
@@ -392,6 +407,8 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 					}),
 				)
 			}
+
+			console.log(`✅ getTile: Found tile, size=${tileObject.size} bytes`)
 
 			// Read the binary content
 			const tileData = yield* Effect.promise(() => tileObject.arrayBuffer())

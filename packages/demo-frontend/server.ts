@@ -27,6 +27,17 @@ const server = Bun.serve({
       return new Response("viewer.html not found", { status: 404 });
     }
 
+    // Serve signup.html
+    if (path === "/signup" || path === "/signup.html") {
+      const file = Bun.file(join(DEMO_DIR, "signup.html"));
+      if (await file.exists()) {
+        return new Response(file, {
+          headers: { "Content-Type": "text/html" },
+        });
+      }
+      return new Response("signup.html not found", { status: 404 });
+    }
+
     // Serve detection results
     if (path === "/results.json") {
       const file = Bun.file(join(PROJECT_DIR, "output", "results.json"));
@@ -109,6 +120,7 @@ console.log(`
 
   Routes:
     /               → viewer.html
+    /signup         → signup.html
     /results.json   → detection results
     /tiles/*        → DZI tiles
 

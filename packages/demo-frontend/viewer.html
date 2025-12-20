@@ -202,9 +202,9 @@
         <p id="login-error" style="color: var(--danger); margin-top: 15px; text-align: center; font-size: 14px;"></p>
         
         <div style="text-align: center; margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px;">
-          <button id="auth-toggle-btn" onclick="toggleAuthMode()" type="button" style="background:none; border:none; color: var(--accent); cursor: pointer; text-decoration: underline;">
-            Need an account? Sign Up
-          </button>
+          <a href="/signup" style="color: var(--accent); text-decoration: underline; font-size: 14px;">
+            Need an account? Create one here
+          </a>
         </div>
 
         <p style="margin-top: 20px; text-align: center; font-size: 13px; color: var(--text-muted);">
@@ -650,6 +650,11 @@
       const overlap = parseInt(dziXml.documentElement.getAttribute('Overlap')) || 1;
       const format = dziXml.documentElement.getAttribute('Format') || 'jpg';
 
+      // Calculate max level: log2 of the larger dimension divided by tile size
+      // This ensures we don't request tiles beyond what exists
+      const maxDimension = Math.max(width, height);
+      const maxLevel = Math.ceil(Math.log2(maxDimension / tileSize));
+
       if (state.viewer) state.viewer.destroy();
 
       state.viewer = OpenSeadragon({
@@ -660,6 +665,7 @@
           height: height,
           tileSize: tileSize,
           tileOverlap: overlap,
+          maxLevel: maxLevel,
           getTileUrl: function(level, x, y) {
             // Match backend: /api/plans/:planId/sheets/:sheetId/tiles/:level/:tile
             // where tile is "x_y.jpg"
@@ -667,7 +673,12 @@
           }
         },
         showNavigator: true,
-        gestureSettingsMouse: { clickToZoom: false }
+        gestureSettingsMouse: { clickToZoom: false },
+        // Add error handler to gracefully handle missing tiles
+        tileFailedHandler: function(event) {
+          // Silently handle missing tiles - OpenSeadragon will use lower resolution tiles
+          console.debug('Tile not found (expected for some zoom levels):', event.tile.url);
+        }
       });
 
       // Load markers

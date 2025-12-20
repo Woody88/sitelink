@@ -141,7 +141,7 @@
 	},
 	"vars": {
 		"PLAN_OCR_SERVICE_URL": "http://localhost:8000",
-		"OPENROUTER_API_KEY": "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"
+		"OPENROUTER_API_KEY": ""
 	},
 	/**
 	 * CPU Time Limits
