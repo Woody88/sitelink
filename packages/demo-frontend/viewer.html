@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sitelink Plan Demo</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.0/openseadragon.min.js"></script>
+  <style>
+    :root {
+      --bg-dark: #1a1a1a;
+      --bg-panel: #242424;
+      --bg-hover: #333;
+      --text-main: #fff;
+      --text-muted: #888;
+      --accent: #4CAF50;
+      --accent-hover: #45a049;
+      --danger: #ff5722;
+      --border: #333;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header & Nav */
+    header {
+      background: var(--bg-panel);
+      padding: 0 16px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand { font-weight: bold; font-size: 18px; color: var(--accent); }
+
+    nav button {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      padding: 10px 16px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: color 0.2s;
+    }
+
+    nav button:hover, nav button.active { color: var(--text-main); }
+    nav button.active { border-bottom: 2px solid var(--accent); }
+
+    /* Main Content */
+    main { flex: 1; overflow: hidden; position: relative; }
+
+    .view {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      display: none;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    .view.active { display: block; }
+
+    /* Forms & Inputs */
+    .form-group { margin-bottom: 16px; }
+    label { display: block; margin-bottom: 8px; color: var(--text-muted); font-size: 14px; }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      background: var(--bg-hover);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      border-radius: 4px;
+    }
+    button.btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button.btn:hover { background: var(--accent-hover); }
+
+    /* Lists */
+    .item-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+    .card {
+      background: var(--bg-panel);
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .card:hover { transform: translateY(-2px); border-color: var(--accent); }
+    .card h3 { margin-bottom: 8px; font-size: 16px; }
+    .card p { color: var(--text-muted); font-size: 13px; margin-bottom: 8px; }
+    .status-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      background: #444;
+      text-transform: uppercase;
+    }
+    .status-completed { background: rgba(76, 175, 80, 0.2); color: #4CAF50; }
+    .status-pending { background: rgba(255, 152, 0, 0.2); color: #FF9800; }
+    .status-processing { background: rgba(33, 150, 243, 0.2); color: #2196F3; }
+
+    /* Viewer Specific */
+    #view-viewer { padding: 0; display: none; flex-direction: row; }
+    #view-viewer.active { display: flex; }
+    #osd-container { flex: 1; height: 100%; background: #000; position: relative; }
+    #sidebar {
+      width: 320px;
+      background: var(--bg-panel);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar-header { padding: 16px; border-bottom: 1px solid var(--border); }
+    .sidebar-content { flex: 1; overflow-y: auto; padding: 16px; }
+
+    .callout-item {
+      padding: 10px;
+      background: var(--bg-hover);
+      border-radius: 6px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .callout-item:hover { border-color: var(--accent); }
+    .callout-ref { font-weight: bold; color: var(--accent); }
+
+    /* Overlays */
+    .callout-overlay {
+      border: 2px solid var(--danger);
+      background: rgba(255, 87, 34, 0.1);
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    .callout-overlay:hover { background: rgba(255, 87, 34, 0.3); }
+
+    /* Context Bar */
+    .context-bar {
+      background: #333;
+      padding: 8px 16px;
+      font-size: 12px;
+      color: #aaa;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+    .context-value { color: #fff; font-family: monospace; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">Sitelink Demo</div>
+    <nav>
+      <button onclick="showView('settings')">Settings</button>
+      <button onclick="showView('plans')" class="active">Plans</button>
+      <button onclick="showView('upload')">Upload</button>
+      <button onclick="logout()" style="color: var(--danger);">Logout</button>
+    </nav>
+  </header>
+
+  <div class="context-bar">
+    <span>Org: <span id="ctx-org" class="context-value">Not Set</span></span>
+    <span>Project: <span id="ctx-proj" class="context-value">Not Set</span></span>
+  </div>
+
+  <main>
+    <!-- Login View -->
+    <div id="view-login" class="view">
+      <div style="max-width: 400px; margin: 50px auto; padding: 30px; background: var(--bg-panel); border-radius: 8px; border: 1px solid var(--border);">
+        <h2 id="auth-title" style="text-align: center; margin-bottom: 20px;">Sign In</h2>
+        <form onsubmit="event.preventDefault(); handleAuth();">
+          <div class="form-group" id="name-group" style="display: none;">
+            <label>Name</label>
+            <input type="text" id="login-name" placeholder="Your Name" autocomplete="name">
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="login-email" placeholder="user@example.com" value="demo@example.com" autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="login-password" placeholder="Password" value="password123" autocomplete="current-password">
+          </div>
+          <button class="btn" id="auth-submit-btn" type="submit" style="width: 100%;">Sign In</button>
+        </form>
+        <p id="login-error" style="color: var(--danger); margin-top: 15px; text-align: center; font-size: 14px;"></p>
+        
+        <div style="text-align: center; margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px;">
+          <button id="auth-toggle-btn" onclick="toggleAuthMode()" type="button" style="background:none; border:none; color: var(--accent); cursor: pointer; text-decoration: underline;">
+            Need an account? Sign Up
+          </button>
+        </div>
+
+        <p style="margin-top: 20px; text-align: center; font-size: 13px; color: var(--text-muted);">
+          Default: demo@example.com / password123
+        </p>
+      </div>
+    </div>
+
+    <!-- Settings View -->
+    <div id="view-settings" class="view">
+      <h2>Context Settings</h2>
+      <p style="margin-bottom: 20px; color: var(--text-muted);">Set your context manually if auto-detection fails.</p>
+      <div class="form-group">
+        <label>Organization ID</label>
+        <input type="text" id="setting-org-id" placeholder="UUID">
+      </div>
+      <div class="form-group">
+        <label>Project ID</label>
+        <input type="text" id="setting-proj-id" placeholder="UUID">
+      </div>
+      <button class="btn" onclick="saveSettings()">Save Context</button>
+    </div>
+
+    <!-- Plans List View -->
+    <div id="view-plans" class="view active">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+        <h2>Plans</h2>
+        <button class="btn" onclick="loadPlans()">Refresh</button>
+      </div>
+      <div id="plans-list" class="item-list">
+        <!-- Plans will be injected here -->
+        <div class="card" style="cursor: default;">
+          <p>Please set Organization and Project ID in Settings first, or ensure you are logged in.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload View -->
+    <div id="view-upload" class="view">
+      <h2>Upload Plan</h2>
+      <div class="form-group" style="max-width: 500px; margin-top: 20px;">
+        <label>Plan Name</label>
+        <input type="text" id="upload-name" placeholder="e.g. Architectural Set">
+      </div>
+      <div class="form-group" style="max-width: 500px;">
+        <label>Description</label>
+        <textarea id="upload-desc" rows="3"></textarea>
+      </div>
+      <div class="form-group" style="max-width: 500px;">
+        <label>PDF File</label>
+        <input type="file" id="upload-file" accept="application/pdf">
+      </div>
+      <button class="btn" onclick="uploadPlan()">Upload Plan</button>
+      <div id="upload-status" style="margin-top: 20px;"></div>
+    </div>
+
+    <!-- Sheets List View -->
+    <div id="view-sheets" class="view">
+      <div style="display: flex; gap: 10px; margin-bottom: 20px; align-items: center;">
+        <button class="btn" onclick="showView('plans')" style="background: #444;">&larr; Back</button>
+        <h2 id="plan-title">Plan Sheets</h2>
+      </div>
+      <div id="sheets-list" class="item-list">
+        <!-- Sheets injected here -->
+      </div>
+    </div>
+
+    <!-- Viewer View -->
+    <div id="view-viewer" class="view">
+      <div id="osd-container"></div>
+      <div id="sidebar">
+        <div class="sidebar-header">
+          <button onclick="showView('sheets')" style="background:none; border:none; color:#aaa; cursor:pointer; margin-bottom:10px;">&larr; Back to Sheets</button>
+          <h3 id="sheet-title">Sheet Viewer</h3>
+          <div id="sheet-meta" style="font-size: 12px; color: #666; margin-top: 4px;"></div>
+        </div>
+        <div class="sidebar-content">
+          <h4>Markers</h4>
+          <div id="markers-list"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // State
+    const state = {
+      orgId: localStorage.getItem('sitelink_orgId') || '',
+      projectId: localStorage.getItem('sitelink_projectId') || '',
+      currentPlan: null,
+      currentSheet: null,
+      viewer: null,
+      user: null,
+      session: null
+    };
+
+    // --- Init ---
+    document.addEventListener('DOMContentLoaded', async () => {
+      updateContextUI();
+      // Restore inputs
+      document.getElementById('setting-org-id').value = state.orgId;
+      document.getElementById('setting-proj-id').value = state.projectId;
+      
+      await checkSession();
+    });
+
+    async function checkSession() {
+      try {
+        const data = await api('/auth/get-session');
+        if (data && data.session) {
+          state.session = data.session;
+          state.user = data.user;
+          onLoginSuccess();
+        } else {
+          showLogin();
+        }
+      } catch (e) {
+        showLogin();
+      }
+    }
+
+    function showLogin() {
+      document.body.classList.remove('authenticated');
+      document.querySelector('nav').style.display = 'none';
+      showView('login');
+    }
+
+    async function onLoginSuccess() {
+      document.body.classList.add('authenticated');
+      document.querySelector('nav').style.display = 'flex';
+      
+      const activeOrgId = state.session?.activeOrganizationId;
+      
+      // Auto-set active organization if missing
+      if (!activeOrgId) {
+        console.log('No active org in session, attempting to set one...');
+        try {
+          // List organizations user belongs to
+          const orgsData = await api('/auth/organization/list');
+          const orgs = orgsData || [];
+          if (orgs.length > 0) {
+            const orgId = orgs[0].id;
+            console.log(`Found organization, setting active org: ${orgId}`);
+            
+            // Set active org
+            await fetch('/api/auth/organization/set-active', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ organizationId: orgId })
+            });
+            
+            // Refresh session
+            return checkSession();
+          }
+        } catch (e) {
+          console.warn('Failed to auto-set active organization:', e.message);
+        }
+      }
+      
+      // Update context from session if available and not manually set
+      if (!state.orgId && activeOrgId) {
+          state.orgId = activeOrgId;
+          localStorage.setItem('sitelink_orgId', state.orgId);
+          document.getElementById('setting-org-id').value = state.orgId;
+          updateContextUI();
+      }
+      
+      if (state.orgId && state.projectId) {
+        showView('plans');
+      } else {
+        showView('settings');
+      }
+    }
+
+    let isSignUp = false;
+
+    function toggleAuthMode() {
+      isSignUp = !isSignUp;
+      document.getElementById('auth-title').textContent = isSignUp ? 'Create Account' : 'Sign In';
+      document.getElementById('auth-submit-btn').textContent = isSignUp ? 'Sign Up' : 'Sign In';
+      document.getElementById('auth-toggle-btn').textContent = isSignUp ? 'Have an account? Sign In' : 'Need an account? Sign Up';
+      document.getElementById('name-group').style.display = isSignUp ? 'block' : 'none';
+      document.getElementById('login-error').textContent = '';
+    }
+
+    async function handleAuth() {
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      const name = document.getElementById('login-name').value;
+      const errorEl = document.getElementById('login-error');
+      
+      if (!email || !password) {
+        errorEl.textContent = 'Email and password are required';
+        return;
+      }
+
+      if (isSignUp && !name) {
+        errorEl.textContent = 'Name is required for sign up';
+        return;
+      }
+      
+      errorEl.textContent = isSignUp ? 'Creating account...' : 'Signing in...';
+      
+      const endpoint = isSignUp ? '/api/auth/sign-up/email' : '/api/auth/sign-in/email';
+      const body = { email, password };
+      if (isSignUp) body.name = name;
+
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        
+        if (!res.ok) {
+          const text = await res.text();
+          // Try to parse JSON error from better-auth if possible
+          try {
+            const json = JSON.parse(text);
+            throw new Error(json.message || json.error || 'Authentication failed');
+          } catch (e) {
+             if (e.message !== 'Authentication failed') throw e;
+             throw new Error(text || 'Authentication failed');
+          }
+        }
+        
+        await checkSession();
+      } catch (e) {
+        errorEl.textContent = e.message;
+      }
+    }
+
+    async function logout() {
+      try {
+        await fetch('/api/auth/sign-out', { method: 'POST' });
+        state.user = null;
+        showLogin();
+      } catch (e) {
+        console.error('Logout failed', e);
+      }
+    }
+
+    function updateContextUI() {
+      document.getElementById('ctx-org').textContent = state.orgId || 'Not Set';
+      document.getElementById('ctx-proj').textContent = state.projectId || 'Not Set';
+    }
+
+    function saveSettings() {
+      state.orgId = document.getElementById('setting-org-id').value.trim();
+      state.projectId = document.getElementById('setting-proj-id').value.trim();
+      localStorage.setItem('sitelink_orgId', state.orgId);
+      localStorage.setItem('sitelink_projectId', state.projectId);
+      updateContextUI();
+      alert('Context saved');
+    }
+
+    // --- Navigation ---
+    function showView(viewId) {
+      document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
+      
+      document.getElementById(`view-${viewId}`).classList.add('active');
+      
+      // Only update nav if not login view
+      if (viewId !== 'login') {
+        const navBtn = document.querySelector(`nav button[onclick="showView('${viewId}')"]`);
+        if (navBtn) navBtn.classList.add('active');
+      }
+
+      if (viewId === 'plans') loadPlans();
+      
+      // Cleanup viewer if leaving
+      if (viewId !== 'viewer' && state.viewer) {
+        state.viewer.destroy();
+        state.viewer = null;
+      }
+    }
+
+    // --- API ---
+    async function api(path, options = {}) {
+      try {
+        // Ensure credentials are sent with requests
+        options.credentials = 'include';
+        
+        const res = await fetch(`/api${path}`, options);
+        if (!res.ok) {
+          if (res.status === 401) {
+            showLogin();
+            throw new Error('Unauthorized');
+          }
+          const text = await res.text();
+          throw new Error(`API Error ${res.status}: ${text}`);
+        }
+        return res.json();
+      } catch (err) {
+        console.error(err);
+        if (err.message !== 'Unauthorized') {
+             // alert(err.message);
+        }
+        throw err;
+      }
+    }
+
+    // --- Plans ---
+    async function loadPlans() {
+      if (!state.projectId) return;
+      const listEl = document.getElementById('plans-list');
+      listEl.innerHTML = '<p>Loading...</p>';
+
+      try {
+        const data = await api(`/projects/${state.projectId}/plans`);
+        console.log('Received plans data:', data);
+        
+        if (!data.plans || data.plans.length === 0) {
+          listEl.innerHTML = '<p>No plans found. Upload one!</p>';
+          return;
+        }
+
+        listEl.innerHTML = data.plans.map(plan => `
+          <div class="card" onclick="openPlan('${plan.id}', '${plan.name}')">
+            <h3>${plan.name}</h3>
+            <p>${plan.description || 'No description'}</p>
+            <div class="status-badge status-${(plan.processingStatus || 'pending').toLowerCase()}">
+              ${plan.processingStatus || 'Unknown'}
+            </div>
+            <p style="margin-top: 8px; font-size: 11px;">${new Date(plan.createdAt).toLocaleDateString()}</p>
+          </div>
+        `).join('');
+      } catch (e) {
+        listEl.innerHTML = `<p style="color:red">Failed to load plans: ${e.message}</p>`;
+      }
+    }
+
+    async function uploadPlan() {
+      if (!state.projectId || !state.orgId) {
+        alert('Please set Org and Project ID first');
+        return;
+      }
+
+      const fileInput = document.getElementById('upload-file');
+      const file = fileInput.files[0];
+      if (!file) {
+        alert('Please select a PDF file');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('name', document.getElementById('upload-name').value || file.name);
+      formData.append('description', document.getElementById('upload-desc').value || '');
+
+      const statusEl = document.getElementById('upload-status');
+      statusEl.innerHTML = 'Uploading...';
+
+      try {
+        await fetch(`/api/projects/${state.projectId}/plans`, {
+          method: 'POST',
+          body: formData
+        }); // handling raw response for this one to debug if needed
+        
+        statusEl.innerHTML = '✅ Upload started! Check Plans list for status.';
+        setTimeout(() => showView('plans'), 2000);
+      } catch (e) {
+        statusEl.innerHTML = `❌ Error: ${e.message}`;
+      }
+    }
+
+    // --- Sheets ---
+    async function openPlan(planId, name) {
+      state.currentPlan = { id: planId, name };
+      document.getElementById('plan-title').textContent = name;
+      showView('sheets');
+      loadSheets(planId);
+    }
+
+    async function loadSheets(planId) {
+      const listEl = document.getElementById('sheets-list');
+      listEl.innerHTML = '<p>Loading sheets...</p>';
+
+      try {
+        const data = await api(`/plans/${planId}/sheets`);
+        
+        if (data.sheets.length === 0) {
+          listEl.innerHTML = '<p>No sheets found. Plan might be processing.</p>';
+          return;
+        }
+
+        listEl.innerHTML = data.sheets.map(sheet => `
+          <div class="card" onclick="openSheet('${sheet.id}')">
+            <h3>${sheet.sheetName || `Sheet ${sheet.pageNumber}`}</h3>
+            <p>Page ${sheet.pageNumber}</p>
+            <p>Markers: ${sheet.markerCount}</p>
+            <div class="status-badge status-${(sheet.processingStatus || 'pending').toLowerCase()}">
+              ${sheet.processingStatus}
+            </div>
+          </div>
+        `).join('');
+        
+        // Cache sheets for viewer
+        state.sheetsCache = data.sheets;
+      } catch (e) {
+        listEl.innerHTML = `<p style="color:red">Failed to load sheets: ${e.message}</p>`;
+      }
+    }
+
+    // --- Viewer ---
+    async function openSheet(sheetId) {
+      const sheet = state.sheetsCache.find(s => s.id === sheetId);
+      if (!sheet) return;
+
+      state.currentSheet = sheet;
+      document.getElementById('sheet-title').textContent = sheet.sheetName || `Sheet ${sheet.pageNumber}`;
+      document.getElementById('sheet-meta').textContent = `Status: ${sheet.processingStatus}`;
+      
+      showView('viewer');
+      initViewer(sheet);
+    }
+
+    async function initViewer(sheet) {
+      // 1. Fetch DZI metadata to get dimensions
+      let dziXml;
+      try {
+        const res = await fetch(`/api/plans/${sheet.planId}/sheets/${sheet.id}/dzi`);
+        if (!res.ok) throw new Error('Failed to load DZI');
+        const text = await res.text();
+        const parser = new DOMParser();
+        dziXml = parser.parseFromString(text, "text/xml");
+      } catch (e) {
+        console.error(e);
+        alert('Could not load image tiles');
+        return;
+      }
+
+      const sizeNode = dziXml.getElementsByTagName('Size')[0];
+      if (!sizeNode) {
+        console.error('Invalid DZI XML - no Size element found');
+        alert('Could not parse tile metadata. The sheet may still be processing.');
+        return;
+      }
+      const width = parseInt(sizeNode.getAttribute('Width'));
+      const height = parseInt(sizeNode.getAttribute('Height'));
+      const tileSize = parseInt(dziXml.documentElement.getAttribute('TileSize')) || 254;
+      const overlap = parseInt(dziXml.documentElement.getAttribute('Overlap')) || 1;
+      const format = dziXml.documentElement.getAttribute('Format') || 'jpg';
+
+      if (state.viewer) state.viewer.destroy();
+
+      state.viewer = OpenSeadragon({
+        id: "osd-container",
+        prefixUrl: "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.0/images/",
+        tileSources: {
+          width: width,
+          height: height,
+          tileSize: tileSize,
+          tileOverlap: overlap,
+          getTileUrl: function(level, x, y) {
+            // Match backend: /api/plans/:planId/sheets/:sheetId/tiles/:level/:tile
+            // where tile is "x_y.jpg"
+            return `/api/plans/${sheet.planId}/sheets/${sheet.id}/tiles/${level}/${x}_${y}.${format}`;
+          }
+        },
+        showNavigator: true,
+        gestureSettingsMouse: { clickToZoom: false }
+      });
+
+      // Load markers
+      loadMarkers(sheet);
+    }
+
+    async function loadMarkers(sheet) {
+      const listEl = document.getElementById('markers-list');
+      listEl.innerHTML = 'Loading...';
+
+      try {
+        const data = await api(`/plans/${sheet.planId}/sheets/${sheet.id}/markers`);
+        
+        listEl.innerHTML = data.hyperlinks.map(h => `
+          <div class="callout-item" onclick="zoomToMarker(${h.x}, ${h.y})">
+            <div class="callout-ref">${h.calloutRef}</div>
+            <div style="font-size:12px">Target: ${h.targetSheetRef}</div>
+            <div style="font-size:11px; color:#666">Conf: ${Math.round(h.confidence * 100)}%</div>
+          </div>
+        `).join('');
+
+        addOverlays(data.hyperlinks);
+
+      } catch (e) {
+        listEl.innerHTML = 'Failed to load markers';
+      }
+    }
+
+    function addOverlays(hyperlinks) {
+      const viewer = state.viewer;
+      const tiledImage = viewer.world.getItemAt(0);
+      const imageSize = tiledImage.getContentSize();
+
+      hyperlinks.forEach((h, i) => {
+        const el = document.createElement('div');
+        el.className = 'callout-overlay';
+        el.title = `${h.calloutRef} -> ${h.targetSheetRef}`;
+        
+        // Convert normalized (0-1) to image pixels
+        const x = h.x * imageSize.x;
+        const y = h.y * imageSize.y;
+        
+        // 50px box centered
+        const size = 50; 
+        const rect = new OpenSeadragon.Rect(x - size/2, y - size/2, size, size);
+        
+        viewer.addOverlay({
+          element: el,
+          location: viewer.viewport.imageToViewportRectangle(rect)
+        });
+      });
+    }
+
+    function zoomToMarker(nx, ny) {
+      const viewer = state.viewer;
+      const tiledImage = viewer.world.getItemAt(0);
+      const imageSize = tiledImage.getContentSize();
+      const point = new OpenSeadragon.Point(nx * imageSize.x, ny * imageSize.y);
+      
+      viewer.viewport.panTo(viewer.viewport.imageToViewportCoordinates(point));
+      viewer.viewport.zoomTo(2);
+    }
+
+  </script>
+</body>
+</html>

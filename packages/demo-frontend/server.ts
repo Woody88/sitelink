@@ -1,68 +1,116 @@
-import { serve } from "bun";
-import index from "./index.html";
-import auth from "./auth.html";
+/**
+ * Development server for OpenSeadragon demo
+ *
+ * Usage: bun run demo/server.ts
+ */
 
-const BACKEND = process.env.BACKEND_URL || "http://localhost:8787";
-const PORT = parseInt(process.env.PORT || "3000");
+import { join, dirname } from "path";
 
-const server = serve({
+const DEMO_DIR = dirname(import.meta.path);
+const PROJECT_DIR = dirname(DEMO_DIR);
+const PORT = 3000;
+
+const server = Bun.serve({
   port: PORT,
-  routes: {
-    // HTML routes - Bun auto-bundles <script>/<link> tags!
-    "/": index,
-    "/auth.html": auth,
-
-    // Handle favicon requests (avoid 500 errors)
-    "/favicon.ico": () => new Response(null, { status: 204 }),
-
-    // Proxy ALL /api/* routes to backend
-    "/api/*": async (req) => {
-      const url = new URL(req.url);
-      const backendUrl = `${BACKEND}${url.pathname}${url.search}`;
-
-      // Forward the request to the backend
-      const response = await fetch(backendUrl, {
-        method: req.method,
-        headers: req.headers,
-        body: req.body,
-        // @ts-ignore - duplex is valid for fetch
-        duplex: "half",
-      });
-
-      // Clone the response and add CORS headers
-      // This ensures CORS headers are present even if backend doesn't set them
-      const headers = new Headers(response.headers);
-      headers.set("Access-Control-Allow-Origin", req.headers.get("origin") || "*");
-      headers.set("Access-Control-Allow-Credentials", "true");
-      headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-      headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
-      // Remove content-encoding to prevent double-encoding issues
-      headers.delete("Content-Encoding");
-
-      return new Response(response.body, {
-        status: response.status,
-        statusText: response.statusText,
-        headers,
-      });
-    },
-  },
-
-  // Static assets (CSS, JS, etc.)
-  fetch(req) {
+  async fetch(req) {
     const url = new URL(req.url);
     const path = url.pathname;
 
-    // Serve static files from current directory
-    const file = Bun.file(`.${path}`);
-    return new Response(file);
-  },
+    // Serve viewer.html at root
+    if (path === "/" || path === "/index.html") {
+      const file = Bun.file(join(DEMO_DIR, "viewer.html"));
+      if (await file.exists()) {
+        return new Response(file, {
+          headers: { "Content-Type": "text/html" },
+        });
+      }
+      return new Response("viewer.html not found", { status: 404 });
+    }
 
-  // Enable development mode for detailed errors and hot reloading
-  development: true,
+    // Serve detection results
+    if (path === "/results.json") {
+      const file = Bun.file(join(PROJECT_DIR, "output", "results.json"));
+      if (await file.exists()) {
+        return new Response(file, {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response("results.json not found", { status: 404 });
+    }
+
+    // Serve favicon (placeholder)
+    if (path === "/favicon.ico") {
+      return new Response(null, { status: 204 });
+    }
+
+    // Proxy API requests to Backend
+    if (path.startsWith("/api")) {
+      const backendUrl = "http://localhost:8787";
+      const url = new URL(req.url);
+      const targetUrl = new URL(url.pathname + url.search, backendUrl);
+
+      console.log(`Proxying ${req.method} ${path} -> ${targetUrl.toString()}`);
+
+      try {
+        const proxyRes = await fetch(targetUrl.toString(), {
+          method: req.method,
+          headers: req.headers,
+          body: req.body,
+        });
+
+        // Create a new headers object to filter out problematic headers
+        const newHeaders = new Headers(proxyRes.headers);
+        newHeaders.delete("Content-Encoding");
+        newHeaders.delete("Content-Length");
+        newHeaders.delete("Transfer-Encoding");
+
+        return new Response(proxyRes.body, {
+          status: proxyRes.status,
+          statusText: proxyRes.statusText,
+          headers: newHeaders,
+        });
+      } catch (err) {
+        console.error("Proxy error:", err);
+        return new Response("Backend proxy error", { status: 502 });
+      }
+    }
+
+    // Serve tiles (DZI and image files)
+    if (path.startsWith("/tiles/")) {
+      const tilePath = path.replace("/tiles/", "");
+      const file = Bun.file(join(DEMO_DIR, "tiles", tilePath));
+
+      if (await file.exists()) {
+        // Determine content type
+        let contentType = "application/octet-stream";
+        if (tilePath.endsWith(".dzi")) {
+          contentType = "application/xml";
+        } else if (tilePath.endsWith(".jpg") || tilePath.endsWith(".jpeg")) {
+          contentType = "image/jpeg";
+        } else if (tilePath.endsWith(".png")) {
+          contentType = "image/png";
+        }
+
+        return new Response(file, {
+          headers: { "Content-Type": contentType },
+        });
+      }
+      return new Response(`Tile not found: ${tilePath}`, { status: 404 });
+    }
+
+    return new Response("Not found", { status: 404 });
+  },
 });
 
-console.log(`\n🚀 Sitelink Demo Frontend`);
-console.log(`   Frontend: http://localhost:${server.port}`);
-console.log(`   Backend:  ${BACKEND}`);
-console.log(`\n📝 Open http://localhost:${server.port} to start\n`);
+console.log(`
+  OpenSeadragon Demo Server
+
+  Open: http://localhost:${PORT}
+
+  Routes:
+    /               → viewer.html
+    /results.json   → detection results
+    /tiles/*        → DZI tiles
+
+  Press Ctrl+C to stop
+`);

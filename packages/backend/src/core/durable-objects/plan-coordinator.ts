@@ -6,7 +6,8 @@ interface PlanCoordinatorState {
 	totalSheets: number
 	completedSheets: number[] // Metadata extraction phase
 	completedTiles: number[] // Tile generation phase
-	status: "in_progress" | "triggering_tiles" | "tiles_in_progress" | "triggering_markers" | "complete" | "failed_timeout"
+	completedMarkers: number[] // Marker detection phase (NEW)
+	status: "in_progress" | "triggering_tiles" | "tiles_in_progress" | "triggering_markers" | "markers_in_progress" | "complete" | "failed_timeout"
 	createdAt: number
 }
 
@@ -25,6 +26,7 @@ export class PlanCoordinator extends DurableObject<Env> {
 			totalSheets,
 			completedSheets: [],
 			completedTiles: [],
+			completedMarkers: [],
 			status: "in_progress",
 			createdAt: Date.now(),
 		}
@@ -184,20 +186,17 @@ export class PlanCoordinator extends DurableObject<Env> {
 			this.state.status = "triggering_markers"
 			await this.ctx.storage.put("state", this.state)
 
-			// 2. Trigger marker detection with chunking logic
+			// 2. Trigger marker detection using new per-sheet queue
 			try {
 				await this.triggerMarkerDetection()
+				// Status will be updated to "markers_in_progress" inside triggerMarkerDetection()
 			} catch (error) {
 				console.error(`[PlanCoordinator] ❌ Failed to trigger marker detection:`, error)
 				// Don't fail the whole operation - the job will need to be retried manually
 			}
 
-			// 3. Cancel the timeout alarm (we succeeded!)
-			await this.ctx.storage.deleteAlarm()
-
-			// 4. Mark as complete
-			this.state.status = "complete"
-			await this.ctx.storage.put("state", this.state)
+			// NOTE: We do NOT mark as complete here - that happens in markerComplete()
+			// when all sheets have finished marker detection
 		}
 
 		return {
@@ -211,8 +210,72 @@ export class PlanCoordinator extends DurableObject<Env> {
 	}
 
 	/**
-	 * Trigger marker detection with automatic chunking for large tile sets
-	 * Phase 2: Implements chunking logic to split large jobs into smaller batches
+	 * Mark a marker detection job as complete (idempotent)
+	 * Transitions to 'complete' when all sheets have markers detected
+	 */
+	async markerComplete(sheetNumber: number) {
+		console.log(`[PlanCoordinator] Marker detection for sheet ${sheetNumber} complete`)
+
+		// Load state if not in memory
+		if (!this.state) {
+			this.state = await this.ctx.storage.get<PlanCoordinatorState>("state")
+			if (!this.state) {
+				throw new Error("PlanCoordinator not initialized")
+			}
+		}
+
+		// Idempotent: only add if not already present
+		if (!this.state.completedMarkers.includes(sheetNumber)) {
+			this.state.completedMarkers.push(sheetNumber)
+			await this.ctx.storage.put("state", this.state)
+			console.log(
+				`[PlanCoordinator] Marker Progress: ${this.state.completedMarkers.length}/${this.state.totalSheets}`
+			)
+		} else {
+			console.log(`[PlanCoordinator] Marker ${sheetNumber} already marked complete (idempotent)`)
+		}
+
+		// Check if all markers are complete AND we're in the right state
+		if (
+			this.state.completedMarkers.length === this.state.totalSheets &&
+			this.state.status === "markers_in_progress"
+		) {
+			console.log(`[PlanCoordinator] All marker detection complete! Transitioning to complete.`)
+
+			// Cancel the timeout alarm (we succeeded!)
+			await this.ctx.storage.deleteAlarm()
+
+			// Mark as complete
+			this.state.status = "complete"
+			await this.ctx.storage.put("state", this.state)
+
+			// Update processing job status to complete
+			await this.env.SitelinkDB.prepare(
+				`UPDATE processing_jobs
+				SET status = 'complete',
+				    completed_at = ?,
+				    updated_at = ?
+				WHERE upload_id = ?`
+			)
+				.bind(Date.now(), Date.now(), this.state.uploadId)
+				.run()
+
+			console.log(`[PlanCoordinator] ✅ Plan ${this.state.uploadId} processing fully complete!`)
+		}
+
+		return {
+			success: true,
+			progress: {
+				completedMarkers: this.state.completedMarkers.length,
+				totalSheets: this.state.totalSheets,
+				status: this.state.status,
+			},
+		}
+	}
+
+	/**
+	 * Trigger marker detection using the NEW per-sheet approach
+	 * Uses sheet-marker-detection-queue with CalloutProcessor (no chunking needed)
 	 */
 	private async triggerMarkerDetection() {
 		console.log(`[PlanCoordinator] Querying database for sheets with uploadId=${this.state!.uploadId}`)
@@ -222,6 +285,7 @@ export class PlanCoordinator extends DurableObject<Env> {
 				ps.id,
 				ps.sheet_number as sheetNumber,
 				ps.sheet_name as sheetName,
+				ps.sheet_key as sheetKey,
 				ps.plan_id as planId,
 				p.project_id as projectId,
 				pr.organization_id as organizationId
@@ -265,76 +329,29 @@ export class PlanCoordinator extends DurableObject<Env> {
 			console.log(`[PlanCoordinator] Valid sheets for marker detection: ${validSheets.join(", ")}`)
 		}
 
-		// List all tile keys from R2
-		const tilePrefix = `organizations/${organizationId}/projects/${projectId}/plans/${planId}/sheets/`
-		console.log(`[PlanCoordinator] Listing tiles from R2: ${tilePrefix}`)
+		// NEW: Enqueue one job per sheet using sheet-marker-detection-queue (no chunking)
+		console.log(`[PlanCoordinator] Enqueuing ${sheets.length} sheet marker detection jobs...`)
 
-		const env = this.env as Env
-		const tileList = await env.SitelinkStorage.list({ prefix: tilePrefix })
-		const tileKeys = tileList.objects
-			.filter(obj => obj.key.endsWith('.jpg'))
-			.map(obj => obj.key)
-
-		console.log(`[PlanCoordinator] Found ${tileKeys.length} tile images`)
-
-		// Define chunk size for parallel processing
-		const CHUNK_SIZE = 25
-
-		if (tileKeys.length <= CHUNK_SIZE) {
-			// Small job - process as single non-chunked job
-			console.log(`[PlanCoordinator] Small job (${tileKeys.length} tiles) - enqueuing single non-chunked marker detection job`)
-
-			await this.env.MARKER_DETECTION_QUEUE.send({
+		for (const sheet of sheets) {
+			await this.env.SHEET_MARKER_DETECTION_QUEUE.send({
 				uploadId: this.state!.uploadId,
 				planId,
 				organizationId,
 				projectId,
 				validSheets,
+				sheetId: sheet.id as string,
+				sheetNumber: sheet.sheetNumber as number,
+				sheetKey: sheet.sheetKey as string, // R2 path to sheet PDF
+				totalSheets: sheets.length,
 			})
-
-			console.log(`[PlanCoordinator] ✅ Marker detection job enqueued`)
-		} else {
-			// Large job - split into chunks
-			const chunks = this.chunkArray(tileKeys, CHUNK_SIZE)
-			const chunkId = crypto.randomUUID() // Shared ID for all chunks in this batch
-
-			console.log(`[PlanCoordinator] Large job (${tileKeys.length} tiles) - splitting into ${chunks.length} chunks of up to ${CHUNK_SIZE} tiles each`)
-
-			// Enqueue a job for each chunk
-			for (let i = 0; i < chunks.length; i++) {
-				const chunkTileKeys = chunks[i]
-
-				await this.env.MARKER_DETECTION_QUEUE.send({
-					uploadId: this.state!.uploadId,
-					planId,
-					organizationId,
-					projectId,
-					validSheets,
-					isChunked: true,
-					chunkIndex: i,
-					totalChunks: chunks.length,
-					tileKeys: chunkTileKeys,
-					chunkId,
-				})
-
-				console.log(`[PlanCoordinator] Enqueued chunk ${i + 1}/${chunks.length} with ${chunkTileKeys.length} tiles`)
-			}
-
-			console.log(`[PlanCoordinator] ✅ Marker detection chunked jobs enqueued: ${chunks.length} chunks`)
+			console.log(`[PlanCoordinator] Enqueued marker detection for sheet ${sheet.sheetNumber}`)
 		}
 
-		// Update processing job status to complete
-		await this.env.SitelinkDB.prepare(
-			`UPDATE processing_jobs
-			SET status = 'complete',
-			    completed_at = ?,
-			    updated_at = ?
-			WHERE upload_id = ?`
-		)
-			.bind(Date.now(), Date.now(), this.state!.uploadId)
-			.run()
+		// Update status to markers_in_progress
+		this.state!.status = "markers_in_progress"
+		await this.ctx.storage.put("state", this.state)
 
-		console.log(`[PlanCoordinator] ✅ Processing job marked as complete`)
+		console.log(`[PlanCoordinator] ✅ Sheet marker detection jobs enqueued for ${sheets.length} sheets`)
 	}
 
 	/**
@@ -443,6 +460,12 @@ export class PlanCoordinator extends DurableObject<Env> {
 			if (path === "/tile-complete" && request.method === "POST") {
 				const body = await request.json<{ sheetNumber: number }>()
 				const result = await this.tileComplete(body.sheetNumber)
+				return Response.json(result)
+			}
+
+			if (path === "/marker-complete" && request.method === "POST") {
+				const body = await request.json<{ sheetNumber: number }>()
+				const result = await this.markerComplete(body.sheetNumber)
 				return Response.json(result)
 			}
 

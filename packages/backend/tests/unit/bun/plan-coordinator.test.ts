@@ -5,7 +5,8 @@ interface PlanCoordinatorState {
 	uploadId: string
 	totalSheets: number
 	completedSheets: number[]
-	status: "in_progress" | "triggering_completion" | "metadata_complete" | "failed_timeout"
+	completedMarkers: number[]
+	status: "in_progress" | "markers_in_progress" | "triggering_completion" | "metadata_complete" | "failed_timeout"
 	createdAt: number
 }
 
@@ -25,6 +26,7 @@ function createPlanCoordinatorInstance(ctx: any, env: any) {
 				uploadId,
 				totalSheets,
 				completedSheets: [],
+				completedMarkers: [],
 				status: "in_progress",
 				createdAt: Date.now(),
 			}
@@ -93,6 +95,48 @@ function createPlanCoordinatorInstance(ctx: any, env: any) {
 			}
 		},
 
+		markerComplete: async function (sheetNumber: number) {
+			console.log(`[PlanCoordinator] Marker detection complete for sheet ${sheetNumber}`)
+
+			if (!this.state) {
+				this.state = await this.ctx.storage.get<PlanCoordinatorState>("state")
+				if (!this.state) {
+					throw new Error("PlanCoordinator not initialized")
+				}
+			}
+
+			if (!this.state.completedMarkers.includes(sheetNumber)) {
+				this.state.completedMarkers.push(sheetNumber)
+				await this.ctx.storage.put("state", this.state)
+				console.log(
+					`[PlanCoordinator] Marker progress: ${this.state.completedMarkers.length}/${this.state.totalSheets}`
+				)
+			} else {
+				console.log(
+					`[PlanCoordinator] Marker for sheet ${sheetNumber} already marked complete (idempotent)`
+				)
+			}
+
+			if (
+				this.state.completedMarkers.length === this.state.totalSheets &&
+				this.state.status === "markers_in_progress"
+			) {
+				console.log(`[PlanCoordinator] All markers complete! Transitioning to complete...`)
+
+				this.state.status = "complete"
+				await this.ctx.storage.put("state", this.state)
+			}
+
+			return {
+				success: true,
+				progress: {
+					completedMarkers: this.state.completedMarkers.length,
+					totalSheets: this.state.totalSheets,
+					status: this.state.status,
+				},
+			}
+		},
+
 		getProgress: async function () {
 			if (!this.state) {
 				this.state = await this.ctx.storage.get<PlanCoordinatorState>("state")
@@ -153,6 +197,12 @@ function createPlanCoordinatorInstance(ctx: any, env: any) {
 				if (path === "/sheet-complete" && request.method === "POST") {
 					const body = await request.json<{ sheetNumber: number; validSheets: string[] }>()
 					const result = await this.sheetComplete(body.sheetNumber, body.validSheets)
+					return Response.json(result)
+				}
+
+				if (path === "/marker-complete" && request.method === "POST") {
+					const body = await request.json<{ sheetNumber: number }>()
+					const result = await this.markerComplete(body.sheetNumber)
 					return Response.json(result)
 				}
 
@@ -443,6 +493,107 @@ describe("PlanCoordinator Durable Object", () => {
 			const result3 = await planCoordinator.sheetComplete(3, ["A1"])
 			// 3/3 = 100
 			expect(result3.progress.completedSheets).toBe(3)
+		})
+	})
+
+	describe("markerComplete()", () => {
+		beforeEach(async () => {
+			// Initialize coordinator before each marker completion test
+			await planCoordinator.initialize("upload-markers", 3)
+			// Set status to markers_in_progress to simulate the marker detection phase
+			planCoordinator.state.status = "markers_in_progress"
+			await mockStorage.put("state", planCoordinator.state)
+		})
+
+		it("should mark a marker as complete", async () => {
+			const result = await planCoordinator.markerComplete(1)
+
+			expect(result.success).toBe(true)
+			expect(result.progress.completedMarkers).toBe(1)
+			expect(result.progress.totalSheets).toBe(3)
+			expect(result.progress.status).toBe("markers_in_progress")
+		})
+
+		it("should be idempotent - not add duplicate marker", async () => {
+			const sheetNumber = 1
+
+			// Mark marker 1 complete twice
+			await planCoordinator.markerComplete(sheetNumber)
+			const result = await planCoordinator.markerComplete(sheetNumber)
+
+			expect(result.progress.completedMarkers).toBe(1)
+			expect(result.progress.status).toBe("markers_in_progress")
+
+			// Verify state has only one entry
+			expect(mockStorage._state.completedMarkers.length).toBe(1)
+		})
+
+		it("should transition to complete when all markers done", async () => {
+			// Mark markers as complete until all are done
+			await planCoordinator.markerComplete(1)
+			await planCoordinator.markerComplete(2)
+			const result = await planCoordinator.markerComplete(3)
+
+			// After final marker completion, status should transition to complete
+			expect(result.progress.status).toBe("complete")
+			expect(result.progress.completedMarkers).toBe(3)
+		})
+
+		it("should load state from storage if not in memory", async () => {
+			// Complete a marker (stores state in memory)
+			await planCoordinator.markerComplete(1)
+
+			// Create new instance to simulate fresh object
+			const newDurableObject = createPlanCoordinatorInstance(mockCtx, mockEnv)
+			expect(newDurableObject.state).toBeNull()
+
+			// markerComplete should load state from storage
+			const result = await newDurableObject.markerComplete(2)
+
+			expect(result.success).toBe(true)
+			expect(result.progress.completedMarkers).toBe(2)
+		})
+
+		it("should track progress correctly with multiple markers", async () => {
+			const result1 = await planCoordinator.markerComplete(1)
+			expect(result1.progress.completedMarkers).toBe(1)
+
+			const result2 = await planCoordinator.markerComplete(2)
+			expect(result2.progress.completedMarkers).toBe(2)
+
+			const result3 = await planCoordinator.markerComplete(3)
+			expect(result3.progress.completedMarkers).toBe(3)
+		})
+
+		it("should throw error if not initialized", async () => {
+			// Reset state to simulate uninitialized coordinator
+			mockStorage._state = null
+			const uninitializedDO = createPlanCoordinatorInstance(mockCtx, mockEnv)
+
+			let errorThrown = false
+			try {
+				await uninitializedDO.markerComplete(1)
+			} catch (error) {
+				errorThrown = true
+				expect((error as Error).message).toContain("not initialized")
+			}
+
+			expect(errorThrown).toBe(true)
+		})
+
+		it("should not transition to complete if status is not markers_in_progress", async () => {
+			// Set status to something else
+			planCoordinator.state.status = "in_progress"
+			await mockStorage.put("state", planCoordinator.state)
+
+			// Complete all markers
+			await planCoordinator.markerComplete(1)
+			await planCoordinator.markerComplete(2)
+			const result = await planCoordinator.markerComplete(3)
+
+			// Status should remain in_progress, not transition to complete
+			expect(result.progress.status).toBe("in_progress")
+			expect(result.progress.completedMarkers).toBe(3)
 		})
 	})
 
@@ -741,6 +892,28 @@ describe("PlanCoordinator Durable Object", () => {
 			const data = await response.json()
 			expect(data.success).toBe(true)
 			expect(data.progress.completedSheets).toBe(1)
+		})
+
+		it("should handle POST /marker-complete request", async () => {
+			// Initialize first
+			await planCoordinator.initialize("upload-http-markers", 3)
+			// Set status to markers_in_progress
+			planCoordinator.state.status = "markers_in_progress"
+			await mockStorage.put("state", planCoordinator.state)
+
+			const request = new Request("http://localhost/marker-complete", {
+				method: "POST",
+				body: JSON.stringify({
+					sheetNumber: 1,
+				}),
+			})
+
+			const response = await planCoordinator.fetch(request)
+
+			expect(response.status).toBe(200)
+			const data = await response.json()
+			expect(data.success).toBe(true)
+			expect(data.progress.completedMarkers).toBe(1)
 		})
 
 		it("should handle GET /progress request", async () => {

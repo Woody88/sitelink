@@ -233,6 +233,8 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 					eq(schema.plans.id, schema.processingJobs.planId),
 				)
 				.where(eq(schema.plans.projectId, projectId))
+				.groupBy(schema.plans.id)
+				.orderBy(sql`${schema.plans.createdAt} DESC`)
 
 			return planList
 		})
@@ -311,7 +313,7 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 		 * Get DZI XML file for a sheet
 		 *
 		 * Retrieves the DZI metadata file from R2 storage.
-		 * DZI path format: organizations/{orgId}/projects/{projectId}/plans/{planId}/sheets/{sheetId}/tiles/{sheetId}.dzi
+		 * DZI path format: organizations/{orgId}/projects/{projectId}/plans/{planId}/sheets/sheet-{n}/sheet-sheet-{n}.dzi
 		 */
 		const getDziFile = Effect.fn("Plan.getDziFile")(function* (params: {
 			sheetId: string
@@ -319,11 +321,24 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 			// Get sheet to verify it exists and get the DZI path
 			const sheet = yield* getSheet(params.sheetId)
 
+			// Build DZI path from sheetKey
+			// sheetKey format: organizations/{orgId}/projects/{projectId}/plans/{planId}/uploads/{uploadId}/sheet-{n}.pdf
+			// DZI path format: organizations/{orgId}/projects/{projectId}/plans/{planId}/sheets/sheet-{n}/sheet-sheet-{n}.dzi
+			const sheetKeyMatch = sheet.sheetKey.match(/^(organizations\/[^\/]+\/projects\/[^\/]+\/plans\/[^\/]+)\//)
+			if (!sheetKeyMatch) {
+				return yield* Effect.fail(
+					new DziNotFoundError({ sheetId: params.sheetId }),
+				)
+			}
+			const basePath = sheetKeyMatch[1]
+			const dziPath = `${basePath}/sheets/sheet-${sheet.sheetNumber}/sheet-sheet-${sheet.sheetNumber}.dzi`
+
 			// Fetch DZI file from R2
-			const dziObject = yield* storage.use((r2) => r2.get(sheet.sheetKey))
+			const dziObject = yield* storage.use((r2) => r2.get(dziPath))
 
 			// Check if file exists
 			if (!dziObject) {
+				console.error(`DZI file not found at path: ${dziPath}`)
 				return yield* Effect.fail(
 					new DziNotFoundError({ sheetId: params.sheetId }),
 				)
@@ -339,7 +354,7 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 		 * Get tile image file for a sheet
 		 *
 		 * Retrieves a specific tile file from R2 storage.
-		 * Tile path format: organizations/{orgId}/projects/{projectId}/plans/{planId}/sheets/{sheetId}/tiles/{sheetId}_files/{level}/{tile}
+		 * Tile path format: organizations/{orgId}/projects/{projectId}/plans/{planId}/sheets/sheet-{n}/sheet-sheet-{n}_files/{level}/{tile}
 		 */
 		const getTile = Effect.fn("Plan.getTile")(function* (params: {
 			sheetId: string
@@ -351,10 +366,18 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 
 			// Build tile path from sheet's sheetKey
 			// sheetKey format: organizations/{orgId}/projects/{projectId}/plans/{planId}/uploads/{uploadId}/sheet-{n}.pdf
-			// Tile directory format: organizations/{orgId}/projects/{projectId}/plans/{planId}/uploads/{uploadId}/sheet-{n}/sheet-{n}_files
-			const sheetBasePath = sheet.sheetKey.replace(/\.pdf$/, "") // Remove .pdf extension
-			// Note: sheet.sheetNumber is 1-indexed (matches file naming: sheet-1.pdf, sheet-2.pdf, etc.)
-			const tileDirectory = `${sheetBasePath}/sheet-${sheet.sheetNumber}_files`
+			// Tile path format: organizations/{orgId}/projects/{projectId}/plans/{planId}/sheets/sheet-{n}/sheet-sheet-{n}_files/{level}/{tile}
+			const sheetKeyMatch = sheet.sheetKey.match(/^(organizations\/[^\/]+\/projects\/[^\/]+\/plans\/[^\/]+)\//)
+			if (!sheetKeyMatch) {
+				return yield* Effect.fail(
+					new TileNotFoundError({
+						sheetId: params.sheetId,
+						tilePath: "invalid sheetKey format",
+					}),
+				)
+			}
+			const basePath = sheetKeyMatch[1]
+			const tileDirectory = `${basePath}/sheets/sheet-${sheet.sheetNumber}/sheet-sheet-${sheet.sheetNumber}_files`
 			const tilePath = `${tileDirectory}/${params.level}/${params.tile}`
 
 			// Fetch tile file from R2

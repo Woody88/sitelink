@@ -102,6 +102,10 @@
 			{
 				"binding": "MARKER_DETECTION_QUEUE",
 				"queue": "marker-detection-queue"
+			},
+			{
+				"binding": "SHEET_MARKER_DETECTION_QUEUE",
+				"queue": "sheet-marker-detection-queue"
 			}
 		],
 		"consumers": [
@@ -126,12 +130,18 @@
 				"queue": "marker-detection-queue",
 				"max_batch_size": 1,
 				"max_retries": 3
+			},
+			{
+				"queue": "sheet-marker-detection-queue",
+				"max_batch_size": 5,
+				"max_concurrency": 10,
+				"max_retries": 3
 			}
 		]
 	},
 	"vars": {
 		"PLAN_OCR_SERVICE_URL": "http://localhost:8000",
-		"OPENROUTER_API_KEY": "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"
+		"OPENROUTER_API_KEY": "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"
 	},
 	/**
 	 * CPU Time Limits

@@ -8,7 +8,7 @@ import { CoreLayer } from "./core"
 import * as Bindings from "./core/bindings"
 import { ensureSystemPdfProcessorUser } from "./core/startup"
 import { handleTestSetup, handleTestQueue, handleTestQueueTrigger, handleTestPdfProcessingTrigger } from "./features/test"
-import type { R2Notification, TileJob, MetadataExtractionJob, MarkerDetectionJob } from "./core/queues/types"
+import type { R2Notification, TileJob, MetadataExtractionJob, MarkerDetectionJob, SheetMarkerDetectionJob } from "./core/queues/types"
 import { pdfProcessingQueueConsumer, tileGenerationQueueConsumer, metadataExtractionQueueConsumer, markerDetectionQueueConsumer, sheetMarkerDetectionQueueConsumer } from "./core/queues"
 
 export { SitelinkPdfProcessor } from "./core/pdf-manager"
@@ -97,6 +97,9 @@ export default {
 				break
 			case "marker-detection-queue":
 				await markerDetectionQueueConsumer(batch as MessageBatch<MarkerDetectionJob>, env, ctx)
+				break
+			case "sheet-marker-detection-queue":
+				await sheetMarkerDetectionQueueConsumer(batch as MessageBatch<SheetMarkerDetectionJob>, env, ctx)
 				break
 			default:
 				throw new Error(`Unknown queue: ${batch.queue}`)

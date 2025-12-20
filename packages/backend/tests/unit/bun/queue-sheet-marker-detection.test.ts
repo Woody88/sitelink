@@ -72,11 +72,26 @@ describe("Sheet Marker Detection Queue Consumer", () => {
 			})),
 		}
 
+		// Mock PlanCoordinator Durable Object
+		const mockCoordinatorStub = {
+			fetch: mock((url: string, options: RequestInit) => {
+				return Promise.resolve(
+					new Response(JSON.stringify({ success: true }), { status: 200 })
+				)
+			}),
+		}
+
+		const mockPlanCoordinator = {
+			idFromName: mock((name: string) => ({ id: name })),
+			get: mock((id: any) => mockCoordinatorStub),
+		}
+
 		// Mock env with bindings
 		mockEnv = {
 			SitelinkStorage: mockStorage,
 			CALLOUT_PROCESSOR: mockContainer,
 			SitelinkDB: mockDB,
+			PLAN_COORDINATOR: mockPlanCoordinator,
 		}
 	})
 
@@ -774,5 +789,111 @@ describe("Sheet Marker Detection Queue Consumer", () => {
 
 		// Message should be acknowledged
 		expect(mockMessage.ack).toHaveBeenCalledTimes(1)
+	})
+
+	it("should notify PlanCoordinator when marker detection completes", async () => {
+		const job: SheetMarkerDetectionJob = {
+			uploadId: "upload-123",
+			planId: "plan-456",
+			organizationId: "org-1",
+			projectId: "proj-1",
+			validSheets: ["A7", "A8"],
+			sheetId: "sheet-uuid-1",
+			sheetNumber: 3,
+			sheetKey: "organizations/org-1/projects/proj-1/plans/plan-456/sheets/sheet-3.pdf",
+			totalSheets: 5,
+		}
+
+		const mockMessage = {
+			id: "msg-1",
+			timestamp: new Date(),
+			body: job,
+			attempts: 1,
+			ack: mock(() => {}),
+			retry: mock(() => {}),
+		}
+
+		const batch = {
+			queue: "sheet-marker-detection-queue",
+			messages: [mockMessage],
+		} as any
+
+		const ctx = {} as ExecutionContext
+
+		// Execute consumer
+		await sheetMarkerDetectionQueueConsumer(batch, mockEnv, ctx)
+
+		// Verify PlanCoordinator was notified
+		expect(mockEnv.PLAN_COORDINATOR.idFromName).toHaveBeenCalledTimes(1)
+		expect(mockEnv.PLAN_COORDINATOR.idFromName).toHaveBeenCalledWith(job.uploadId)
+
+		// Verify coordinator stub was retrieved
+		expect(mockEnv.PLAN_COORDINATOR.get).toHaveBeenCalledTimes(1)
+		const coordinatorId = mockEnv.PLAN_COORDINATOR.idFromName.mock.results[0].value
+		expect(mockEnv.PLAN_COORDINATOR.get).toHaveBeenCalledWith(coordinatorId)
+
+		// Verify coordinator fetch was called with correct endpoint
+		const coordinatorStub = mockEnv.PLAN_COORDINATOR.get.mock.results[0].value
+		expect(coordinatorStub.fetch).toHaveBeenCalledTimes(1)
+		const [url, options] = coordinatorStub.fetch.mock.calls[0]
+		expect(url).toBe("http://localhost/marker-complete")
+		expect(options.method).toBe("POST")
+
+		// Verify request body contains sheet number
+		const body = JSON.parse(options.body)
+		expect(body.sheetNumber).toBe(3)
+
+		// Message should still be acknowledged
+		expect(mockMessage.ack).toHaveBeenCalledTimes(1)
+	})
+
+	it("should still ack message even if PlanCoordinator callback fails", async () => {
+		// Mock coordinator to fail
+		const mockCoordinatorStub = {
+			fetch: mock(() => {
+				throw new Error("Coordinator unavailable")
+			}),
+		}
+
+		mockEnv.PLAN_COORDINATOR.get = mock(() => mockCoordinatorStub)
+
+		const job: SheetMarkerDetectionJob = {
+			uploadId: "upload-123",
+			planId: "plan-456",
+			organizationId: "org-1",
+			projectId: "proj-1",
+			validSheets: ["A7"],
+			sheetId: "sheet-uuid-1",
+			sheetNumber: 1,
+			sheetKey: "organizations/org-1/projects/proj-1/plans/plan-456/sheets/sheet-1.pdf",
+			totalSheets: 1,
+		}
+
+		const mockMessage = {
+			id: "msg-1",
+			timestamp: new Date(),
+			body: job,
+			attempts: 1,
+			ack: mock(() => {}),
+			retry: mock(() => {}),
+		}
+
+		const batch = {
+			queue: "sheet-marker-detection-queue",
+			messages: [mockMessage],
+		} as any
+
+		const ctx = {} as ExecutionContext
+
+		// Execute consumer
+		await sheetMarkerDetectionQueueConsumer(batch, mockEnv, ctx)
+
+		// Verify coordinator was attempted
+		expect(mockEnv.PLAN_COORDINATOR.get).toHaveBeenCalledTimes(1)
+		expect(mockCoordinatorStub.fetch).toHaveBeenCalledTimes(1)
+
+		// Message should still be acknowledged (don't retry for callback failures)
+		expect(mockMessage.ack).toHaveBeenCalledTimes(1)
+		expect(mockMessage.retry).not.toHaveBeenCalled()
 	})
 })

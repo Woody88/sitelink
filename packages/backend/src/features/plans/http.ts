@@ -98,6 +98,27 @@ const tileLevelParam = HttpApiSchema.param("level", Schema.String)
 const tileFileParam = HttpApiSchema.param("tile", Schema.String)
 
 /**
+ * Marker Response Schemas (for frontend integration)
+ */
+const HyperlinkSchema = Schema.Struct({
+	calloutRef: Schema.String,      // Full marker text e.g., "3/A7"
+	targetSheetRef: Schema.String,  // Referenced sheet e.g., "A7"
+	x: Schema.Number,               // Normalized x coordinate (0-1)
+	y: Schema.Number,               // Normalized y coordinate (0-1)
+	confidence: Schema.Number,      // Detection confidence (0-1)
+})
+
+const SheetMarkersResponse = Schema.Struct({
+	hyperlinks: Schema.Array(HyperlinkSchema),
+	calloutsFound: Schema.Number,
+	calloutsMatched: Schema.Number,
+	confidenceStats: Schema.Struct({
+		averageConfidence: Schema.Number,
+	}),
+	processingTimeMs: Schema.Number, // Processing time in milliseconds (defaults to 0 if not available)
+})
+
+/**
  * Plan API Endpoints
  */
 export const PlanAPI = HttpApiGroup.make("plans")
@@ -164,6 +185,13 @@ export const PlanAPI = HttpApiGroup.make("plans")
 			.addSuccess(HttpApiSchema.Uint8Array({ contentType: "image/jpeg" }))
 			.addError(SheetNotFoundError)
 			.addError(TileNotFoundError),
+	)
+	.add(
+		HttpApiEndpoint.get(
+			"getSheetMarkers",
+		)`/plans/${planIdParam}/sheets/${sheetIdParam}/markers`
+			.addSuccess(SheetMarkersResponse)
+			.addError(SheetNotFoundError),
 	)
 	.prefix("/api")
 	.middleware(Authorization)
@@ -274,6 +302,7 @@ export const PlanAPILive = HttpApiBuilder.group(
 						const planList = yield* planService
 							.list(path.projectId)
 							.pipe(Effect.orDie)
+						console.log(`📊 Returning ${planList.length} plans for project ${path.projectId}`)
 						return { plans: planList }
 					}),
 				)
@@ -395,6 +424,68 @@ export const PlanAPILive = HttpApiBuilder.group(
 
 						// Return as Uint8Array
 						return new Uint8Array(data)
+					}),
+				)
+				.handle("getSheetMarkers", ({ path }) =>
+					Effect.gen(function* () {
+						// Get the sheet to verify it exists and get its dimensions
+						const sheet = yield* planService.getSheet(path.sheetId)
+
+						// Query markers for this plan and sheet
+						const db = yield* Drizzle
+						const markers = yield* db
+							.select()
+							.from(schema.planMarkers)
+							.where(
+								sql`${schema.planMarkers.planId} = ${path.id} AND ${schema.planMarkers.sheetNumber} = ${sheet.pageNumber}`,
+							)
+
+						// Transform markers to hyperlinks format
+						const hyperlinks = markers.map((marker) => {
+							// Parse bbox to get center point as normalized coordinates
+							// bbox format: { x, y, w, h } where x,y are normalized (0-1)
+							// Handle both JSON string and object formats
+							let bbox: { x: number; y: number; w: number; h: number } | null = null
+							if (marker.bbox) {
+								if (typeof marker.bbox === "string") {
+									try {
+										bbox = JSON.parse(marker.bbox) as { x: number; y: number; w: number; h: number }
+									} catch {
+										bbox = null
+									}
+								} else if (typeof marker.bbox === "object") {
+									bbox = marker.bbox as { x: number; y: number; w: number; h: number }
+								}
+							}
+							const x = bbox ? bbox.x + bbox.w / 2 : 0.5 // Center x
+							const y = bbox ? bbox.y + bbox.h / 2 : 0.5 // Center y
+
+							return {
+								calloutRef: marker.markerText,
+								targetSheetRef: marker.sheet,
+								x,
+								y,
+								confidence: marker.confidence,
+							}
+						})
+
+						// Calculate stats
+						const calloutsFound = markers.length
+						const calloutsMatched = markers.filter((m) => m.isValid).length
+						const avgConfidence =
+							markers.length > 0
+								? markers.reduce((sum, m) => sum + m.confidence, 0) / markers.length
+								: 0
+
+						return {
+							hyperlinks,
+							calloutsFound,
+							calloutsMatched,
+							confidenceStats: {
+								averageConfidence: avgConfidence,
+							},
+							processingTimeMs: 0, // Not tracked in database, default to 0
+						}
 					}),
 				)
 		}),

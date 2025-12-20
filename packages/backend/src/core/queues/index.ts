@@ -1167,5 +1167,20 @@ async function processSheetMarkerDetectionJob(message: Message<SheetMarkerDetect
     console.log(`⚠️ No markers detected for sheet ${job.sheetNumber}, skipping database insert`)
   }
 
+  // Step 5: Notify PlanCoordinator that this sheet's marker detection is complete
+  try {
+    const coordinatorId = env.PLAN_COORDINATOR.idFromName(job.uploadId)
+    const coordinator = env.PLAN_COORDINATOR.get(coordinatorId)
+    await coordinator.fetch("http://localhost/marker-complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sheetNumber: job.sheetNumber })
+    })
+    console.log(`📡 Notified PlanCoordinator of marker completion for sheet ${job.sheetNumber}`)
+  } catch (callbackError) {
+    // Log but don't fail - the markers are already saved
+    console.error(`⚠️ Failed to notify PlanCoordinator:`, callbackError)
+  }
+
   console.log(`✅ Successfully processed sheet ${job.sheetNumber}/${job.totalSheets}`)
 }
