@@ -721,8 +721,8 @@
         const x = h.x * imageSize.x;
         const y = h.y * imageSize.y;
         
-        // 50px box centered
-        const size = 50; 
+        // 25px box centered (matches working demo in callout-processor/demo/viewer.html)
+        const size = 25; 
         const rect = new OpenSeadragon.Rect(x - size/2, y - size/2, size, size);
         
         viewer.addOverlay({

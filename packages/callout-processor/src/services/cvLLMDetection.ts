@@ -628,21 +628,32 @@ export async function detectCalloutsWithCVLLM(
     // Also include needs-review ones but with lower confidence
     const allCallouts = [...verified, ...needsReview];
     
-    // Normalize coordinates
+    // Normalize coordinates and calculate bbox dimensions from CV detection
     const hyperlinks = allCallouts.map(callout => {
       const normalized = normalizeCoordinates(
         { x: callout.x, y: callout.y },
         cvResult.imageWidth,
         cvResult.imageHeight
       );
-      
+
+      // Calculate normalized width and height from CV bbox (x1, y1, x2, y2 in pixels)
+      // Default to ~40px if no bbox available
+      const bboxWidthPx = callout.bbox ? (callout.bbox.x2 - callout.bbox.x1) : 40;
+      const bboxHeightPx = callout.bbox ? (callout.bbox.y2 - callout.bbox.y1) : 40;
+      const normalizedW = bboxWidthPx / cvResult.imageWidth;
+      const normalizedH = bboxHeightPx / cvResult.imageHeight;
+
       return {
         calloutRef: callout.ref,
         targetSheetRef: callout.targetSheet,
         x: normalized.x,
         y: normalized.y,
+        w: normalizedW,
+        h: normalizedH,
         pixelX: callout.x,
         pixelY: callout.y,
+        pixelW: bboxWidthPx,
+        pixelH: bboxHeightPx,
         confidence: callout.confidence || 0.8
       };
     });

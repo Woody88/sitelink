@@ -443,7 +443,7 @@ export const PlanAPILive = HttpApiBuilder.group(
 						// Transform markers to hyperlinks format
 						const hyperlinks = markers.map((marker) => {
 							// Parse bbox to get center point as normalized coordinates
-							// bbox format: { x, y, w, h } where x,y are normalized (0-1)
+							// bbox format: { x, y, w, h } where x,y are already center coordinates (normalized 0-1)
 							// Handle both JSON string and object formats
 							let bbox: { x: number; y: number; w: number; h: number } | null = null
 							if (marker.bbox) {
@@ -457,8 +457,9 @@ export const PlanAPILive = HttpApiBuilder.group(
 									bbox = marker.bbox as { x: number; y: number; w: number; h: number }
 								}
 							}
-							const x = bbox ? bbox.x + bbox.w / 2 : 0.5 // Center x
-							const y = bbox ? bbox.y + bbox.h / 2 : 0.5 // Center y
+							// bbox.x and bbox.y are already center coordinates from the detection pipeline
+							const x = bbox ? bbox.x : 0.5
+							const y = bbox ? bbox.y : 0.5
 
 							return {
 								calloutRef: marker.markerText,

@@ -17,7 +17,7 @@ export class CalloutProcessor extends Container {
 	override sleepAfter = "10m" // Stop instance after 10 minutes of inactivity
 
 	override envVars = {
-		OPENROUTER_API_KEY: "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",
+		OPENROUTER_API_KEY: "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",
 	}
 
 	override onStart() {

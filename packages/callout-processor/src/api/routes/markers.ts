@@ -38,20 +38,22 @@ export async function markersHandler(request: Request): Promise<Response> {
       sheetNumber || undefined
     )
 
-    // Map to expected response format
-    const markers = (result.hyperlinks || []).map((h) => ({
-      text: h.calloutRef,
+    // Map to expected response format (matching queue handler expectations)
+    // Use actual bbox dimensions from CV detection if available, otherwise use small default
+    // Callout symbols are typically ~30-40px on a ~3000px image = ~0.012 (1.2%)
+    const markers = (result.hyperlinks || []).map((h: any) => ({
+      marker_text: h.calloutRef,
       detail: h.calloutRef.split("/")[0] || "",
       sheet: h.targetSheetRef,
-      type: "detail",
+      marker_type: "detail",
       confidence: h.confidence || 0.8,
       is_valid: validSheets.length === 0 || validSheets.includes(h.targetSheetRef),
       fuzzy_matched: false,
       bbox: {
         x: h.x,
         y: h.y,
-        w: 0.05,
-        h: 0.05,
+        w: h.w || 0.012,  // Use CV bbox width or small default (~1.2% of image)
+        h: h.h || 0.012,  // Use CV bbox height or small default (~1.2% of image)
       },
     }))
 

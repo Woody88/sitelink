@@ -133,16 +133,14 @@
 			},
 			{
 				"queue": "sheet-marker-detection-queue",
-				"max_batch_size": 5,
-				"max_concurrency": 10,
-				"max_retries": 3
+				"max_batch_size": 1,
+				"max_concurrency": 5,
+				"max_retries": 3,
+				"visibility_timeout_ms": 300000
 			}
 		]
 	},
-	"vars": {
-		"PLAN_OCR_SERVICE_URL": "http://localhost:8000",
-		"OPENROUTER_API_KEY": ""
-	},
+	"vars": {},
 	/**
 	 * CPU Time Limits
 	 * Phase 1 safety net: 120,000ms (2 minutes) while implementing marker detection fix

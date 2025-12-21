@@ -1095,12 +1095,11 @@ async function processSheetMarkerDetectionJob(message: Message<SheetMarkerDetect
 
   // Step 2: Call callout-processor container with PDF body
   // Use sheetId for container isolation - each sheet gets its own container instance
-  const container = typeof env.CALLOUT_PROCESSOR.getByName === 'function'
-    ? env.CALLOUT_PROCESSOR.getByName(job.sheetId)
-    : env.CALLOUT_PROCESSOR
+  const containerId = env.CALLOUT_PROCESSOR.idFromName(job.sheetId)
+  const container = env.CALLOUT_PROCESSOR.get(containerId)
 
   // Build headers with sheet metadata
-  const headers = {
+  const headers: Record<string, string> = {
     "Content-Type": "application/pdf",
     "X-Valid-Sheets": job.validSheets.join(","),
     "X-Sheet-Number": job.sheetNumber.toString(),
@@ -1112,7 +1111,7 @@ async function processSheetMarkerDetectionJob(message: Message<SheetMarkerDetect
   console.log(`🔍 Calling callout-processor for marker detection...`)
   console.log(`   Headers:`, headers)
 
-  const response = await container.fetch("http://localhost/api/detect-markers", {
+  const response = await container.fetch("http://container/api/detect-markers", {
     method: "POST",
     headers,
     body: sheet.body,
@@ -1145,24 +1144,29 @@ async function processSheetMarkerDetectionJob(message: Message<SheetMarkerDetect
     const db = drizzle(env.SitelinkDB)
     console.log(`💾 Inserting ${result.markers.length} markers into database...`)
 
-    const markerRecords = result.markers.map((marker) => ({
-      id: crypto.randomUUID(),
-      uploadId: job.uploadId,
-      planId: job.planId,
-      sheetNumber: job.sheetNumber,
-      markerText: marker.marker_text,
-      detail: marker.detail,
-      sheet: marker.sheet,
-      markerType: marker.marker_type,
-      confidence: marker.confidence,
-      isValid: marker.is_valid,
-      fuzzyMatched: marker.fuzzy_matched ?? false,
-      sourceTile: null, // No tiles in new approach
-      bbox: marker.bbox ? JSON.stringify(marker.bbox) : null,
-    }))
-
-    await db.insert(planMarkers).values(markerRecords)
-    console.log(`✅ Successfully inserted ${markerRecords.length} markers into database`)
+    // Insert markers one at a time to avoid D1's "too many SQL variables" limit
+    // D1/SQLite has a limit on variables per query (~100), and batch inserts exceed it
+    let insertedCount = 0
+    for (const marker of result.markers) {
+      const markerRecord = {
+        id: crypto.randomUUID(),
+        uploadId: job.uploadId,
+        planId: job.planId,
+        sheetNumber: job.sheetNumber,
+        markerText: marker.marker_text,
+        detail: marker.detail,
+        sheet: marker.sheet,
+        markerType: marker.marker_type,
+        confidence: marker.confidence,
+        isValid: marker.is_valid,
+        fuzzyMatched: marker.fuzzy_matched ?? false,
+        sourceTile: null, // No tiles in new approach
+        bbox: marker.bbox ? JSON.stringify(marker.bbox) : null,
+      }
+      await db.insert(planMarkers).values(markerRecord)
+      insertedCount++
+    }
+    console.log(`✅ Successfully inserted ${insertedCount} markers into database`)
   } else {
     console.log(`⚠️ No markers detected for sheet ${job.sheetNumber}, skipping database insert`)
   }
