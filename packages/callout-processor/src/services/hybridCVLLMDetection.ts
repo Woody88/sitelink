@@ -7,6 +7,7 @@ import { callOpenRouter } from "../api/openrouter";
 import type { DetectedCallout, ImageInfo, AnalysisResult } from "../types/hyperlinks";
 import { join } from "path";
 import sharp from "sharp";
+import { validateBatch, type BatchValidationInput } from "../utils/batchValidation";
 
 /**
  * Hybrid Computer Vision + LLM Detection
@@ -324,39 +325,93 @@ export async function detectCalloutsHybridCVLLM(
       console.log(`   Found ${shapesWithText.length} shapes with callout text`);
     }
     
-    // Step 5: Validate with LLM (optional)
+    // Step 5: Validate with LLM using BATCH processing (optional)
     const validatedCallouts: DetectedCallout[] = [];
-    
+
     if (useLLMValidation && shapesWithText.length > 0) {
-      console.log(`🔍 Step 3: Validating ${shapesWithText.length} candidates with LLM...`);
-      
+      console.log(`🔍 Step 3: Batch validating ${shapesWithText.length} candidates with LLM...`);
+
+      // Prepare batch inputs
+      const batchInputs: BatchValidationInput[] = [];
+
       for (let i = 0; i < shapesWithText.length; i++) {
         const swt = shapesWithText[i];
-        const validation = await validateWithLLM(swt, processedImagePath, existingSheets, model);
-        
-        if (validation.isValid && validation.detectedRef) {
-          const targetSheet = validation.detectedRef.includes('/') 
-            ? validation.detectedRef.split('/')[1] 
-            : validation.detectedRef;
-          
-          // Filter by existing sheets if provided
-          if (existingSheets.length > 0 && !existingSheets.includes(targetSheet)) {
-            continue;
-          }
-          
-          validatedCallouts.push({
-            ref: validation.detectedRef,
-            targetSheet,
-            type: swt.shape.type === 'circle' 
-              ? (validation.detectedRef.includes('/') ? 'detail' : 'section')
-              : 'revision',
-            x: swt.shape.centerX,
-            y: swt.shape.centerY,
-            confidence: 0.7 * 0.8 + validation.confidence * 0.2 // Weight CV higher
+        const shape = swt.shape;
+
+        // Crop the shape region
+        const padding = 20;
+        const left = Math.max(0, shape.x - padding);
+        const top = Math.max(0, shape.y - padding);
+        const width = shape.width + (padding * 2);
+        const height = shape.height + (padding * 2);
+
+        try {
+          const image = sharp(processedImagePath);
+          const metadata = await image.metadata();
+
+          const actualLeft = Math.max(0, left);
+          const actualTop = Math.max(0, top);
+          const actualWidth = Math.min(width, (metadata.width || 0) - actualLeft);
+          const actualHeight = Math.min(height, (metadata.height || 0) - actualTop);
+
+          const cropBuffer = await image
+            .extract({ left: actualLeft, top: actualTop, width: actualWidth, height: actualHeight })
+            .png()
+            .toBuffer();
+
+          const base64 = cropBuffer.toString('base64');
+          const dataUrl = `data:image/png;base64,${base64}`;
+
+          batchInputs.push({
+            index: i,
+            imageDataUrl: dataUrl,
+            candidateRef: swt.patterns[0],
+            shapeType: swt.shape.type,
+            centerX: swt.shape.centerX,
+            centerY: swt.shape.centerY
           });
+        } catch (e) {
+          console.warn(`   Failed to crop shape ${i}: ${e}`);
         }
       }
-      
+
+      // Batch validate
+      const batchResults = await validateBatch(batchInputs, {
+        batchSize: 15,
+        model,
+        existingSheets,
+        verbose: true
+      });
+
+      // Process results
+      for (const result of batchResults) {
+        if (!result.isCallout || !result.detectedRef) {
+          continue;
+        }
+
+        const swt = shapesWithText[result.index];
+        if (!swt) continue;
+
+        const targetSheet = result.targetSheet ||
+          (result.detectedRef.includes('/') ? result.detectedRef.split('/')[1] : result.detectedRef);
+
+        // Filter by existing sheets if provided
+        if (existingSheets.length > 0 && !existingSheets.includes(targetSheet)) {
+          continue;
+        }
+
+        validatedCallouts.push({
+          ref: result.detectedRef,
+          targetSheet,
+          type: swt.shape.type === 'circle'
+            ? (result.detectedRef.includes('/') ? 'detail' : 'section')
+            : 'revision',
+          x: swt.shape.centerX,
+          y: swt.shape.centerY,
+          confidence: 0.7 * 0.8 + result.confidence * 0.2 // Weight CV higher
+        });
+      }
+
       console.log(`   Validated ${validatedCallouts.length}/${shapesWithText.length} candidates`);
     } else if (shapesWithText.length > 0) {
       // Use shapes without LLM validation

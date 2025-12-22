@@ -20,6 +20,7 @@ import { convertPdfToImage } from "./pdfProcessor";
 import type { DetectedCallout, ImageInfo, AnalysisResult } from "../types/hyperlinks";
 import { normalizeCoordinates } from "../utils/coordinates";
 import { getPythonInterpreter } from "../utils/pythonInterpreter";
+import { validateBatch, type BatchValidationInput, type BatchValidationResult } from "../utils/batchValidation";
 
 interface DetectedShape {
   type: string;
@@ -189,7 +190,65 @@ async function annotateImageWithCallouts(
 }
 
 /**
- * Create verification crops and verify with LLM
+ * Build batch verification prompt
+ */
+function buildBatchVerificationPrompt(
+  imageCount: number,
+  expectedRefs: string[]
+): string {
+  const refList = expectedRefs.map((ref, i) => `Image ${i}: "${ref}"`).join('\n');
+
+  return `You are verifying ${imageCount} detected callouts from a construction plan.
+
+For EACH image (numbered 0 to ${imageCount - 1}), check:
+1. Is there a callout symbol CENTERED in the image?
+2. Does the text match what was detected?
+3. If text differs, what does it ACTUALLY say?
+
+**Expected callouts:**
+${refList}
+
+**A callout is:** A geometric shape (circle with divider line, or triangle) with text like "1/A5" or "2/A6".
+
+**CRITICAL:**
+- Return a result for EVERY image
+- The "index" field MUST match the image position (0-indexed)
+- Look carefully at numbers - is it 6 or 7? A or A5?
+
+**Response format (JSON only):**
+{
+  "results": [
+    {
+      "index": 0,
+      "isCentered": true,
+      "actualRef": "2/A6",
+      "textMatches": true,
+      "confidence": 95,
+      "reason": "Clear match"
+    },
+    {
+      "index": 1,
+      "isCentered": false,
+      "actualRef": null,
+      "textMatches": false,
+      "confidence": 20,
+      "reason": "No callout visible at center"
+    }
+  ]
+}`;
+}
+
+interface VerificationResult {
+  index: number;
+  isCentered: boolean;
+  actualRef: string | null;
+  textMatches: boolean;
+  confidence: number;
+  reason?: string;
+}
+
+/**
+ * Create verification crops and verify with LLM (BATCHED)
  */
 async function verifyCalloutsWithLLM(
   imagePath: string,
@@ -201,107 +260,136 @@ async function verifyCalloutsWithLLM(
   if (!existsSync(verifyDir)) {
     mkdirSync(verifyDir, { recursive: true });
   }
-  
-  const verified: DetectedCalloutWithBbox[] = [];
-  const needsReview: DetectedCalloutWithBbox[] = [];
-  
-  console.log(`\n🔍 Verifying ${callouts.length} callouts with LLM...`);
-  
+
+  if (callouts.length === 0) {
+    return { verified: [], needsReview: [] };
+  }
+
+  console.log(`\n🔍 Batch verifying ${callouts.length} callouts with LLM...`);
+
+  const sharp = (await import("sharp")).default;
+  const image = sharp(imagePath);
+  const metadata = await image.metadata();
+
+  // Step 1: Prepare all verification crops
+  const verifyInputs: { callout: DetectedCalloutWithBbox; imageDataUrl: string; index: number }[] = [];
+
   for (let i = 0; i < callouts.length; i++) {
     const callout = callouts[i];
-    
-    // Create a small crop centered on the callout position
+
+    const cropSize = 80;
+    const half = cropSize / 2;
+    const left = Math.max(0, Math.round(callout.x - half));
+    const top = Math.max(0, Math.round(callout.y - half));
+    const width = Math.min(cropSize, (metadata.width || 0) - left);
+    const height = Math.min(cropSize, (metadata.height || 0) - top);
+
+    if (width <= 0 || height <= 0) {
+      continue;
+    }
+
     try {
-      const sharp = (await import("sharp")).default;
-      const image = sharp(imagePath);
-      const metadata = await image.metadata();
-      
-      const cropSize = 80;
-      const half = cropSize / 2;
-      const left = Math.max(0, Math.round(callout.x - half));
-      const top = Math.max(0, Math.round(callout.y - half));
-      const width = Math.min(cropSize, (metadata.width || 0) - left);
-      const height = Math.min(cropSize, (metadata.height || 0) - top);
-      
-      if (width <= 0 || height <= 0) {
-        needsReview.push(callout);
-        continue;
-      }
-      
       const cropPath = join(verifyDir, `verify_${i + 1}_${callout.ref.replace('/', '_')}.png`);
-      // Don't draw a red dot - it blocks the text inside callouts!
-      // Just crop the region centered on the detection point
-      await image
+      await sharp(imagePath)
         .extract({ left, top, width, height })
         .png()
         .toFile(cropPath);
-      
-      // Ask LLM to verify
+
       const imageBuffer = await Bun.file(cropPath).arrayBuffer();
       const base64 = Buffer.from(imageBuffer).toString('base64');
       const imageDataUrl = `data:image/png;base64,${base64}`;
-      
-      const verifyPrompt = `Look at this small crop from a construction plan.
 
-I believe there's a callout symbol "${callout.ref}" in the CENTER of this image.
+      verifyInputs.push({ callout, imageDataUrl, index: i });
+    } catch (error) {
+      console.error(`   Error creating crop for ${callout.ref}: ${error}`);
+    }
+  }
 
-A callout is a geometric shape (circle with divider line, or triangle) with text like "1/A5" or "2/A6".
+  console.log(`   Prepared ${verifyInputs.length} verification crops`);
 
-**TASKS:**
-1. Is there a callout symbol in the CENTER of this image?
-2. What text does the callout ACTUALLY say? (Look carefully at the number - is it 6 or 7?)
+  // Step 2: Batch verify with LLM
+  const verified: DetectedCalloutWithBbox[] = [];
+  const needsReview: DetectedCalloutWithBbox[] = [];
+  const BATCH_SIZE = 15;
 
-Reply with JSON:
-{
-  "isCentered": true/false,
-  "actualRef": "what you actually see (e.g., 2/A6 or 2/A7)",
-  "textMatches": true/false,
-  "confidence": 0-100,
-  "reason": "brief explanation, especially if text doesn't match"
-}`;
-      
-      const response = await callOpenRouter(verifyPrompt, [imageDataUrl], { model, temperature: 0 });
-      
+  for (let batchStart = 0; batchStart < verifyInputs.length; batchStart += BATCH_SIZE) {
+    const batch = verifyInputs.slice(batchStart, batchStart + BATCH_SIZE);
+    const batchNum = Math.floor(batchStart / BATCH_SIZE) + 1;
+    const totalBatches = Math.ceil(verifyInputs.length / BATCH_SIZE);
+
+    console.log(`   Verification batch ${batchNum}/${totalBatches} (${batch.length} images)...`);
+
+    try {
+      const prompt = buildBatchVerificationPrompt(
+        batch.length,
+        batch.map(b => b.callout.ref)
+      );
+      const images = batch.map(b => b.imageDataUrl);
+
+      const response = await callOpenRouter(prompt, images, { model, temperature: 0 });
+
+      // Parse response
       let cleaned = response.trim();
       if (cleaned.startsWith("```")) {
         cleaned = cleaned.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
       }
-      
-      const verification = JSON.parse(cleaned);
-      
-      const textMatches = verification.textMatches !== false;
-      const actualRef = verification.actualRef || callout.ref;
-      
-      console.log(`   [${i + 1}/${callouts.length}] ${callout.ref}: centered=${verification.isCentered}, textMatches=${textMatches}, actual="${actualRef}", confidence=${verification.confidence}%`);
-      
-      if (verification.isCentered && verification.confidence >= 70) {
-        // If text doesn't match, use the corrected text from verification
-        if (!textMatches && actualRef && actualRef !== callout.ref) {
-          console.log(`      🔄 CORRECTED: "${callout.ref}" → "${actualRef}"`);
-          callout.ref = actualRef.toUpperCase().trim();
-          // Extract target sheet from corrected ref
-          const match = callout.ref.match(/\/([A-Z]+\d+)$/i);
-          if (match) {
-            callout.targetSheet = match[1].toUpperCase();
+
+      const parsed = JSON.parse(cleaned) as { results: VerificationResult[] };
+
+      // Create index map
+      const resultsByIndex = new Map<number, VerificationResult>();
+      for (const result of parsed.results || []) {
+        if (typeof result.index === 'number') {
+          resultsByIndex.set(result.index, result);
+        }
+      }
+
+      // Process results
+      for (let i = 0; i < batch.length; i++) {
+        const { callout } = batch[i];
+        const verification = resultsByIndex.get(i);
+
+        if (!verification) {
+          console.log(`   [${batchStart + i + 1}] ${callout.ref}: ⚠️ No verification result`);
+          needsReview.push(callout);
+          continue;
+        }
+
+        const textMatches = verification.textMatches !== false;
+        const actualRef = verification.actualRef || callout.ref;
+
+        if (verification.isCentered && verification.confidence >= 70) {
+          // If text doesn't match, use the corrected text
+          if (!textMatches && actualRef && actualRef !== callout.ref) {
+            console.log(`   [${batchStart + i + 1}] ${callout.ref} → "${actualRef}" (corrected)`);
+            callout.ref = actualRef.toUpperCase().trim();
+            const match = callout.ref.match(/\/([A-Z]+\d+)$/i);
+            if (match) {
+              callout.targetSheet = match[1].toUpperCase();
+            }
+          }
+
+          callout.confidence = (callout.confidence || 0.8) * (verification.confidence / 100);
+          verified.push(callout);
+        } else {
+          callout.confidence = verification.confidence / 100;
+          needsReview.push(callout);
+          if (verification.reason) {
+            console.log(`   [${batchStart + i + 1}] ${callout.ref}: ⚠️ ${verification.reason}`);
           }
         }
-        
-        // Update confidence based on verification
-        callout.confidence = (callout.confidence || 0.8) * (verification.confidence / 100);
-        verified.push(callout);
-      } else {
-        callout.confidence = verification.confidence / 100;
-        needsReview.push(callout);
-        console.log(`      ⚠️ Needs review: ${verification.reason}`);
       }
     } catch (error) {
-      console.error(`   Error verifying ${callout.ref}: ${error}`);
-      needsReview.push(callout);
+      console.error(`   Verification batch ${batchNum} failed: ${error}`);
+      // Mark all in failed batch for review
+      for (const { callout } of batch) {
+        needsReview.push(callout);
+      }
     }
   }
-  
+
   console.log(`   Verified: ${verified.length}, Needs review: ${needsReview.length}`);
-  
+
   return { verified, needsReview };
 }
 
@@ -527,80 +615,99 @@ export async function detectCalloutsWithCVLLM(
       };
     }
     
-    // Step 3: Crop each shape and validate with LLM
-    console.log(`\n🔍 Step 2: Cropping ${cvResult.shapes.length} shapes and validating with LLM...`);
-    
+    // Step 3: Crop each shape and prepare for batch LLM validation
+    console.log(`\n🔍 Step 2: Cropping ${cvResult.shapes.length} shapes for batch validation...`);
+
     const detectedCallouts: DetectedCalloutWithBbox[] = [];
     const cropsDir = join(debugDir, "crops");
     if (!existsSync(cropsDir)) {
       mkdirSync(cropsDir, { recursive: true });
     }
-    
+
+    // Prepare batch inputs - crop all shapes first
+    const batchInputs: BatchValidationInput[] = [];
+    const shapeMap: Map<number, DetectedShape> = new Map();
+
     for (let i = 0; i < cvResult.shapes.length; i++) {
       const shape = cvResult.shapes[i];
-      console.log(`\n   [${i + 1}/${cvResult.shapes.length}] ${shape.type} at (${shape.centerX}, ${shape.centerY})`);
-      
+
       // Crop shape with generous padding
       const cropPath = join(cropsDir, `shape_${i + 1}_${shape.type}.png`);
       // Balance: 70px padding - enough for text but limits multi-callout crops
       const croppedPath = await cropShape(imagePath, shape, cropPath, 70);
-      
+
       if (!croppedPath) {
-        console.log(`      ❌ Failed to crop`);
+        console.log(`   [${i + 1}] ❌ Failed to crop ${shape.type} at (${shape.centerX}, ${shape.centerY})`);
         continue;
       }
-      
-      console.log(`      Cropped to: ${cropPath}`);
-      
-      // Validate with LLM - LLM tells us WHAT the callout says
-      // CV tells us WHERE the callout is (shape.centerX, shape.centerY)
-      const validation = await validateShapeWithLLM(croppedPath, model);
-      
-      console.log(`      LLM found ${validation.callouts.length} callout(s)`);
-      if (validation.reasoning) {
-        console.log(`      Reasoning: ${validation.reasoning}`);
-      }
-      
-      // Accept callouts from this shape
-      // If multiple callouts found, only take the FIRST one (using CV's shape center)
-      // Deduplication will handle if we detect the same callout from multiple shapes
-      if (validation.callouts.length > 0) {
-        const calloutsToProcess = validation.callouts.slice(0, 1); // Only first callout
-        for (const callout of calloutsToProcess) {
-          const normalizedRef = callout.ref?.toUpperCase().trim() || "";
-          
-          // Validate the ref format
-          if (!normalizedRef || !isValidCalloutRef(normalizedRef)) {
-            console.log(`      ⚠️ REJECTED: "${callout.ref}" - invalid format (must be detail/sheet like "1/A5")`);
-            continue;
-          }
-          
-          // Filter out self-references (callouts pointing to current sheet)
-          const targetSheet = callout.targetSheet?.toUpperCase().trim() || "";
-          if (currentSheet && targetSheet === currentSheet.toUpperCase().trim()) {
-            console.log(`      ⚠️ REJECTED: "${callout.ref}" - self-reference to current sheet ${currentSheet}`);
-            continue;
-          }
-          
-          // Use the shape center - since we only accept single-callout detections,
-          // the shape center IS the callout center
-          const absoluteX = shape.centerX;
-          const absoluteY = shape.centerY;
-          console.log(`      ✅ CALLOUT: ${callout.ref} @ shape center (${absoluteX}, ${absoluteY})`);
-          
-          detectedCallouts.push({
-            ref: normalizedRef,
-            targetSheet: callout.targetSheet?.toUpperCase().trim() || "",
-            type: callout.calloutType || "unknown",
-            x: absoluteX,
-            y: absoluteY,
-            confidence: callout.confidence || 0.8,
-            bbox: shape.bbox  // Store the actual CV bounding box
-          });
+
+      // Read crop and convert to base64
+      const imageBuffer = await Bun.file(croppedPath).arrayBuffer();
+      const base64 = Buffer.from(imageBuffer).toString('base64');
+      const imageDataUrl = `data:image/png;base64,${base64}`;
+
+      batchInputs.push({
+        index: i,
+        imageDataUrl,
+        shapeType: shape.type as 'circle' | 'triangle' | 'unknown',
+        bbox: shape.bbox,
+        centerX: shape.centerX,
+        centerY: shape.centerY
+      });
+
+      shapeMap.set(i, shape);
+    }
+
+    console.log(`   Prepared ${batchInputs.length} crops for batch validation`);
+
+    // Step 3b: Batch validate with LLM
+    if (batchInputs.length > 0) {
+      console.log(`\n🔍 Step 3: Batch validating ${batchInputs.length} shapes with LLM...`);
+
+      const batchResults = await validateBatch(batchInputs, {
+        batchSize: 15,
+        model,
+        existingSheets,
+        currentSheet,
+        verbose: true
+      });
+
+      // Process batch results
+      for (const result of batchResults) {
+        if (!result.isCallout || !result.detectedRef) {
+          continue;
         }
-      } else {
-        console.log(`      ❌ Not a callout`);
+
+        const shape = shapeMap.get(result.index);
+        if (!shape) continue;
+
+        const normalizedRef = result.detectedRef.toUpperCase().trim();
+
+        // Validate the ref format
+        if (!isValidCalloutRef(normalizedRef)) {
+          console.log(`   [${result.index + 1}] ⚠️ REJECTED: "${result.detectedRef}" - invalid format`);
+          continue;
+        }
+
+        // Self-reference filtering is done in validateBatch, but double-check
+        if (currentSheet && result.targetSheet === currentSheet.toUpperCase().trim()) {
+          continue;
+        }
+
+        console.log(`   [${result.index + 1}] ✅ CALLOUT: ${normalizedRef} @ (${shape.centerX}, ${shape.centerY}) conf=${(result.confidence * 100).toFixed(0)}%`);
+
+        detectedCallouts.push({
+          ref: normalizedRef,
+          targetSheet: result.targetSheet || "",
+          type: result.calloutType || "unknown",
+          x: shape.centerX,
+          y: shape.centerY,
+          confidence: result.confidence,
+          bbox: shape.bbox
+        });
       }
+
+      console.log(`   Batch validation found ${detectedCallouts.length} valid callouts`);
     }
     
     // Step 4: Deduplicate nearby detections

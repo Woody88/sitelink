@@ -3,6 +3,7 @@ import { callOpenRouter } from "../api/openrouter";
 import { detectCalloutsWithTesseractAndBoxes, type TesseractCalloutResult } from "./calloutTesseract";
 import { calculateCalloutConfidence } from "../utils/confidenceScoring";
 import type { DetectedCallout, ImageInfo } from "../types/hyperlinks";
+import { validateBatch, type BatchValidationInput } from "../utils/batchValidation";
 
 /**
  * Hybrid detection: OCR-first with LLM validation
@@ -165,44 +166,61 @@ export async function detectCalloutsHybrid(
     boundingBox: result.boundingBox
   }));
   
-  // Step 3: Validate candidates with LLM in batches
-  console.log(`🔍 Step 2: Validating ${candidates.length} candidates with LLM (batch size: ${batchSize})...`);
-  
-  const validatedCallouts: DetectedCallout[] = [];
-  
-  // Process in batches to avoid rate limits
-  for (let i = 0; i < candidates.length; i += batchSize) {
-    const batch = candidates.slice(i, i + batchSize);
-    console.log(`   Validating batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(candidates.length / batchSize)}...`);
-    
-    const validationPromises = batch.map(async (candidate) => {
-      const validation = await validateCandidate(
-        imageInfo.path,
-        candidate,
-        existingSheets,
-        model
-      );
-      
-      if (validation.isValid) {
-        // Use Tesseract's precise coordinates
-        const validatedCallout: DetectedCallout = {
-          ...candidate.callout,
-          confidence: (candidate.callout.confidence || 0) * 0.5 + validation.confidence * 0.5 // Combine OCR and LLM confidence
-        };
-        return validatedCallout;
-      }
-      
-      return null;
-    });
-    
-    const results = await Promise.all(validationPromises);
-    const valid = results.filter((r): r is DetectedCallout => r !== null);
-    validatedCallouts.push(...valid);
-    
-    console.log(`   ✅ Validated ${valid.length}/${batch.length} candidates`);
+  // Step 3: Prepare batch inputs for LLM validation
+  console.log(`🔍 Step 2: Preparing ${candidates.length} candidates for batch LLM validation...`);
+
+  const batchInputs: BatchValidationInput[] = [];
+
+  for (let i = 0; i < candidates.length; i++) {
+    const candidate = candidates[i];
+    try {
+      const cropBuffer = await cropCandidateRegion(imageInfo.path, candidate);
+      const base64 = cropBuffer.toString('base64');
+      const dataUrl = `data:image/png;base64,${base64}`;
+
+      batchInputs.push({
+        index: i,
+        imageDataUrl: dataUrl,
+        candidateRef: candidate.callout.ref,
+        centerX: candidate.callout.x,
+        centerY: candidate.callout.y
+      });
+    } catch (e) {
+      console.warn(`   Failed to crop candidate ${i}: ${e}`);
+    }
   }
-  
-  console.log(`✅ Hybrid detection complete: ${validatedCallouts.length}/${tesseractCallouts.length} candidates validated`);
+
+  // Step 4: Batch validate with LLM (true multi-image batching)
+  console.log(`🔍 Step 3: Batch validating ${batchInputs.length} candidates with LLM...`);
+
+  const batchResults = await validateBatch(batchInputs, {
+    batchSize,
+    model,
+    existingSheets,
+    verbose: true
+  });
+
+  // Process results
+  const validatedCallouts: DetectedCallout[] = [];
+
+  for (const result of batchResults) {
+    if (!result.isCallout || !result.detectedRef) {
+      continue;
+    }
+
+    const candidate = candidates[result.index];
+    if (!candidate) continue;
+
+    // Use Tesseract's precise coordinates with LLM validation
+    validatedCallouts.push({
+      ...candidate.callout,
+      ref: result.detectedRef,
+      targetSheet: result.targetSheet || candidate.callout.targetSheet,
+      confidence: (candidate.callout.confidence || 0) * 0.5 + result.confidence * 0.5
+    });
+  }
+
+  console.log(`✅ Hybrid detection complete: ${validatedCallouts.length}/${tesseractResults.length} candidates validated`);
   
   // Calculate final confidence scores
   return validatedCallouts.map(callout => {

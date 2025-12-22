@@ -50,13 +50,14 @@ async function main() {
   const sheetCountArg = args.find(arg => arg.startsWith("--sheets="));
   const totalSheetCount = sheetCountArg ? parseInt(sheetCountArg.split("=")[1]) : 7;
   
-  // Get model from command line or use default (flash)
-  // Options: flash, pro (2.5), pro3 (3.0)
+  // Get model from command line or use default (flash3 - Gemini 3 Flash)
+  // Options: flash (2.5), flash3 (Gemini 3 Flash - default), pro (2.5), pro3 (3.0)
   const modelArg = args.find(arg => arg.startsWith("--model="));
-  const modelName = modelArg ? modelArg.split("=")[1] : "flash";
-  const model: ModelType = modelName === "pro3" ? MODELS.PRO_3 
-    : modelName === "pro" ? MODELS.PRO_25 
-    : MODELS.FLASH;
+  const modelName = modelArg ? modelArg.split("=")[1] : "flash3";
+  const model: ModelType = modelName === "pro3" ? MODELS.PRO_3
+    : modelName === "pro" ? MODELS.PRO_25
+    : modelName === "flash" ? MODELS.FLASH
+    : MODELS.FLASH_3;
   
   // Get detection method from command line or use default (cvllm - enhanced CV + LLM)
   // Options: llm (original), region (region-based), cv-only (CV only), hybrid (CV + LLM), 

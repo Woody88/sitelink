@@ -10,6 +10,7 @@ import type { AnalysisResult, ImageInfo, DetectedCallout } from "../types/hyperl
 // Available models
 export const MODELS = {
   FLASH: "google/gemini-2.5-flash",
+  FLASH_3: "google/gemini-3-flash-preview",  // New Gemini 3 Flash - better quality, slightly higher cost
   PRO_25: "google/gemini-2.5-pro",
   PRO_3: "google/gemini-3-pro-preview",
 } as const;
