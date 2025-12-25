@@ -1,15 +1,20 @@
-import { useEffect } from 'react';
-import { Redirect } from 'expo-router';
+import { View, ActivityIndicator } from "react-native";
+import { Redirect } from "expo-router";
+import { useAuth } from "@/lib/auth-context";
 
 export default function Index() {
-  // Placeholder auth logic - will be replaced with better-auth in Task 6
-  // For now, redirect to main app
-  const isAuthenticated = true; // TODO: Replace with actual auth check
+  const { isAuthenticated, isLoading } = useAuth();
 
-  useEffect(() => {
-    // Any initialization logic here
-  }, []);
+  // Show loading state while checking auth
+  if (isLoading) {
+    return (
+      <View className="flex-1 items-center justify-center bg-background">
+        <ActivityIndicator size="large" color="#0066CC" />
+      </View>
+    );
+  }
 
+  // Redirect based on authentication state
   if (isAuthenticated) {
     return <Redirect href="/(main)/projects" />;
   }

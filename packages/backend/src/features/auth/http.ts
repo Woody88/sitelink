@@ -46,7 +46,18 @@ export const AuthAPILive = HttpApiBuilder.group(
 
 						// Add CORS headers to the response
 						const headers = new Headers(response.headers)
-						headers.set("Access-Control-Allow-Origin", "http://localhost:3000")
+						const origin = req.headers.get("Origin") || ""
+						const allowedOrigins = [
+							"http://localhost:3000",
+							"http://localhost:8081", // Expo dev server
+							"http://10.0.2.2:8787",  // Android emulator accessing host
+							"http://127.0.0.1:8787",
+						]
+						if (allowedOrigins.includes(origin) || origin.startsWith("exp://")) {
+							headers.set("Access-Control-Allow-Origin", origin)
+						} else {
+							headers.set("Access-Control-Allow-Origin", "http://localhost:3000")
+						}
 						headers.set("Access-Control-Allow-Credentials", "true")
 						headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 						headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization")
@@ -71,7 +82,18 @@ export const AuthAPILive = HttpApiBuilder.group(
 
 						// Add CORS headers to the response
 						const headers = new Headers(response.headers)
-						headers.set("Access-Control-Allow-Origin", "http://localhost:3000")
+						const origin = req.headers.get("Origin") || ""
+						const allowedOrigins = [
+							"http://localhost:3000",
+							"http://localhost:8081", // Expo dev server
+							"http://10.0.2.2:8787",  // Android emulator accessing host
+							"http://127.0.0.1:8787",
+						]
+						if (allowedOrigins.includes(origin) || origin.startsWith("exp://")) {
+							headers.set("Access-Control-Allow-Origin", origin)
+						} else {
+							headers.set("Access-Control-Allow-Origin", "http://localhost:3000")
+						}
 						headers.set("Access-Control-Allow-Credentials", "true")
 						headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 						headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization")
@@ -83,11 +105,23 @@ export const AuthAPILive = HttpApiBuilder.group(
 						})
 					}),
 				)
-				.handle("optionsAuth", () =>
+				.handle("optionsAuth", ({ request: _request }) =>
 					Effect.gen(function* () {
+						const req = _request.source as Request
 						// Handle CORS preflight requests
 						const headers = new Headers()
-						headers.set("Access-Control-Allow-Origin", "http://localhost:3000")
+						const origin = req.headers.get("Origin") || ""
+						const allowedOrigins = [
+							"http://localhost:3000",
+							"http://localhost:8081", // Expo dev server
+							"http://10.0.2.2:8787",  // Android emulator accessing host
+							"http://127.0.0.1:8787",
+						]
+						if (allowedOrigins.includes(origin) || origin.startsWith("exp://")) {
+							headers.set("Access-Control-Allow-Origin", origin)
+						} else {
+							headers.set("Access-Control-Allow-Origin", "http://localhost:3000")
+						}
 						headers.set("Access-Control-Allow-Credentials", "true")
 						headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 						headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization")

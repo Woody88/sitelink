@@ -1,13 +1,36 @@
-import { View, ScrollView, Pressable } from 'react-native';
-import { router } from 'expo-router';
-import { Button } from '@/components/ui/button';
-import { Text } from '@/components/ui/text';
+import { View, ScrollView, Pressable, Alert } from "react-native";
+import { Button } from "@/components/ui/button";
+import { Text } from "@/components/ui/text";
+import { useAuth } from "@/lib/auth-context";
 
 export default function SettingsScreen() {
-  const handleLogout = () => {
-    // TODO: Implement actual logout with better-auth in Task 6
-    console.log('Logout');
-    router.replace('/(auth)/login');
+  const { user, signOut, isLoading } = useAuth();
+
+  const handleLogout = async () => {
+    Alert.alert(
+      "Sign Out",
+      "Are you sure you want to sign out?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Sign Out",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await signOut();
+              // Navigation is handled by the auth context
+            } catch (error) {
+              console.error("[Settings] Sign out error:", error);
+              Alert.alert("Error", "Failed to sign out. Please try again.");
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   return (
@@ -20,9 +43,26 @@ export default function SettingsScreen() {
           </Text>
         </View>
 
+        {/* User Info Section */}
+        {user && (
+          <View className="gap-2">
+            <Text className="text-lg font-semibold text-foreground">
+              Signed In As
+            </Text>
+            <View className="border border-input rounded-lg p-4 bg-card">
+              <Text className="text-base font-medium text-foreground">
+                {user.name || "No name set"}
+              </Text>
+              <Text className="text-sm text-muted-foreground">{user.email}</Text>
+            </View>
+          </View>
+        )}
+
         <View className="gap-4">
           <View className="gap-2">
-            <Text className="text-lg font-semibold text-foreground">Account</Text>
+            <Text className="text-lg font-semibold text-foreground">
+              Account
+            </Text>
             <Pressable className="border border-input rounded-lg p-4 bg-card active:bg-accent">
               <Text className="text-base text-foreground">Profile Settings</Text>
             </Pressable>
@@ -41,16 +81,18 @@ export default function SettingsScreen() {
             </Pressable>
           </View>
 
-          <Button 
-            variant="destructive" 
-            className="mt-4"
+          <Button
+            variant="destructive"
+            className="mt-4 h-12"
             onPress={handleLogout}
+            disabled={isLoading}
           >
-            <Text>Sign Out</Text>
+            <Text className="text-white font-semibold">
+              {isLoading ? "Signing Out..." : "Sign Out"}
+            </Text>
           </Button>
         </View>
       </View>
     </ScrollView>
   );
 }
-
