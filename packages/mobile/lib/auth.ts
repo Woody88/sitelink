@@ -72,6 +72,7 @@ const customFetch = async (
   init?: RequestInit
 ): Promise<Response> => {
   const url = typeof input === "string" ? input : input.toString();
+  console.log("[Auth Fetch]", init?.method || "GET", url);
 
   // Get stored token for authorization
   const token = await secureStorageAdapter.getItem(AUTH_TOKEN_KEY);
@@ -95,7 +96,14 @@ const customFetch = async (
     credentials: "include",
   };
 
-  const response = await fetch(url, fetchInit);
+  let response: Response;
+  try {
+    response = await fetch(url, fetchInit);
+    console.log("[Auth Fetch] Response:", response.status, response.statusText);
+  } catch (fetchError) {
+    console.error("[Auth Fetch] Network error:", fetchError);
+    throw fetchError;
+  }
 
   // Handle set-cookie header if present (for session management)
   // Note: In React Native, we may need to extract and store the session token manually

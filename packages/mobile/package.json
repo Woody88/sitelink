@@ -10,6 +10,8 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@sitelink/shared-types": "workspace:*",
+    "@effect/platform": "^0.94.0",
     "@expo/metro-runtime": "~6.1.2",
     "@react-navigation/drawer": "^7.7.10",
     "@react-navigation/native": "^7.0.0",
@@ -18,6 +20,7 @@
     "better-auth": "^1.4.9",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "effect": "^3.19.13",
     "expo": "~54.0.30",
     "expo-constants": "~18.0.8",
     "expo-dev-client": "~6.0.20",
