@@ -32,6 +32,16 @@ export const planMarkers = D.sqliteTable(
 		sourceTile: D.text("source_tile"), // Tile filename where marker was found
 		bbox: D.text("bbox", { mode: "json" }), // JSON: { x, y, w, h }
 
+		// Review workflow (for mobile app position adjustment)
+		reviewStatus: D.text("review_status", { enum: ["pending", "confirmed", "rejected"] })
+			.notNull()
+			.default("pending"),
+		adjustedBbox: D.text("adjusted_bbox", { mode: "json" }), // JSON: { x, y, w, h } - user-corrected position
+		originalBbox: D.text("original_bbox", { mode: "json" }), // JSON: backup of original bbox before adjustment
+		adjustedBy: D.text("adjusted_by"), // User ID who made the adjustment
+		adjustedAt: D.integer("adjusted_at", { mode: "timestamp_ms" }), // When adjustment was made
+		reviewNotes: D.text("review_notes"), // Optional notes from reviewer
+
 		createdAt: D.integer("created_at", { mode: "timestamp_ms" })
 			.$defaultFn(() => new Date())
 			.notNull(),
@@ -40,6 +50,8 @@ export const planMarkers = D.sqliteTable(
 		uploadIdIdx: D.index("idx_markers_upload").on(table.uploadId),
 		planIdIdx: D.index("idx_markers_plan").on(table.planId),
 		sheetIdx: D.index("idx_markers_sheet").on(table.planId, table.sheetNumber),
+		// Index for mobile review queries (filter by confidence and review status)
+		reviewIdx: D.index("idx_markers_review").on(table.planId, table.reviewStatus, table.confidence),
 	}),
 )
 

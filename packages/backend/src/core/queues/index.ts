@@ -510,13 +510,19 @@ export async function pdfProcessingQueueConsumer(batch: MessageBatch<R2Notificat
         console.log(`📋 Initializing PlanCoordinator for uploadId=${uploadId}, totalSheets=${totalPages}`)
         const coordinatorId = env.PLAN_COORDINATOR.idFromName(uploadId)
         const coordinator = env.PLAN_COORDINATOR.get(coordinatorId)
+
+        // Dynamic timeout: 10 min base + 5 min per sheet (accounts for container startup, processing, retries)
+        // Example: 1 sheet = 15 min, 7 sheets = 45 min, 20 sheets = 110 min
+        const timeoutMs = (10 * 60 * 1000) + (totalPages * 5 * 60 * 1000)
+        console.log(`📋 Setting timeout to ${Math.round(timeoutMs / 60000)} minutes for ${totalPages} sheets`)
+
         const coordinatorResponse = await coordinator.fetch("http://localhost/initialize", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             uploadId,
             totalSheets: totalPages,
-            timeoutMs: 15 * 60 * 1000, // 15 minutes
+            timeoutMs,
           }),
         })
 
