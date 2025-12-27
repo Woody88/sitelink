@@ -21,8 +21,8 @@ const sampleTileJob = {
 	projectId: "test-project-123",
 	planId: "test-plan-456",
 	organizationId: "test-org-789",
-	sheetNumber: 0,
-	sheetKey: "organizations/test-org-789/projects/test-project-123/plans/test-plan-456/uploads/test-upload-123/sheet-0.pdf",
+	sheetNumber: 1,
+	sheetKey: "organizations/test-org-789/projects/test-project-123/plans/test-plan-456/uploads/test-upload-123/sheet-1.pdf",
 	totalSheets: 3,
 }
 

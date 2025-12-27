@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenSeadragon Callout Demo</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.0/openseadragon.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      background: #1a1a1a;
+    }
+
+    #viewer {
+      flex: 1;
+      height: 100%;
+      background: #2a2a2a;
+    }
+
+    #sidebar {
+      width: 300px;
+      background: #242424;
+      color: #fff;
+      padding: 16px;
+      overflow-y: auto;
+      border-left: 1px solid #333;
+    }
+
+    h1 {
+      font-size: 16px;
+      margin-bottom: 16px;
+      color: #fff;
+    }
+
+    h2 {
+      font-size: 14px;
+      margin: 16px 0 8px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stats {
+      background: #333;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      color: #888;
+    }
+
+    .stat-value {
+      color: #4CAF50;
+      font-weight: 600;
+    }
+
+    .callout-list {
+      list-style: none;
+    }
+
+    .callout-item {
+      background: #333;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 2px solid transparent;
+    }
+
+    .callout-item:hover {
+      background: #444;
+      border-color: #FF5722;
+    }
+
+    .callout-ref {
+      font-weight: 600;
+      color: #FF5722;
+      margin-bottom: 4px;
+    }
+
+    .callout-target {
+      font-size: 12px;
+      color: #888;
+    }
+
+    .callout-confidence {
+      font-size: 11px;
+      color: #4CAF50;
+      margin-top: 4px;
+    }
+
+    /* Overlay styles - scales with image */
+    .callout-overlay {
+      width: 100%;
+      height: 100%;
+      border: 3px solid #FF5722;
+      border-radius: 50%;
+      background: rgba(255, 87, 34, 0.2);
+      cursor: pointer;
+      pointer-events: auto;
+      box-sizing: border-box;
+    }
+
+    .callout-overlay:hover {
+      background: rgba(255, 87, 34, 0.4);
+      box-shadow: 0 0 10px rgba(255, 87, 34, 0.6);
+    }
+
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #888;
+    }
+
+    .error {
+      background: #ff5722;
+      color: white;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div id="viewer"></div>
+  <div id="sidebar">
+    <h1>Callout Detection Demo</h1>
+
+    <div class="stats" id="stats">
+      <div class="loading">Loading...</div>
+    </div>
+
+    <h2>Detected Callouts</h2>
+    <ul class="callout-list" id="callout-list">
+      <li class="loading">Loading callouts...</li>
+    </ul>
+  </div>
+
+  <script>
+    let viewer = null;
+    let detectionResults = null;
+
+    // Initialize OpenSeadragon viewer
+    function initViewer() {
+      viewer = OpenSeadragon({
+        id: 'viewer',
+        tileSources: '/tiles/plan.dzi',
+        prefixUrl: 'https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.0/images/',
+        showNavigator: true,
+        navigatorPosition: 'BOTTOM_RIGHT',
+        navigatorSizeRatio: 0.15,
+        animationTime: 0.3,
+        blendTime: 0.1,
+        constrainDuringPan: true,
+        maxZoomPixelRatio: 4,
+        minZoomLevel: 0.5,
+        visibilityRatio: 0.5,
+        zoomPerClick: 1.5,
+        zoomPerScroll: 1.2,
+        gestureSettingsMouse: {
+          clickToZoom: false,
+          dblClickToZoom: true
+        }
+      });
+
+      viewer.addHandler('open', () => {
+        console.log('Viewer opened, loading detection results...');
+        loadDetectionResults();
+      });
+
+      viewer.addHandler('open-failed', (event) => {
+        console.error('Failed to open tiles:', event);
+        showError('Failed to load tiles. Make sure to run: bun run demo:tiles');
+      });
+    }
+
+    // Load detection results and add overlays
+    async function loadDetectionResults() {
+      try {
+        const response = await fetch('/results.json');
+        if (!response.ok) {
+          throw new Error('Failed to fetch results.json');
+        }
+
+        detectionResults = await response.json();
+        console.log('Detection results:', detectionResults);
+
+        updateStats(detectionResults);
+        renderCalloutList(detectionResults.hyperlinks);
+        addOverlays(detectionResults.hyperlinks);
+
+      } catch (error) {
+        console.error('Error loading detection results:', error);
+        showError('Failed to load detection results. Run detection first.');
+      }
+    }
+
+    // Update stats panel
+    function updateStats(results) {
+      const stats = document.getElementById('stats');
+      stats.innerHTML = `
+        <div class="stat-row">
+          <span class="stat-label">Callouts Found</span>
+          <span class="stat-value">${results.calloutsFound}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Matched</span>
+          <span class="stat-value">${results.calloutsMatched}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Avg Confidence</span>
+          <span class="stat-value">${(results.confidenceStats.averageConfidence * 100).toFixed(1)}%</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Processing Time</span>
+          <span class="stat-value">${(results.processingTimeMs / 1000).toFixed(1)}s</span>
+        </div>
+      `;
+    }
+
+    // Render callout list in sidebar
+    function renderCalloutList(hyperlinks) {
+      const list = document.getElementById('callout-list');
+      list.innerHTML = hyperlinks.map((h, i) => `
+        <li class="callout-item" data-index="${i}">
+          <div class="callout-ref">${h.calloutRef}</div>
+          <div class="callout-target">Links to: Sheet ${h.targetSheetRef}</div>
+          <div class="callout-confidence">Confidence: ${(h.confidence * 100).toFixed(1)}%</div>
+        </li>
+      `).join('');
+
+      // Add click handlers to zoom to callout
+      list.querySelectorAll('.callout-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const index = parseInt(item.dataset.index);
+          const hyperlink = hyperlinks[index];
+          zoomToCallout(hyperlink);
+        });
+      });
+    }
+
+    // Add overlays at each callout position
+    function addOverlays(hyperlinks) {
+      // Get the image dimensions from the tiled image
+      const tiledImage = viewer.world.getItemAt(0);
+      const imageSize = tiledImage.getContentSize();
+
+      console.log('Image size:', imageSize.x, 'x', imageSize.y);
+
+      // Size of overlay in image pixels (will scale with zoom)
+      const overlayPixelSize = 25;
+
+      hyperlinks.forEach((h, index) => {
+        const element = document.createElement('div');
+        element.className = 'callout-overlay';
+        element.id = `overlay-${index}`;
+
+        // Use normalized coordinates (0-1) and convert to pixel coords for THIS image
+        // Detection x,y are normalized (0-1) regardless of original DPI
+        // Multiply by tile image dimensions to get pixel position on tiles
+        const tilePixelX = h.x * imageSize.x;
+        const tilePixelY = h.y * imageSize.y;
+
+        // Create a Rect in IMAGE coordinates (pixels), centered on the callout
+        // Using image coords ensures proper scaling without drift during zoom
+        const imageRect = new OpenSeadragon.Rect(
+          tilePixelX - overlayPixelSize / 2,
+          tilePixelY - overlayPixelSize / 2,
+          overlayPixelSize,
+          overlayPixelSize
+        );
+
+        // Convert image rect to viewport rect
+        const viewportRect = viewer.viewport.imageToViewportRectangle(imageRect);
+
+        console.log(`Callout ${h.calloutRef}: imageRect(${imageRect.x.toFixed(0)}, ${imageRect.y.toFixed(0)}, ${imageRect.width}, ${imageRect.height})`);
+
+        // Add overlay using the viewport rect - scales with image, no drift
+        viewer.addOverlay({
+          element: element,
+          location: viewportRect
+        });
+
+        // CRITICAL: Must use MouseTracker for click handling
+        // Vanilla JS click events don't work on OSD overlays!
+        new OpenSeadragon.MouseTracker({
+          element: element,
+          clickHandler: () => {
+            handleCalloutClick(h);
+          }
+        });
+      });
+
+      console.log(`Added ${hyperlinks.length} overlays`);
+    }
+
+    // Handle callout click - alert the target sheet
+    function handleCalloutClick(hyperlink) {
+      alert(`Navigate to Sheet: ${hyperlink.targetSheetRef}\n\nCallout: ${hyperlink.calloutRef}\nConfidence: ${(hyperlink.confidence * 100).toFixed(1)}%`);
+    }
+
+    // Zoom to a specific callout
+    function zoomToCallout(hyperlink) {
+      // Get the image dimensions from the tiled image
+      const tiledImage = viewer.world.getItemAt(0);
+      const imageSize = tiledImage.getContentSize();
+
+      // Use normalized coordinates and convert to pixel coords for THIS image
+      const tilePixelX = hyperlink.x * imageSize.x;
+      const tilePixelY = hyperlink.y * imageSize.y;
+
+      // Convert to viewport coordinates
+      const imagePoint = new OpenSeadragon.Point(tilePixelX, tilePixelY);
+      const viewportPoint = viewer.viewport.imageToViewportCoordinates(imagePoint);
+      viewer.viewport.panTo(viewportPoint);
+      viewer.viewport.zoomTo(4);  // Zoom in to see detail
+    }
+
+    // Show error message
+    function showError(message) {
+      const stats = document.getElementById('stats');
+      stats.innerHTML = `<div class="error">${message}</div>`;
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', initViewer);
+  </script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+name = "plan-ocr-service"
+main = "src/api.py"
+compatibility_date = "2025-09-23"
+
+[[containers]]
+max_instances = 3
+class_name = "PlanOcrContainer"
+image = "./Dockerfile"
+instance_type = "standard"
+
+# Environment variables (set secrets via: wrangler secret put OPENROUTER_API_KEY)
+[vars]
+# Add any non-secret environment variables here

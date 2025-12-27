@@ -8,7 +8,7 @@ export default defineConfig({
 	...(process.env.NODE_ENV !== "production" // Use local SQLite file for development
 		? {
 				dbCredentials: {
-					url: ".wrangler/state/v3/d1/miniflare-D1DatabaseObject/1bfa5e8ee82606601526f90ef320195702c729e781f59e4dd2577221ec89c2e9.sqlite",
+					url: ".wrangler/state/v3/d1/miniflare-D1DatabaseObject/5d577ff376ae589839259f8ed23cb8161029aef16cf19587c4ee2d55e16cbcc1.sqlite",
 				},
 			}
 		: {

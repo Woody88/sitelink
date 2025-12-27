@@ -1,4 +1,3 @@
-import { env } from "cloudflare:workers"
 import { Container } from "@cloudflare/containers"
 
 export interface NewProcessingJob {
@@ -33,14 +32,10 @@ export interface ProcessingJobState extends NewProcessingJob {
 }
 
 export class SitelinkPdfProcessor extends Container {
-	override defaultPort = 3000 // Port the container is listening on
+	override defaultPort = 3001 // Port the container is listening on (3001 to avoid conflict with frontend on 3000)
 	override sleepAfter = "10m" // Stop the instance if requests not sent for 10 minutes
-	override envVars = {
-		R2_ENDPOINT: env.R2_ENDPOINT,
-		R2_ACCESS_KEY_ID: env.R2_ACCESS_KEY_ID,
-		R2_SECRET_ACCESS_KEY: env.R2_SECRET_ACCESS_KEY,
-		R2_BUCKET: env.R2_BUCKET,
-	}
+	// No environment variables needed - container is stateless and R2-agnostic
+
 	override onStart() {
 		console.log("Container successfully started")
 	}

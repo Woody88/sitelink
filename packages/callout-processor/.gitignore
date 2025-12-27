@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Output files
+output/
+*.png
+*.jpg
+*.jpeg
+
+# Environment
+.env.local
+.env.*.local
+
+# Python virtual environment
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test coverage
+coverage/
+

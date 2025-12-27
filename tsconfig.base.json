@@ -37,7 +37,9 @@
 	"exclude": [
 		"node_modules",
 		"**/node_modules/**",
+		".effect/**",
+		".effect-source/**",
 		"**/dist/**",
-		"**/.wrangler/**"
+		"**/.wrangler/**",
 	]
 }

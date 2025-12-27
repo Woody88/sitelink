@@ -13,9 +13,20 @@ export const planSheets = D.sqliteTable(
 		planId: D.text("plan_id")
 			.notNull()
 			.references(() => plans.id, { onDelete: "cascade" }),
-		sheetNumber: D.integer("sheet_number").notNull(), // 0-indexed (renamed from pageNumber)
+		sheetNumber: D.integer("sheet_number").notNull(), // 1-indexed (matches file naming: sheet-1.pdf, sheet-2.pdf, etc.)
 		sheetKey: D.text("sheet_key").notNull(), // R2 path to sheet PDF (renamed from dziPath)
 		sheetSize: D.integer("sheet_size"),
+
+		// NEW: Metadata extraction columns
+		sheetName: D.text("sheet_name"), // Extracted sheet identifier (e.g., "A5", "A-007")
+		metadataStatus: D.text("metadata_status")
+			.notNull()
+			.default("pending"), // pending|extracting|extracted|failed
+		metadata: D.text("metadata", { mode: "json" }), // JSON: { title_block_location, extracted_text, confidence, method }
+		metadataExtractedAt: D.integer("metadata_extracted_at", {
+			mode: "timestamp_ms",
+		}),
+
 		status: D.text()
 			.notNull()
 			.default("pending"), // pending|processing|ready|failed (renamed from processingStatus)

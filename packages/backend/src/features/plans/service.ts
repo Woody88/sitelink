@@ -1,10 +1,10 @@
 import { HttpApiSchema } from "@effect/platform"
-import { asc, eq } from "drizzle-orm"
+import { asc, eq, sql } from "drizzle-orm"
 import { Effect, Schema } from "effect"
+import { PdfProcessingQueue } from "../../core/bindings"
 import { Drizzle } from "../../core/database"
 import * as schema from "../../core/database/schemas"
 import { StorageService } from "../../core/storage"
-import { ProcessorService } from "../processing/service"
 
 /**
  * Plan not found error
@@ -73,12 +73,11 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 	dependencies: [
 		Drizzle.Default,
 		StorageService.Default,
-		ProcessorService.Default,
 	],
 	effect: Effect.gen(function* () {
 		const db = yield* Drizzle
 		const storage = yield* StorageService
-		const pdfProcessor = yield* ProcessorService
+		const pdfQueue = yield* PdfProcessingQueue
 
 		/**
 		 * Create a new plan with PDF upload
@@ -89,6 +88,7 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 		const create = Effect.fn("Plan.create")(function* (params: {
 			projectId: string
 			organizationId: string
+			userId: string
 			name: string
 			description?: string
 			fileData: Uint8Array | ArrayBuffer
@@ -109,6 +109,7 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 			console.log(`📤 Uploading PDF to R2: ${filePath}`)
 			console.log(`   File size: ${params.fileData.byteLength} bytes`)
 			console.log(`   Organization ID: ${organizationId}`)
+			console.log(`   User ID: ${params.userId}`)
 
 			// Upload PDF to R2
 			yield* storage.use((r2) =>
@@ -120,6 +121,7 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 			console.log(`✅ PDF uploaded successfully to R2`)
 
 			const createdAt = new Date()
+			console.log(`📝 Inserting plan record...`)
 			// Insert plan metadata (FK constraint will validate projectId exists)
 			yield* db.insert(schema.plans).values({
 				id: planId,
@@ -129,29 +131,69 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 				createdAt,
 			})
 
-			// Insert file record
-			yield* db.insert(schema.planUploads).values({
-				id: fileId,
-				uploadId,
-				planId,
-				filePath,
-				fileType: params.fileType,
-				isActive: true,
-				createdAt: new Date(),
-			})
+			console.log(`✅ Plan record inserted`)
+			console.log(`📝 Inserting plan upload record...`)
+			console.log(`   Upload ID: ${uploadId}`)
+			console.log(`   File ID: ${fileId}`)
+			console.log(`   Plan ID: ${planId}`)
+			console.log(`   Uploaded by: ${params.userId}`)
 
-			// // Initialize PDF processing job in Durable Object
-			// yield* pdfProcessor.process({
-			// 	jobId,
-			// 	uploadId,
-			// 	planId,
-			// 	organizationId,
-			// 	projectId,
-			// 	pdfPath: filePath,
-			// 	filename: params.fileName,
-			// 	fileSize: params.fileData.byteLength,
-			// 	uploadedAt: createdAt.getTime(),
-			// })
+			// Insert file record
+			try {
+				yield* db.insert(schema.planUploads).values({
+					id: fileId,
+					uploadId,
+					planId,
+					filePath,
+					fileType: params.fileType,
+					fileSize: params.fileData.byteLength,
+					isActive: true,
+					uploadedBy: params.userId,
+					uploadedAt: createdAt,
+					createdAt,
+				})
+				console.log(`✅ Plan upload record inserted`)
+			} catch (error) {
+				console.error(`❌ Failed to insert plan upload:`, error)
+				throw error
+			}
+
+			// Create processing job record (jobId = fileId for tracking)
+			try {
+				yield* db.insert(schema.processingJobs).values({
+					id: jobId,
+					uploadId,
+					planId,
+					organizationId,
+					projectId: params.projectId,
+					pdfPath: filePath,
+					status: "pending",
+					progress: 0,
+					createdAt,
+					updatedAt: createdAt,
+				})
+				console.log(`✅ Processing job record created: ${jobId}`)
+			} catch (error) {
+				console.error(`❌ Failed to insert processing job:`, error)
+				throw error
+			}
+
+			// Trigger PDF processing via queue (queue-based architecture)
+			console.log(`📤 Enqueuing PDF processing job for: ${filePath}`)
+			yield* Effect.tryPromise({
+				try: () => pdfQueue.send({
+					account: organizationId,
+					action: "PutObject" as const,
+					bucket: "sitelink-storage",
+					object: { key: filePath, size: params.fileData.byteLength },
+					eventTime: createdAt.toISOString(),
+				}),
+				catch: (error) => {
+					console.error(`❌ Failed to enqueue PDF processing:`, error)
+					return error
+				},
+			})
+			console.log(`✅ PDF processing job enqueued successfully`)
 
 			return { planId, fileId, uploadId, filePath, jobId }
 		})
@@ -174,11 +216,25 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 		 * List all plans for a project
 		 */
 		const list = Effect.fn("Plan.list")(function* (projectId: string) {
-			// Query all plans for project
+			// Query all plans for project with processing status
 			const planList = yield* db
-				.select()
+				.select({
+					id: schema.plans.id,
+					name: schema.plans.name,
+					description: schema.plans.description,
+					directoryPath: sql<string | null>`NULL`.as("directoryPath"), // Not implemented yet - return NULL
+					processingStatus: schema.processingJobs.status,
+					tileMetadata: sql<string | null>`NULL`.as("tileMetadata"), // Not implemented yet - return NULL
+					createdAt: schema.plans.createdAt,
+				})
 				.from(schema.plans)
+				.leftJoin(
+					schema.processingJobs,
+					eq(schema.plans.id, schema.processingJobs.planId),
+				)
 				.where(eq(schema.plans.projectId, projectId))
+				.groupBy(schema.plans.id)
+				.orderBy(sql`${schema.plans.createdAt} DESC`)
 
 			return planList
 		})
@@ -257,7 +313,7 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 		 * Get DZI XML file for a sheet
 		 *
 		 * Retrieves the DZI metadata file from R2 storage.
-		 * DZI path format: organizations/{orgId}/projects/{projectId}/plans/{planId}/sheets/{sheetId}/tiles/{sheetId}.dzi
+		 * DZI path format: organizations/{orgId}/projects/{projectId}/plans/{planId}/sheets/sheet-{n}/sheet-sheet-{n}.dzi
 		 */
 		const getDziFile = Effect.fn("Plan.getDziFile")(function* (params: {
 			sheetId: string
@@ -265,15 +321,36 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 			// Get sheet to verify it exists and get the DZI path
 			const sheet = yield* getSheet(params.sheetId)
 
-			// Fetch DZI file from R2
-			const dziObject = yield* storage.use((r2) => r2.get(sheet.sheetKey))
+			console.log(`🔍 getDziFile: sheetId=${params.sheetId}`)
+			console.log(`🔍 getDziFile: sheetKey=${sheet.sheetKey}, sheetNumber=${sheet.sheetNumber}`)
 
-			// Check if file exists
-			if (!dziObject) {
+			// Build DZI path from sheetKey
+			// sheetKey format: organizations/{orgId}/projects/{projectId}/plans/{planId}/uploads/{uploadId}/sheet-{n}.pdf
+			// DZI path format: organizations/{orgId}/projects/{projectId}/plans/{planId}/sheets/sheet-{n}/sheet-sheet-{n}.dzi
+			const sheetKeyMatch = sheet.sheetKey.match(/^(organizations\/[^\/]+\/projects\/[^\/]+\/plans\/[^\/]+)\//)
+			if (!sheetKeyMatch) {
+				console.error(`❌ getDziFile: sheetKey regex did not match: ${sheet.sheetKey}`)
 				return yield* Effect.fail(
 					new DziNotFoundError({ sheetId: params.sheetId }),
 				)
 			}
+			const basePath = sheetKeyMatch[1]
+			const dziPath = `${basePath}/sheets/sheet-${sheet.sheetNumber}/sheet-sheet-${sheet.sheetNumber}.dzi`
+
+			console.log(`🔍 getDziFile: Looking for DZI at path: ${dziPath}`)
+
+			// Fetch DZI file from R2
+			const dziObject = yield* storage.use((r2) => r2.get(dziPath))
+
+			// Check if file exists
+			if (!dziObject) {
+				console.error(`❌ getDziFile: DZI NOT FOUND at path: ${dziPath}`)
+				return yield* Effect.fail(
+					new DziNotFoundError({ sheetId: params.sheetId }),
+				)
+			}
+
+			console.log(`✅ getDziFile: Found DZI, size=${dziObject.size} bytes`)
 
 			// Read the XML content
 			const dziContent = yield* Effect.promise(() => dziObject.text())
@@ -285,7 +362,7 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 		 * Get tile image file for a sheet
 		 *
 		 * Retrieves a specific tile file from R2 storage.
-		 * Tile path format: organizations/{orgId}/projects/{projectId}/plans/{planId}/sheets/{sheetId}/tiles/{sheetId}_files/{level}/{tile}
+		 * Tile path format: organizations/{orgId}/projects/{projectId}/plans/{planId}/sheets/sheet-{n}/sheet-sheet-{n}_files/{level}/{tile}
 		 */
 		const getTile = Effect.fn("Plan.getTile")(function* (params: {
 			sheetId: string
@@ -295,18 +372,34 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 			// Get sheet to verify it exists and build the tile path
 			const sheet = yield* getSheet(params.sheetId)
 
+			console.log(`🔍 getTile: sheetId=${params.sheetId}, level=${params.level}, tile=${params.tile}`)
+			console.log(`🔍 getTile: sheetKey=${sheet.sheetKey}, sheetNumber=${sheet.sheetNumber}`)
+
 			// Build tile path from sheet's sheetKey
 			// sheetKey format: organizations/{orgId}/projects/{projectId}/plans/{planId}/uploads/{uploadId}/sheet-{n}.pdf
-			// Tile directory format: organizations/{orgId}/projects/{projectId}/plans/{planId}/uploads/{uploadId}/sheet-{n}/sheet-{n}_files
-			const sheetBasePath = sheet.sheetKey.replace(/\.pdf$/, "") // Remove .pdf extension
-			const tileDirectory = `${sheetBasePath}/sheet-${sheet.sheetNumber}_files`
+			// Tile path format: organizations/{orgId}/projects/{projectId}/plans/{planId}/sheets/sheet-{n}/sheet-sheet-{n}_files/{level}/{tile}
+			const sheetKeyMatch = sheet.sheetKey.match(/^(organizations\/[^\/]+\/projects\/[^\/]+\/plans\/[^\/]+)\//)
+			if (!sheetKeyMatch) {
+				console.error(`❌ getTile: sheetKey regex did not match: ${sheet.sheetKey}`)
+				return yield* Effect.fail(
+					new TileNotFoundError({
+						sheetId: params.sheetId,
+						tilePath: "invalid sheetKey format",
+					}),
+				)
+			}
+			const basePath = sheetKeyMatch[1]
+			const tileDirectory = `${basePath}/sheets/sheet-${sheet.sheetNumber}/sheet-sheet-${sheet.sheetNumber}_files`
 			const tilePath = `${tileDirectory}/${params.level}/${params.tile}`
+
+			console.log(`🔍 getTile: Looking for tile at R2 path: ${tilePath}`)
 
 			// Fetch tile file from R2
 			const tileObject = yield* storage.use((r2) => r2.get(tilePath))
 
 			// Check if file exists
 			if (!tileObject) {
+				console.error(`❌ getTile: Tile NOT FOUND at path: ${tilePath}`)
 				return yield* Effect.fail(
 					new TileNotFoundError({
 						sheetId: params.sheetId,
@@ -314,6 +407,8 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 					}),
 				)
 			}
+
+			console.log(`✅ getTile: Found tile, size=${tileObject.size} bytes`)
 
 			// Read the binary content
 			const tileData = yield* Effect.promise(() => tileObject.arrayBuffer())

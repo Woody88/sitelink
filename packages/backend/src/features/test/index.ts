@@ -3,4 +3,4 @@
  * Minimal module for test endpoints (no Effect-TS layers)
  */
 
-export { handleTestSetup, handleTestQueue, handleTestQueueTrigger } from "./http"
+export { handleTestSetup, handleTestQueue, handleTestQueueTrigger, handleTestPdfProcessingTrigger } from "./http"

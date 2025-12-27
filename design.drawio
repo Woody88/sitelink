@@ -1,0 +1,234 @@
+<mxfile host="65bd71144e">
+    <diagram id="z1zi1QozQV0kCAr_K-dC" name="Page-1">
+        <mxGraphModel dx="1037" dy="2582" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="2" value="Plan Service" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="390" y="170" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="4" style="edgeStyle=none;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="3" target="2">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="3" value="User uploads&amp;nbsp;&lt;br&gt;Plan" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;" vertex="1" parent="1">
+                    <mxGeometry x="60" y="160" width="80" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="8" style="edgeStyle=none;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="5" target="7">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="5" value="R2" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" vertex="1" parent="1">
+                    <mxGeometry x="420" y="460" width="60" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="6" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="2" target="5">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="10" style="edgeStyle=none;html=1;" edge="1" parent="1" source="7" target="9">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="7" value="PDF Processing&amp;nbsp;&lt;br&gt;Queue" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="740" y="470" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="9" value="Pdf Splitter &lt;br&gt;(Container)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="740" y="170" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="11" value="Send Event to queue" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="530" y="470" width="140" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="12" value="upload pdf plan" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="450" y="330" width="110" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="16" style="edgeStyle=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="13" target="15">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="26" style="edgeStyle=none;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="13" target="23">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="13" value="R2" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" vertex="1" parent="1">
+                    <mxGeometry x="770" y="-130" width="60" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="14" style="edgeStyle=none;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="9" target="13">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="20" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="15" target="18">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="15" value="Tile Generator Queue" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="1180" y="-120" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="17" value="Call the tile generators" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="930" y="-120" width="140" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="18" value="Generate multiple Deep Zoom Images&lt;br&gt;(Container)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="1180" y="170" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="21" value="R2" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" vertex="1" parent="1">
+                    <mxGeometry x="1210" y="450" width="60" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="22" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="18" target="21">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="29" style="edgeStyle=none;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="23" target="27">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="23" value="Callout Processing Queue" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="740" y="-440" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="27" value="Callout Processor&lt;br&gt;(Container)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="1190" y="-440" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="30" value="Parallelize 5 or 10 sheets at a time" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="920" y="-440" width="210" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="31" value="D1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" vertex="1" parent="1">
+                    <mxGeometry x="1220" y="-700" width="60" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="32" style="edgeStyle=none;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="27" target="31">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="33" value="callout coordinates&lt;br&gt;confidences, etc.." style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="1250" y="-550" width="120" height="40" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+    <diagram id="impl-status" name="Implementation Status (Complete Flow)">
+        <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title" value="Complete PDF Processing Flow with Metadata Extraction (Dec 2025)" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+                    <mxGeometry x="20" y="20" width="520" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend-title" value="Legend:" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontStyle=1;" vertex="1" parent="1">
+                    <mxGeometry x="20" y="60" width="60" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend-green" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+                    <mxGeometry x="80" y="65" width="20" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend-green-text" value="NEW (callout-processor)" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="105" y="60" width="150" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend-yellow" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+                    <mxGeometry x="260" y="65" width="20" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend-yellow-text" value="Existing (working)" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="285" y="60" width="120" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend-blue" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+                    <mxGeometry x="410" y="65" width="20" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend-blue-text" value="Storage" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="435" y="60" width="60" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="user" value="User uploads&amp;nbsp;&lt;br&gt;Plan" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+                    <mxGeometry x="40" y="150" width="80" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="plan-service" value="Plan Service" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+                    <mxGeometry x="180" y="160" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="r2-upload" value="R2&lt;br&gt;(original PDF)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+                    <mxGeometry x="200" y="280" width="80" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="pdf-queue" value="PDF Processing&amp;nbsp;&lt;br&gt;Queue" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+                    <mxGeometry x="360" y="290" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="pdf-splitter" value="PDF Splitter&lt;br&gt;(Container)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+                    <mxGeometry x="360" y="160" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="r2-sheets" value="R2&lt;br&gt;(sheet PDFs)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+                    <mxGeometry x="560" y="160" width="80" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="metadata-queue" value="Metadata Extraction&lt;br&gt;Queue" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+                    <mxGeometry x="720" y="110" width="140" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="metadata-extractor" value="Metadata Extractor&lt;br&gt;(PLAN_OCR_SERVICE)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+                    <mxGeometry x="920" y="110" width="160" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="d1-sheets" value="D1&lt;br&gt;(planSheets.sheetName)&lt;br&gt;e.g. &quot;A1&quot;, &quot;A5&quot;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+                    <mxGeometry x="1140" y="95" width="140" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="tile-queue" value="Tile Generator&lt;br&gt;Queue" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+                    <mxGeometry x="720" y="220" width="120" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="tile-gen" value="Generate DZI Tiles&lt;br&gt;(Container)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+                    <mxGeometry x="720" y="320" width="120" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="r2-tiles" value="R2&lt;br&gt;(tiles)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+                    <mxGeometry x="740" y="420" width="80" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="plan-coordinator" value="PlanCoordinator&lt;br&gt;(Durable Object)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+                    <mxGeometry x="920" y="220" width="160" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="callout-queue" value="Callout Processing&lt;br&gt;Queue" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+                    <mxGeometry x="920" y="320" width="160" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="callout-processor" value="Callout Processor&lt;br&gt;(NEW Container)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+                    <mxGeometry x="920" y="420" width="160" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="d1-markers" value="D1&lt;br&gt;(plan_markers)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+                    <mxGeometry x="960" y="520" width="80" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="edge1" style="edgeStyle=none;html=1;" edge="1" parent="1" source="user" target="plan-service">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="edge2" style="edgeStyle=none;html=1;" edge="1" parent="1" source="plan-service" target="r2-upload">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="edge3" style="edgeStyle=none;html=1;" edge="1" parent="1" source="r2-upload" target="pdf-queue">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="edge4" style="edgeStyle=none;html=1;" edge="1" parent="1" source="pdf-queue" target="pdf-splitter">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="edge5" style="edgeStyle=none;html=1;" edge="1" parent="1" source="pdf-splitter" target="r2-sheets">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="edge6a" style="edgeStyle=none;html=1;" edge="1" parent="1" source="r2-sheets" target="metadata-queue">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="edge6b" style="edgeStyle=none;html=1;" edge="1" parent="1" source="metadata-queue" target="metadata-extractor">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="edge6c" style="edgeStyle=none;html=1;" edge="1" parent="1" source="metadata-extractor" target="d1-sheets">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="edge7" style="edgeStyle=none;html=1;" edge="1" parent="1" source="r2-sheets" target="tile-queue">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="edge8" style="edgeStyle=none;html=1;" edge="1" parent="1" source="tile-queue" target="tile-gen">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="edge9" style="edgeStyle=none;html=1;" edge="1" parent="1" source="tile-gen" target="r2-tiles">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="edge10" style="edgeStyle=none;html=1;dashed=1;strokeColor=#9673a6;" edge="1" parent="1" source="d1-sheets" target="plan-coordinator">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="edge11" style="edgeStyle=none;html=1;strokeColor=#82b366;strokeWidth=2;" edge="1" parent="1" source="plan-coordinator" target="callout-queue">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="edge12" style="edgeStyle=none;html=1;strokeColor=#82b366;strokeWidth=2;" edge="1" parent="1" source="callout-queue" target="callout-processor">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="edge13" style="edgeStyle=none;html=1;strokeColor=#82b366;strokeWidth=2;" edge="1" parent="1" source="callout-processor" target="d1-markers">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="note-metadata" value="Extracts sheet number&lt;br&gt;from title block&lt;br&gt;(e.g. &quot;A1&quot;, &quot;A5&quot;)" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontStyle=2;fontColor=#d6b656;" vertex="1" parent="1">
+                    <mxGeometry x="1100" y="25" width="140" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="note-coordinator" value="Queries D1 for validSheets&lt;br&gt;Creates SheetMarkerDetectionJob&lt;br&gt;with validSheets array" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontStyle=2;fontColor=#9673a6;" vertex="1" parent="1">
+                    <mxGeometry x="1090" y="200" width="200" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="note-callout" value="Receives:&lt;br&gt;- Sheet PDF binary&lt;br&gt;- X-Valid-Sheets header&lt;br&gt;- X-Sheet-Number header" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontStyle=2;fontColor=#82b366;" vertex="1" parent="1">
+                    <mxGeometry x="1090" y="390" width="150" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="summary-box" value="IMPLEMENTATION STATUS&lt;br&gt;&lt;hr&gt;&lt;b&gt;Existing (Yellow):&lt;/b&gt;&lt;br&gt;- PDF Splitter&lt;br&gt;- Metadata Extraction (uses PLAN_OCR_SERVICE)&lt;br&gt;- Tile Generation&lt;br&gt;- PlanCoordinator&lt;br&gt;&lt;br&gt;&lt;b&gt;NEW (Green):&lt;/b&gt;&lt;br&gt;- sheetMarkerDetectionQueueConsumer&lt;br&gt;- CalloutProcessor container class&lt;br&gt;- REST API endpoints&lt;br&gt;- SheetMarkerDetectionJob type" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;spacingLeft=10;fontColor=#333333;" vertex="1" parent="1">
+                    <mxGeometry x="40" y="420" width="280" height="220" as="geometry"/>
+                </mxCell>
+                <mxCell id="flow-arrow" value="validSheets flows from&lt;br&gt;Metadata Extraction → PlanCoordinator → Callout Processor" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontStyle=3;fontSize=11;" vertex="1" parent="1">
+                    <mxGeometry x="350" y="420" width="290" height="40" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
