@@ -59,10 +59,11 @@ def detect_contours(cleaned, image_height, image_width, dpi=300):
     shapes = []
     
     # Scale size thresholds based on DPI
-    # At 300 DPI, callouts are typically 20-80 pixels diameter
+    # At 300 DPI, callouts are typically 30-80 pixels diameter
+    # Increased min_area to reduce false positives from small shapes
     scale = dpi / 300.0
-    min_area = int(300 * scale * scale)   # ~300 pixels² at 300 DPI
-    max_area = int(8000 * scale * scale)  # ~8000 pixels² at 300 DPI
+    min_area = int(700 * scale * scale)   # ~700 pixels² at 300 DPI (~26px diameter circle)
+    max_area = int(6000 * scale * scale)  # ~6000 pixels² at 300 DPI (~87px diameter circle)
     
     for i, contour in enumerate(contours):
         area = cv2.contourArea(contour)
@@ -80,9 +81,9 @@ def detect_contours(cleaned, image_height, image_width, dpi=300):
         if x + w > image_width - margin or y + h > image_height - margin:
             continue
         
-        # Aspect ratio filter (callouts are roughly square-ish)
+        # Aspect ratio filter (callouts are roughly square-ish, circles/triangles)
         aspect_ratio = w / h if h > 0 else 0
-        if aspect_ratio < 0.3 or aspect_ratio > 3.0:
+        if aspect_ratio < 0.5 or aspect_ratio > 2.0:  # Tightened from 0.3-3.0
             continue
         
         # Calculate circularity
@@ -99,15 +100,18 @@ def detect_contours(cleaned, image_height, image_width, dpi=300):
         approx = cv2.approxPolyDP(contour, epsilon, True)
         vertices = len(approx)
         
-        # Determine shape type
+        # Determine shape type and filter non-callout shapes
         if circularity > 0.7:
             shape_type = "circle"
-        elif vertices == 3:
+        elif vertices == 3 and circularity > 0.4:
             shape_type = "triangle"
-        elif vertices == 4:
+        elif vertices == 4 and circularity > 0.5:
+            # Only keep squares (potential callout backgrounds)
             shape_type = "rectangle"
         else:
-            shape_type = "compound"  # Complex/merged shape
+            # Skip compound/irregular shapes - unlikely to be callouts
+            # This significantly reduces false positives from lines, text, etc.
+            continue
         
         # Center point
         M = cv2.moments(contour)
@@ -137,23 +141,24 @@ def detect_contours(cleaned, image_height, image_width, dpi=300):
 def detect_circles(gray, dpi=300):
     """Detect circles using HoughCircles."""
     shapes = []
-    
+
     # Scale parameters based on DPI
+    # Callout circles are typically 30-70 pixels diameter at 300 DPI
     scale = dpi / 300.0
-    min_radius = int(10 * scale)
-    max_radius = int(50 * scale)
-    min_dist = int(30 * scale)
-    
+    min_radius = int(15 * scale)   # Increased from 10 to reduce tiny false positives
+    max_radius = int(45 * scale)   # Decreased from 50 to focus on callout-sized circles
+    min_dist = int(40 * scale)     # Increased from 30 to reduce overlapping detections
+
     # Apply Gaussian blur for better circle detection
     blurred = cv2.GaussianBlur(gray, (9, 9), 2)
-    
+
     circles = cv2.HoughCircles(
         blurred,
         cv2.HOUGH_GRADIENT,
         dp=1,
         minDist=min_dist,
         param1=50,
-        param2=30,  # Lower = more circles (more sensitive)
+        param2=40,  # Increased from 30 to reduce false positives (higher = fewer circles)
         minRadius=min_radius,
         maxRadius=max_radius
     )
@@ -434,7 +439,20 @@ def detect_callout_shapes(image_path, dpi=300, output_dir=None):
     
     # Sort by position (top-left to bottom-right)
     merged_shapes.sort(key=lambda s: (s["centerY"], s["centerX"]))
-    
+
+    # Limit total shapes to prevent runaway LLM processing
+    # Typical sheets have 5-30 callouts; 200 is a generous upper bound
+    MAX_SHAPES = 200
+    if len(merged_shapes) > MAX_SHAPES:
+        # Keep shapes with highest confidence (detail_markers first, then by confidence)
+        merged_shapes.sort(key=lambda s: (
+            -1 if s["type"] == "detail_marker" else 0,
+            -s.get("confidence", 0)
+        ))
+        merged_shapes = merged_shapes[:MAX_SHAPES]
+        # Re-sort by position
+        merged_shapes.sort(key=lambda s: (s["centerY"], s["centerX"]))
+
     # Save debug output
     if output_dir:
         debug_path = os.path.join(output_dir, "cv_detection_debug.png")

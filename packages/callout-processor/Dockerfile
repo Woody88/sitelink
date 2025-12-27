@@ -40,6 +40,9 @@ RUN bun install --production
 COPY --chown=bun:bun src/ ./src/
 COPY --chown=bun:bun tsconfig.json ./
 
+# Copy .env file for API keys (Bun auto-loads .env files)
+COPY --chown=bun:bun .env ./
+
 # Fix ownership for venv and node_modules
 RUN chown -R bun:bun /app
 

@@ -16,9 +16,8 @@ export class CalloutProcessor extends Container {
 	override defaultPort = 8000 // Port the container listens on
 	override sleepAfter = "10m" // Stop instance after 10 minutes of inactivity
 
-	override envVars = {
-		OPENROUTER_API_KEY: "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",
-	}
+	// Environment variables are loaded from .env file inside the container
+	// The Dockerfile copies .env into the container, and Bun auto-loads it
 
 	override onStart() {
 		console.log("CalloutProcessor container successfully started")

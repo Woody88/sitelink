@@ -119,6 +119,27 @@ const SheetMarkersResponse = Schema.Struct({
 })
 
 /**
+ * Pending Review Marker Schema (for mobile review workflow)
+ */
+const PendingReviewMarkerSchema = Schema.Struct({
+	id: Schema.String,
+	calloutRef: Schema.String,      // Full marker text e.g., "3/A7"
+	targetSheetRef: Schema.String,  // Referenced sheet e.g., "A7"
+	sheetNumber: Schema.Number,     // Which sheet this marker is on
+	markerType: Schema.String,      // "circular" | "triangular"
+	x: Schema.Number,               // Normalized x coordinate (0-1)
+	y: Schema.Number,               // Normalized y coordinate (0-1)
+	confidence: Schema.Number,      // Detection confidence (0-1)
+	reviewStatus: Schema.String,    // "pending" | "confirmed" | "rejected"
+})
+
+const PendingReviewResponse = Schema.Struct({
+	markers: Schema.Array(PendingReviewMarkerSchema),
+	total: Schema.Number,
+	confidenceThreshold: Schema.Number,
+})
+
+/**
  * Plan API Endpoints
  */
 export const PlanAPI = HttpApiGroup.make("plans")
@@ -192,6 +213,13 @@ export const PlanAPI = HttpApiGroup.make("plans")
 		)`/plans/${planIdParam}/sheets/${sheetIdParam}/markers`
 			.addSuccess(SheetMarkersResponse)
 			.addError(SheetNotFoundError),
+	)
+	.add(
+		HttpApiEndpoint.get(
+			"getPendingReviewMarkers",
+		)`/plans/${planIdParam}/markers/pending-review`
+			.addSuccess(PendingReviewResponse)
+			.addError(PlanNotFoundError),
 	)
 	.prefix("/api")
 	.middleware(Authorization)
@@ -486,6 +514,62 @@ export const PlanAPILive = HttpApiBuilder.group(
 								averageConfidence: avgConfidence,
 							},
 							processingTimeMs: 0, // Not tracked in database, default to 0
+						}
+					}),
+				)
+				.handle("getPendingReviewMarkers", ({ path }) =>
+					Effect.gen(function* () {
+						// Verify plan exists
+						yield* planService.get(path.id)
+
+						// Query markers for review (low confidence OR pending status)
+						const db = yield* Drizzle
+						const confidenceThreshold = 0.7
+
+						const markers = yield* db
+							.select()
+							.from(schema.planMarkers)
+							.where(
+								sql`${schema.planMarkers.planId} = ${path.id} AND (${schema.planMarkers.confidence} < ${confidenceThreshold} OR ${schema.planMarkers.reviewStatus} = 'pending')`,
+							)
+							.orderBy(sql`${schema.planMarkers.confidence} ASC`)
+
+						// Transform to pending review format
+						const reviewMarkers = markers.map((marker) => {
+							// Parse bbox to get center point
+							let bbox: { x: number; y: number; w: number; h: number } | null = null
+							if (marker.bbox) {
+								if (typeof marker.bbox === "string") {
+									try {
+										bbox = JSON.parse(marker.bbox) as { x: number; y: number; w: number; h: number }
+									} catch {
+										bbox = null
+									}
+								} else if (typeof marker.bbox === "object") {
+									bbox = marker.bbox as { x: number; y: number; w: number; h: number }
+								}
+							}
+
+							const x = bbox ? bbox.x : 0.5
+							const y = bbox ? bbox.y : 0.5
+
+							return {
+								id: marker.id,
+								calloutRef: marker.markerText,
+								targetSheetRef: marker.sheet,
+								sheetNumber: marker.sheetNumber,
+								markerType: marker.markerType,
+								x,
+								y,
+								confidence: marker.confidence,
+								reviewStatus: marker.reviewStatus || "pending",
+							}
+						})
+
+						return {
+							markers: reviewMarkers,
+							total: reviewMarkers.length,
+							confidenceThreshold,
 						}
 					}),
 				)

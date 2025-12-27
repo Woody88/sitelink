@@ -20,8 +20,72 @@ export { tileGenerationQueueConsumer, pdfProcessingQueueConsumer, metadataExtrac
 // Track if startup tasks have run
 let startupTasksCompleted = false
 
+// Allowed origins for CORS
+const ALLOWED_ORIGINS = [
+	"http://localhost:8787",
+	"http://localhost:3000",
+	"http://localhost:8081", // Expo dev server
+	"http://10.0.2.2:8787",  // Android emulator
+	"http://127.0.0.1:8787",
+]
+
+/**
+ * Handle CORS preflight requests globally
+ */
+function handleCorsPreflightRequest(request: Request): Response | null {
+	if (request.method !== "OPTIONS") {
+		return null
+	}
+
+	const origin = request.headers.get("Origin") || ""
+	const headers = new Headers()
+
+	// Set allowed origin
+	if (ALLOWED_ORIGINS.includes(origin)) {
+		headers.set("Access-Control-Allow-Origin", origin)
+	} else {
+		headers.set("Access-Control-Allow-Origin", "http://localhost:3000")
+	}
+
+	headers.set("Access-Control-Allow-Credentials", "true")
+	headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+	headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+	headers.set("Access-Control-Max-Age", "86400")
+
+	return new Response(null, { status: 204, headers })
+}
+
+/**
+ * Add CORS headers to a response
+ */
+function addCorsHeaders(response: Response, request: Request): Response {
+	const origin = request.headers.get("Origin") || ""
+	const headers = new Headers(response.headers)
+
+	// Set allowed origin
+	if (ALLOWED_ORIGINS.includes(origin)) {
+		headers.set("Access-Control-Allow-Origin", origin)
+	} else if (origin) {
+		headers.set("Access-Control-Allow-Origin", "http://localhost:3000")
+	}
+
+	headers.set("Access-Control-Allow-Credentials", "true")
+
+	return new Response(response.body, {
+		status: response.status,
+		statusText: response.statusText,
+		headers,
+	})
+}
+
 export default {
 	async fetch(request, env, _ctx): Promise<Response> {
+		// Handle CORS preflight requests early (before Effect-TS routing)
+		const corsResponse = handleCorsPreflightRequest(request)
+		if (corsResponse) {
+			return corsResponse
+		}
+
 		// Handle test endpoints early (bypasses Effect-TS)
 		const url = new URL(request.url)
 		if (url.pathname === "/api/test/setup" && request.method === "GET") {
@@ -78,7 +142,10 @@ export default {
 		const { handler } = HttpApiBuilder.toWebHandler(
 			Layer.mergeAll(AppLayer, HttpServer.layerContext),
 		)
-		return await handler(request)
+		const response = await handler(request)
+
+		// Add CORS headers to all responses
+		return addCorsHeaders(response, request)
 	},
 	async queue(batch: MessageBatch, env: Env, ctx: ExecutionContext): Promise<void> {
 		switch (batch.queue) {

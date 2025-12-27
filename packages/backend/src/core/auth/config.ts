@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import {
 	apiKey,
+	bearer,
 	magicLink,
 	type OrganizationOptions,
 	openAPI,
@@ -42,13 +43,30 @@ export const betterAuthConfig = {
 		maxPasswordLength: 128,
 		requireEmailVerification: false,
 	},
-	trustedOrigins: ["http://localhost:8787", "http://localhost:3000"],
+	trustedOrigins: [
+		"http://localhost:8787",
+		"http://localhost:3000",
+		"http://localhost:8081", // Expo dev server
+		"http://10.0.2.2:8787",  // Android emulator
+		"http://127.0.0.1:8787",
+		// Expo/React Native deep links
+		"exp://",
+		"exp://*",
+		"exp://192.168.*.*:*",
+		"sitelink://", // Production app scheme
+	],
+	advanced: {
+		// Disable CSRF check for mobile apps (React Native doesn't send Origin headers)
+		// CSRF protection is primarily for browser-based attacks
+		disableCSRFCheck: true,
+	},
 } satisfies Parameters<typeof betterAuth>[0]
 
 export const auth = betterAuth({
 	...betterAuthConfig,
 	plugins: [
 		apiKey(),
+		bearer(), // Enables Authorization: Bearer token authentication for mobile/webview
 		magicLink(magicLinkOptions),
 		organization(organizationOptions),
 		openAPI(),
