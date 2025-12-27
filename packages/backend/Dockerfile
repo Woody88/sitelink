@@ -3,35 +3,24 @@
 FROM oven/bun:1 AS base
 WORKDIR /usr/src/app
 
-# install dependencies into temp directory
-# this will cache them and speed up future builds
-FROM base AS install
-RUN mkdir -p /temp/dev
-COPY package.json bun.lock /temp/dev/
-RUN cd /temp/dev && bun install --frozen-lockfile
+# Install libvips for PDF → DZI tile generation
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libvips-tools \
+    poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
 
-# install with --production (exclude devDependencies)
-RUN mkdir -p /temp/prod
-COPY package.json bun.lock /temp/prod/
-RUN cd /temp/prod && bun install --frozen-lockfile --production
+# Create minimal package.json with only the dependencies the server needs
+# The server only uses: pdf-lib, tar-stream (no workspace deps needed)
+RUN echo '{"name":"sitelink-tile-server","type":"module","dependencies":{"pdf-lib":"^1.17.1","tar-stream":"^3.1.7"}}' > package.json
 
-# copy node_modules from temp directory
-# then copy all (non-ignored) project files into the image
-FROM base AS prerelease
-COPY --from=install /temp/dev/node_modules node_modules
-COPY . .
+# Install only the minimal dependencies needed
+RUN bun install
 
-# [optional] tests & build
-ENV NODE_ENV=production
-RUN bun run build
-
-# copy production dependencies and source code into final image
-FROM base AS release
-COPY --from=install /temp/prod/node_modules node_modules
-COPY --from=prerelease /usr/src/app/src/main.ts .
-COPY --from=prerelease /usr/src/app/package.json .
+# Copy the server source files
+COPY src/core/pdf-manager ./src/core/pdf-manager
 
 # run the app
 USER bun
-EXPOSE 3000/tcp
-ENTRYPOINT [ "bun", "run", "index.ts" ]
+WORKDIR /usr/src/app
+EXPOSE 3001/tcp
+ENTRYPOINT [ "bun", "run", "src/core/pdf-manager/server.ts" ]

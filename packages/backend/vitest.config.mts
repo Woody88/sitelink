@@ -34,6 +34,70 @@ export default defineWorkersProject(async () => {
 									})
 								}
 							},
+							// Service binding to proxy requests to Docker container on localhost:3001
+							async PDF_CONTAINER_PROXY(request: Request) {
+								const CONTAINER_PORT = 3001
+								const url = new URL(request.url)
+								const localUrl = `http://localhost:${CONTAINER_PORT}${url.pathname}`
+
+								try {
+									// With wrangler 4.50.0, Miniflare's duplex: "half" bug is fixed (PR #5114)
+									// We can now stream request bodies directly without buffering
+									return await fetch(localUrl, {
+										method: request.method,
+										headers: request.headers,
+										body: request.body,
+										duplex: "half",
+									} as RequestInit)
+								} catch (error) {
+									console.error("Failed to reach Docker container:", error)
+									return new Response(`Container unavailable: ${error}`, {
+										status: 503,
+									})
+								}
+							},
+							// Service binding to proxy requests to plan-ocr-service container on localhost:8000
+							async PLAN_OCR_SERVICE(request: Request) {
+								const CONTAINER_PORT = 8000
+								const url = new URL(request.url)
+								const localUrl = `http://localhost:${CONTAINER_PORT}${url.pathname}${url.search}`
+
+								try {
+									// With wrangler 4.50.0, Miniflare's duplex: "half" bug is fixed (PR #5114)
+									// We can now stream request bodies directly without buffering
+									return await fetch(localUrl, {
+										method: request.method,
+										headers: request.headers,
+										body: request.body,
+										duplex: "half",
+									} as RequestInit)
+								} catch (error) {
+									console.error("Failed to reach plan-ocr-service container:", error)
+									return new Response(`Container unavailable: ${error}`, {
+										status: 503,
+									})
+								}
+							},
+							// Service binding to proxy requests to callout-processor container on localhost:8001
+							async CALLOUT_PROCESSOR(request: Request) {
+								const CONTAINER_PORT = 8001
+								const url = new URL(request.url)
+								const localUrl = `http://localhost:${CONTAINER_PORT}${url.pathname}${url.search}`
+
+								try {
+									return await fetch(localUrl, {
+										method: request.method,
+										headers: request.headers,
+										body: request.body,
+										duplex: "half",
+									} as RequestInit)
+								} catch (error) {
+									console.error("Failed to reach callout-processor container:", error)
+									return new Response(`Container unavailable: ${error}`, {
+										status: 503,
+									})
+								}
+							},
 						},
 					},
 				},

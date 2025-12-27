@@ -8,23 +8,46 @@
 	"main": "src/index.ts",
 	"compatibility_date": "2025-09-23",
 	"compatibility_flags": ["nodejs_compat"],
-	"containers": [
-		{
-			"max_instances": 1,
-			"class_name": "SitelinkPdfProcessor",
-			"image": "../../infra/docker/backend.Dockerfile",
-			"image_build_context": "../../",
-			"instance_type": "standard"
-		}
-	],
 	"observability": {
 		"enabled": true
 	},
+	"containers": [
+		{
+			"class_name": "SitelinkPdfProcessor",
+			"image": "./Dockerfile",
+			"max_instances": 5,
+			"instance_type": "standard"
+		},
+		{
+			"class_name": "PlanOcrService",
+			"image": "../plan-ocr-service/Dockerfile",
+			"max_instances": 5,
+			"instance_type": "standard"
+		},
+		{
+			"class_name": "CalloutProcessor",
+			"image": "../callout-processor/Dockerfile",
+			"max_instances": 5,
+			"instance_type": "standard"
+		}
+	],
 	"durable_objects": {
 		"bindings": [
 			{
 				"class_name": "SitelinkPdfProcessor",
 				"name": "SITELINK_PDF_PROCESSOR"
+			},
+			{
+				"class_name": "PlanCoordinator",
+				"name": "PLAN_COORDINATOR"
+			},
+			{
+				"class_name": "PlanOcrService",
+				"name": "PLAN_OCR_SERVICE"
+			},
+			{
+				"class_name": "CalloutProcessor",
+				"name": "CALLOUT_PROCESSOR"
 			}
 		]
 	},
@@ -32,6 +55,18 @@
 		{
 			"new_sqlite_classes": ["SitelinkPdfProcessor"],
 			"tag": "v1"
+		},
+		{
+			"new_sqlite_classes": ["PlanCoordinator"],
+			"tag": "v2"
+		},
+		{
+			"new_sqlite_classes": ["PlanOcrService"],
+			"tag": "v3"
+		},
+		{
+			"new_sqlite_classes": ["CalloutProcessor"],
+			"tag": "v4"
 		}
 	],
 	"r2_buckets": [
@@ -55,44 +90,69 @@
 			{
 				"binding": "TILE_GENERATION_QUEUE",
 				"queue": "tile-generation-queue"
+			},
+			{
+				"binding": "PDF_PROCESSING_QUEUE",
+				"queue": "pdf-processing-queue"
+			},
+			{
+				"binding": "METADATA_EXTRACTION_QUEUE",
+				"queue": "metadata-extraction-queue"
+			},
+			{
+				"binding": "MARKER_DETECTION_QUEUE",
+				"queue": "marker-detection-queue"
+			},
+			{
+				"binding": "SHEET_MARKER_DETECTION_QUEUE",
+				"queue": "sheet-marker-detection-queue"
 			}
 		],
 		"consumers": [
 			{
 				"queue": "tile-generation-queue",
 				"max_batch_size": 10,
-				"max_batch_timeout": 5
+				"max_concurrency": 50,
+				"max_retries": 3
+			},
+			{
+				"queue": "pdf-processing-queue",
+				"max_batch_size": 1,
+				"max_retries": 3
+			},
+			{
+				"queue": "metadata-extraction-queue",
+				"max_batch_size": 5,
+				"max_concurrency": 20,
+				"max_retries": 3
+			},
+			{
+				"queue": "marker-detection-queue",
+				"max_batch_size": 1,
+				"max_retries": 3
+			},
+			{
+				"queue": "sheet-marker-detection-queue",
+				"max_batch_size": 1,
+				"max_concurrency": 5,
+				"max_retries": 3,
+				"visibility_timeout_ms": 300000
 			}
 		]
-	}
+	},
+	"vars": {},
+	/**
+	 * CPU Time Limits
+	 * Phase 1 safety net: 120,000ms (2 minutes) while implementing marker detection fix
+	 * Default: 30,000ms, Maximum: 300,000ms
+	 * Docs: https://developers.cloudflare.com/workers/platform/limits/
+	 */
+	"limits": {
+		"cpu_ms": 120000
+	},
 	/**
 	 * Smart Placement
 	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
 	 */
 	// "placement": { "mode": "smart" }
-	/**
-	 * Bindings
-	 * Bindings allow your Worker to interact with resources on the Cloudflare Developer Platform, including
-	 * databases, object storage, AI inference, real-time communication and more.
-	 * https://developers.cloudflare.com/workers/runtime-apis/bindings/
-	 */
-	/**
-	 * Environment Variables
-	 * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
-	 */
-	// "vars": { "MY_VARIABLE": "production_value" }
-	/**
-	 * Note: Use secrets to store sensitive data.
-	 * https://developers.cloudflare.com/workers/configuration/secrets/
-	 */
-	/**
-	 * Static Assets
-	 * https://developers.cloudflare.com/workers/static-assets/binding/
-	 */
-	// "assets": { "directory": "./public/", "binding": "ASSETS" }
-	/**
-	 * Service Bindings (communicate between multiple Workers)
-	 * https://developers.cloudflare.com/workers/wrangler/configuration/#service-bindings
-	 */
-	// "services": [{ "binding": "MY_SERVICE", "service": "my-service" }]
 }

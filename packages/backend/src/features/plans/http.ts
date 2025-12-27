@@ -7,7 +7,10 @@ import {
 	Multipart,
 } from "@effect/platform"
 import { Effect, Schema, Stream } from "effect"
+import { eq, sql } from "drizzle-orm"
 import { BaseApi } from "../../core/api"
+import { Drizzle } from "../../core/database"
+import * as schema from "../../core/database/schemas"
 import { Authorization, CurrentSession } from "../../core/middleware"
 import {
 	DziNotFoundError,
@@ -65,6 +68,9 @@ const PlanListResponse = Schema.Struct({
 })
 
 const SheetResponse = Schema.Struct({
+	markerCount: Schema.propertySignature(Schema.Number).pipe(
+		Schema.withConstructorDefault(() => 0),
+	),
 	id: Schema.String,
 	planId: Schema.String,
 	pageNumber: Schema.Number,
@@ -92,6 +98,48 @@ const tileLevelParam = HttpApiSchema.param("level", Schema.String)
 const tileFileParam = HttpApiSchema.param("tile", Schema.String)
 
 /**
+ * Marker Response Schemas (for frontend integration)
+ */
+const HyperlinkSchema = Schema.Struct({
+	calloutRef: Schema.String,      // Full marker text e.g., "3/A7"
+	targetSheetRef: Schema.String,  // Referenced sheet e.g., "A7"
+	x: Schema.Number,               // Normalized x coordinate (0-1)
+	y: Schema.Number,               // Normalized y coordinate (0-1)
+	confidence: Schema.Number,      // Detection confidence (0-1)
+})
+
+const SheetMarkersResponse = Schema.Struct({
+	hyperlinks: Schema.Array(HyperlinkSchema),
+	calloutsFound: Schema.Number,
+	calloutsMatched: Schema.Number,
+	confidenceStats: Schema.Struct({
+		averageConfidence: Schema.Number,
+	}),
+	processingTimeMs: Schema.Number, // Processing time in milliseconds (defaults to 0 if not available)
+})
+
+/**
+ * Pending Review Marker Schema (for mobile review workflow)
+ */
+const PendingReviewMarkerSchema = Schema.Struct({
+	id: Schema.String,
+	calloutRef: Schema.String,      // Full marker text e.g., "3/A7"
+	targetSheetRef: Schema.String,  // Referenced sheet e.g., "A7"
+	sheetNumber: Schema.Number,     // Which sheet this marker is on
+	markerType: Schema.String,      // "circular" | "triangular"
+	x: Schema.Number,               // Normalized x coordinate (0-1)
+	y: Schema.Number,               // Normalized y coordinate (0-1)
+	confidence: Schema.Number,      // Detection confidence (0-1)
+	reviewStatus: Schema.String,    // "pending" | "confirmed" | "rejected"
+})
+
+const PendingReviewResponse = Schema.Struct({
+	markers: Schema.Array(PendingReviewMarkerSchema),
+	total: Schema.Number,
+	confidenceThreshold: Schema.Number,
+})
+
+/**
  * Plan API Endpoints
  */
 export const PlanAPI = HttpApiGroup.make("plans")
@@ -102,6 +150,7 @@ export const PlanAPI = HttpApiGroup.make("plans")
 					planId: Schema.String,
 					fileId: Schema.String,
 					uploadId: Schema.String,
+					filePath: Schema.String,
 					jobId: Schema.String,
 				}),
 			)
@@ -158,6 +207,20 @@ export const PlanAPI = HttpApiGroup.make("plans")
 			.addError(SheetNotFoundError)
 			.addError(TileNotFoundError),
 	)
+	.add(
+		HttpApiEndpoint.get(
+			"getSheetMarkers",
+		)`/plans/${planIdParam}/sheets/${sheetIdParam}/markers`
+			.addSuccess(SheetMarkersResponse)
+			.addError(SheetNotFoundError),
+	)
+	.add(
+		HttpApiEndpoint.get(
+			"getPendingReviewMarkers",
+		)`/plans/${planIdParam}/markers/pending-review`
+			.addSuccess(PendingReviewResponse)
+			.addError(PlanNotFoundError),
+	)
 	.prefix("/api")
 	.middleware(Authorization)
 
@@ -174,13 +237,18 @@ export const PlanAPILive = HttpApiBuilder.group(
 			return handlers
 				.handle("createPlan", ({ path, payload }) =>
 					Effect.gen(function* () {
-						const { session } = yield* CurrentSession
+						console.log('📥 Upload plan endpoint called')
+						const { session, user } = yield* CurrentSession
 
-						if (!session.activeOrganizationId)
+						console.log('Session active org ID:', session.activeOrganizationId)
+						console.log('Session user ID:', user.id)
+
+						if (!session.activeOrganizationId) {
+							console.error('❌ No active organization ID in session')
 							return yield* new HttpApiError.Unauthorized()
+						}
 
-						// Parse multipart stream to get file and fields
-						const parts = yield* Stream.runCollect(payload)
+						console.log('📦 Parsing multipart data...')
 
 						let fileData: Uint8Array | undefined
 						let fileName: string | undefined
@@ -188,35 +256,54 @@ export const PlanAPILive = HttpApiBuilder.group(
 						let name: string = "Untitled Plan"
 						let description: string | undefined
 
-						// Process each multipart part
-						for (const part of parts) {
-							if (Multipart.isFile(part)) {
-								// Get file content
-								fileData = yield* part.contentEffect
-								fileName = part.name
-								fileType = part.contentType
-							} else if (Multipart.isField(part)) {
-								// Handle form fields
-								if (part.key === "name") {
-									name = part.value
-								} else if (part.key === "description") {
-									description = part.value
+						// Parse multipart stream to get file and fields
+						try {
+							const parts = yield* Stream.runCollect(payload)
+							console.log('✅ Multipart data parsed, parts count:', parts.length)
+
+							// Process each multipart part
+							console.log('🔍 Processing multipart parts...')
+							for (const part of parts) {
+								if (Multipart.isFile(part)) {
+									console.log('📎 Found file part:', part.name)
+									// Get file content
+									fileData = yield* part.contentEffect
+									fileName = part.name
+									fileType = part.contentType
+									console.log('✅ File loaded, size:', fileData.byteLength)
+								} else if (Multipart.isField(part)) {
+									console.log('📝 Found field:', part.key, '=', part.value)
+									// Handle form fields
+									if (part.key === "name") {
+										name = part.value
+									} else if (part.key === "description") {
+										description = part.value
+									}
 								}
 							}
-						}
 
-						// Validate file was uploaded
-						if (!fileData || !fileName) {
+							// Validate file was uploaded
+							if (!fileData || !fileName) {
+								console.error('❌ No file data or filename')
+								return yield* new PlanUploadError({
+									message: "No file uploaded",
+								})
+							}
+
+							console.log('✅ Validation passed, calling service...')
+						} catch (parseError) {
+							console.error('❌ Failed to parse multipart data:', parseError)
 							return yield* new PlanUploadError({
-								message: "No file uploaded",
+								message: `Failed to parse upload: ${parseError}`,
 							})
 						}
 
 						// Create plan with file upload
-						const { planId, fileId, uploadId, jobId } = yield* planService
+						const { planId, fileId, uploadId, filePath, jobId } = yield* planService
 							.create({
 								organizationId: session.activeOrganizationId,
 								projectId: path.projectId,
+								userId: user.id,
 								name,
 								description: description || undefined,
 								fileData,
@@ -233,7 +320,7 @@ export const PlanAPILive = HttpApiBuilder.group(
 								),
 							)
 
-						return { planId, fileId, uploadId, jobId }
+						return { planId, fileId, uploadId, filePath, jobId }
 					}),
 				)
 				.handle("getPlan", ({ path }) => planService.get(path.id))
@@ -243,6 +330,7 @@ export const PlanAPILive = HttpApiBuilder.group(
 						const planList = yield* planService
 							.list(path.projectId)
 							.pipe(Effect.orDie)
+						console.log(`📊 Returning ${planList.length} plans for project ${path.projectId}`)
 						return { plans: planList }
 					}),
 				)
@@ -269,12 +357,66 @@ export const PlanAPILive = HttpApiBuilder.group(
 				)
 				.handle("listSheets", ({ path }) =>
 					Effect.gen(function* () {
+						// Get plan first to access organizationId and projectId
+						const plan = yield* planService.get(path.id).pipe(Effect.orDie)
+						
 						// List all sheets for the plan
 						const sheetList = yield* planService
 							.listSheets(path.id)
 							.pipe(Effect.orDie)
 
-						return { sheets: sheetList }
+						// Get marker counts for each sheet
+						const db = yield* Drizzle
+						const markerCounts = yield* db
+							.select({
+								sheetNumber: schema.planMarkers.sheetNumber,
+								count: sql<number>`count(*)`.as("count"),
+							})
+							.from(schema.planMarkers)
+							.where(eq(schema.planMarkers.planId, path.id))
+							.groupBy(schema.planMarkers.sheetNumber)
+
+						// Create a map of sheetNumber -> marker count
+						const markerCountMap = new Map<number, number>()
+						for (const row of markerCounts) {
+							// Convert count to number (SQLite may return as string or bigint)
+							const count = typeof row.count === 'number' ? row.count : Number(row.count)
+							markerCountMap.set(row.sheetNumber, count)
+						}
+
+						// Transform database rows to API response format
+						const transformedSheets = sheetList.map((sheet) => {
+							// Build DZI path: organizations/{orgId}/projects/{projectId}/plans/{planId}/sheets/sheet-{n}/sheet-sheet-{n}.dzi
+							// Extract organizationId and projectId from plan (they're not in sheet table)
+							// We need to get them from the plan or from the sheet's sheetKey
+							// sheetKey format: organizations/{orgId}/projects/{projectId}/plans/{planId}/uploads/{uploadId}/sheet-{n}.pdf
+							const sheetKeyMatch = sheet.sheetKey.match(/^organizations\/([^\/]+)\/projects\/([^\/]+)\/plans\/([^\/]+)\//)
+							const organizationId = sheetKeyMatch?.[1] || ""
+							const projectId = sheetKeyMatch?.[2] || ""
+							
+							const sheetBasePath = `organizations/${organizationId}/projects/${projectId}/plans/${sheet.planId}/sheets/sheet-${sheet.sheetNumber}`
+							const dziPath = `${sheetBasePath}/sheet-sheet-${sheet.sheetNumber}.dzi`
+							
+							// Build tile directory: organizations/.../plans/{planId}/sheets/sheet-{n}/sheet-sheet-{n}_files
+							const tileDirectory = `${sheetBasePath}/sheet-sheet-${sheet.sheetNumber}_files`
+
+							return {
+								id: sheet.id,
+								planId: sheet.planId,
+								pageNumber: sheet.sheetNumber, // Map sheetNumber to pageNumber
+								sheetName: sheet.sheetName,
+								dziPath,
+								tileDirectory,
+								width: null, // Not stored in database
+								height: null, // Not stored in database
+								tileCount: sheet.tileCount,
+								markerCount: markerCountMap.get(sheet.sheetNumber) || 0, // Add marker count
+								processingStatus: sheet.status, // Map status to processingStatus
+								createdAt: sheet.createdAt,
+							}
+						})
+
+						return { sheets: transformedSheets }
 					}),
 				)
 				.handle("getSheet", ({ path }) =>
@@ -310,6 +452,125 @@ export const PlanAPILive = HttpApiBuilder.group(
 
 						// Return as Uint8Array
 						return new Uint8Array(data)
+					}),
+				)
+				.handle("getSheetMarkers", ({ path }) =>
+					Effect.gen(function* () {
+						// Get the sheet to verify it exists and get its dimensions
+						const sheet = yield* planService.getSheet(path.sheetId)
+
+						// Query markers for this plan and sheet
+						const db = yield* Drizzle
+						const markers = yield* db
+							.select()
+							.from(schema.planMarkers)
+							.where(
+								sql`${schema.planMarkers.planId} = ${path.id} AND ${schema.planMarkers.sheetNumber} = ${sheet.sheetNumber}`,
+							)
+
+						// Transform markers to hyperlinks format
+						const hyperlinks = markers.map((marker) => {
+							// Parse bbox to get center point as normalized coordinates
+							// bbox format: { x, y, w, h } where x,y are already center coordinates (normalized 0-1)
+							// Handle both JSON string and object formats
+							let bbox: { x: number; y: number; w: number; h: number } | null = null
+							if (marker.bbox) {
+								if (typeof marker.bbox === "string") {
+									try {
+										bbox = JSON.parse(marker.bbox) as { x: number; y: number; w: number; h: number }
+									} catch {
+										bbox = null
+									}
+								} else if (typeof marker.bbox === "object") {
+									bbox = marker.bbox as { x: number; y: number; w: number; h: number }
+								}
+							}
+							// bbox.x and bbox.y are already center coordinates from the detection pipeline
+							const x = bbox ? bbox.x : 0.5
+							const y = bbox ? bbox.y : 0.5
+
+							return {
+								calloutRef: marker.markerText,
+								targetSheetRef: marker.sheet,
+								x,
+								y,
+								confidence: marker.confidence,
+							}
+						})
+
+						// Calculate stats
+						const calloutsFound = markers.length
+						const calloutsMatched = markers.filter((m) => m.isValid).length
+						const avgConfidence =
+							markers.length > 0
+								? markers.reduce((sum, m) => sum + m.confidence, 0) / markers.length
+								: 0
+
+						return {
+							hyperlinks,
+							calloutsFound,
+							calloutsMatched,
+							confidenceStats: {
+								averageConfidence: avgConfidence,
+							},
+							processingTimeMs: 0, // Not tracked in database, default to 0
+						}
+					}),
+				)
+				.handle("getPendingReviewMarkers", ({ path }) =>
+					Effect.gen(function* () {
+						// Verify plan exists
+						yield* planService.get(path.id)
+
+						// Query markers for review (low confidence OR pending status)
+						const db = yield* Drizzle
+						const confidenceThreshold = 0.7
+
+						const markers = yield* db
+							.select()
+							.from(schema.planMarkers)
+							.where(
+								sql`${schema.planMarkers.planId} = ${path.id} AND (${schema.planMarkers.confidence} < ${confidenceThreshold} OR ${schema.planMarkers.reviewStatus} = 'pending')`,
+							)
+							.orderBy(sql`${schema.planMarkers.confidence} ASC`)
+
+						// Transform to pending review format
+						const reviewMarkers = markers.map((marker) => {
+							// Parse bbox to get center point
+							let bbox: { x: number; y: number; w: number; h: number } | null = null
+							if (marker.bbox) {
+								if (typeof marker.bbox === "string") {
+									try {
+										bbox = JSON.parse(marker.bbox) as { x: number; y: number; w: number; h: number }
+									} catch {
+										bbox = null
+									}
+								} else if (typeof marker.bbox === "object") {
+									bbox = marker.bbox as { x: number; y: number; w: number; h: number }
+								}
+							}
+
+							const x = bbox ? bbox.x : 0.5
+							const y = bbox ? bbox.y : 0.5
+
+							return {
+								id: marker.id,
+								calloutRef: marker.markerText,
+								targetSheetRef: marker.sheet,
+								sheetNumber: marker.sheetNumber,
+								markerType: marker.markerType,
+								x,
+								y,
+								confidence: marker.confidence,
+								reviewStatus: marker.reviewStatus || "pending",
+							}
+						})
+
+						return {
+							markers: reviewMarkers,
+							total: reviewMarkers.length,
+							confidenceThreshold,
+						}
 					}),
 				)
 		}),

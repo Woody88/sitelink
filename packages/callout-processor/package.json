@@ -1,0 +1,29 @@
+{
+  "name": "callout-processor",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "bun run src/api/server.ts",
+    "dev": "bun run --hot src/api/server.ts",
+    "detect": "bun run src/index.ts",
+    "benchmark": "bun run src/benchmark.ts",
+    "test": "bun test",
+    "test:unit": "bun test tests/unit",
+    "test:integration": "bun test tests/integration",
+    "demo:tiles": "bun run demo/generate-tiles.ts",
+    "demo:serve": "bun run demo/server.ts",
+    "demo": "bun run demo:tiles && bun run demo:serve"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@types/sharp": "^0.32.0",
+    "sharp": "^0.34.5"
+  }
+}

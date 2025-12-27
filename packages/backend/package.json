@@ -9,7 +9,8 @@
 		"db:local:apply:migration": "bun wrangler d1 migrations apply sitelink-db --local",
 		"db:local:reset": "rm -f .wrangler/state/v3/d1/miniflare-D1DatabaseObject/*.sqlite",
 		"db:gen:migration": "bunx drizzle-kit generate",
-		"auth:gen:schema": "bunx @better-auth/cli@latest generate  --output _auth.ts --config ./src/core/auth/config.ts"
+		"auth:gen:schema": "bunx @better-auth/cli@latest generate  --output _auth.ts --config ./src/core/auth/config.ts",
+		"dev:tile-server": "bun run src/core/pdf-manager/server.ts"
 	},
 	"dependencies": {
 		"@cloudflare/containers": "^0.0.28",
@@ -22,19 +23,22 @@
 		"@polar-sh/better-auth": "^1.1.7",
 		"@polar-sh/sdk": "^0.35.4",
 		"better-auth": "^1.3.34",
-		"drizzle-orm": "^0.44.5",
 		"drizzle-effect": "workspace:*",
+		"drizzle-orm": "^0.44.5",
 		"effect": "catalog:effect",
-		"resend": "^6.1.2"
+		"pdf-lib": "^1.17.1",
+		"resend": "^6.1.2",
+		"tar-stream": "^3.1.7"
 	},
 	"devDependencies": {
 		"@better-auth-extended/test-utils": "^0.1.1",
 		"@cloudflare/vitest-pool-workers": "^0.8.19",
 		"@types/bun": "^1.2.22",
 		"@types/node": "^24.10.0",
+		"@types/tar-stream": "^3.1.4",
 		"drizzle-kit": "^0.31.4",
 		"vitest": "~3.2.0",
-		"wrangler": "^4.40.1"
+		"wrangler": "^4.53.0"
 	},
 	"peerDependencies": {
 		"typescript": "^5"
