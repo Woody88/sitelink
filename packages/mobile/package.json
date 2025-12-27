@@ -10,13 +10,14 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "@sitelink/shared-types": "workspace:*",
     "@effect/platform": "^0.94.0",
     "@expo/metro-runtime": "~6.1.2",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/drawer": "^7.7.10",
     "@react-navigation/native": "^7.0.0",
     "@rn-primitives/portal": "^1.3.0",
     "@rn-primitives/slot": "^1.2.0",
+    "@sitelink/shared-types": "workspace:*",
     "better-auth": "^1.4.9",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

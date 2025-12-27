@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import {
 	apiKey,
+	bearer,
 	magicLink,
 	type OrganizationOptions,
 	openAPI,
@@ -65,6 +66,7 @@ export const auth = betterAuth({
 	...betterAuthConfig,
 	plugins: [
 		apiKey(),
+		bearer(), // Enables Authorization: Bearer token authentication for mobile/webview
 		magicLink(magicLinkOptions),
 		organization(organizationOptions),
 		openAPI(),

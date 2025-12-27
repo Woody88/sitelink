@@ -2,12 +2,42 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+/**
+ * DZI Metadata - matches the schema from client.ts
+ */
+interface DziMetadata {
+  width: number;
+  height: number;
+  tileSize: number;
+  overlap: number;
+  format: string;
+}
+
 interface Props {
-  tileSource?: string;
+  /**
+   * Pre-fetched DZI metadata from React Native
+   */
+  metadata: DziMetadata;
+  /**
+   * Callback to fetch tiles from React Native (handles auth)
+   * Returns base64 data URL for the tile
+   */
+  fetchTile: (level: number, x: number, y: number) => Promise<string>;
+  /**
+   * DOM props from Expo
+   */
   dom?: import('expo/dom').DOMProps;
 }
 
-export default function OpenSeadragonViewer({ tileSource }: Props) {
+/**
+ * OpenSeadragon viewer that displays DZI tiles
+ *
+ * Architecture:
+ * 1. React Native fetches tiles (authenticated)
+ * 2. Returns base64 data URLs via fetchTile callback
+ * 3. OpenSeadragon uses custom ImageLoader to load from base64
+ */
+export default function OpenSeadragonViewer({ metadata, fetchTile }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
   const [status, setStatus] = useState('Initializing...');
@@ -19,14 +49,13 @@ export default function OpenSeadragonViewer({ tileSource }: Props) {
     }
 
     if (viewerRef.current) {
-      setStatus('Viewer already exists');
-      return;
+      viewerRef.current.destroy();
+      viewerRef.current = null;
     }
 
     setStatus('Loading OpenSeadragon...');
 
-    // Dynamic import to avoid "document is not defined" error
-    import('openseadragon').then((OSD) => {
+    import('openseadragon').then(async (OSD) => {
       if (!containerRef.current) {
         setStatus('Container lost');
         return;
@@ -37,15 +66,26 @@ export default function OpenSeadragonViewer({ tileSource }: Props) {
       try {
         const OpenSeadragon = OSD.default;
 
-        // Use a simple image for testing if no tileSource provided
-        const source = tileSource || {
-          type: 'image',
-          url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Camponotus_flavomarginatus_ant.jpg/1280px-Camponotus_flavomarginatus_ant.jpg',
+        const maxLevel = Math.ceil(Math.log2(Math.max(metadata.width, metadata.height) / metadata.tileSize));
+
+        // Create a simple tile source with proper DZI structure
+        const tileSourceConfig = {
+          width: metadata.width,
+          height: metadata.height,
+          tileSize: metadata.tileSize,
+          tileOverlap: metadata.overlap,
+          minLevel: 0,
+          maxLevel,
+          // Use a custom protocol so we can identify our tiles
+          getTileUrl: function(level: number, x: number, y: number): string {
+            return `native-bridge://${level}/${x}_${y}`;
+          },
         };
 
+        // Create viewer
         viewerRef.current = OpenSeadragon({
           element: containerRef.current,
-          tileSources: source,
+          tileSources: tileSourceConfig,
           showNavigationControl: true,
           showNavigator: false,
           animationTime: 0.5,
@@ -56,27 +96,127 @@ export default function OpenSeadragonViewer({ tileSource }: Props) {
           maxZoomLevel: 10,
           visibilityRatio: 1,
           zoomPerScroll: 2,
+          // Increase timeout
+          timeout: 120000,
+          // Limit concurrent requests
+          imageLoaderLimit: 2,
           gestureSettingsTouch: {
             pinchRotate: true,
-          },
+          } as any,
           gestureSettingsMouse: {
             clickToZoom: true,
             dblClickToZoom: true,
           },
         });
 
-        viewerRef.current.addHandler('open', () => {
+        const viewer = viewerRef.current;
+
+        // Override the addTiledImage to inject our custom loading
+        const originalAddJob = (viewer as any).imageLoader.addJob;
+        (viewer as any).imageLoader.addJob = function(options: any) {
+          const src = options.src;
+
+          // Check if this is our custom protocol
+          if (src && src.startsWith('native-bridge://')) {
+            // Parse the tile coordinates from URL
+            const match = src.match(/native-bridge:\/\/(\d+)\/(\d+)_(\d+)/);
+            if (match) {
+              const level = parseInt(match[1], 10);
+              const x = parseInt(match[2], 10);
+              const y = parseInt(match[3], 10);
+
+              console.log(`[ImageLoader] Loading tile ${level}/${x}_${y} via native bridge...`);
+
+              // Create a proper job object that OpenSeadragon expects
+              const job = {
+                src,
+                crossOriginPolicy: options.crossOriginPolicy || false,
+                callback: options.callback,
+                abort: options.abort,
+                timeout: options.timeout,
+                image: null as any,
+                errorMsg: null,
+              };
+
+              // Fetch tile via React Native
+              fetchTile(level, x, y)
+                .then((base64Data) => {
+                  console.log(`[ImageLoader] Tile ${level}/${x}_${y} fetched, creating image...`);
+
+                  // Create image from base64
+                  const img = new Image();
+                  img.crossOrigin = options.crossOriginPolicy || 'anonymous';
+
+                  img.onload = () => {
+                    console.log(`[ImageLoader] Tile ${level}/${x}_${y} image loaded successfully`);
+
+                    // Store image in job object
+                    job.image = img;
+
+                    // Call the callback with just the image (OpenSeadragon's expected signature)
+                    if (job.callback) {
+                      job.callback(img, job.errorMsg, job.src);
+                    }
+                  };
+
+                  img.onerror = (e) => {
+                    console.error(`[ImageLoader] Tile ${level}/${x}_${y} image error:`, e);
+                    job.errorMsg = 'Image failed to load';
+                    if (job.abort) {
+                      job.abort();
+                    } else if (job.callback) {
+                      job.callback(null, job.errorMsg, job.src);
+                    }
+                  };
+
+                  img.src = base64Data;
+                })
+                .catch((err) => {
+                  console.error(`[ImageLoader] Failed to fetch tile ${level}/${x}_${y}:`, err);
+                  job.errorMsg = err.message || 'Failed to fetch tile';
+                  if (job.abort) {
+                    job.abort();
+                  } else if (job.callback) {
+                    job.callback(null, job.errorMsg, job.src);
+                  }
+                });
+
+              // Return the job object
+              return job;
+            }
+          }
+
+          // Fall back to original implementation for non-native-bridge URLs
+          return originalAddJob.call(this, options);
+        };
+
+        viewer.addHandler('open', () => {
+          console.log('[OpenSeadragon] Viewer opened successfully');
           setStatus('');
         });
 
-        viewerRef.current.addHandler('open-failed', (event: any) => {
-          setStatus(`Failed to load: ${event.message || 'Unknown error'}`);
+        viewer.addHandler('open-failed', (event: any) => {
+          const errorMsg = event.message || 'Unknown error';
+          console.error('[OpenSeadragon] open-failed:', event);
+          setStatus(`Failed to load plan: ${errorMsg}`);
         });
 
+        viewer.addHandler('tile-loaded', (event: any) => {
+          console.log('[OpenSeadragon] Tile loaded:', event.tile?.level, event.tile?.x, event.tile?.y);
+        });
+
+        viewer.addHandler('tile-load-failed', (event: any) => {
+          console.error('[OpenSeadragon] Tile load failed:', event.tile?.level, event.tile?.x, event.tile?.y);
+        });
+
+        setStatus('Loading tiles...');
+
       } catch (err) {
+        console.error('[OpenSeadragon] Initialization error:', err);
         setStatus(`Error: ${err instanceof Error ? err.message : 'Unknown'}`);
       }
     }).catch((err) => {
+      console.error('[OpenSeadragon] Import error:', err);
       setStatus(`Import error: ${err instanceof Error ? err.message : 'Unknown'}`);
     });
 
@@ -86,7 +226,7 @@ export default function OpenSeadragonViewer({ tileSource }: Props) {
         viewerRef.current = null;
       }
     };
-  }, [tileSource]);
+  }, [metadata, fetchTile]);
 
   return (
     <div
