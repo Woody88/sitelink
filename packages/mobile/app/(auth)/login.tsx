@@ -9,6 +9,7 @@ import {
   Pressable,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { Link } from "expo-router";
 import {
   Mail,
   Lock,
@@ -16,13 +17,11 @@ import {
   EyeOff,
   ArrowRight,
   Inbox,
-  User,
   WifiOff,
 } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { useAuth, useRedirectIfAuthenticated } from "@/lib/auth-context";
 import {
-  AuthToggle,
   SocialButton,
   GoogleIcon,
   AppleIcon,
@@ -30,11 +29,9 @@ import {
 import { cn } from "@/lib/utils";
 
 export default function LoginScreen() {
-  const { signIn, signUp, isLoading, error, clearError } = useAuth();
-  const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
+  const { signIn, isLoading, error, clearError } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -67,19 +64,13 @@ export default function LoginScreen() {
     }
 
     try {
-      if (activeTab === "login") {
-        await signIn(email.trim().toLowerCase(), password);
-      } else {
-        await signUp(email.trim().toLowerCase(), password, name.trim() || undefined);
-      }
+      await signIn(email.trim().toLowerCase(), password);
     } catch (err) {
       const message =
         err instanceof Error
           ? err.message
-          : activeTab === "login"
-            ? "Sign in failed. Please try again."
-            : "Sign up failed. Please try again.";
-      Alert.alert(activeTab === "login" ? "Sign In Failed" : "Sign Up Failed", message);
+          : "Sign in failed. Please try again.";
+      Alert.alert("Sign In Failed", message);
     }
   };
 
@@ -134,7 +125,7 @@ export default function LoginScreen() {
           </View>
 
           {/* Welcome Section */}
-          <View className="px-4 pb-2 items-center">
+          <View className="px-4 pb-6 items-center">
             <Text className="text-foreground text-2xl font-bold tracking-tight">
               Welcome Back
             </Text>
@@ -143,44 +134,15 @@ export default function LoginScreen() {
             </Text>
           </View>
 
-          {/* Auth Toggle */}
-          <View className="px-4 py-4">
-            <AuthToggle activeTab={activeTab} onTabChange={setActiveTab} />
-          </View>
-
           {/* Error Message */}
           {displayError && (
-            <View className="mx-4 bg-red-50 border border-red-200 rounded-xl p-3 mb-2">
+            <View className="mx-4 bg-red-50 border border-red-200 rounded-xl p-3 mb-4">
               <Text className="text-red-600 text-sm text-center">{displayError}</Text>
             </View>
           )}
 
           {/* Form */}
           <View className="flex-1 px-4 gap-5 pb-8">
-            {/* Name Field (Sign Up only) */}
-            {activeTab === "signup" && (
-              <View className="gap-2">
-                <Text className="text-foreground text-sm font-semibold ml-1">
-                  Full Name
-                </Text>
-                <View className="relative flex-row items-center">
-                  <View className="absolute left-4 z-10">
-                    <User size={20} color="#828180" strokeWidth={2} />
-                  </View>
-                  <TextInput
-                    className="flex-1 h-14 pl-12 pr-4 rounded-xl border border-border bg-white text-foreground text-base"
-                    placeholder="John Foreman"
-                    placeholderTextColor="#828180"
-                    value={name}
-                    onChangeText={setName}
-                    autoCapitalize="words"
-                    autoComplete="name"
-                    editable={!isLoading}
-                  />
-                </View>
-              </View>
-            )}
-
             {/* Email Field */}
             <View className="gap-2">
               <Text className="text-foreground text-sm font-semibold ml-1">
@@ -209,11 +171,9 @@ export default function LoginScreen() {
             <View className="gap-2">
               <View className="flex-row justify-between items-center ml-1 mr-1">
                 <Text className="text-foreground text-sm font-semibold">Password</Text>
-                {activeTab === "login" && (
-                  <Pressable onPress={handleForgotPassword} className="p-2 -mr-2">
-                    <Text className="text-primary text-sm font-semibold">Forgot?</Text>
-                  </Pressable>
-                )}
+                <Pressable onPress={handleForgotPassword} className="p-2 -mr-2">
+                  <Text className="text-primary text-sm font-semibold">Forgot?</Text>
+                </Pressable>
               </View>
               <View className="relative flex-row items-center">
                 <View className="absolute left-4 z-10">
@@ -263,34 +223,26 @@ export default function LoginScreen() {
                 }}
               >
                 <Text className="text-white text-base font-bold tracking-wide">
-                  {isLoading
-                    ? activeTab === "login"
-                      ? "Signing In..."
-                      : "Creating Account..."
-                    : activeTab === "login"
-                      ? "Log In"
-                      : "Create Account"}
+                  {isLoading ? "Signing In..." : "Log In"}
                 </Text>
                 {!isLoading && <ArrowRight size={20} color="#ffffff" strokeWidth={2.5} />}
               </Pressable>
 
               {/* Email Magic Link Button */}
-              {activeTab === "login" && (
-                <Pressable
-                  onPress={handleEmailLink}
-                  disabled={isLoading}
-                  className={cn(
-                    "flex-row h-14 items-center justify-center gap-2 rounded-xl bg-white border border-border",
-                    "active:bg-secondary",
-                    isLoading && "opacity-50"
-                  )}
-                >
-                  <Inbox size={22} color="#c9623d" strokeWidth={2} />
-                  <Text className="text-foreground text-base font-bold">
-                    Email me a login link
-                  </Text>
-                </Pressable>
-              )}
+              <Pressable
+                onPress={handleEmailLink}
+                disabled={isLoading}
+                className={cn(
+                  "flex-row h-14 items-center justify-center gap-2 rounded-xl bg-white border border-border",
+                  "active:bg-secondary",
+                  isLoading && "opacity-50"
+                )}
+              >
+                <Inbox size={22} color="#c9623d" strokeWidth={2} />
+                <Text className="text-foreground text-base font-bold">
+                  Email me a login link
+                </Text>
+              </Pressable>
             </View>
 
             {/* Divider */}
@@ -314,6 +266,20 @@ export default function LoginScreen() {
                 onPress={handleAppleLogin}
                 disabled={isLoading}
               />
+            </View>
+
+            {/* Sign Up Link */}
+            <View className="flex-row justify-center items-center gap-1 pt-2">
+              <Text className="text-muted-foreground text-sm">
+                Don't have an account?
+              </Text>
+              <Link href="/(auth)/signup" asChild>
+                <Pressable disabled={isLoading}>
+                  <Text className="text-primary text-sm font-semibold">
+                    Sign Up
+                  </Text>
+                </Pressable>
+              </Link>
             </View>
           </View>
 
