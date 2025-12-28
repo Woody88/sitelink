@@ -1,6 +1,29 @@
 
 # Sitelink Project Guidelines
 
+## Sitelink Engineering Team
+
+## 1. Routing Rules (Strict)
+- **@mobile-engineer**: For all standard Expo UI, Navigation, and Styling.
+- **@plan-viewer-specialist**: ONLY for the OpenSeadragon Canvas and DOM Components.
+- **@plan-processor**: For Python/OCR data pipelines.
+- **@cv-strategist**: For high-level model research (YOLO/OCR).
+- **@architect**: For system configuration and team audits.
+
+## 2. Best Practices
+- **Expo**: We use the Managed Workflow.
+- **Maestro**: Every UI task must end with a visual verification (Screenshot).
+- **DOM Components**: Zero network requests inside the web view; pass data from Native.
+
+## 3. Commands
+- `/audit-team`: Checks for description overlaps or token bloat.
+
+## Tech Stack
+- Framework: Expo (React Native)
+- Styling: NativeWind (Tailwind)
+- Components: RN Reusables (Radix)
+- Plan Engine: OpenSeadragon via Expo DOM Components
+
 ## Project Architecture
 
 This is a **monorepo** using **composable module architecture** inspired by PaulJPhilp's Effect-TS patterns.
