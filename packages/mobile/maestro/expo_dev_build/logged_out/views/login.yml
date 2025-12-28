@@ -1,0 +1,5 @@
+appId: com.sitelink.app
+---
+
+- assertVisible:
+    text: "Add New Project"
