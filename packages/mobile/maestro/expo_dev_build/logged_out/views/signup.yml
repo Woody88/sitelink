@@ -1,0 +1,41 @@
+appId: com.sitelink.app
+---
+# Sign Up Screen Visual Verification
+# Verifies the SiteLink sign up view (accessed via tab toggle on login screen)
+
+# Wait for the screen to load
+- waitForAnimationToEnd
+
+# Verify we're on login screen first
+- assertVisible:
+    text: "SiteLink"
+- assertVisible:
+    text: "Welcome Back"
+
+# Tap on Sign Up tab
+- tapOn:
+    text: "Sign Up"
+
+# Wait for tab switch animation
+- waitForAnimationToEnd
+
+# Sign Up Form should now show Full Name field
+- assertVisible:
+    text: "Full Name"
+- assertVisible:
+    text: "Email Address"
+- assertVisible:
+    text: "Password"
+
+# Sign Up button should show Create Account text
+- assertVisible:
+    text: "Create Account"
+
+# Social login still visible
+- assertVisible:
+    text: "Google"
+- assertVisible:
+    text: "Apple"
+
+# Take screenshot for visual comparison
+- takeScreenshot: signup_screen
