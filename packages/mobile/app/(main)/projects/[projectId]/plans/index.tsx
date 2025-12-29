@@ -316,7 +316,7 @@ export default function PlansScreen() {
         router.push("/(main)/projects");
         break;
       case "camera":
-        console.log("Open camera");
+        router.push(`/(main)/projects/${projectId}/media` as any);
         break;
       case "more":
         console.log("Open more menu");
@@ -324,7 +324,7 @@ export default function PlansScreen() {
       default:
         break;
     }
-  }, []);
+  }, [projectId]);
 
   const handleResetFilters = useCallback(() => {
     setSortBy("date");
