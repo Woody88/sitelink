@@ -58,11 +58,6 @@ export default function LoginScreen() {
       return;
     }
 
-    if (password.length < 8) {
-      setLocalError("Password must be at least 8 characters");
-      return;
-    }
-
     try {
       await signIn(email.trim().toLowerCase(), password);
     } catch (err) {
