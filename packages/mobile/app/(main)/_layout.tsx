@@ -1,29 +1,17 @@
-import { Drawer } from 'expo-router/drawer';
+import { Stack } from "expo-router";
 
-export default function DrawerLayout() {
+export default function MainLayout() {
   return (
-    <Drawer
+    <Stack
       screenOptions={{
-        headerShown: true,
-        drawerActiveTintColor: '#2563eb',
-        drawerInactiveTintColor: '#6b7280',
+        headerShown: false,
+        animation: "slide_from_right",
       }}
     >
-      <Drawer.Screen 
-        name="projects/index" 
-        options={{ 
-          title: 'Projects',
-          drawerLabel: 'Projects',
-        }} 
-      />
-      <Drawer.Screen 
-        name="settings/index" 
-        options={{ 
-          title: 'Settings',
-          drawerLabel: 'Settings',
-        }} 
-      />
-    </Drawer>
+      <Stack.Screen name="orgs/index" />
+      <Stack.Screen name="projects/index" />
+      <Stack.Screen name="projects/[projectId]" />
+      <Stack.Screen name="settings/index" />
+    </Stack>
   );
 }
-

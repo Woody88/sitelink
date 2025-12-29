@@ -1,18 +1,23 @@
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { View, Text, StyleSheet, ActivityIndicator, Pressable } from 'react-native';
+import { useLocalSearchParams, router } from 'expo-router';
 import { useState, useEffect, useCallback } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { Effect } from 'effect';
 import OpenSeadragonViewer from '@/components/plan-viewer/OpenSeadragonViewer';
 import { useSheets } from '@/lib/api/hooks';
 import { SheetsApi, type DziMetadata } from '@/lib/api/client';
 
 export default function PlanViewerScreen() {
-  const { projectId, planId } = useLocalSearchParams<{
+  const insets = useSafeAreaInsets();
+  const { projectId, planId, sheetId } = useLocalSearchParams<{
     projectId: string;
     planId: string;
+    sheetId?: string;
   }>();
 
   const [selectedSheetIndex, setSelectedSheetIndex] = useState(0);
+  const [initialSheetSet, setInitialSheetSet] = useState(false);
   const [dziMetadata, setDziMetadata] = useState<DziMetadata | null>(null);
   const [metadataError, setMetadataError] = useState<string | null>(null);
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(false);
@@ -21,6 +26,17 @@ export default function PlanViewerScreen() {
 
   const sheets = data?.sheets ?? [];
   const selectedSheet = sheets[selectedSheetIndex];
+
+  // Set initial sheet from sheetId param when sheets load
+  useEffect(() => {
+    if (!initialSheetSet && sheets.length > 0 && sheetId) {
+      const sheetIndex = sheets.findIndex((s) => s.id === sheetId);
+      if (sheetIndex >= 0) {
+        setSelectedSheetIndex(sheetIndex);
+      }
+      setInitialSheetSet(true);
+    }
+  }, [sheets, sheetId, initialSheetSet]);
 
   // Fetch DZI metadata when sheet changes (from React Native, not webview)
   useEffect(() => {
@@ -60,12 +76,35 @@ export default function PlanViewerScreen() {
     );
   }, [planId, selectedSheet?.id, dziMetadata]);
 
+  // Header component
+  const Header = () => (
+    <View style={[styles.header, { paddingTop: insets.top }]}>
+      <Pressable onPress={() => router.back()} style={styles.backButton}>
+        <Ionicons name="chevron-back" size={28} color="#fff" />
+      </Pressable>
+      <View style={styles.headerTitleContainer}>
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {selectedSheet?.sheetName ?? 'Plan Viewer'}
+        </Text>
+        {sheets.length > 1 && (
+          <Text style={styles.headerSubtitle}>
+            Sheet {selectedSheetIndex + 1} of {sheets.length}
+          </Text>
+        )}
+      </View>
+      <View style={styles.headerSpacer} />
+    </View>
+  );
+
   // Loading state
   if (isLoading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#3b82f6" />
-        <Text style={styles.loadingText}>Loading sheets...</Text>
+      <View style={styles.container}>
+        <Header />
+        <View style={styles.centerContent}>
+          <ActivityIndicator size="large" color="#3b82f6" />
+          <Text style={styles.loadingText}>Loading sheets...</Text>
+        </View>
       </View>
     );
   }
@@ -73,16 +112,19 @@ export default function PlanViewerScreen() {
   // Error state
   if (error) {
     return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.errorTitle}>Failed to load sheets</Text>
-        <Text style={styles.errorMessage}>
-          {error._tag === 'NetworkError' ? 'Network error. Please check your connection.' :
-           error._tag === 'UnauthorizedError' ? 'Please log in to view this plan.' :
-           error.message}
-        </Text>
-        <Text style={styles.retryButton} onPress={refetch}>
-          Tap to retry
-        </Text>
+      <View style={styles.container}>
+        <Header />
+        <View style={styles.centerContent}>
+          <Text style={styles.errorTitle}>Failed to load sheets</Text>
+          <Text style={styles.errorMessage}>
+            {error._tag === 'NetworkError' ? 'Network error. Please check your connection.' :
+             error._tag === 'UnauthorizedError' ? 'Please log in to view this plan.' :
+             error.message}
+          </Text>
+          <Text style={styles.retryButton} onPress={refetch}>
+            Tap to retry
+          </Text>
+        </View>
       </View>
     );
   }
@@ -90,14 +132,17 @@ export default function PlanViewerScreen() {
   // No sheets available
   if (sheets.length === 0) {
     return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.errorTitle}>No sheets available</Text>
-        <Text style={styles.errorMessage}>
-          This plan has no processed sheets yet. The plan may still be processing.
-        </Text>
-        <Text style={styles.retryButton} onPress={refetch}>
-          Tap to refresh
-        </Text>
+      <View style={styles.container}>
+        <Header />
+        <View style={styles.centerContent}>
+          <Text style={styles.errorTitle}>No sheets available</Text>
+          <Text style={styles.errorMessage}>
+            This plan has no processed sheets yet. The plan may still be processing.
+          </Text>
+          <Text style={styles.retryButton} onPress={refetch}>
+            Tap to refresh
+          </Text>
+        </View>
       </View>
     );
   }
@@ -105,9 +150,12 @@ export default function PlanViewerScreen() {
   // Loading metadata
   if (isLoadingMetadata) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#3b82f6" />
-        <Text style={styles.loadingText}>Loading plan metadata...</Text>
+      <View style={styles.container}>
+        <Header />
+        <View style={styles.centerContent}>
+          <ActivityIndicator size="large" color="#3b82f6" />
+          <Text style={styles.loadingText}>Loading plan metadata...</Text>
+        </View>
       </View>
     );
   }
@@ -115,17 +163,20 @@ export default function PlanViewerScreen() {
   // Metadata error
   if (metadataError) {
     return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.errorTitle}>Failed to load plan</Text>
-        <Text style={styles.errorMessage}>{metadataError}</Text>
-        <Text style={styles.retryButton} onPress={() => {
-          setMetadataError(null);
-          setIsLoadingMetadata(true);
-          // Re-trigger the useEffect
-          setDziMetadata(null);
-        }}>
-          Tap to retry
-        </Text>
+      <View style={styles.container}>
+        <Header />
+        <View style={styles.centerContent}>
+          <Text style={styles.errorTitle}>Failed to load plan</Text>
+          <Text style={styles.errorMessage}>{metadataError}</Text>
+          <Text style={styles.retryButton} onPress={() => {
+            setMetadataError(null);
+            setIsLoadingMetadata(true);
+            // Re-trigger the useEffect
+            setDziMetadata(null);
+          }}>
+            Tap to retry
+          </Text>
+        </View>
       </View>
     );
   }
@@ -133,25 +184,19 @@ export default function PlanViewerScreen() {
   // No metadata yet
   if (!dziMetadata) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#3b82f6" />
-        <Text style={styles.loadingText}>Preparing viewer...</Text>
+      <View style={styles.container}>
+        <Header />
+        <View style={styles.centerContent}>
+          <ActivityIndicator size="large" color="#3b82f6" />
+          <Text style={styles.loadingText}>Preparing viewer...</Text>
+        </View>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {/* Sheet selector for plans with multiple sheets */}
-      {sheets.length > 1 && (
-        <View style={styles.sheetSelector}>
-          <Text style={styles.sheetLabel}>
-            Sheet {selectedSheetIndex + 1} of {sheets.length}
-            {selectedSheet?.sheetName ? ` - ${selectedSheet.sheetName}` : ''}
-          </Text>
-        </View>
-      )}
-
+      <Header />
       <OpenSeadragonViewer
         metadata={dziMetadata}
         fetchTile={fetchTile}
@@ -166,9 +211,40 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1a1a1a',
   },
-  centerContainer: {
+  header: {
+    backgroundColor: '#2a2a2a',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#3a3a3a',
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitleContainer: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  headerSubtitle: {
+    color: '#9ca3af',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  headerSpacer: {
+    width: 44,
+  },
+  centerContent: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -195,16 +271,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     padding: 12,
-  },
-  sheetSelector: {
-    backgroundColor: '#2a2a2a',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#3a3a3a',
-  },
-  sheetLabel: {
-    color: '#fff',
-    fontSize: 14,
-    textAlign: 'center',
   },
 });
