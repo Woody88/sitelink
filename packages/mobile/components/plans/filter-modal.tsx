@@ -21,13 +21,13 @@ function FilterOption({ label, isSelected, onPress }: FilterOptionProps) {
       onPress={onPress}
       className={cn(
         "px-4 py-2 rounded-full mr-2 mb-2",
-        isSelected ? "bg-blue-500" : "bg-slate-100"
+        isSelected ? "bg-primary" : "bg-accent"
       )}
     >
       <Text
         className={cn(
           "text-sm font-medium",
-          isSelected ? "text-white" : "text-foreground"
+          isSelected ? "text-primary-foreground" : "text-foreground"
         )}
       >
         {label}
@@ -91,12 +91,12 @@ export function FilterModal({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
+      <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
         {/* Header */}
-        <View className="flex-row items-center justify-between px-4 py-3 border-b border-slate-200">
+        <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
           <Text className="text-lg font-bold text-foreground">Filters</Text>
           <Pressable onPress={onClose} className="p-2">
-            <Ionicons name="close" size={24} color="#1e293b" />
+            <Ionicons name="close" size={24} color="#3d3929" />
           </Pressable>
         </View>
 
@@ -149,13 +149,13 @@ export function FilterModal({
 
         {/* Footer */}
         <View
-          className="flex-row gap-3 px-4 py-4 border-t border-slate-200"
+          className="flex-row gap-3 px-4 py-4 border-t border-border"
           style={{ paddingBottom: Math.max(insets.bottom, 16) }}
         >
           {hasActiveFilters && (
             <Pressable
               onPress={onReset}
-              className="flex-1 h-12 items-center justify-center rounded-xl border border-slate-300"
+              className="flex-1 h-12 items-center justify-center rounded-xl border border-border"
             >
               <Text className="text-base font-semibold text-foreground">
                 Reset
@@ -165,11 +165,11 @@ export function FilterModal({
           <Pressable
             onPress={onClose}
             className={cn(
-              "h-12 items-center justify-center rounded-xl bg-blue-500",
+              "h-12 items-center justify-center rounded-xl bg-primary",
               hasActiveFilters ? "flex-1" : "flex-1"
             )}
           >
-            <Text className="text-base font-semibold text-white">
+            <Text className="text-base font-semibold text-primary-foreground">
               Apply Filters
             </Text>
           </Pressable>

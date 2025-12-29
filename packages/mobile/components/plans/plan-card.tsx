@@ -68,7 +68,7 @@ export function PlanCard({
   }, [onMenuPress, plan]);
 
   return (
-    <View className="bg-white rounded-xl border border-slate-200 overflow-hidden mb-3">
+    <View className="bg-card rounded-xl border border-border overflow-hidden mb-3">
       {/* Main card content */}
       <Pressable
         onPress={handleToggle}
@@ -79,12 +79,12 @@ export function PlanCard({
           {plan.thumbnailUrl ? (
             <Image
               source={{ uri: plan.thumbnailUrl }}
-              className="w-20 h-20 rounded-lg bg-slate-100"
+              className="w-20 h-20 rounded-lg bg-accent"
               resizeMode="cover"
             />
           ) : (
-            <View className="w-20 h-20 rounded-lg bg-slate-100 items-center justify-center border border-slate-200">
-              <Ionicons name="document-text-outline" size={32} color="#94a3b8" />
+            <View className="w-20 h-20 rounded-lg bg-accent items-center justify-center border border-border">
+              <Ionicons name="document-text-outline" size={32} color="#c9623d" />
             </View>
           )}
           <VersionBadge version={plan.version} />
@@ -101,7 +101,7 @@ export function PlanCard({
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               className="p-1"
             >
-              <Ionicons name="ellipsis-vertical" size={18} color="#64748b" />
+              <Ionicons name="ellipsis-vertical" size={18} color="#828180" />
             </Pressable>
           </View>
 
@@ -114,13 +114,13 @@ export function PlanCard({
           {/* Stats */}
           <View className="flex-row items-center gap-4 mt-2">
             <View className="flex-row items-center gap-1">
-              <Ionicons name="grid-outline" size={14} color="#64748b" />
+              <Ionicons name="grid-outline" size={14} color="#828180" />
               <Text className="text-xs text-muted-foreground">
                 {plan.sheetCount} Sheets
               </Text>
             </View>
             <View className="flex-row items-center gap-1">
-              <Ionicons name="location-outline" size={14} color="#64748b" />
+              <Ionicons name="location-outline" size={14} color="#828180" />
               <Text className="text-xs text-muted-foreground">
                 {plan.markerCount} Markers
               </Text>
@@ -133,15 +133,15 @@ export function PlanCard({
       <Pressable
         onPress={handleToggle}
         className={cn(
-          "flex-row items-center justify-between px-4 py-2 border-t border-slate-100",
-          isExpanded ? "bg-slate-50" : "bg-white"
+          "flex-row items-center justify-between px-4 py-2 border-t border-border",
+          isExpanded ? "bg-accent" : "bg-card"
         )}
       >
         <View className="flex-row items-center gap-2">
           {plan.reviewNeededCount && plan.reviewNeededCount > 0 ? (
             <View className="flex-row items-center gap-1">
-              <View className="w-2 h-2 rounded-full bg-orange-500" />
-              <Text className="text-xs font-medium text-orange-600">
+              <View className="w-2 h-2 rounded-full bg-primary" />
+              <Text className="text-xs font-medium text-primary">
                 {plan.reviewNeededCount} Review Needed
               </Text>
             </View>
@@ -154,16 +154,16 @@ export function PlanCard({
         <Ionicons
           name={isExpanded ? "chevron-up" : "chevron-down"}
           size={18}
-          color="#64748b"
+          color="#828180"
         />
       </Pressable>
 
       {/* Expanded sheets list */}
       {isExpanded && (
-        <View className="px-3 pb-3 bg-white">
+        <View className="px-3 pb-3 bg-card">
           {isLoadingSheets ? (
             <View className="py-4 items-center">
-              <ActivityIndicator size="small" color="#3b82f6" />
+              <ActivityIndicator size="small" color="#c9623d" />
               <Text className="text-xs text-muted-foreground mt-2">Loading sheets...</Text>
             </View>
           ) : plan.sheets && plan.sheets.length > 0 ? (

@@ -7,12 +7,12 @@ import { cn } from "@/lib/utils";
 export type DisciplineType = "ARCH" | "ELEC" | "STRUCT" | "MECH" | "PLUMB" | "CIVIL";
 
 const disciplineConfig: Record<DisciplineType, { bg: string; text: string }> = {
-  ARCH: { bg: "bg-blue-100", text: "text-blue-700" },
+  ARCH: { bg: "bg-orange-100", text: "text-orange-700" },
   ELEC: { bg: "bg-amber-100", text: "text-amber-700" },
-  STRUCT: { bg: "bg-purple-100", text: "text-purple-700" },
+  STRUCT: { bg: "bg-stone-200", text: "text-stone-700" },
   MECH: { bg: "bg-emerald-100", text: "text-emerald-700" },
-  PLUMB: { bg: "bg-cyan-100", text: "text-cyan-700" },
-  CIVIL: { bg: "bg-orange-100", text: "text-orange-700" },
+  PLUMB: { bg: "bg-teal-100", text: "text-teal-700" },
+  CIVIL: { bg: "bg-yellow-100", text: "text-yellow-700" },
 };
 
 interface DisciplineBadgeProps {
@@ -45,9 +45,9 @@ export type StatusType = "APPROVED" | "DRAFT" | "REVIEW" | "PENDING";
 
 const statusConfig: Record<StatusType, { bg: string; text: string; border?: string }> = {
   APPROVED: { bg: "bg-green-100", text: "text-green-700" },
-  DRAFT: { bg: "bg-slate-100", text: "text-slate-700", border: "border border-slate-300" },
+  DRAFT: { bg: "bg-secondary", text: "text-secondary-foreground", border: "border border-border" },
   REVIEW: { bg: "bg-red-100", text: "text-red-600" },
-  PENDING: { bg: "bg-yellow-100", text: "text-yellow-700" },
+  PENDING: { bg: "bg-amber-100", text: "text-amber-700" },
 };
 
 interface StatusBadgeProps {
@@ -106,8 +106,8 @@ interface VersionBadgeProps {
 
 export function VersionBadge({ version }: VersionBadgeProps) {
   return (
-    <View className="absolute bottom-1 left-1 bg-slate-700/90 rounded px-1.5 py-0.5">
-      <Text className="text-white text-[10px] font-bold">v{version}</Text>
+    <View className="absolute bottom-1 left-1 bg-foreground/90 rounded px-1.5 py-0.5">
+      <Text className="text-background text-[10px] font-bold">v{version}</Text>
     </View>
   );
 }

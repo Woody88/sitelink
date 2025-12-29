@@ -86,7 +86,8 @@ export default function OpenSeadragonViewer({ metadata, fetchTile }: Props) {
         viewerRef.current = OpenSeadragon({
           element: containerRef.current,
           tileSources: tileSourceConfig,
-          showNavigationControl: true,
+          // Hide navigation icons (zoom buttons, home, fullscreen)
+          showNavigationControl: false,
           showNavigator: false,
           animationTime: 0.5,
           blendTime: 0.1,
@@ -100,8 +101,9 @@ export default function OpenSeadragonViewer({ metadata, fetchTile }: Props) {
           timeout: 120000,
           // Limit concurrent requests
           imageLoaderLimit: 2,
+          // Disable rotation - only allow zoom and pan
           gestureSettingsTouch: {
-            pinchRotate: true,
+            pinchRotate: false,
           } as any,
           gestureSettingsMouse: {
             clickToZoom: true,

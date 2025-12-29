@@ -102,7 +102,7 @@ export default function PlanViewerScreen() {
       <View style={styles.container}>
         <Header />
         <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color="#3b82f6" />
+          <ActivityIndicator size="large" color="#c9623d" />
           <Text style={styles.loadingText}>Loading sheets...</Text>
         </View>
       </View>
@@ -153,7 +153,7 @@ export default function PlanViewerScreen() {
       <View style={styles.container}>
         <Header />
         <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color="#3b82f6" />
+          <ActivityIndicator size="large" color="#c9623d" />
           <Text style={styles.loadingText}>Loading plan metadata...</Text>
         </View>
       </View>
@@ -187,7 +187,7 @@ export default function PlanViewerScreen() {
       <View style={styles.container}>
         <Header />
         <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color="#3b82f6" />
+          <ActivityIndicator size="large" color="#c9623d" />
           <Text style={styles.loadingText}>Preparing viewer...</Text>
         </View>
       </View>
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   retryButton: {
-    color: '#3b82f6',
+    color: '#c9623d',
     fontSize: 16,
     fontWeight: '500',
     padding: 12,

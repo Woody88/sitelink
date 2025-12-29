@@ -14,14 +14,14 @@ export function PlansSearchBar({
   placeholder = "Search plans by name or sheet..",
 }: SearchBarProps) {
   return (
-    <View className="flex-row items-center bg-white rounded-xl border border-slate-200">
+    <View className="flex-row items-center bg-card rounded-xl border border-border">
       <View className="pl-4">
-        <Ionicons name="search" size={20} color="#94a3b8" />
+        <Ionicons name="search" size={20} color="#828180" />
       </View>
       <TextInput
         className="flex-1 h-12 px-3 text-base text-foreground"
         placeholder={placeholder}
-        placeholderTextColor="#94a3b8"
+        placeholderTextColor="#828180"
         value={value}
         onChangeText={onChangeText}
         autoCapitalize="none"
