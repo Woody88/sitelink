@@ -5,6 +5,7 @@ export default function ProjectLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="plans/index" />
       <Stack.Screen name="plans/[planId]" />
+      <Stack.Screen name="media/index" />
     </Stack>
   );
 }

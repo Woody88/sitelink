@@ -5,9 +5,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface FloatingActionButtonProps {
   onPress: () => void;
+  icon?: keyof typeof Ionicons.glyphMap;
 }
 
-export function FloatingActionButton({ onPress }: FloatingActionButtonProps) {
+export function FloatingActionButton({ onPress, icon = "add" }: FloatingActionButtonProps) {
   const insets = useSafeAreaInsets();
 
   return (
@@ -24,7 +25,7 @@ export function FloatingActionButton({ onPress }: FloatingActionButtonProps) {
         elevation: 8,
       }}
     >
-      <Ionicons name="add" size={28} color="#ffffff" />
+      <Ionicons name={icon} size={28} color="#ffffff" />
     </Pressable>
   );
 }
