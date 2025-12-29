@@ -1,0 +1,30 @@
+import React from "react";
+import { Pressable } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+interface FloatingActionButtonProps {
+  onPress: () => void;
+}
+
+export function FloatingActionButton({ onPress }: FloatingActionButtonProps) {
+  const insets = useSafeAreaInsets();
+
+  return (
+    <Pressable
+      onPress={onPress}
+      className="absolute w-14 h-14 rounded-full bg-blue-500 items-center justify-center shadow-lg"
+      style={{
+        right: 16,
+        bottom: 80 + insets.bottom,
+        shadowColor: "#3b82f6",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 8,
+      }}
+    >
+      <Ionicons name="add" size={28} color="#ffffff" />
+    </Pressable>
+  );
+}

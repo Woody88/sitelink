@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useMemo, useEffect } from "react";
 import {
   View,
   ScrollView,
@@ -10,7 +10,161 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/ui/text";
-import { usePlans, useProject } from "@/lib/api";
+import { usePlans, useProject, useSheets } from "@/lib/api";
+import {
+  PlansHeader,
+  PlansSearchBar,
+  FilterModal,
+  UploadProgress,
+  PlanCard,
+  BottomTabs,
+  FloatingActionButton,
+  type PlanCardData,
+  type SheetItemData,
+  type SortOption,
+  type StatusFilter,
+  type DisciplineFilter,
+  type TabName,
+  type DisciplineType,
+  type StatusType,
+} from "@/components/plans";
+
+// Helper to map API plan to PlanCardData
+function mapPlanToCardData(plan: {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string | null;
+  readonly processingStatus: string | null;
+  readonly createdAt: Date;
+}): PlanCardData {
+  // Extract discipline from plan name (e.g., "A-100" -> ARCH, "E-200" -> ELEC)
+  const disciplineMap: Record<string, DisciplineType> = {
+    A: "ARCH",
+    E: "ELEC",
+    S: "STRUCT",
+    M: "MECH",
+    P: "PLUMB",
+    C: "CIVIL",
+  };
+  const prefix = plan.name.charAt(0).toUpperCase();
+  const discipline = disciplineMap[prefix] ?? "ARCH";
+
+  // Map processing status to display status
+  const statusMap: Record<string, StatusType> = {
+    completed: "APPROVED",
+    processing: "REVIEW",
+    failed: "DRAFT",
+  };
+  const status = statusMap[plan.processingStatus ?? ""] ?? "PENDING";
+
+  return {
+    id: plan.id,
+    name: plan.name,
+    discipline,
+    status,
+    version: 1,
+    sheetCount: 0,
+    markerCount: 0,
+    reviewNeededCount: 0,
+    sheets: [],
+  };
+}
+
+// Mock data for demo purposes - remove when API provides full data
+const MOCK_PLANS: PlanCardData[] = [
+  {
+    id: "1",
+    name: "A-100: Ground Floor Plan",
+    discipline: "ARCH",
+    status: "APPROVED",
+    version: 3,
+    sheetCount: 4,
+    markerCount: 12,
+    reviewNeededCount: 0,
+    sheets: [
+      {
+        id: "s1",
+        sheetId: "MK-492",
+        name: "Electrical Issue",
+        status: "Confirmed by AI",
+        confidence: 98,
+      },
+      {
+        id: "s2",
+        sheetId: "MK-493",
+        name: "Foundation Detail",
+        status: "Pending review",
+        confidence: 85,
+      },
+      {
+        id: "s3",
+        sheetId: "MK-494",
+        name: "Wall Section A",
+        status: "Confirmed by AI",
+        confidence: 92,
+      },
+      {
+        id: "s4",
+        sheetId: "MK-495",
+        name: "Door Schedule",
+        status: "Confirmed by AI",
+        confidence: 99,
+      },
+    ],
+  },
+  {
+    id: "2",
+    name: "E-200: Electrical Layout",
+    discipline: "ELEC",
+    status: "DRAFT",
+    version: 1,
+    sheetCount: 2,
+    markerCount: 0,
+    reviewNeededCount: 1,
+    sheets: [
+      {
+        id: "s5",
+        sheetId: "MK-500",
+        name: "Panel Schedule",
+        status: "Pending review",
+        confidence: 45,
+      },
+      {
+        id: "s6",
+        sheetId: "MK-501",
+        name: "Lighting Plan",
+        status: "Confirmed by AI",
+        confidence: 88,
+      },
+    ],
+  },
+  {
+    id: "3",
+    name: "S-105: Foundation Details",
+    discipline: "STRUCT",
+    status: "REVIEW",
+    version: 5,
+    sheetCount: 8,
+    markerCount: 5,
+    reviewNeededCount: 2,
+    sheets: [
+      {
+        id: "s7",
+        sheetId: "MK-510",
+        name: "Footing Detail",
+        status: "Pending review",
+        confidence: 32,
+      },
+      {
+        id: "s8",
+        sheetId: "MK-511",
+        name: "Rebar Schedule",
+        status: "Potential anomaly",
+        confidence: 22,
+      },
+    ],
+  },
+];
 
 export default function PlansScreen() {
   const insets = useSafeAreaInsets();
@@ -27,9 +181,108 @@ export default function PlansScreen() {
   } = usePlans(projectId ?? null);
 
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<SortOption>("date");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [disciplineFilter, setDisciplineFilter] = useState<DisciplineFilter>("all");
+  const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabName>("plans");
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [planSheets, setPlanSheets] = useState<Record<string, SheetItemData[]>>({});
+
+  // Upload progress state - null when not uploading
+  const [uploadProgress, setUploadProgress] = useState<{
+    fileName: string;
+    progress: number;
+  } | null>(null);
+
+  // Fetch sheets for expanded plan
+  const { data: sheetsData, isLoading: sheetsLoading } = useSheets(expandedPlanId);
+
+  // Update planSheets when sheets data loads
+  useEffect(() => {
+    if (expandedPlanId && sheetsData?.sheets && sheetsData.sheets.length > 0) {
+      const mappedSheets: SheetItemData[] = sheetsData.sheets.map((sheet) => ({
+        id: sheet.id,
+        sheetId: sheet.sheetName ?? `Sheet ${sheet.pageNumber}`,
+        name: sheet.sheetName ?? `Page ${sheet.pageNumber}`,
+        status: sheet.processingStatus === "completed" ? "Ready" : "Processing",
+        confidence: 85, // Default - would come from markers API
+        thumbnailUrl: undefined,
+      }));
+      setPlanSheets((prev) => ({
+        ...prev,
+        [expandedPlanId]: mappedSheets,
+      }));
+    }
+  }, [expandedPlanId, sheetsData]);
 
   const project = projectData;
-  const plans = plansData?.plans ?? [];
+
+  // Use API data if available, otherwise use mock data for demo
+  const apiPlans = plansData?.plans ?? [];
+  const basePlans = apiPlans.length > 0 ? apiPlans.map(mapPlanToCardData) : MOCK_PLANS;
+
+  // Merge sheets into plans
+  const plans = basePlans.map((plan) => ({
+    ...plan,
+    sheets: planSheets[plan.id] ?? plan.sheets ?? [],
+  }));
+
+  const hasActiveFilters = statusFilter !== "all" || disciplineFilter !== "all";
+
+  // Filter and sort plans
+  const filteredPlans = useMemo(() => {
+    let result = [...plans];
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (plan) =>
+          plan.name.toLowerCase().includes(query) ||
+          plan.discipline.toLowerCase().includes(query)
+      );
+    }
+
+    // Status filter
+    if (statusFilter !== "all") {
+      const statusMapping: Record<Exclude<StatusFilter, "all">, StatusType[]> = {
+        active: ["APPROVED"],
+        draft: ["DRAFT", "PENDING"],
+        review: ["REVIEW"],
+      };
+      const allowedStatuses = statusMapping[statusFilter];
+      result = result.filter((plan) => allowedStatuses.includes(plan.status));
+    }
+
+    // Discipline filter
+    if (disciplineFilter !== "all") {
+      const disciplineMapping: Record<Exclude<DisciplineFilter, "all">, DisciplineType> = {
+        arch: "ARCH",
+        elec: "ELEC",
+        struct: "STRUCT",
+        mech: "MECH",
+      };
+      const targetDiscipline = disciplineMapping[disciplineFilter];
+      result = result.filter((plan) => plan.discipline === targetDiscipline);
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case "name":
+          return a.name.localeCompare(b.name);
+        case "discipline":
+          return a.discipline.localeCompare(b.discipline);
+        case "date":
+        default:
+          return 0;
+      }
+    });
+
+    return result;
+  }, [plans, searchQuery, sortBy, statusFilter, disciplineFilter]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -37,85 +290,94 @@ export default function PlansScreen() {
     setRefreshing(false);
   }, [refetch]);
 
-  const handleBack = useCallback(() => {
-    router.back();
+  const handleToggleExpand = useCallback((planId: string) => {
+    setExpandedPlanId((prev) => (prev === planId ? null : planId));
   }, []);
 
-  const handleOpenDrawer = useCallback(() => {
-    // TODO: Open drawer menu
+  const handleSheetPress = useCallback((sheet: SheetItemData, planId: string) => {
+    // Navigate to viewer with the specific sheet
+    router.push(`/(main)/projects/${projectId}/plans/${planId}?sheetId=${sheet.id}` as any);
+  }, [projectId]);
+
+  const handlePlanMenuPress = useCallback((plan: PlanCardData) => {
+    console.log("Menu pressed for plan:", plan.id);
+    // Show action sheet
   }, []);
 
-  // Helper to get processing status display
-  const getStatusBadge = (status: string | null) => {
-    switch (status) {
-      case "completed":
-        return { text: "Ready", bgClass: "bg-green-100", textClass: "text-green-700" };
-      case "processing":
-        return { text: "Processing", bgClass: "bg-yellow-100", textClass: "text-yellow-700" };
-      case "failed":
-        return { text: "Failed", bgClass: "bg-red-100", textClass: "text-red-700" };
+  const handleFabPress = useCallback(() => {
+    console.log("FAB pressed - upload new plan");
+    // Show upload modal or navigate to upload screen
+  }, []);
+
+  const handleTabChange = useCallback((tab: TabName) => {
+    setActiveTab(tab);
+    switch (tab) {
+      case "projects":
+        router.push("/(main)/projects");
+        break;
+      case "camera":
+        console.log("Open camera");
+        break;
+      case "more":
+        console.log("Open more menu");
+        break;
       default:
-        return { text: "Pending", bgClass: "bg-slate-100", textClass: "text-slate-600" };
+        break;
     }
-  };
+  }, []);
+
+  const handleResetFilters = useCallback(() => {
+    setSortBy("date");
+    setStatusFilter("all");
+    setDisciplineFilter("all");
+  }, []);
 
   const isLoading = (projectLoading || plansLoading) && !refreshing;
 
   if (isLoading) {
     return (
       <View
-        className="flex-1 bg-background items-center justify-center"
+        className="flex-1 bg-slate-50 items-center justify-center"
         style={{ paddingTop: insets.top }}
       >
-        <ActivityIndicator size="large" color="#c9623d" />
+        <ActivityIndicator size="large" color="#3b82f6" />
         <Text className="mt-4 text-muted-foreground">Loading plans...</Text>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-background">
+    <View className="flex-1 bg-slate-50">
       {/* Header */}
-      <View
-        className="bg-background border-b border-slate-200 z-20"
-        style={{ paddingTop: insets.top }}
-      >
-        <View className="flex-row items-center px-4 py-3 justify-between">
-          <Pressable
-            onPress={handleBack}
-            className="w-12 h-12 items-center justify-center rounded-full"
-          >
-            <Ionicons name="chevron-back" size={28} color="#3d3929" />
-          </Pressable>
-          <View className="flex-1 mx-4">
-            <Text
-              className="text-lg font-bold tracking-tight text-center"
-              numberOfLines={1}
-            >
-              {project?.name ?? "Project"}
-            </Text>
-            <Text className="text-xs text-muted-foreground text-center">
-              Plans
-            </Text>
-          </View>
-          <Pressable
-            onPress={handleOpenDrawer}
-            className="w-12 h-12 items-center justify-center rounded-full"
-          >
-            <Ionicons name="menu" size={28} color="#3d3929" />
-          </Pressable>
-        </View>
+      <PlansHeader
+        projectName={project?.name ?? "Westside Hospital"}
+        syncStatus="SYNCED: JUST NOW"
+        onFilterPress={() => setFilterModalVisible(true)}
+        hasActiveFilters={hasActiveFilters}
+      />
+
+      {/* Upload Progress - only shown when uploading */}
+      {uploadProgress && (
+        <UploadProgress
+          fileName={uploadProgress.fileName}
+          progress={uploadProgress.progress}
+        />
+      )}
+
+      {/* Search Bar */}
+      <View className="px-4 py-3">
+        <PlansSearchBar value={searchQuery} onChangeText={setSearchQuery} />
       </View>
 
       {/* Content */}
       <ScrollView
-        className="flex-1 px-4 pt-4"
-        contentContainerStyle={{ paddingBottom: 100 }}
+        className="flex-1 px-4"
+        contentContainerStyle={{ paddingBottom: 140 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#c9623d"
+            tintColor="#3b82f6"
           />
         }
       >
@@ -127,111 +389,60 @@ export default function PlansScreen() {
             </Text>
             <Pressable
               onPress={() => refetch()}
-              className="mt-4 px-6 py-3 bg-primary rounded-xl"
+              className="mt-4 px-6 py-3 bg-blue-500 rounded-xl"
             >
               <Text className="text-white font-semibold">Retry</Text>
             </Pressable>
           </View>
-        ) : plans.length === 0 ? (
+        ) : filteredPlans.length === 0 ? (
           <View className="flex-1 items-center justify-center py-12">
-            <View className="w-24 h-24 rounded-full bg-accent items-center justify-center mb-4">
-              <Ionicons name="document-outline" size={48} color="#c9623d" />
+            <View className="w-24 h-24 rounded-full bg-blue-100 items-center justify-center mb-4">
+              <Ionicons name="document-outline" size={48} color="#3b82f6" />
             </View>
             <Text className="text-xl font-bold text-foreground mb-2">
-              No Plans Yet
+              No Plans Found
             </Text>
             <Text className="text-sm text-muted-foreground text-center max-w-[280px]">
-              Upload your first construction plan to get started.
+              {searchQuery || hasActiveFilters
+                ? "Try adjusting your search or filters."
+                : "Upload your first construction plan to get started."}
             </Text>
           </View>
         ) : (
-          <View className="gap-3">
-            <Text className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1 mb-2">
-              All Plans ({plans.length})
-            </Text>
-
-            {plans.map(
-              (plan: {
-                id: string;
-                name: string;
-                description?: string | null;
-                processingStatus?: string | null;
-                createdAt: string;
-              }) => {
-                const status = getStatusBadge(plan.processingStatus ?? null);
-
-                return (
-                  <Pressable
-                    key={plan.id}
-                    onPress={() =>
-                      router.push(
-                        `/(main)/projects/${projectId}/plans/${plan.id}`
-                      )
-                    }
-                    className="w-full"
-                  >
-                    <View className="flex-row items-center p-4 bg-white rounded-xl border border-slate-200">
-                      <View className="w-12 h-12 rounded-lg bg-accent items-center justify-center mr-4">
-                        <Ionicons
-                          name="document-text"
-                          size={24}
-                          color="#c9623d"
-                        />
-                      </View>
-                      <View className="flex-1">
-                        <Text
-                          className="text-base font-semibold text-foreground"
-                          numberOfLines={1}
-                        >
-                          {plan.name}
-                        </Text>
-                        <View className="flex-row items-center gap-2 mt-1">
-                          <View className={`px-2 py-0.5 rounded-full ${status.bgClass}`}>
-                            <Text className={`text-xs font-medium ${status.textClass}`}>
-                              {status.text}
-                            </Text>
-                          </View>
-                          <Text className="text-xs text-muted-foreground">
-                            {new Date(plan.createdAt).toLocaleDateString()}
-                          </Text>
-                        </View>
-                      </View>
-                      <Ionicons
-                        name="chevron-forward"
-                        size={20}
-                        color="#828180"
-                      />
-                    </View>
-                  </Pressable>
-                );
-              }
-            )}
+          <View>
+            {filteredPlans.map((plan) => (
+              <PlanCard
+                key={plan.id}
+                plan={plan}
+                isExpanded={expandedPlanId === plan.id}
+                isLoadingSheets={expandedPlanId === plan.id && sheetsLoading}
+                onToggleExpand={handleToggleExpand}
+                onSheetPress={handleSheetPress}
+                onMenuPress={handlePlanMenuPress}
+              />
+            ))}
           </View>
         )}
       </ScrollView>
 
-      {/* Footer CTA */}
-      <View
-        className="absolute bottom-0 left-0 right-0 p-4 bg-background/95 border-t border-slate-200 z-30"
-        style={{ paddingBottom: Math.max(insets.bottom, 16) + 16 }}
-      >
-        <Pressable
-          onPress={() => console.log("Upload new plan")}
-          className="w-full flex-row items-center justify-center gap-2 bg-primary h-14 rounded-xl shadow-lg active:opacity-90"
-          style={{
-            shadowColor: "#c9623d",
-            shadowOffset: { width: 0, height: 10 },
-            shadowOpacity: 0.25,
-            shadowRadius: 15,
-            elevation: 8,
-          }}
-        >
-          <Ionicons name="cloud-upload" size={24} color="#ffffff" />
-          <Text className="text-lg font-bold tracking-tight text-white">
-            Upload New Plan
-          </Text>
-        </Pressable>
-      </View>
+      {/* Filter Modal */}
+      <FilterModal
+        visible={filterModalVisible}
+        onClose={() => setFilterModalVisible(false)}
+        sortBy={sortBy}
+        statusFilter={statusFilter}
+        disciplineFilter={disciplineFilter}
+        onSortChange={setSortBy}
+        onStatusChange={setStatusFilter}
+        onDisciplineChange={setDisciplineFilter}
+        onReset={handleResetFilters}
+      />
+
+      {/* Floating Action Button */}
+      <FloatingActionButton onPress={handleFabPress} />
+
+      {/* Bottom Tabs */}
+      <BottomTabs activeTab={activeTab} onTabChange={handleTabChange} />
     </View>
   );
 }
