@@ -13,11 +13,11 @@ export function FloatingActionButton({ onPress }: FloatingActionButtonProps) {
   return (
     <Pressable
       onPress={onPress}
-      className="absolute w-14 h-14 rounded-full bg-blue-500 items-center justify-center shadow-lg"
+      className="absolute w-14 h-14 rounded-full bg-primary items-center justify-center shadow-lg"
       style={{
         right: 16,
         bottom: 80 + insets.bottom,
-        shadowColor: "#3b82f6",
+        shadowColor: "#c9623d",
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,

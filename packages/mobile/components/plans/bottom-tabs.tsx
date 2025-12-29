@@ -25,12 +25,12 @@ function TabItem({ label, icon, activeIcon, isActive, onPress }: TabItemProps) {
       <Ionicons
         name={isActive ? activeIcon : icon}
         size={24}
-        color={isActive ? "#3b82f6" : "#64748b"}
+        color={isActive ? "#c9623d" : "#828180"}
       />
       <Text
         className={cn(
           "text-xs mt-1",
-          isActive ? "text-blue-500 font-medium" : "text-muted-foreground"
+          isActive ? "text-primary font-medium" : "text-muted-foreground"
         )}
       >
         {label}
@@ -61,7 +61,7 @@ export function BottomTabs({ activeTab, onTabChange }: BottomTabsProps) {
 
   return (
     <View
-      className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-200"
+      className="absolute bottom-0 left-0 right-0 bg-card border-t border-border"
       style={{ paddingBottom: insets.bottom }}
     >
       <View className="flex-row">

@@ -17,19 +17,19 @@ export function UploadProgress({
   if (!isVisible) return null;
 
   return (
-    <View className="mx-4 mb-2 bg-blue-50 rounded-xl p-3 border border-blue-100">
+    <View className="mx-4 mb-2 bg-accent rounded-xl p-3 border border-border">
       <View className="flex-row items-center justify-between mb-2">
         <View className="flex-row items-center gap-2">
-          <Ionicons name="cloud-upload-outline" size={18} color="#3b82f6" />
-          <Text className="text-sm text-blue-700">
+          <Ionicons name="cloud-upload-outline" size={18} color="#c9623d" />
+          <Text className="text-sm text-foreground">
             Uploading: {fileName}
           </Text>
         </View>
-        <Text className="text-sm font-semibold text-blue-700">{progress}%</Text>
+        <Text className="text-sm font-semibold text-primary">{progress}%</Text>
       </View>
-      <View className="h-1.5 bg-blue-200 rounded-full overflow-hidden">
+      <View className="h-1.5 bg-secondary rounded-full overflow-hidden">
         <View
-          className="h-full bg-blue-500 rounded-full"
+          className="h-full bg-primary rounded-full"
           style={{ width: `${progress}%` }}
         />
       </View>

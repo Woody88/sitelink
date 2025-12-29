@@ -29,7 +29,7 @@ export function SheetItem({
   isSelected = false,
   onSelect,
   onPress,
-  showCheckbox = true,
+  showCheckbox = false,
   showThumbnail = true,
 }: SheetItemProps) {
   const handlePress = () => {
@@ -47,7 +47,8 @@ export function SheetItem({
   return (
     <Pressable
       onPress={handlePress}
-      className="flex-row items-center bg-slate-50 rounded-xl p-3 ml-4 mb-2"
+      className="flex-row items-center py-3 border-b border-border"
+      style={{ marginLeft: 12 }}
     >
       {showCheckbox && (
         <Pressable
@@ -59,8 +60,8 @@ export function SheetItem({
             className={cn(
               "w-5 h-5 rounded border-2 items-center justify-center",
               isSelected
-                ? "bg-blue-500 border-blue-500"
-                : "border-slate-300 bg-white"
+                ? "bg-primary border-primary"
+                : "border-border bg-background"
             )}
           >
             {isSelected && (
@@ -75,18 +76,18 @@ export function SheetItem({
         sheet.thumbnailUrl ? (
           <Image
             source={{ uri: sheet.thumbnailUrl }}
-            className="w-14 h-14 rounded-lg bg-slate-200 mr-3"
+            className="w-12 h-12 rounded-lg bg-muted mr-3"
             resizeMode="cover"
           />
         ) : (
-          <View className="w-14 h-14 rounded-lg bg-blue-100 items-center justify-center mr-3">
-            <Ionicons name="document-text" size={24} color="#3b82f6" />
+          <View className="w-12 h-12 rounded-lg bg-accent items-center justify-center mr-3">
+            <Ionicons name="document-text" size={22} color="#c9623d" />
           </View>
         )
       )}
 
       {/* Content */}
-      <View className="flex-1">
+      <View className="flex-1 mr-2">
         <View className="flex-row items-center gap-2">
           <Text className="text-base font-semibold text-foreground">
             {sheet.sheetId}
@@ -95,7 +96,7 @@ export function SheetItem({
             <ConfidenceBadge confidence={sheet.confidence} />
           )}
         </View>
-        <Text className="text-sm text-foreground mt-0.5" numberOfLines={1}>
+        <Text className="text-sm text-muted-foreground mt-0.5" numberOfLines={1}>
           {sheet.name}
         </Text>
         {sheet.status && (
@@ -104,6 +105,9 @@ export function SheetItem({
           </Text>
         )}
       </View>
+
+      {/* Chevron */}
+      <Ionicons name="chevron-forward" size={18} color="#828180" />
     </Pressable>
   );
 }

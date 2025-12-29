@@ -337,17 +337,17 @@ export default function PlansScreen() {
   if (isLoading) {
     return (
       <View
-        className="flex-1 bg-slate-50 items-center justify-center"
+        className="flex-1 bg-background items-center justify-center"
         style={{ paddingTop: insets.top }}
       >
-        <ActivityIndicator size="large" color="#3b82f6" />
+        <ActivityIndicator size="large" color="#c9623d" />
         <Text className="mt-4 text-muted-foreground">Loading plans...</Text>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-slate-50">
+    <View className="flex-1 bg-background">
       {/* Header */}
       <PlansHeader
         projectName={project?.name ?? "Westside Hospital"}
@@ -377,7 +377,7 @@ export default function PlansScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#3b82f6"
+            tintColor="#c9623d"
           />
         }
       >
@@ -389,15 +389,15 @@ export default function PlansScreen() {
             </Text>
             <Pressable
               onPress={() => refetch()}
-              className="mt-4 px-6 py-3 bg-blue-500 rounded-xl"
+              className="mt-4 px-6 py-3 bg-primary rounded-xl"
             >
-              <Text className="text-white font-semibold">Retry</Text>
+              <Text className="text-primary-foreground font-semibold">Retry</Text>
             </Pressable>
           </View>
         ) : filteredPlans.length === 0 ? (
           <View className="flex-1 items-center justify-center py-12">
-            <View className="w-24 h-24 rounded-full bg-blue-100 items-center justify-center mb-4">
-              <Ionicons name="document-outline" size={48} color="#3b82f6" />
+            <View className="w-24 h-24 rounded-full bg-accent items-center justify-center mb-4">
+              <Ionicons name="document-outline" size={48} color="#c9623d" />
             </View>
             <Text className="text-xl font-bold text-foreground mb-2">
               No Plans Found

@@ -21,7 +21,7 @@ export function PlansHeader({
 
   return (
     <View
-      className="bg-white border-b border-slate-200"
+      className="bg-card border-b border-border"
       style={{ paddingTop: insets.top }}
     >
       <View className="flex-row items-center justify-between px-4 py-3">
@@ -40,9 +40,9 @@ export function PlansHeader({
           onPress={onFilterPress}
           className="w-10 h-10 items-center justify-center relative"
         >
-          <Ionicons name="options-outline" size={24} color="#1e293b" />
+          <Ionicons name="options-outline" size={24} color="#3d3929" />
           {hasActiveFilters && (
-            <View className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-blue-500" />
+            <View className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-primary" />
           )}
         </Pressable>
       </View>
