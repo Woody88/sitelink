@@ -1,5 +1,50 @@
 appId: com.sitelink.app
 ---
+# Login Screen Visual Verification
+# Verifies the new SiteLink login screen design elements
 
+# Wait for the screen to load
+- waitForAnimationToEnd
+
+# Hero Section
 - assertVisible:
-    text: "Add New Project"
+    text: "SiteLink"
+- assertVisible:
+    text: "Field Management OS"
+- assertVisible:
+    text: "Offline Ready"
+
+# Welcome Section
+- assertVisible:
+    text: "Welcome Back"
+- assertVisible:
+    text: "Manage plans anywhere, anytime."
+
+# Auth Toggle
+- assertVisible:
+    text: "Log In"
+- assertVisible:
+    text: "Sign Up"
+
+# Form Fields
+- assertVisible:
+    text: "Email Address"
+- assertVisible:
+    text: "Password"
+- assertVisible:
+    text: "Forgot?"
+
+# Action Buttons
+- assertVisible:
+    text: "Email me a login link"
+
+# Social Login
+- assertVisible:
+    text: "Or continue with"
+- assertVisible:
+    text: "Google"
+- assertVisible:
+    text: "Apple"
+
+# Take screenshot for visual comparison
+- takeScreenshot: login_screen
