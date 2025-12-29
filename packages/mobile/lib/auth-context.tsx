@@ -7,7 +7,7 @@ import React, {
   useMemo,
   type ReactNode,
 } from "react";
-import { router } from "expo-router";
+import { router, useRouter, useRootNavigationState } from "expo-router";
 import {
   authClient,
   secureStorageAdapter,
@@ -513,12 +513,17 @@ export function useAuth(): AuthContextValue {
 // Redirects to login if not authenticated
 export function useRequireAuth(): AuthContextValue {
   const auth = useAuth();
+  const router = useRouter();
+  const navigationState = useRootNavigationState();
 
   useEffect(() => {
-    if (!auth.isLoading && !auth.isAuthenticated) {
+    // Wait for navigation to be ready
+    if (!navigationState?.key || auth.isLoading) return;
+
+    if (!auth.isAuthenticated) {
       router.replace("/(auth)/login");
     }
-  }, [auth.isLoading, auth.isAuthenticated]);
+  }, [auth.isLoading, auth.isAuthenticated, router, navigationState?.key]);
 
   return auth;
 }
@@ -527,12 +532,17 @@ export function useRequireAuth(): AuthContextValue {
 // (e.g., login, signup pages)
 export function useRedirectIfAuthenticated(): AuthContextValue {
   const auth = useAuth();
+  const router = useRouter();
+  const navigationState = useRootNavigationState();
 
   useEffect(() => {
-    if (!auth.isLoading && auth.isAuthenticated) {
+    // Wait for navigation to be ready
+    if (!navigationState?.key || auth.isLoading) return;
+
+    if (auth.isAuthenticated) {
       router.replace("/(main)/projects");
     }
-  }, [auth.isLoading, auth.isAuthenticated]);
+  }, [auth.isLoading, auth.isAuthenticated, router, navigationState?.key]);
 
   return auth;
 }
