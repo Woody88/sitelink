@@ -1,6 +1,23 @@
 
 # Sitelink Project Guidelines
 
+## Task Tracking with Beads
+
+This project uses **bd** (beads) for issue tracking. See `AGENTS.md` for full workflow.
+
+```bash
+bd ready              # Find available work
+bd new "Task title"   # Create new issue
+bd show <id>          # View issue details
+bd update <id> --status in_progress  # Claim work
+bd close <id>         # Complete work
+bd sync               # Sync with git (before pushing)
+```
+
+**Important:** Always run `bd sync && git push` before ending a session.
+
+---
+
 ## Sitelink Engineering Team
 
 ## 1. Routing Rules (Strict)
