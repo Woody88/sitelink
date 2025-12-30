@@ -16,7 +16,7 @@ export interface BatchValidationInput {
   /** Original candidate ref from OCR/CV (optional, for context) */
   candidateRef?: string;
   /** Shape type hint for LLM */
-  shapeType?: 'circle' | 'triangle' | 'unknown';
+  shapeType?: 'circle' | 'triangle' | 'section_flag' | 'text_callout' | 'unknown';
   /** Bounding box in original image coordinates */
   bbox?: { x1: number; y1: number; x2: number; y2: number };
   /** Center coordinates from CV detection */
@@ -74,6 +74,8 @@ export interface BatchValidationOptions {
   maxRetries?: number;
   /** Enable verbose logging (default: false) */
   verbose?: boolean;
+  /** Minimum confidence threshold for accepting callouts (0.0-1.0, default: 0.9) */
+  confidenceThreshold?: number;
 }
 
 /**

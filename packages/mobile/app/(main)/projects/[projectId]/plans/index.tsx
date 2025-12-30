@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useMemo, useEffect } from "react";
+import React, { useCallback, useState, useMemo, useEffect, useRef } from "react";
 import {
   View,
   ScrollView,
@@ -9,6 +9,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import type BottomSheet from "@gorhom/bottom-sheet";
 import { Text } from "@/components/ui/text";
 import { usePlans, useProject, useSheets } from "@/lib/api";
 import {
@@ -19,6 +20,8 @@ import {
   PlanCard,
   BottomTabs,
   FloatingActionButton,
+  UploadBottomSheet,
+  InvalidFileModal,
   type PlanCardData,
   type SheetItemData,
   type SortOption,
@@ -28,6 +31,7 @@ import {
   type DisciplineType,
   type StatusType,
 } from "@/components/plans";
+import { usePlanUpload } from "@/hooks/use-plan-upload";
 
 // Helper to map API plan to PlanCardData
 function mapPlanToCardData(plan: {
@@ -189,12 +193,22 @@ export default function PlansScreen() {
   const [activeTab, setActiveTab] = useState<TabName>("plans");
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [planSheets, setPlanSheets] = useState<Record<string, SheetItemData[]>>({});
+  const [invalidFileModalVisible, setInvalidFileModalVisible] = useState(false);
 
-  // Upload progress state - null when not uploading
-  const [uploadProgress, setUploadProgress] = useState<{
-    fileName: string;
-    progress: number;
-  } | null>(null);
+  // Upload bottom sheet ref
+  const uploadSheetRef = useRef<BottomSheet>(null);
+
+  // Upload hook
+  const {
+    isUploading,
+    uploadProgress: uploadProgressValue,
+    estimatedTimeRemaining,
+    currentFileName,
+    error: uploadError,
+    startUpload,
+    cancelUpload,
+    clearError,
+  } = usePlanUpload();
 
   // Fetch sheets for expanded plan
   const { data: sheetsData, isLoading: sheetsLoading } = useSheets(expandedPlanId);
@@ -305,9 +319,77 @@ export default function PlansScreen() {
   }, []);
 
   const handleFabPress = useCallback(() => {
-    console.log("FAB pressed - upload new plan");
-    // Show upload modal or navigate to upload screen
+    uploadSheetRef.current?.expand();
   }, []);
+
+  const handleUploadSheetClose = useCallback(() => {
+    uploadSheetRef.current?.close();
+  }, []);
+
+  const handleSelectUploadSource = useCallback(
+    async (source: "device" | "dropbox" | "google-drive") => {
+      if (source !== "device") return;
+
+      // Close the bottom sheet
+      uploadSheetRef.current?.close();
+
+      // Open document picker for PDF files
+      try {
+        // Dynamic import to avoid crash if native module not available
+        const DocumentPicker = await import("expo-document-picker");
+
+        const result = await DocumentPicker.getDocumentAsync({
+          type: "application/pdf",
+          copyToCacheDirectory: true,
+        });
+
+        if (result.canceled || !result.assets?.[0]) return;
+
+        const file = result.assets[0];
+
+        // Validate file
+        if (!file.mimeType?.includes("pdf") && !file.name?.endsWith(".pdf")) {
+          setInvalidFileModalVisible(true);
+          return;
+        }
+
+        // Start upload
+        if (projectId) {
+          const success = await startUpload(projectId, file);
+          if (success) {
+            // Refetch plans to show the new one
+            refetch();
+          }
+        }
+      } catch (error) {
+        console.error("Document picker error:", error);
+        // Show user-friendly error if native module missing
+        if (String(error).includes("Cannot find native module")) {
+          alert("Please rebuild the app with EAS to enable file uploads:\neas build --profile development --platform android");
+        }
+      }
+    },
+    [projectId, startUpload, refetch]
+  );
+
+  const handleInvalidFileClose = useCallback(() => {
+    setInvalidFileModalVisible(false);
+    clearError();
+  }, [clearError]);
+
+  const handleTryDifferentFile = useCallback(() => {
+    setInvalidFileModalVisible(false);
+    clearError();
+    // Re-open the upload sheet
+    uploadSheetRef.current?.expand();
+  }, [clearError]);
+
+  // Show invalid file modal when upload error is invalid_file
+  useEffect(() => {
+    if (uploadError === "invalid_file") {
+      setInvalidFileModalVisible(true);
+    }
+  }, [uploadError]);
 
   const handleTabChange = useCallback((tab: TabName) => {
     setActiveTab(tab);
@@ -357,10 +439,12 @@ export default function PlansScreen() {
       />
 
       {/* Upload Progress - only shown when uploading */}
-      {uploadProgress && (
+      {isUploading && currentFileName && (
         <UploadProgress
-          fileName={uploadProgress.fileName}
-          progress={uploadProgress.progress}
+          fileName={currentFileName}
+          progress={uploadProgressValue}
+          estimatedTimeRemaining={estimatedTimeRemaining}
+          onCancel={cancelUpload}
         />
       )}
 
@@ -443,6 +527,20 @@ export default function PlansScreen() {
 
       {/* Bottom Tabs */}
       <BottomTabs activeTab={activeTab} onTabChange={handleTabChange} />
+
+      {/* Upload Bottom Sheet */}
+      <UploadBottomSheet
+        ref={uploadSheetRef}
+        onSelectSource={handleSelectUploadSource}
+        onClose={handleUploadSheetClose}
+      />
+
+      {/* Invalid File Modal */}
+      <InvalidFileModal
+        visible={invalidFileModalVisible}
+        onClose={handleInvalidFileClose}
+        onTryDifferentFile={handleTryDifferentFile}
+      />
     </View>
   );
 }
