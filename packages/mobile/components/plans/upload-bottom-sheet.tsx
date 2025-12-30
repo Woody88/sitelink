@@ -1,12 +1,7 @@
-import React, { useCallback, useMemo, forwardRef } from "react";
-import { View, Pressable, StyleSheet } from "react-native";
+import React from "react";
+import { View, Pressable, StyleSheet, Modal } from "react-native";
 import { Text } from "@/components/ui/text";
 import { Ionicons } from "@expo/vector-icons";
-import BottomSheet, {
-  BottomSheetBackdrop,
-  BottomSheetView,
-  type BottomSheetBackdropProps,
-} from "@gorhom/bottom-sheet";
 
 interface UploadSource {
   id: "device" | "dropbox" | "google-drive";
@@ -22,44 +17,32 @@ const UPLOAD_SOURCES: UploadSource[] = [
 ];
 
 interface UploadBottomSheetProps {
+  visible: boolean;
   onSelectSource: (source: "device" | "dropbox" | "google-drive") => void;
   onClose: () => void;
 }
 
-export const UploadBottomSheet = forwardRef<BottomSheet, UploadBottomSheetProps>(
-  function UploadBottomSheet({ onSelectSource, onClose }, ref) {
-    const snapPoints = useMemo(() => ["40%"], []);
+export function UploadBottomSheet({ visible, onSelectSource, onClose }: UploadBottomSheetProps) {
+  const handleSourcePress = (source: UploadSource) => {
+    if (source.enabled) {
+      onSelectSource(source.id);
+    }
+  };
 
-    const renderBackdrop = useCallback(
-      (props: BottomSheetBackdropProps) => (
-        <BottomSheetBackdrop
-          {...props}
-          disappearsOnIndex={-1}
-          appearsOnIndex={0}
-          opacity={0.5}
-        />
-      ),
-      []
-    );
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
+      <Pressable style={styles.overlay} onPress={onClose}>
+        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+          {/* Handle indicator */}
+          <View style={styles.handleContainer}>
+            <View style={styles.handleIndicator} />
+          </View>
 
-    const handleSourcePress = (source: UploadSource) => {
-      if (source.enabled) {
-        onSelectSource(source.id);
-      }
-    };
-
-    return (
-      <BottomSheet
-        ref={ref}
-        index={-1}
-        snapPoints={snapPoints}
-        enablePanDownToClose
-        backdropComponent={renderBackdrop}
-        onClose={onClose}
-        backgroundStyle={styles.background}
-        handleIndicatorStyle={styles.handleIndicator}
-      >
-        <BottomSheetView style={styles.contentContainer}>
           {/* Header */}
           <View style={styles.header}>
             <Text className="text-lg font-bold text-foreground">Upload Plan</Text>
@@ -107,25 +90,34 @@ export const UploadBottomSheet = forwardRef<BottomSheet, UploadBottomSheetProps>
               </Pressable>
             ))}
           </View>
-        </BottomSheetView>
-      </BottomSheet>
-    );
-  }
-);
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
 
 const styles = StyleSheet.create({
-  background: {
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  sheet: {
     backgroundColor: "#faf8f5",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  handleContainer: {
+    alignItems: "center",
+    paddingVertical: 12,
   },
   handleIndicator: {
     backgroundColor: "#d1d5db",
     width: 40,
-  },
-  contentContainer: {
-    flex: 1,
-    paddingHorizontal: 20,
+    height: 4,
+    borderRadius: 2,
   },
   header: {
     flexDirection: "row",

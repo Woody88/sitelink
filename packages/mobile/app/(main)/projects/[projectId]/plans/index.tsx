@@ -1,15 +1,16 @@
-import React, { useCallback, useState, useMemo, useEffect, useRef } from "react";
+import React, { useCallback, useState, useMemo, useEffect } from "react";
 import {
   View,
   ScrollView,
   Pressable,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import type BottomSheet from "@gorhom/bottom-sheet";
+import * as DocumentPicker from "expo-document-picker";
 import { Text } from "@/components/ui/text";
 import { usePlans, useProject, useSheets } from "@/lib/api";
 import {
@@ -194,9 +195,7 @@ export default function PlansScreen() {
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [planSheets, setPlanSheets] = useState<Record<string, SheetItemData[]>>({});
   const [invalidFileModalVisible, setInvalidFileModalVisible] = useState(false);
-
-  // Upload bottom sheet ref
-  const uploadSheetRef = useRef<BottomSheet>(null);
+  const [uploadSheetVisible, setUploadSheetVisible] = useState(false);
 
   // Upload hook
   const {
@@ -319,11 +318,11 @@ export default function PlansScreen() {
   }, []);
 
   const handleFabPress = useCallback(() => {
-    uploadSheetRef.current?.expand();
+    setUploadSheetVisible(true);
   }, []);
 
   const handleUploadSheetClose = useCallback(() => {
-    uploadSheetRef.current?.close();
+    setUploadSheetVisible(false);
   }, []);
 
   const handleSelectUploadSource = useCallback(
@@ -331,13 +330,10 @@ export default function PlansScreen() {
       if (source !== "device") return;
 
       // Close the bottom sheet
-      uploadSheetRef.current?.close();
+      setUploadSheetVisible(false);
 
       // Open document picker for PDF files
       try {
-        // Dynamic import to avoid crash if native module not available
-        const DocumentPicker = await import("expo-document-picker");
-
         const result = await DocumentPicker.getDocumentAsync({
           type: "application/pdf",
           copyToCacheDirectory: true,
@@ -365,7 +361,17 @@ export default function PlansScreen() {
         console.error("Document picker error:", error);
         // Show user-friendly error if native module missing
         if (String(error).includes("Cannot find native module")) {
-          alert("Please rebuild the app with EAS to enable file uploads:\neas build --profile development --platform android");
+          Alert.alert(
+            "Rebuild Required",
+            "Please rebuild the app with EAS to enable file uploads:\n\neas build --profile development --platform android",
+            [{ text: "OK" }]
+          );
+        } else {
+          Alert.alert(
+            "Error",
+            "Failed to open document picker. Please try again.",
+            [{ text: "OK" }]
+          );
         }
       }
     },
@@ -381,7 +387,7 @@ export default function PlansScreen() {
     setInvalidFileModalVisible(false);
     clearError();
     // Re-open the upload sheet
-    uploadSheetRef.current?.expand();
+    setUploadSheetVisible(true);
   }, [clearError]);
 
   // Show invalid file modal when upload error is invalid_file
@@ -530,7 +536,7 @@ export default function PlansScreen() {
 
       {/* Upload Bottom Sheet */}
       <UploadBottomSheet
-        ref={uploadSheetRef}
+        visible={uploadSheetVisible}
         onSelectSource={handleSelectUploadSource}
         onClose={handleUploadSheetClose}
       />
