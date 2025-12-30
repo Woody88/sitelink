@@ -23,11 +23,58 @@ export type {
   BatchValidationStats,
 };
 
-// Token estimation: ~1200 tokens per 80px base64 crop
-const ESTIMATED_TOKENS_PER_IMAGE = 1200;
-const MAX_CONTEXT_TOKENS = 120000; // Conservative limit for Gemini 2.5 Flash
+// ============================================================================
+// Configuration Constants
+// ============================================================================
+
+/** Base token estimate for standard crop (fallback when dimensions unavailable) */
+const BASE_TOKENS_PER_IMAGE = 1200;
+
+/** Tokens per 1000 pixels of image area (for adaptive estimation) */
+const TOKENS_PER_1K_PIXELS = 0.15;
+
+/** Conservative context limit for Gemini 2.5 Flash */
+const MAX_CONTEXT_TOKENS = 120000;
+
 const DEFAULT_BATCH_SIZE = 15;
 const DEFAULT_MODEL = "google/gemini-2.5-flash";
+
+/** Default confidence threshold for accepting callouts (0.0-1.0) */
+const DEFAULT_CONFIDENCE_THRESHOLD = 0.9;
+
+/** Pattern for valid callout references (detail/sheet format) */
+const CALLOUT_REF_PATTERN = /^[A-Z0-9.-]+\/[A-Z0-9.-]+$/i;
+
+/**
+ * Estimate tokens for an image based on its dimensions.
+ * Uses actual bbox dimensions when available, falls back to base estimate.
+ */
+function estimateImageTokens(input: BatchValidationInput): number {
+  if (input.bbox) {
+    const width = input.bbox.x2 - input.bbox.x1;
+    const height = input.bbox.y2 - input.bbox.y1;
+    // Add padding that will be applied during crop
+    const paddedArea = (width + 140) * (height + 140);
+    return Math.ceil((paddedArea / 1000) * TOKENS_PER_1K_PIXELS) + 200; // +200 for encoding overhead
+  }
+  return BASE_TOKENS_PER_IMAGE;
+}
+
+/**
+ * Validate that a reference matches expected callout format.
+ */
+function isValidCalloutRefFormat(ref: string | null): boolean {
+  if (!ref) return false;
+  const cleanRef = ref.toUpperCase().trim();
+
+  // Must match detail/sheet pattern
+  if (!CALLOUT_REF_PATTERN.test(cleanRef)) return false;
+
+  // Reject scale fractions (1/4, 1/2, 3/8, etc.)
+  if (/^[1-9]\/[248]$/.test(cleanRef)) return false;
+
+  return true;
+}
 
 /**
  * Build batch validation prompt with numbered image references
@@ -46,27 +93,27 @@ function buildBatchValidationPrompt(
 **TASK**: For EACH image (numbered 0 to ${imageCount - 1}), determine if it contains a callout symbol.
 
 **What ARE callouts:**
-- Circular markers with sheet references like "1/A5", "2/A6", "A/S1.1"
-- Detail circles: Circle with horizontal line divider, number above (detail #), sheet below
-- Section markers: Circle with arrow indicating cut direction
-- Triangular revision markers with letters/numbers inside
+1. **Section Flags (IMPORTANT)**: A circle containing text with a solid or hollow triangle/arrow "flag" attached to the side. These indicate a section cut. (e.g., "1/A6", "2/A6").
+2. **Circular Detail Markers**: Circle with a horizontal line divider. Typically has a detail number on top and sheet reference on bottom (e.g., "2/A5").
+3. **Triangular Revision Markers**: Standalone triangles containing a number or letter (e.g., "1/A5").
+4. **Borderless Text**: Plain "XX/XX" text that acts as a callout without a surrounding shape.
 
-**What are NOT callouts:**
-- Dimension numbers (like "12'-6"")
-- Scale indicators (like "1/4" = 1'-0"")
-- North arrows or compass symbols
-- Bare sheet numbers without detail numbers (just "A6" alone)
-- Grid bubbles (column/row markers)
-- Random decorative elements
+**What are NOT callouts (CRITICAL):**
+- **Scale Indicators**: Any text containing an equals sign or units, such as "1/4\\" = 1'-0\\"", "1/2\\" = 1'-0\\"", or just the "1/4\\"" part of a scale.
+- **Dimensions**: Measurements like "12'-6\\"", "4 1/2\\"", or "R=36\\"".
+- **North Arrows**: Symbols or text indicating direction.
+- **Bare numbers**: Sheet numbers without detail numbers (just "A6" alone) or single numbers not in a shape.
+- **Grid bubbles**: Column/row markers (usually just a letter or number in a circle, like "A" or "1").
+- **Room names**: Text labels for spaces.
 
 **Valid target sheets:** ${sheetList}
 
 **CRITICAL INSTRUCTIONS:**
 1. Analyze EACH image in order (Image 0, Image 1, Image 2, ...)
-2. Return a result for EVERY image - do not skip any
-3. The "index" field MUST match the image position (0-indexed)
-4. If uncertain, set isCallout: false with low confidence
-5. For detectedRef, use format "detail/sheet" (e.g., "2/A5") when both are visible
+2. Return a result for EVERY image - do not skip any.
+3. The "index" field MUST match the image position (0-indexed).
+4. For Section Flags (Circle+Triangle), report the text inside the circle as the "detectedRef".
+5. For detectedRef, use format "detail/sheet" (e.g., "1/A6") whenever a slash is present.
 
 **Response format (JSON only, no markdown):**
 {
@@ -74,20 +121,11 @@ function buildBatchValidationPrompt(
     {
       "index": 0,
       "isCallout": true,
-      "detectedRef": "2/A5",
-      "targetSheet": "A5",
-      "calloutType": "detail",
+      "detectedRef": "1/A6",
+      "targetSheet": "A6",
+      "calloutType": "section",
       "confidence": 0.95,
-      "reasoning": "Clear circle with 2 above horizontal line and A5 below"
-    },
-    {
-      "index": 1,
-      "isCallout": false,
-      "detectedRef": null,
-      "targetSheet": null,
-      "calloutType": "unknown",
-      "confidence": 0.1,
-      "reasoning": "Dimension text, not a callout symbol"
+      "reasoning": "Clear section flag (circle with triangle) containing 1/A6"
     }
   ],
   "totalProcessed": ${imageCount}
@@ -103,7 +141,6 @@ function parseBatchResponse(
   raw: string,
   expectedCount: number
 ): BatchValidationResponse {
-  // Strip markdown code blocks
   let cleaned = raw.trim();
   if (cleaned.startsWith("```")) {
     cleaned = cleaned.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
@@ -118,12 +155,10 @@ function parseBatchResponse(
     );
   }
 
-  // Validate structure
   if (!Array.isArray(parsed.results)) {
     throw new Error("Response missing 'results' array");
   }
 
-  // Create index map for quick lookup
   const resultsByIndex = new Map<number, BatchValidationResult>();
   for (const result of parsed.results) {
     if (typeof result.index === "number") {
@@ -142,13 +177,11 @@ function parseBatchResponse(
     }
   }
 
-  // Fill in missing indices with defaults
   const completeResults: BatchValidationResult[] = [];
   for (let i = 0; i < expectedCount; i++) {
     if (resultsByIndex.has(i)) {
       completeResults.push(resultsByIndex.get(i)!);
     } else {
-      // Missing result - mark as uncertain
       completeResults.push({
         index: i,
         isCallout: false,
@@ -169,24 +202,30 @@ function parseBatchResponse(
 }
 
 /**
- * Calculate optimal batch size based on estimated token usage
+ * Calculate optimal batch size based on adaptive token estimation.
+ * Uses actual image dimensions when available for more accurate sizing.
  */
 function calculateBatchSize(
-  inputCount: number,
+  inputs: BatchValidationInput[],
   maxBatchSize: number = DEFAULT_BATCH_SIZE
 ): number {
-  const estimatedTokens = maxBatchSize * ESTIMATED_TOKENS_PER_IMAGE;
+  if (inputs.length === 0) return 0;
 
-  if (estimatedTokens > MAX_CONTEXT_TOKENS) {
-    return Math.floor(MAX_CONTEXT_TOKENS / ESTIMATED_TOKENS_PER_IMAGE);
-  }
+  // Calculate average tokens per image using adaptive estimation
+  const totalTokens = inputs.slice(0, maxBatchSize).reduce(
+    (sum, input) => sum + estimateImageTokens(input),
+    0
+  );
+  const avgTokensPerImage = totalTokens / Math.min(inputs.length, maxBatchSize);
 
-  return Math.min(maxBatchSize, inputCount);
+  // Calculate how many images we can fit in context
+  const maxByTokens = Math.floor(MAX_CONTEXT_TOKENS / avgTokensPerImage);
+
+  return Math.min(maxBatchSize, maxByTokens, inputs.length);
 }
 
 /**
  * Extract target sheet from callout reference
- * "2/A5" -> "A5", "A6" -> "A6", "A/A3.01" -> "A3.01"
  */
 function extractTargetSheet(ref: string): string {
   if (ref.includes("/")) {
@@ -197,11 +236,7 @@ function extractTargetSheet(ref: string): string {
 }
 
 /**
- * Validate a batch of images with LLM
- *
- * @param inputs Array of batch validation inputs with image data
- * @param options Validation options
- * @returns Array of validation results with same indices as inputs
+ * Main batch validation function
  */
 export async function validateBatch(
   inputs: BatchValidationInput[],
@@ -215,86 +250,76 @@ export async function validateBatch(
     retryFailures = true,
     maxRetries = 2,
     verbose = false,
+    confidenceThreshold = DEFAULT_CONFIDENCE_THRESHOLD,
   } = options;
 
-  if (inputs.length === 0) {
-    return [];
-  }
+  if (inputs.length === 0) return [];
 
   const startTime = Date.now();
+  const actualBatchSize = calculateBatchSize(inputs, batchSize);
 
-  // Calculate actual batch size
-  const actualBatchSize = calculateBatchSize(inputs.length, batchSize);
-
-  // Split into batches
   const batches: BatchValidationInput[][] = [];
   for (let i = 0; i < inputs.length; i += actualBatchSize) {
     batches.push(inputs.slice(i, i + actualBatchSize));
   }
 
   if (verbose) {
-    console.log(
-      `   Batch validation: ${inputs.length} images in ${batches.length} batch(es) of ~${actualBatchSize}`
-    );
+    console.log(`   Batch validation: ${inputs.length} images in ${batches.length} batch(es)`);
   }
 
   const allResults: BatchValidationResult[] = [];
   const failedInputs: BatchValidationInput[] = [];
 
-  // Process each batch
   for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
     const batch = batches[batchIndex];
 
-    if (verbose) {
-      console.log(
-        `   Processing batch ${batchIndex + 1}/${batches.length} (${batch.length} images)...`
-      );
-    }
-
     try {
-      // Build prompt
       const prompt = buildBatchValidationPrompt(batch.length, existingSheets);
-
-      // Extract image data URLs
       const images = batch.map((input) => input.imageDataUrl);
-
-      // Call LLM
-      const response = await callOpenRouter(prompt, images, {
-        model,
-        temperature: 0,
-      });
-
-      // Parse response
+      const response = await callOpenRouter(prompt, images, { model, temperature: 0 });
       const parsed = parseBatchResponse(response, batch.length);
 
-      // Map results back to original indices and apply filters
       for (let i = 0; i < parsed.results.length; i++) {
         const result = parsed.results[i];
         const originalInput = batch[i];
 
-        // Create result with original index
         const globalResult: BatchValidationResult = {
           ...result,
-          index: originalInput.index, // Use original global index
+          index: originalInput.index,
         };
 
-        // Ensure targetSheet is extracted if we have a ref but no targetSheet
         if (globalResult.detectedRef && !globalResult.targetSheet) {
           globalResult.targetSheet = extractTargetSheet(globalResult.detectedRef);
         }
 
-        // Filter self-references
+        // --- 1. CONFIDENCE THRESHOLD FILTER ---
+        // Scale indicators and dimensions usually result in lower confidence (70% range).
+        // Real callouts are consistently 90%+. Threshold is now configurable.
+        if (globalResult.isCallout && globalResult.confidence < confidenceThreshold) {
+          globalResult.isCallout = false;
+          globalResult.reasoning = `Low confidence (${(globalResult.confidence * 100).toFixed(0)}%) below threshold (${(confidenceThreshold * 100).toFixed(0)}%) - likely noise or scale reference.`;
+        }
+
+        // --- 1b. FORMAT VALIDATION FILTER ---
+        // Reject callouts that don't match the expected detail/sheet format
+        if (globalResult.isCallout && !isValidCalloutRefFormat(globalResult.detectedRef)) {
+          globalResult.isCallout = false;
+          globalResult.reasoning = `Invalid reference format: "${globalResult.detectedRef}" - expected detail/sheet pattern.`;
+        }
+
+        // --- 2. IMPROVED SELF-REFERENCE FILTER ---
         if (
           currentSheet &&
-          globalResult.targetSheet === currentSheet.toUpperCase()
+          globalResult.targetSheet === currentSheet.toUpperCase() &&
+          globalResult.detectedRef === currentSheet.toUpperCase()
         ) {
           globalResult.isCallout = false;
           globalResult.confidence = 0;
-          globalResult.reasoning = `Self-reference to current sheet ${currentSheet} - filtered`;
+          globalResult.reasoning = `Bare self-reference to sheet ${currentSheet} - filtered`;
         }
 
-        // Filter invalid sheet references
-        if (existingSheets.length > 0 && globalResult.targetSheet) {
+        // --- 3. SHEET REGISTRY FILTER ---
+        if (globalResult.isCallout && existingSheets.length > 0 && globalResult.targetSheet) {
           const normalizedSheets = existingSheets.map((s) => s.toUpperCase());
           if (!normalizedSheets.includes(globalResult.targetSheet)) {
             globalResult.isCallout = false;
@@ -305,124 +330,39 @@ export async function validateBatch(
 
         allResults.push(globalResult);
       }
-
-      if (verbose) {
-        const foundCount = parsed.results.filter((r) => r.isCallout).length;
-        console.log(
-          `   Batch ${batchIndex + 1} complete: ${foundCount} callouts found`
-        );
-      }
     } catch (error) {
       console.error(`   Batch ${batchIndex + 1} failed: ${error}`);
-
-      // Mark all items in failed batch for individual retry
-      for (const input of batch) {
-        failedInputs.push(input);
-      }
+      for (const input of batch) failedInputs.push(input);
     }
   }
 
-  // Retry failed items individually if enabled
+  // Handle Retries
   if (retryFailures && failedInputs.length > 0) {
-    if (verbose) {
-      console.log(
-        `   Retrying ${failedInputs.length} failed items individually...`
-      );
-    }
-
     for (const input of failedInputs) {
       let success = false;
-
-      for (let retryCount = 0; retryCount < maxRetries; retryCount++) {
+      for (let r = 0; r < maxRetries; r++) {
         try {
-          const singleResults = await validateBatch([input], {
-            ...options,
-            batchSize: 1,
-            retryFailures: false, // Don't recurse
-            verbose: false,
-          });
-
-          if (singleResults.length > 0) {
-            allResults.push(singleResults[0]);
-            success = true;
-            break;
-          }
-        } catch (e) {
-          if (verbose) {
-            console.log(`   Retry ${retryCount + 1} failed for index ${input.index}`);
-          }
-        }
+          const single = await validateBatch([input], { ...options, batchSize: 1, retryFailures: false, verbose: false });
+          if (single.length > 0) { allResults.push(single[0]); success = true; break; }
+        } catch (e) {}
       }
-
-      // If all retries failed, add a default failure result
       if (!success) {
-        allResults.push({
-          index: input.index,
-          isCallout: false,
-          detectedRef: null,
-          targetSheet: null,
-          calloutType: "unknown",
-          confidence: 0,
-          reasoning: `Failed after ${maxRetries} retries`,
-        });
+        allResults.push({ index: input.index, isCallout: false, detectedRef: null, targetSheet: null, calloutType: "unknown", confidence: 0, reasoning: `Failed after ${maxRetries} retries` });
       }
     }
   }
 
-  // Sort by original index to maintain order
   allResults.sort((a, b) => a.index - b.index);
-
-  if (verbose) {
-    const totalTime = Date.now() - startTime;
-    const calloutsFound = allResults.filter((r) => r.isCallout).length;
-    console.log(
-      `   Batch validation complete: ${calloutsFound}/${inputs.length} callouts in ${totalTime}ms`
-    );
-  }
-
   return allResults;
 }
 
-/**
- * Convenience function for single-image validation (backward compatibility)
- */
-export async function validateSingle(
-  input: BatchValidationInput,
-  options: BatchValidationOptions = {}
-): Promise<BatchValidationResult> {
+export async function validateSingle(input: BatchValidationInput, options: BatchValidationOptions = {}): Promise<BatchValidationResult> {
   const results = await validateBatch([input], { ...options, batchSize: 1 });
-  return (
-    results[0] || {
-      index: input.index,
-      isCallout: false,
-      detectedRef: null,
-      targetSheet: null,
-      calloutType: "unknown",
-      confidence: 0,
-      reasoning: "Validation failed",
-    }
-  );
+  return results[0] || { index: input.index, isCallout: false, detectedRef: null, targetSheet: null, calloutType: "unknown", confidence: 0, reasoning: "Validation failed" };
 }
 
-/**
- * Get batch validation statistics from results
- */
-export function getBatchStats(
-  results: BatchValidationResult[],
-  processingTimeMs: number,
-  batchCount: number
-): BatchValidationStats {
+export function getBatchStats(results: BatchValidationResult[], processingTimeMs: number, batchCount: number): BatchValidationStats {
   const calloutsFound = results.filter((r) => r.isCallout).length;
-  const failedItems = results.filter(
-    (r) => r.reasoning?.includes("Failed after") || r.reasoning?.includes("No result")
-  ).length;
-
-  return {
-    totalInputs: results.length,
-    batchCount,
-    calloutsFound,
-    retriedItems: 0, // Would need to track this during processing
-    failedItems,
-    processingTimeMs,
-  };
+  const failedItems = results.filter((r) => r.reasoning?.includes("Failed") || r.reasoning?.includes("No result")).length;
+  return { totalInputs: results.length, batchCount, calloutsFound, retriedItems: 0, failedItems, processingTimeMs };
 }

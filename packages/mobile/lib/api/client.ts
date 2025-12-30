@@ -11,10 +11,12 @@ import {
 	CreateProjectResponse,
 	PlanListResponse,
 	PlanResponse,
+	CreatePlanResponse,
 	SheetListResponse,
 	SheetMarkersResponse,
 	PendingReviewResponse,
 	SuccessResponse,
+	JobStatusResponse,
 } from "@sitelink/shared-types"
 import { getApiUrl } from "./config"
 
@@ -155,6 +157,91 @@ export const PlansApi = {
 
 	get: (planId: string) => request(`/api/plans/${planId}`, PlanResponse),
 
+	/**
+	 * Upload a PDF plan file (multipart form data)
+	 */
+	upload: (
+		projectId: string,
+		file: { uri: string; name: string; type: string },
+		options?: { name?: string; description?: string }
+	): Effect.Effect<typeof CreatePlanResponse.Type, ApiErrorType> =>
+		Effect.gen(function* () {
+			const baseUrl = getApiUrl()
+			const url = `${baseUrl}/api/projects/${projectId}/plans`
+
+			// Create FormData for multipart upload
+			const formData = new FormData()
+			formData.append("file", {
+				uri: file.uri,
+				name: file.name,
+				type: file.type,
+			} as unknown as Blob)
+
+			if (options?.name) formData.append("name", options.name)
+			if (options?.description) formData.append("description", options.description)
+
+			const response = yield* Effect.tryPromise({
+				try: () =>
+					fetch(url, {
+						method: "POST",
+						credentials: "include",
+						body: formData,
+						// Don't set Content-Type - let browser set it with boundary
+					}),
+				catch: (error) =>
+					new NetworkError({
+						message: error instanceof Error ? error.message : "Network error",
+						endpoint: url,
+					}),
+			})
+
+			if (response.status === 401) {
+				return yield* new UnauthorizedError({
+					message: "Authentication required",
+				})
+			}
+
+			if (!response.ok) {
+				const errorText = yield* Effect.tryPromise({
+					try: () => response.text(),
+					catch: () =>
+						new ApiError({
+							status: response.status,
+							message: "Failed to read error response",
+							endpoint: url,
+						}),
+				})
+				return yield* new ApiError({
+					status: response.status,
+					message: typeof errorText === "string" ? errorText : "Upload failed",
+					endpoint: url,
+				})
+			}
+
+			const json = yield* Effect.tryPromise({
+				try: () => response.json(),
+				catch: () =>
+					new ApiError({
+						status: response.status,
+						message: "Failed to parse response",
+						endpoint: url,
+					}),
+			})
+
+			const decoded = yield* Schema.decodeUnknown(CreatePlanResponse)(json).pipe(
+				Effect.mapError(
+					(error) =>
+						new ApiError({
+							status: response.status,
+							message: `Schema validation failed: ${String(error)}`,
+							endpoint: url,
+						})
+				)
+			)
+
+			return decoded
+		}),
+
 	update: (planId: string, data: { name?: string; description?: string }) =>
 		request(`/api/plans/${planId}`, SuccessResponse, {
 			method: "PATCH",
@@ -165,6 +252,17 @@ export const PlansApi = {
 		request(`/api/plans/${planId}`, SuccessResponse, {
 			method: "DELETE",
 		}),
+}
+
+/**
+ * Processing API - Job status and progress tracking
+ */
+export const ProcessingApi = {
+	/**
+	 * Get processing job status
+	 */
+	getJobStatus: (jobId: string) =>
+		request(`/api/processing/jobs/${jobId}`, JobStatusResponse),
 }
 
 /**
