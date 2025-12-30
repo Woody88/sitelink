@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Effect } from 'effect';
-import OpenSeadragonViewer from '@/components/plan-viewer/OpenSeadragonViewer';
-import { useSheets } from '@/lib/api/hooks';
+import OpenSeadragonViewer, { type Marker } from '@/components/plan-viewer/OpenSeadragonViewer';
+import MarkerDetailsModal from '@/components/plan-viewer/MarkerDetailsModal';
+import { useSheets, useSheetMarkers } from '@/lib/api/hooks';
 import { SheetsApi, type DziMetadata } from '@/lib/api/client';
 
 export default function PlanViewerScreen() {
@@ -22,10 +23,26 @@ export default function PlanViewerScreen() {
   const [metadataError, setMetadataError] = useState<string | null>(null);
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(false);
 
+  // Modal state
+  const [selectedMarker, setSelectedMarker] = useState<Marker | null>(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+
   const { data, error, isLoading, refetch } = useSheets(planId ?? null);
 
   const sheets = data?.sheets ?? [];
   const selectedSheet = sheets[selectedSheetIndex];
+
+  // Fetch markers for the current sheet
+  const { data: markersData } = useSheetMarkers(planId ?? null, selectedSheet?.id ?? null);
+
+  // Transform hyperlinks to markers
+  const markers: Marker[] = (markersData?.hyperlinks ?? []).map((h) => ({
+    calloutRef: h.calloutRef,
+    targetSheetRef: h.targetSheetRef,
+    x: h.x,
+    y: h.y,
+    confidence: h.confidence,
+  }));
 
   // Set initial sheet from sheetId param when sheets load
   useEffect(() => {
@@ -75,6 +92,42 @@ export default function PlanViewerScreen() {
       SheetsApi.getTileBase64(planId, selectedSheet.id, level, x, y, dziMetadata.format)
     );
   }, [planId, selectedSheet?.id, dziMetadata]);
+
+  // Handle marker press - show modal
+  const handleMarkerPress = useCallback((marker: Marker) => {
+    console.log('[PlanViewer] Marker pressed:', marker);
+    setSelectedMarker(marker);
+    setIsModalVisible(true);
+  }, []);
+
+  // Handle "Go to Sheet" button press
+  const handleGoToSheet = useCallback((targetSheetRef: string) => {
+    console.log('[PlanViewer] Navigating to sheet:', targetSheetRef);
+
+    // Find the sheet by its name/reference
+    const targetSheetIndex = sheets.findIndex((s) => {
+      // Match by sheet name (e.g., "A7", "S1", etc.)
+      const sheetName = s.sheetName?.toUpperCase() || '';
+      const targetRef = targetSheetRef.toUpperCase();
+      return sheetName === targetRef || sheetName.includes(targetRef);
+    });
+
+    if (targetSheetIndex >= 0) {
+      setSelectedSheetIndex(targetSheetIndex);
+      setIsModalVisible(false);
+      setSelectedMarker(null);
+    } else {
+      // Sheet not found - could show an alert here
+      console.warn(`[PlanViewer] Sheet ${targetSheetRef} not found in plan`);
+      setIsModalVisible(false);
+    }
+  }, [sheets]);
+
+  // Close modal
+  const handleCloseModal = useCallback(() => {
+    setIsModalVisible(false);
+    setSelectedMarker(null);
+  }, []);
 
   // Header component
   const Header = () => (
@@ -200,7 +253,15 @@ export default function PlanViewerScreen() {
       <OpenSeadragonViewer
         metadata={dziMetadata}
         fetchTile={fetchTile}
+        markers={markers}
+        onMarkerPress={handleMarkerPress}
         dom={{ style: { flex: 1, width: '100%', height: '100%' } }}
+      />
+      <MarkerDetailsModal
+        visible={isModalVisible}
+        marker={selectedMarker}
+        onClose={handleCloseModal}
+        onGoToSheet={handleGoToSheet}
       />
     </View>
   );

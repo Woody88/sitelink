@@ -13,6 +13,17 @@ interface DziMetadata {
   format: string;
 }
 
+/**
+ * Marker/Hyperlink data from the API
+ */
+export interface Marker {
+  calloutRef: string;
+  targetSheetRef: string;
+  x: number;
+  y: number;
+  confidence: number;
+}
+
 interface Props {
   /**
    * Pre-fetched DZI metadata from React Native
@@ -24,23 +35,299 @@ interface Props {
    */
   fetchTile: (level: number, x: number, y: number) => Promise<string>;
   /**
+   * Markers/callouts to display on the plan
+   */
+  markers?: Marker[];
+  /**
+   * Callback when a marker is tapped
+   */
+  onMarkerPress?: (marker: Marker) => void;
+  /**
+   * Callback when a marker position is adjusted (long-press + drag)
+   * newX and newY are normalized coordinates (0-1)
+   */
+  onMarkerPositionUpdate?: (marker: Marker, newX: number, newY: number) => void;
+  /**
    * DOM props from Expo
    */
   dom?: import('expo/dom').DOMProps;
 }
 
+// Styling constants - more transparent to show callout details underneath
+const MARKER_STYLES = {
+  // Very subtle background - almost transparent
+  normalBackground: 'rgba(255, 87, 34, 0.08)',
+  normalBorder: 'rgba(255, 87, 34, 0.5)',
+  // Slightly more visible on hover
+  hoverBackground: 'rgba(255, 87, 34, 0.15)',
+  hoverBorder: 'rgba(255, 87, 34, 0.7)',
+  // Edit mode - pulsing border, slightly more opaque
+  editBackground: 'rgba(255, 87, 34, 0.12)',
+  editBorder: '#FF5722',
+};
+
 /**
- * OpenSeadragon viewer that displays DZI tiles
+ * OpenSeadragon viewer that displays DZI tiles with marker overlays
  *
  * Architecture:
  * 1. React Native fetches tiles (authenticated)
  * 2. Returns base64 data URLs via fetchTile callback
  * 3. OpenSeadragon uses custom ImageLoader to load from base64
+ * 4. Markers are rendered as small transparent anchors that scale with zoom
+ *
+ * Marker Interaction:
+ * - Tap: Show marker details (onMarkerPress)
+ * - Long press: Enter adjustment mode (marker becomes draggable)
+ * - Drag: Reposition marker
+ * - Release: Save new position (onMarkerPositionUpdate) and exit adjustment mode
  */
-export default function OpenSeadragonViewer({ metadata, fetchTile }: Props) {
+export default function OpenSeadragonViewer({
+  metadata,
+  fetchTile,
+  markers = [],
+  onMarkerPress,
+  onMarkerPositionUpdate
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
   const [status, setStatus] = useState('Initializing...');
+  const markersAddedRef = useRef(false);
+  // Track which marker is in edit/adjustment mode
+  const [editingMarkerIndex, setEditingMarkerIndex] = useState<number | null>(null);
+
+  // Add markers to the viewer as overlays (matching demo styling)
+  const addMarkersToViewer = (viewer: any, OpenSeadragon: any) => {
+    if (!viewer || markersAddedRef.current || markers.length === 0) {
+      return;
+    }
+
+    console.log(`[OpenSeadragon] Adding ${markers.length} marker overlays...`);
+    markersAddedRef.current = true;
+
+    // Get the image dimensions from the tiled image
+    const tiledImage = viewer.world.getItemAt(0);
+    const imageSize = tiledImage.getContentSize();
+
+    console.log('[OpenSeadragon] Image size:', imageSize.x, 'x', imageSize.y);
+
+    // Size of overlay in image pixels (will scale with zoom) - small and subtle
+    const overlayPixelSize = 25;
+
+    markers.forEach((marker, index) => {
+      // Create the marker overlay element - styled to be more transparent
+      const markerElement = document.createElement('div');
+      markerElement.id = `marker-${index}`;
+      markerElement.className = 'callout-overlay';
+      markerElement.dataset.markerIndex = String(index);
+
+      // Style as a subtle transparent ring - very see-through
+      markerElement.style.cssText = `
+        width: 100%;
+        height: 100%;
+        border: 2px solid ${MARKER_STYLES.normalBorder};
+        border-radius: 50%;
+        background: ${MARKER_STYLES.normalBackground};
+        cursor: pointer;
+        pointer-events: auto;
+        box-sizing: border-box;
+        transition: background 0.15s ease-out, box-shadow 0.15s ease-out, border-color 0.15s ease-out;
+      `;
+
+      // Track state for this marker
+      let isInEditMode = false;
+      let longPressTimer: ReturnType<typeof setTimeout> | null = null;
+      let isDragging = false;
+      let currentOverlayLocation: any = null;
+
+      // Function to enter edit mode
+      const enterEditMode = () => {
+        isInEditMode = true;
+        setEditingMarkerIndex(index);
+        markerElement.style.background = MARKER_STYLES.editBackground;
+        markerElement.style.borderColor = MARKER_STYLES.editBorder;
+        markerElement.style.borderWidth = '3px';
+        markerElement.style.boxShadow = '0 0 8px rgba(255, 87, 34, 0.6)';
+        // Add pulsing animation
+        markerElement.style.animation = 'marker-pulse 1.5s ease-in-out infinite';
+        markerElement.style.cursor = 'grab';
+        console.log(`[OpenSeadragon] Marker ${marker.calloutRef} entered edit mode`);
+      };
+
+      // Function to exit edit mode
+      const exitEditMode = () => {
+        isInEditMode = false;
+        isDragging = false;
+        setEditingMarkerIndex(null);
+        markerElement.style.background = MARKER_STYLES.normalBackground;
+        markerElement.style.borderColor = MARKER_STYLES.normalBorder;
+        markerElement.style.borderWidth = '2px';
+        markerElement.style.boxShadow = 'none';
+        markerElement.style.animation = '';
+        markerElement.style.cursor = 'pointer';
+        console.log(`[OpenSeadragon] Marker ${marker.calloutRef} exited edit mode`);
+      };
+
+      // Add hover effect (only when not in edit mode)
+      markerElement.addEventListener('mouseenter', () => {
+        if (!isInEditMode) {
+          markerElement.style.background = MARKER_STYLES.hoverBackground;
+          markerElement.style.borderColor = MARKER_STYLES.hoverBorder;
+          markerElement.style.boxShadow = '0 0 6px rgba(255, 87, 34, 0.3)';
+        }
+      });
+      markerElement.addEventListener('mouseleave', () => {
+        if (!isInEditMode) {
+          markerElement.style.background = MARKER_STYLES.normalBackground;
+          markerElement.style.borderColor = MARKER_STYLES.normalBorder;
+          markerElement.style.boxShadow = 'none';
+        }
+      });
+
+      // Convert normalized coordinates (0-1) to tile image pixel coordinates
+      // marker.x and marker.y are NORMALIZED coordinates from the API (0-1 range)
+      // Must multiply by tile image dimensions to get actual pixel positions
+      // See: packages/callout-processor/OPENSEADRAGON-INTEGRATION.md
+      const tilePixelX = marker.x * imageSize.x;
+      const tilePixelY = marker.y * imageSize.y;
+
+      // Create a Rect in IMAGE coordinates (pixels), centered on the callout
+      const imageRect = new OpenSeadragon.Rect(
+        tilePixelX - overlayPixelSize / 2,
+        tilePixelY - overlayPixelSize / 2,
+        overlayPixelSize,
+        overlayPixelSize
+      );
+
+      // Convert image rect to viewport rect
+      const viewportRect = viewer.viewport.imageToViewportRectangle(imageRect);
+      currentOverlayLocation = viewportRect;
+
+      console.log(`[OpenSeadragon] Callout ${marker.calloutRef}: normalized(${marker.x.toFixed(4)}, ${marker.y.toFixed(4)}) -> imagePixels(${tilePixelX.toFixed(0)}, ${tilePixelY.toFixed(0)})`);
+
+      // Add overlay using the viewport rect - scales with image, no drift
+      viewer.addOverlay({
+        element: markerElement,
+        location: viewportRect,
+      });
+
+      // Use MouseTracker for all interactions
+      new OpenSeadragon.MouseTracker({
+        element: markerElement,
+
+        // Press handler - start long press timer
+        pressHandler: (event: any) => {
+          if (!onMarkerPositionUpdate) return; // Skip if no update callback
+
+          // Start long press timer (500ms)
+          longPressTimer = setTimeout(() => {
+            enterEditMode();
+            // Prevent the click from firing after long press
+            event.preventDefaultAction = true;
+          }, 500);
+        },
+
+        // Release handler - end drag or cancel long press
+        releaseHandler: () => {
+          // Clear long press timer
+          if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+          }
+
+          // If we were dragging, save the new position
+          if (isInEditMode && isDragging && onMarkerPositionUpdate) {
+            // Get the current overlay position
+            const overlay = viewer.getOverlayById(`marker-${index}`);
+            if (overlay) {
+              const bounds = overlay.getBounds(viewer.viewport);
+              const centerViewport = bounds.getCenter();
+
+              // Convert viewport coordinates back to image coordinates
+              const imagePoint = viewer.viewport.viewportToImageCoordinates(centerViewport);
+
+              // Convert to normalized coordinates (0-1)
+              const newX = imagePoint.x / imageSize.x;
+              const newY = imagePoint.y / imageSize.y;
+
+              console.log(`[OpenSeadragon] Marker ${marker.calloutRef} repositioned to normalized(${newX.toFixed(4)}, ${newY.toFixed(4)})`);
+
+              // Call the update callback
+              onMarkerPositionUpdate(marker, newX, newY);
+            }
+          }
+
+          // Exit edit mode
+          if (isInEditMode) {
+            exitEditMode();
+          }
+        },
+
+        // Drag handler - reposition marker if in edit mode
+        dragHandler: (event: any) => {
+          if (!isInEditMode || !onMarkerPositionUpdate) return;
+
+          isDragging = true;
+          markerElement.style.cursor = 'grabbing';
+
+          // Get the delta in viewport coordinates
+          const delta = event.delta;
+
+          // Get current overlay and update its position
+          const overlay = viewer.getOverlayById(`marker-${index}`);
+          if (overlay && currentOverlayLocation) {
+            // Calculate new position
+            const zoom = viewer.viewport.getZoom();
+            const containerSize = viewer.viewport.getContainerSize();
+
+            // Convert pixel delta to viewport coordinates
+            const viewportDeltaX = delta.x / containerSize.x / zoom;
+            const viewportDeltaY = delta.y / containerSize.y / zoom;
+
+            // Update the location
+            const newRect = new OpenSeadragon.Rect(
+              currentOverlayLocation.x + viewportDeltaX,
+              currentOverlayLocation.y + viewportDeltaY,
+              currentOverlayLocation.width,
+              currentOverlayLocation.height
+            );
+
+            currentOverlayLocation = newRect;
+            viewer.updateOverlay(markerElement, newRect);
+          }
+        },
+
+        // Click handler - only fires if not a long press
+        clickHandler: () => {
+          // Don't trigger click if we were in edit mode or dragging
+          if (isInEditMode || isDragging) {
+            return;
+          }
+
+          if (onMarkerPress) {
+            onMarkerPress(marker);
+          }
+        },
+      });
+
+      console.log(`[OpenSeadragon] Added marker ${marker.calloutRef}`);
+    });
+
+    // Add CSS keyframes for pulse animation
+    const styleElement = document.createElement('style');
+    styleElement.textContent = `
+      @keyframes marker-pulse {
+        0%, 100% {
+          box-shadow: 0 0 8px rgba(255, 87, 34, 0.6);
+        }
+        50% {
+          box-shadow: 0 0 16px rgba(255, 87, 34, 0.9);
+        }
+      }
+    `;
+    document.head.appendChild(styleElement);
+
+    console.log(`[OpenSeadragon] Finished adding ${markers.length} markers`);
+  };
 
   useEffect(() => {
     if (!containerRef.current) {
@@ -52,6 +339,9 @@ export default function OpenSeadragonViewer({ metadata, fetchTile }: Props) {
       viewerRef.current.destroy();
       viewerRef.current = null;
     }
+
+    // Reset markers added flag when viewer is recreated
+    markersAddedRef.current = false;
 
     setStatus('Loading OpenSeadragon...');
 
@@ -195,6 +485,8 @@ export default function OpenSeadragonViewer({ metadata, fetchTile }: Props) {
         viewer.addHandler('open', () => {
           console.log('[OpenSeadragon] Viewer opened successfully');
           setStatus('');
+          // Add markers once the viewer is ready, passing OpenSeadragon for Rect/MouseTracker
+          addMarkersToViewer(viewer, OpenSeadragon);
         });
 
         viewer.addHandler('open-failed', (event: any) => {
@@ -230,6 +522,16 @@ export default function OpenSeadragonViewer({ metadata, fetchTile }: Props) {
     };
   }, [metadata, fetchTile]);
 
+  // Re-add markers when they change
+  useEffect(() => {
+    if (viewerRef.current && markers.length > 0 && !markersAddedRef.current) {
+      // Need to get OpenSeadragon reference for Rect/MouseTracker
+      import('openseadragon').then((OSD) => {
+        addMarkersToViewer(viewerRef.current, OSD.default);
+      });
+    }
+  }, [markers]);
+
   return (
     <div
       style={{
@@ -264,6 +566,44 @@ export default function OpenSeadragonViewer({ metadata, fetchTile }: Props) {
           height: '100%',
         }}
       />
+      {/* Marker count badge - red theme to match anchors */}
+      {markers.length > 0 && !status && (
+        <div style={{
+          position: 'absolute',
+          bottom: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: 'rgba(0, 0, 0, 0.75)',
+          color: '#fff',
+          padding: '8px 16px',
+          borderRadius: '20px',
+          fontSize: '14px',
+          fontWeight: '500',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          zIndex: 1000,
+        }}>
+          <div style={{
+            width: '12px',
+            height: '12px',
+            borderRadius: '50%',
+            backgroundColor: '#FF5722',
+            border: '2px solid rgba(255, 87, 34, 0.4)',
+          }} />
+          {markers.length} {markers.length === 1 ? 'Callout' : 'Callouts'}
+          {editingMarkerIndex !== null && (
+            <span style={{
+              marginLeft: '8px',
+              fontSize: '12px',
+              color: '#FF5722',
+              fontStyle: 'italic'
+            }}>
+              Adjusting...
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
