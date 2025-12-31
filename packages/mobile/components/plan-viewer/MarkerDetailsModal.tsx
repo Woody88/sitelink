@@ -7,6 +7,7 @@ interface MarkerDetailsModalProps {
   marker: Marker | null;
   onClose: () => void;
   onGoToSheet: (targetSheetRef: string) => void;
+  onViewTimeline: (marker: Marker) => void;
 }
 
 /**
@@ -30,7 +31,8 @@ export default function MarkerDetailsModal({
   visible,
   marker,
   onClose,
-  onGoToSheet
+  onGoToSheet,
+  onViewTimeline
 }: MarkerDetailsModalProps) {
   if (!marker) {
     return null;
@@ -79,15 +81,26 @@ export default function MarkerDetailsModal({
             <Text style={styles.confidencePercent}>{confidencePercent}%</Text>
           </View>
 
-          {/* Navigation button */}
-          <Pressable
-            style={styles.goToSheetButton}
-            onPress={() => onGoToSheet(marker.targetSheetRef)}
-          >
-            <Ionicons name="document-outline" size={22} color="#fff" />
-            <Text style={styles.goToSheetText}>Go to Sheet {marker.targetSheetRef}</Text>
-            <Ionicons name="chevron-forward" size={20} color="#fff" />
-          </Pressable>
+          {/* Action buttons */}
+          <View style={styles.actionsContainer}>
+            <Pressable
+              style={styles.goToSheetButton}
+              onPress={() => onGoToSheet(marker.targetSheetRef)}
+            >
+              <Ionicons name="document-outline" size={22} color="#fff" />
+              <Text style={styles.goToSheetText}>Go to Sheet {marker.targetSheetRef}</Text>
+              <Ionicons name="chevron-forward" size={20} color="#fff" />
+            </Pressable>
+
+            <Pressable
+              style={styles.timelineButton}
+              onPress={() => onViewTimeline(marker)}
+            >
+              <Ionicons name="images-outline" size={22} color="#fff" />
+              <Text style={styles.timelineButtonText}>View Media Timeline</Text>
+              <Ionicons name="chevron-forward" size={20} color="#fff" />
+            </Pressable>
+          </View>
 
           {/* Position info (smaller, secondary) */}
           <Text style={styles.positionInfo}>
@@ -195,6 +208,10 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#9ca3af',
   },
+  actionsContainer: {
+    gap: 12,
+    marginBottom: 24,
+  },
   goToSheetButton: {
     backgroundColor: '#c9623d',
     flexDirection: 'row',
@@ -204,11 +221,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderRadius: 12,
     gap: 10,
-    marginBottom: 16,
     // Large touch target for construction workers
     minHeight: 56,
   },
   goToSheetText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
+    flex: 1,
+    textAlign: 'center',
+  },
+  timelineButton: {
+    backgroundColor: '#374151',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    gap: 10,
+    minHeight: 56,
+  },
+  timelineButtonText: {
     fontSize: 18,
     fontWeight: '600',
     color: '#fff',

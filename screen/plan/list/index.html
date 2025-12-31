@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SiteLink - Plans List</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<style type="text/tailwindcss">
+        @layer base {
+            :root {
+                --background: 0 0% 100%;
+                --foreground: 222.2 84% 4.9%;
+                --card: 0 0% 100%;
+                --card-foreground: 222.2 84% 4.9%;
+                --popover: 0 0% 100%;
+                --popover-foreground: 222.2 84% 4.9%;
+                --primary: 221.2 83.2% 53.3%;
+                --primary-foreground: 210 40% 98%;
+                --secondary: 210 40% 96.1%;
+                --secondary-foreground: 222.2 47.4% 11.2%;
+                --muted: 210 40% 96.1%;
+                --muted-foreground: 215.4 16.3% 46.9%;
+                --accent: 210 40% 96.1%;
+                --accent-foreground: 222.2 47.4% 11.2%;
+                --destructive: 0 84.2% 60.2%;
+                --destructive-foreground: 210 40% 98%;
+                --border: 214.3 31.8% 91.4%;
+                --input: 214.3 31.8% 91.4%;
+                --ring: 221.2 83.2% 53.3%;
+                --success: 142.1 76.2% 36.3%;
+                --success-foreground: 355.7 100% 97.3%;
+                --warning: 38 92% 50%;
+                --warning-foreground: 48 96% 89%;
+                --info: 199 89% 48%;
+                --info-foreground: 0 0% 100%;
+                --radius: 0.5rem;
+            }
+            .dark {
+                --background: 222.2 84% 4.9%;
+                --foreground: 210 40% 98%;
+                --card: 222.2 84% 4.9%;
+                --card-foreground: 210 40% 98%;
+                --popover: 222.2 84% 4.9%;
+                --popover-foreground: 210 40% 98%;
+                --primary: 217.2 91.2% 59.8%;
+                --primary-foreground: 222.2 47.4% 11.2%;
+                --secondary: 217.2 32.6% 17.5%;
+                --secondary-foreground: 210 40% 98%;
+                --muted: 217.2 32.6% 17.5%;
+                --muted-foreground: 215 20.2% 65.1%;
+                --accent: 217.2 32.6% 17.5%;
+                --accent-foreground: 210 40% 98%;
+                --destructive: 0 62.8% 30.6%;
+                --destructive-foreground: 210 40% 98%;
+                --border: 217.2 32.6% 17.5%;
+                --input: 217.2 32.6% 17.5%;
+                --ring: 224.3 76.3% 48%;
+            }
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        border: "hsl(var(--border))",
+                        input: "hsl(var(--input))",
+                        ring: "hsl(var(--ring))",
+                        background: "hsl(var(--background))",
+                        foreground: "hsl(var(--foreground))",
+                        primary: {
+                            DEFAULT: "hsl(var(--primary))",
+                            foreground: "hsl(var(--primary-foreground))",
+                        },
+                        secondary: {
+                            DEFAULT: "hsl(var(--secondary))",
+                            foreground: "hsl(var(--secondary-foreground))",
+                        },
+                        destructive: {
+                            DEFAULT: "hsl(var(--destructive))",
+                            foreground: "hsl(var(--destructive-foreground))",
+                        },
+                        muted: {
+                            DEFAULT: "hsl(var(--muted))",
+                            foreground: "hsl(var(--muted-foreground))",
+                        },
+                        accent: {
+                            DEFAULT: "hsl(var(--accent))",
+                            foreground: "hsl(var(--accent-foreground))",
+                        },
+                        popover: {
+                            DEFAULT: "hsl(var(--popover))",
+                            foreground: "hsl(var(--popover-foreground))",
+                        },
+                        card: {
+                            DEFAULT: "hsl(var(--card))",
+                            foreground: "hsl(var(--card-foreground))",
+                        },
+                        success: {
+                            DEFAULT: "hsl(var(--success))",
+                            foreground: "hsl(var(--success-foreground))",
+                        },
+                    },
+                    fontFamily: {
+                        "sans": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "lg": "var(--radius)",
+                        "md": "calc(var(--radius) - 2px)",
+                        "sm": "calc(var(--radius) - 4px)",
+                    },
+                    boxShadow: {
+                        "card": "0 2px 8px rgba(0,0,0,0.08)",
+                        "fab": "0 4px 12px hsl(var(--primary) / 0.4)",
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }.no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-muted/30 dark:bg-background h-screen w-full flex flex-col overflow-hidden text-foreground">
+<header class="bg-background pt-safe-top pb-2 px-4 shadow-sm z-20 shrink-0 border-b border-border">
+<div class="flex items-center justify-between pt-4 pb-2">
+<div class="flex flex-col">
+<h1 class="text-xl font-bold leading-tight tracking-tight text-foreground">Westside Hospital</h1>
+<div class="flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-success text-[16px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<p class="text-muted-foreground text-xs font-semibold uppercase tracking-wide">Synced: Just now</p>
+</div>
+</div>
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-muted transition-colors text-foreground">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+</div>
+</header>
+<main class="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar pb-24 relative bg-muted/30 dark:bg-background">
+<div class="bg-background border-b border-border px-4 py-3">
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-center">
+<p class="text-sm font-semibold text-foreground flex items-center gap-2">
+<span class="material-symbols-outlined animate-spin text-primary text-sm">progress_activity</span>
+                    Uploading: A-102 Floor Plan
+                </p>
+<span class="text-xs font-medium text-muted-foreground">45%</span>
+</div>
+<div class="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full transition-all duration-500" style="width: 45%"></div>
+</div>
+</div>
+</div>
+<div class="px-4 py-3 sticky top-0 z-10 bg-muted/95 dark:bg-background/95 backdrop-blur-sm">
+<label class="flex items-center h-12 w-full bg-background rounded-md shadow-sm border border-input overflow-hidden focus-within:ring-2 focus-within:ring-ring focus-within:border-transparent transition-shadow">
+<div class="pl-3 pr-2 flex items-center justify-center text-muted-foreground">
+<span class="material-symbols-outlined">search</span>
+</div>
+<input class="w-full h-full bg-transparent border-none focus:ring-0 text-base placeholder:text-muted-foreground text-foreground font-medium" placeholder="Search plans by name or sheet..."/>
+<button class="p-2 mr-1 text-primary hover:text-primary/80">
+<span class="material-symbols-outlined">tune</span>
+</button>
+</label>
+</div>
+<div class="px-4 pb-2">
+<div class="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-1.5 rounded-md bg-background border border-input pl-3 pr-2 shadow-sm active:bg-accent hover:bg-accent/50 transition-colors">
+<p class="text-foreground text-sm font-medium whitespace-nowrap">Sort: Date</p>
+<span class="material-symbols-outlined text-muted-foreground text-[20px]">arrow_drop_down</span>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-1.5 rounded-md bg-primary text-primary-foreground pl-3 pr-3 shadow-sm hover:bg-primary/90 transition-colors">
+<p class="text-sm font-medium whitespace-nowrap">Active</p>
+<span class="material-symbols-outlined text-primary-foreground text-[16px]">close</span>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-1.5 rounded-md bg-background border border-input pl-3 pr-2 shadow-sm active:bg-accent hover:bg-accent/50 transition-colors">
+<p class="text-foreground text-sm font-medium whitespace-nowrap">Discipline: Arch</p>
+<span class="material-symbols-outlined text-muted-foreground text-[20px]">arrow_drop_down</span>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-1.5 rounded-md bg-background border border-input pl-3 pr-2 shadow-sm active:bg-accent hover:bg-accent/50 transition-colors">
+<p class="text-foreground text-sm font-medium whitespace-nowrap">Tags</p>
+<span class="material-symbols-outlined text-muted-foreground text-[20px]">arrow_drop_down</span>
+</button>
+</div>
+</div>
+<div class="flex flex-col gap-4 px-4 mt-2">
+<div class="group flex flex-col bg-card rounded-lg shadow-card border border-border overflow-hidden active:scale-[0.99] transition-transform duration-100">
+<div class="flex p-3 gap-4">
+<div class="w-20 h-24 shrink-0 bg-muted rounded-md overflow-hidden border border-border relative">
+<div class="w-full h-full bg-cover bg-center" data-alt="Thumbnail preview of architectural floor plan document" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBYSSSbI0UwUCWDHBJ7wVnAhDqlV8I5qCaQndKGcz1uAJ6JApj7ltIWPMvcx7CXeB1VOd5uWVNS8lChSPkeVpP5ytfj3PQ32KQvmJARl4pp2yOomoOd3qM4Gv-novftTAUQgGQmO55DUjMqqI6TT4ydmCd6Bl5mq1a-Ua0Chy7q9F2y2G-m5CYYf_QIaLtRYlRfWiYvs19oVBR_OzOBqTM9uJR7qbH4i5Al5UBqoat-Y1tglAU4UyAj10TrK_TdRV2I7lx9MWC_DB7n');"></div>
+<div class="absolute bottom-0 right-0 bg-foreground/80 text-background text-[10px] px-1.5 py-0.5 rounded-tl-md font-medium">v3</div>
+</div>
+<div class="flex flex-col flex-1 justify-between py-0.5">
+<div>
+<div class="flex justify-between items-start gap-2 mb-1">
+<h3 class="text-base font-bold text-card-foreground leading-tight">A-100: Ground Floor Plan</h3>
+<button class="text-muted-foreground hover:text-foreground p-1 -mr-2 -mt-2 rounded-full hover:bg-muted transition-colors">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+<div class="flex flex-wrap gap-2 mb-3">
+<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200 uppercase tracking-wide border border-blue-200 dark:border-blue-800">ARCH</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200 uppercase tracking-wide border border-green-200 dark:border-green-800">APPROVED</span>
+</div>
+</div>
+<div class="flex items-center gap-4 border-t border-border pt-2 mt-auto">
+<div class="flex items-center gap-1.5 text-muted-foreground">
+<span class="material-symbols-outlined text-[18px]">grid_view</span>
+<span class="text-xs font-medium tabular-nums">4 Sheets</span>
+</div>
+<div class="flex items-center gap-1.5 text-muted-foreground">
+<span class="material-symbols-outlined text-[18px]">location_on</span>
+<span class="text-xs font-medium tabular-nums">12 Markers</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="group flex flex-col bg-card rounded-lg shadow-card border border-border overflow-hidden active:scale-[0.99] transition-transform duration-100">
+<div class="flex p-3 gap-4">
+<div class="w-20 h-24 shrink-0 bg-muted rounded-md overflow-hidden border border-border relative">
+<div class="w-full h-full bg-cover bg-center opacity-80" data-alt="Thumbnail preview of electrical layout plan document" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAvkMOYDvOHD6I982PWOT2ukmaYoXXdks5G1iTp6Q8D9v6cyRgBOzclzrVUBWJfBR0Uacls03Dg_9lCPOYQXcfdcJwG9h2-cA-BU2kxbFGgN57gzQdxuuzTQolVE0m50GKzD6akId0U8CrtwnP8y5pReCcqinAaRenD4qlxI5B-7LIfQBeu0nGTwXCduC4hAfXm_yEg069_w2HUGeANJbFmCeHs7jcHCGrniJ60I0DhcMiJN1EOIBxja28P7XT9GG7tOX0AM2g6SJBV');"></div>
+<div class="absolute bottom-0 right-0 bg-foreground/80 text-background text-[10px] px-1.5 py-0.5 rounded-tl-md font-medium">v1</div>
+</div>
+<div class="flex flex-col flex-1 justify-between py-0.5">
+<div>
+<div class="flex justify-between items-start gap-2 mb-1">
+<h3 class="text-base font-bold text-card-foreground leading-tight">E-200: Electrical Layout</h3>
+<button class="text-muted-foreground hover:text-foreground p-1 -mr-2 -mt-2 rounded-full hover:bg-muted transition-colors">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+<div class="flex flex-wrap gap-2 mb-3">
+<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-200 uppercase tracking-wide border border-orange-200 dark:border-orange-800">ELEC</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-secondary text-secondary-foreground uppercase tracking-wide border border-input">DRAFT</span>
+</div>
+</div>
+<div class="flex items-center gap-4 border-t border-border pt-2 mt-auto">
+<div class="flex items-center gap-1.5 text-muted-foreground">
+<span class="material-symbols-outlined text-[18px]">grid_view</span>
+<span class="text-xs font-medium tabular-nums">2 Sheets</span>
+</div>
+<div class="flex items-center gap-1.5 text-muted-foreground">
+<span class="material-symbols-outlined text-[18px]">location_on</span>
+<span class="text-xs font-medium tabular-nums">0 Markers</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="group flex flex-col bg-card rounded-lg shadow-card border border-border overflow-hidden active:scale-[0.99] transition-transform duration-100">
+<div class="flex p-3 gap-4">
+<div class="w-20 h-24 shrink-0 bg-muted rounded-md overflow-hidden border border-border relative">
+<div class="w-full h-full bg-cover bg-center" data-alt="Thumbnail preview of structural details plan document" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDwinutVN1914YX8pp67FHLBp2aJVyrH1vHhcOAxUjZpw4VJP6ZH2IYAVyay10iJgn56MCZK-l-55vr3WRUtb0lIlswkzXeIohwlArncJlL-_tmCJyOb9nKKHJ_OoHc2-o0mMpVavQ6fd98aEtJayglACfnfoYXNNfqg2kT17Xf1ve3OnZZHIcqBgoTFL1CW00_9TLDmUgpc-5j1cYUh-Rh8eLngiiR1jMXqhv3wRsb17hlV6cP6yVn7UxefQyog1DjnPAvNWBMbZkF');"></div>
+<div class="absolute bottom-0 right-0 bg-foreground/80 text-background text-[10px] px-1.5 py-0.5 rounded-tl-md font-medium">v5</div>
+</div>
+<div class="flex flex-col flex-1 justify-between py-0.5">
+<div>
+<div class="flex justify-between items-start gap-2 mb-1">
+<h3 class="text-base font-bold text-card-foreground leading-tight">S-105: Foundation Details</h3>
+<button class="text-muted-foreground hover:text-foreground p-1 -mr-2 -mt-2 rounded-full hover:bg-muted transition-colors">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+<div class="flex flex-wrap gap-2 mb-3">
+<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-200 uppercase tracking-wide border border-purple-200 dark:border-purple-800">STRUCT</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200 uppercase tracking-wide border border-red-200 dark:border-red-800">REVIEW</span>
+</div>
+</div>
+<div class="flex items-center gap-4 border-t border-border pt-2 mt-auto">
+<div class="flex items-center gap-1.5 text-muted-foreground">
+<span class="material-symbols-outlined text-[18px]">grid_view</span>
+<span class="text-xs font-medium tabular-nums">8 Sheets</span>
+</div>
+<div class="flex items-center gap-1.5 text-muted-foreground">
+<span class="material-symbols-outlined text-[18px]">location_on</span>
+<span class="text-xs font-medium tabular-nums">5 Markers</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="h-24"></div>
+</div>
+</main>
+<div class="absolute bottom-0 w-full z-30">
+<div class="absolute bottom-20 right-5 z-40 pointer-events-auto">
+<button class="flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-primary text-primary-foreground shadow-fab hover:bg-primary/90 active:scale-95 transition-all duration-200 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+<span class="material-symbols-outlined text-[28px] sm:text-[32px]">add</span>
+</button>
+</div>
+<nav class="bg-background border-t border-border pb-safe-bottom">
+<div class="flex items-center justify-between px-2 h-16">
+<button class="flex flex-1 flex-col items-center justify-center gap-1 h-full text-primary">
+<span class="material-symbols-outlined text-[26px] font-variation-settings-fill">description</span>
+<span class="text-[11px] font-semibold">Plans</span>
+</button>
+<button class="flex flex-1 flex-col items-center justify-center gap-1 h-full text-muted-foreground hover:text-foreground active:bg-accent rounded-md transition-colors">
+<span class="material-symbols-outlined text-[26px]">photo_camera</span>
+<span class="text-[11px] font-medium">Camera</span>
+</button>
+<button class="flex flex-1 flex-col items-center justify-center gap-1 h-full text-muted-foreground hover:text-foreground active:bg-accent rounded-md transition-colors">
+<span class="material-symbols-outlined text-[26px]">apartment</span>
+<span class="text-[11px] font-medium">Projects</span>
+</button>
+<button class="flex flex-1 flex-col items-center justify-center gap-1 h-full text-muted-foreground hover:text-foreground active:bg-accent rounded-md transition-colors">
+<span class="material-symbols-outlined text-[26px]">menu</span>
+<span class="text-[11px] font-medium">More</span>
+</button>
+</div>
+</nav>
+</div>
+<style>
+    .font-variation-settings-fill {
+        font-variation-settings: 'FILL' 1;
+    }.pb-safe-bottom {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    .pt-safe-top {
+        padding-top: env(safe-area-inset-top);
+    }
+</style>
+
+</body></html>

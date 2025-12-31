@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/ui/text";
-import { useProject } from "@/lib/api";
+import { useProject, useMedia, MediaApi } from "@/lib/api";
 import {
   MediaHeader,
   MediaFilterBar,
@@ -31,148 +31,68 @@ import {
 import { BottomTabs, FloatingActionButton, type TabName } from "@/components/plans";
 
 /**
- * Mock data for demonstration
+ * Convert API media items to PhotoBundle format
  *
- * In production, this would come from:
- * 1. Local SQLite database (offline-first)
- * 2. Synced from backend API
+ * In production with full backend support, bundles would be:
+ * 1. Created based on work state + time proximity
+ * 2. Stored in the database
+ * 3. Synced to mobile
  *
- * Bundles are auto-created based on:
- * - Same work state
- * - Photos taken within 30 minutes
+ * For now, we create simple bundles from individual media items
  */
-const MOCK_BUNDLES: PhotoBundle[] = [
-  {
-    id: "bundle-1",
-    workState: "ISSUE",
-    startTime: new Date(Date.now() - 0.5 * 60 * 60 * 1000),
-    endTime: new Date(Date.now() - 0.3 * 60 * 60 * 1000),
-    label: "Rebar spacing concern",
-    capturedBy: "John D.",
-    location: { latitude: 0, longitude: 0, name: "Zone B - Column C3" },
-    note: "Rebar spacing appears to be 8\" instead of specified 6\". Flagged for engineer review.",
-    photos: [
-      {
-        id: "p1",
-        uri: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400",
-        capturedAt: new Date(Date.now() - 0.5 * 60 * 60 * 1000),
-        syncStatus: "SYNCED",
-        status: "issue" as PhotoStatus,
-      },
-      {
-        id: "p2",
-        uri: "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=400",
-        capturedAt: new Date(Date.now() - 0.4 * 60 * 60 * 1000),
-        syncStatus: "SYNCED",
-        status: "issue" as PhotoStatus,
-      },
-    ],
-  },
-  {
-    id: "bundle-2",
-    workState: "IN_PROGRESS",
-    startTime: new Date(Date.now() - 2 * 60 * 60 * 1000),
-    endTime: new Date(Date.now() - 1.5 * 60 * 60 * 1000),
-    label: "Concrete pour - East Wing",
-    capturedBy: "Maria S.",
-    location: { latitude: 0, longitude: 0, name: "Zone A - East Wing" },
-    planLink: { sheetId: "s1", sheetName: "A-100" },
-    photos: [
-      {
-        id: "p3",
-        uri: "https://images.unsplash.com/photo-1590687749827-66d97a2b43f5?w=400",
-        capturedAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-        syncStatus: "SYNCED",
-        status: "before" as PhotoStatus,
-      },
-      {
-        id: "p4",
-        uri: "https://images.unsplash.com/photo-1517089596392-fb9a9033e05b?w=400",
-        capturedAt: new Date(Date.now() - 1.9 * 60 * 60 * 1000),
-        syncStatus: "SYNCING",
-        status: "progress" as PhotoStatus,
-      },
-      {
-        id: "p5",
-        uri: "https://images.unsplash.com/photo-1541976590-713941681591?w=400",
-        capturedAt: new Date(Date.now() - 1.8 * 60 * 60 * 1000),
-        syncStatus: "PENDING",
-        status: "progress" as PhotoStatus,
-      },
-      {
-        id: "p6",
-        uri: "https://images.unsplash.com/photo-1587582423116-ec07293f0395?w=400",
-        capturedAt: new Date(Date.now() - 1.7 * 60 * 60 * 1000),
-        syncStatus: "SYNCED",
-        status: "progress" as PhotoStatus,
-      },
-      {
-        id: "p7",
-        uri: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400",
-        capturedAt: new Date(Date.now() - 1.6 * 60 * 60 * 1000),
-        syncStatus: "SYNCED",
-        status: "complete" as PhotoStatus,
-      },
-    ],
-  },
-  {
-    id: "bundle-3",
-    workState: "START",
-    startTime: new Date(Date.now() - 4 * 60 * 60 * 1000),
-    endTime: new Date(Date.now() - 3.5 * 60 * 60 * 1000),
-    capturedBy: "John D.",
-    location: { latitude: 0, longitude: 0, name: "Zone A - Foundation" },
-    photos: [
-      {
-        id: "p8",
-        uri: "https://images.unsplash.com/photo-1599708153386-62bf3f035c78?w=400",
-        capturedAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
-        syncStatus: "SYNCED",
-        status: "before" as PhotoStatus,
-      },
-      {
-        id: "p9",
-        uri: "https://images.unsplash.com/photo-1590687749827-66d97a2b43f5?w=400",
-        capturedAt: new Date(Date.now() - 3.8 * 60 * 60 * 1000),
-        syncStatus: "SYNCED",
-        status: "before" as PhotoStatus,
-      },
-      {
-        id: "p10",
-        uri: "https://images.unsplash.com/photo-1541976590-713941681591?w=400",
-        capturedAt: new Date(Date.now() - 3.6 * 60 * 60 * 1000),
-        syncStatus: "SYNCED",
-        status: "progress" as PhotoStatus,
-      },
-    ],
-  },
-  // Yesterday's bundles
-  {
-    id: "bundle-4",
-    workState: "COMPLETE",
-    startTime: new Date(Date.now() - 26 * 60 * 60 * 1000),
-    endTime: new Date(Date.now() - 25 * 60 * 60 * 1000),
-    label: "Formwork removal complete",
-    capturedBy: "Carlos R.",
-    location: { latitude: 0, longitude: 0, name: "Zone A - East Wing" },
-    photos: [
-      {
-        id: "p11",
-        uri: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400",
-        capturedAt: new Date(Date.now() - 26 * 60 * 60 * 1000),
-        syncStatus: "SYNCED",
-        status: "complete" as PhotoStatus,
-      },
-      {
-        id: "p12",
-        uri: "https://images.unsplash.com/photo-1517089596392-fb9a9033e05b?w=400",
-        capturedAt: new Date(Date.now() - 25.5 * 60 * 60 * 1000),
-        syncStatus: "SYNCED",
-        status: "complete" as PhotoStatus,
-      },
-    ],
-  },
-];
+function convertMediaToBundles(
+  mediaItems: readonly {
+    readonly id: string;
+    readonly filePath: string | null;
+    readonly mediaType: string | null;
+    readonly createdAt: string;
+  }[]
+): PhotoBundle[] {
+  if (!mediaItems.length) return [];
+
+  // Group by date (simple bundling for now)
+  const bundlesByDate = new Map<string, PhotoBundle>();
+
+  mediaItems.forEach((item) => {
+    const createdAt = new Date(item.createdAt);
+    const dateKey = createdAt.toDateString();
+    const downloadUrl = MediaApi.getDownloadUrl(item.id);
+
+    const photo: PhotoData = {
+      id: item.id,
+      uri: downloadUrl,
+      capturedAt: createdAt,
+      syncStatus: "SYNCED" as SyncStatus,
+      status: undefined,
+    };
+
+    if (bundlesByDate.has(dateKey)) {
+      const bundle = bundlesByDate.get(dateKey)!;
+      bundle.photos.push(photo);
+      // Update end time if this photo is newer
+      if (createdAt > bundle.endTime) {
+        bundle.endTime = createdAt;
+      }
+    } else {
+      // Create new bundle for this date
+      const bundle: PhotoBundle = {
+        id: `bundle-${dateKey}`,
+        workState: "IN_PROGRESS" as WorkState,
+        startTime: createdAt,
+        endTime: createdAt,
+        capturedBy: "You",
+        location: { latitude: 0, longitude: 0, name: "Project Site" },
+        photos: [photo],
+      };
+      bundlesByDate.set(dateKey, bundle);
+    }
+  });
+
+  // Convert to array and sort by date (newest first)
+  return Array.from(bundlesByDate.values()).sort(
+    (a, b) => b.startTime.getTime() - a.startTime.getTime()
+  );
+}
 
 /**
  * Group bundles by date for timeline display
@@ -224,13 +144,23 @@ export default function MediaScreen() {
     projectId ?? null
   );
 
+  // Fetch real media data from API
+  const {
+    data: mediaData,
+    isLoading: mediaLoading,
+    refetch: refetchMedia,
+  } = useMedia(projectId ?? null);
+
   const [refreshing, setRefreshing] = useState(false);
   const [workStateFilter, setWorkStateFilter] = useState<WorkState | "all">("all");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [activeTab, setActiveTab] = useState<TabName>("camera");
 
-  // Bundles state - allows for local updates
-  const [bundles, setBundles] = useState<PhotoBundle[]>(MOCK_BUNDLES);
+  // Convert API media to bundles
+  const bundles = useMemo(() => {
+    if (!mediaData?.media) return [];
+    return convertMediaToBundles(mediaData.media);
+  }, [mediaData]);
 
   // Photo Viewer state
   const [viewerVisible, setViewerVisible] = useState(false);
@@ -300,10 +230,9 @@ export default function MediaScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    // TODO: Sync with backend
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await refetchMedia();
     setRefreshing(false);
-  }, []);
+  }, [refetchMedia]);
 
   const handleBundlePress = useCallback(
     (bundle: PhotoBundle) => {
@@ -342,15 +271,6 @@ export default function MediaScreen() {
    * 3. Update UI optimistically
    */
   const handlePhotoStatusChange = useCallback((photoId: string, status: PhotoStatus) => {
-    setBundles((prevBundles) =>
-      prevBundles.map((bundle) => ({
-        ...bundle,
-        photos: bundle.photos.map((photo) =>
-          photo.id === photoId ? { ...photo, status } : photo
-        ),
-      }))
-    );
-
     // Also update the viewer photos if the viewer is open
     setViewerPhotos((prevPhotos) =>
       prevPhotos.map((photo) =>
@@ -358,6 +278,7 @@ export default function MediaScreen() {
       )
     );
 
+    // TODO: Update status via API when backend supports it
     console.log(`Photo ${photoId} status changed to: ${status}`);
   }, []);
 
@@ -377,9 +298,9 @@ export default function MediaScreen() {
   }, []);
 
   const handleCapture = useCallback(() => {
-    // TODO: Navigate to camera
-    console.log("Open camera");
-  }, []);
+    // Navigate to camera screen
+    router.push(`/(main)/projects/${projectId}/media/camera` as any);
+  }, [projectId]);
 
   const handleSearch = useCallback(() => {
     // TODO: Navigate to search
@@ -404,7 +325,7 @@ export default function MediaScreen() {
     }
   }, [projectId]);
 
-  if (projectLoading) {
+  if (projectLoading || mediaLoading) {
     return (
       <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
         <ActivityIndicator size="large" color="#c9623d" />

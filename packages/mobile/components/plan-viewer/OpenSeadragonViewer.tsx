@@ -17,6 +17,7 @@ interface DziMetadata {
  * Marker/Hyperlink data from the API
  */
 export interface Marker {
+  id: string;
   calloutRef: string;
   targetSheetRef: string;
   x: number;
@@ -48,6 +49,11 @@ interface Props {
    */
   onMarkerPositionUpdate?: (marker: Marker, newX: number, newY: number) => void;
   /**
+   * Marker callout ref to highlight (e.g., "5" to highlight marker "5/A7")
+   * Used when navigating from another sheet to highlight the target marker
+   */
+  highlightMarkerRef?: string;
+  /**
    * DOM props from Expo
    */
   dom?: import('expo/dom').DOMProps;
@@ -64,6 +70,9 @@ const MARKER_STYLES = {
   // Edit mode - pulsing border, slightly more opaque
   editBackground: 'rgba(255, 87, 34, 0.12)',
   editBorder: '#FF5722',
+  // Highlight mode - green glow for navigation target
+  highlightBackground: 'rgba(76, 175, 80, 0.15)',
+  highlightBorder: '#4CAF50',
 };
 
 /**
@@ -86,7 +95,8 @@ export default function OpenSeadragonViewer({
   fetchTile,
   markers = [],
   onMarkerPress,
-  onMarkerPositionUpdate
+  onMarkerPositionUpdate,
+  highlightMarkerRef
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
@@ -94,6 +104,84 @@ export default function OpenSeadragonViewer({
   const markersAddedRef = useRef(false);
   // Track which marker is in edit/adjustment mode
   const [editingMarkerIndex, setEditingMarkerIndex] = useState<number | null>(null);
+  // Track highlighted marker element for cleanup
+  const highlightedMarkerRef = useRef<{ element: HTMLElement; timeoutId: ReturnType<typeof setTimeout> } | null>(null);
+  // Store marker elements for highlight lookup
+  const markerElementsRef = useRef<Map<string, HTMLElement>>(new Map());
+
+  // Function to apply highlight styling to a marker element
+  const applyHighlightStyle = (element: HTMLElement) => {
+    element.style.background = MARKER_STYLES.highlightBackground;
+    element.style.borderColor = MARKER_STYLES.highlightBorder;
+    element.style.borderWidth = '3px';
+    element.style.animation = 'marker-highlight 1.5s ease-in-out infinite';
+  };
+
+  // Function to remove highlight styling from a marker element
+  const removeHighlightStyle = (element: HTMLElement) => {
+    element.style.background = MARKER_STYLES.normalBackground;
+    element.style.borderColor = MARKER_STYLES.normalBorder;
+    element.style.borderWidth = '2px';
+    element.style.boxShadow = 'none';
+    element.style.animation = '';
+  };
+
+  // Function to highlight a marker and pan to it
+  const highlightMarker = (calloutRef: string, viewer: any) => {
+    // Clear any existing highlight
+    if (highlightedMarkerRef.current) {
+      clearTimeout(highlightedMarkerRef.current.timeoutId);
+      removeHighlightStyle(highlightedMarkerRef.current.element);
+      highlightedMarkerRef.current = null;
+    }
+
+    // Find the marker element
+    const markerElement = markerElementsRef.current.get(calloutRef);
+    if (!markerElement || !viewer) {
+      console.log(`[OpenSeadragon] Could not find marker element for calloutRef: ${calloutRef}`);
+      return;
+    }
+
+    // Find the marker data to get coordinates
+    const marker = markers.find(m => m.calloutRef === calloutRef);
+    if (!marker) {
+      console.log(`[OpenSeadragon] Could not find marker data for calloutRef: ${calloutRef}`);
+      return;
+    }
+
+    console.log(`[OpenSeadragon] Highlighting marker ${calloutRef}`);
+
+    // Apply highlight styling
+    applyHighlightStyle(markerElement);
+
+    // Get the image dimensions and pan to the marker
+    const tiledImage = viewer.world.getItemAt(0);
+    if (tiledImage) {
+      const imageSize = tiledImage.getContentSize();
+      const tilePixelX = marker.x * imageSize.x;
+      const tilePixelY = marker.y * imageSize.y;
+
+      // Convert to viewport coordinates
+      const viewportPoint = viewer.viewport.imageToViewportCoordinates(tilePixelX, tilePixelY);
+
+      // Pan to center the marker with a nice zoom level
+      viewer.viewport.panTo(viewportPoint, false);
+      // Optionally zoom in a bit to make the marker more visible
+      const currentZoom = viewer.viewport.getZoom();
+      if (currentZoom < 2) {
+        viewer.viewport.zoomTo(2, viewportPoint, false);
+      }
+    }
+
+    // Set up timeout to remove highlight after 2 seconds
+    const timeoutId = setTimeout(() => {
+      removeHighlightStyle(markerElement);
+      highlightedMarkerRef.current = null;
+      console.log(`[OpenSeadragon] Removed highlight from marker ${calloutRef}`);
+    }, 2000);
+
+    highlightedMarkerRef.current = { element: markerElement, timeoutId };
+  };
 
   // Add markers to the viewer as overlays (matching demo styling)
   const addMarkersToViewer = (viewer: any, OpenSeadragon: any) => {
@@ -103,6 +191,9 @@ export default function OpenSeadragonViewer({
 
     console.log(`[OpenSeadragon] Adding ${markers.length} marker overlays...`);
     markersAddedRef.current = true;
+
+    // Clear the marker elements map
+    markerElementsRef.current.clear();
 
     // Get the image dimensions from the tiled image
     const tiledImage = viewer.world.getItemAt(0);
@@ -119,19 +210,41 @@ export default function OpenSeadragonViewer({
       markerElement.id = `marker-${index}`;
       markerElement.className = 'callout-overlay';
       markerElement.dataset.markerIndex = String(index);
+      markerElement.dataset.calloutRef = marker.calloutRef;
+
+      // Store reference for highlight lookup
+      markerElementsRef.current.set(marker.calloutRef, markerElement);
+
+      // Check if this marker should be initially highlighted
+      const shouldHighlight = highlightMarkerRef && marker.calloutRef === highlightMarkerRef;
 
       // Style as a subtle transparent ring - very see-through
       markerElement.style.cssText = `
         width: 100%;
         height: 100%;
-        border: 2px solid ${MARKER_STYLES.normalBorder};
+        border: 2px solid ${shouldHighlight ? MARKER_STYLES.highlightBorder : MARKER_STYLES.normalBorder};
         border-radius: 50%;
-        background: ${MARKER_STYLES.normalBackground};
+        background: ${shouldHighlight ? MARKER_STYLES.highlightBackground : MARKER_STYLES.normalBackground};
         cursor: pointer;
         pointer-events: auto;
         box-sizing: border-box;
         transition: background 0.15s ease-out, box-shadow 0.15s ease-out, border-color 0.15s ease-out;
       `;
+
+      // If this marker should be highlighted, apply the animation and set up removal
+      if (shouldHighlight) {
+        markerElement.style.borderWidth = '3px';
+        markerElement.style.animation = 'marker-highlight 1.5s ease-in-out infinite';
+
+        // Set up timeout to remove highlight after 2 seconds
+        const timeoutId = setTimeout(() => {
+          removeHighlightStyle(markerElement);
+          highlightedMarkerRef.current = null;
+          console.log(`[OpenSeadragon] Removed initial highlight from marker ${marker.calloutRef}`);
+        }, 2000);
+
+        highlightedMarkerRef.current = { element: markerElement, timeoutId };
+      }
 
       // Track state for this marker
       let isInEditMode = false;
@@ -209,6 +322,20 @@ export default function OpenSeadragonViewer({
         element: markerElement,
         location: viewportRect,
       });
+
+      // If this marker should be highlighted, pan to it
+      if (shouldHighlight) {
+        // Delay panning slightly to ensure viewer is ready
+        setTimeout(() => {
+          const viewportPoint = viewer.viewport.imageToViewportCoordinates(tilePixelX, tilePixelY);
+          viewer.viewport.panTo(viewportPoint, false);
+          const currentZoom = viewer.viewport.getZoom();
+          if (currentZoom < 2) {
+            viewer.viewport.zoomTo(2, viewportPoint, false);
+          }
+          console.log(`[OpenSeadragon] Panned to highlighted marker ${marker.calloutRef}`);
+        }, 100);
+      }
 
       // Use MouseTracker for all interactions
       new OpenSeadragon.MouseTracker({
@@ -312,19 +439,31 @@ export default function OpenSeadragonViewer({
       console.log(`[OpenSeadragon] Added marker ${marker.calloutRef}`);
     });
 
-    // Add CSS keyframes for pulse animation
+    // Add CSS keyframes for pulse and highlight animations
     const styleElement = document.createElement('style');
-    styleElement.textContent = `
-      @keyframes marker-pulse {
-        0%, 100% {
-          box-shadow: 0 0 8px rgba(255, 87, 34, 0.6);
+    styleElement.id = 'marker-animations';
+    // Only add if not already present
+    if (!document.getElementById('marker-animations')) {
+      styleElement.textContent = `
+        @keyframes marker-pulse {
+          0%, 100% {
+            box-shadow: 0 0 8px rgba(255, 87, 34, 0.6);
+          }
+          50% {
+            box-shadow: 0 0 16px rgba(255, 87, 34, 0.9);
+          }
         }
-        50% {
-          box-shadow: 0 0 16px rgba(255, 87, 34, 0.9);
+        @keyframes marker-highlight {
+          0%, 100% {
+            box-shadow: 0 0 12px rgba(76, 175, 80, 0.8);
+          }
+          50% {
+            box-shadow: 0 0 24px rgba(76, 175, 80, 1);
+          }
         }
-      }
-    `;
-    document.head.appendChild(styleElement);
+      `;
+      document.head.appendChild(styleElement);
+    }
 
     console.log(`[OpenSeadragon] Finished adding ${markers.length} markers`);
   };
@@ -426,8 +565,8 @@ export default function OpenSeadragonViewer({
                 callback: options.callback,
                 abort: options.abort,
                 timeout: options.timeout,
-                image: null as any,
-                errorMsg: null,
+                image: null as HTMLImageElement | null,
+                errorMsg: null as string | null,
               };
 
               // Fetch tile via React Native
@@ -515,6 +654,10 @@ export default function OpenSeadragonViewer({
     });
 
     return () => {
+      // Clean up highlight timeout on unmount
+      if (highlightedMarkerRef.current) {
+        clearTimeout(highlightedMarkerRef.current.timeoutId);
+      }
       if (viewerRef.current) {
         viewerRef.current.destroy();
         viewerRef.current = null;
@@ -531,6 +674,16 @@ export default function OpenSeadragonViewer({
       });
     }
   }, [markers]);
+
+  // Handle highlightMarkerRef changes after initial render
+  useEffect(() => {
+    if (!highlightMarkerRef || !viewerRef.current || !markersAddedRef.current) {
+      return;
+    }
+
+    // If markers are already added, highlight the matching one
+    highlightMarker(highlightMarkerRef, viewerRef.current);
+  }, [highlightMarkerRef]);
 
   return (
     <div

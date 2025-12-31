@@ -490,6 +490,7 @@ export const PlanAPILive = HttpApiBuilder.group(
 							const y = bbox ? bbox.y : 0.5
 
 							return {
+								id: marker.id,
 								calloutRef: marker.markerText,
 								targetSheetRef: marker.sheet,
 								x,

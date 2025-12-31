@@ -5,7 +5,7 @@
  */
 import { useState, useCallback, useEffect } from "react"
 import { Effect, Exit, Cause } from "effect"
-import { ProjectsApi, PlansApi, SheetsApi, MarkersApi, ApiErrorType } from "./client"
+import { ProjectsApi, PlansApi, SheetsApi, MarkersApi, MediaApi, ApiErrorType } from "./client"
 
 interface UseApiState<T> {
 	data: T | null
@@ -159,6 +159,19 @@ export function usePendingReviewMarkers(planId: string | null) {
 }
 
 /**
+ * Hook for fetching media for a specific marker
+ */
+export function useMarkerMedia(markerId: string | null) {
+	return useEffectApi(
+		() =>
+			markerId
+				? MarkersApi.getMedia(markerId)
+				: Effect.succeed({ media: [] as const }),
+		[markerId]
+	)
+}
+
+/**
  * Hook for mutations (create, update, delete)
  */
 export function useMutation<TInput, TOutput>(
@@ -222,4 +235,78 @@ export function useUpdateProject(projectId: string) {
 
 export function useDeleteProject() {
 	return useMutation(ProjectsApi.delete)
+}
+
+/**
+ * Hook for reviewing a single marker
+ */
+export function useReviewMarker() {
+	return useMutation(
+		({ markerId, action, notes }: { markerId: string; action: "confirm" | "reject"; notes?: string }) =>
+			MarkersApi.reviewMarker(markerId, action, notes)
+	)
+}
+
+/**
+ * Hook for bulk reviewing markers
+ */
+export function useBulkReviewMarkers() {
+	return useMutation(
+		({ markerIds, action, notes }: { markerIds: string[]; action: "confirm" | "reject"; notes?: string }) =>
+			MarkersApi.bulkReviewMarkers(markerIds, action, notes)
+	)
+}
+
+/**
+ * Hook for fetching media list
+ */
+export function useMedia(projectId: string | null) {
+	return useEffectApi(
+		() =>
+			projectId
+				? MediaApi.list(projectId)
+				: Effect.succeed({ media: [] as const }),
+		[projectId]
+	)
+}
+
+/**
+ * Hook for uploading media
+ */
+export function useUploadMedia() {
+	return useMutation(
+		({
+			projectId,
+			file,
+			mediaType,
+			planId,
+			markerId,
+			status,
+			description,
+			coordinates,
+		}: {
+			projectId: string
+			file: { uri: string; name: string; type: string }
+			mediaType: "photo" | "video"
+			planId?: string
+			markerId?: string
+			status?: "before" | "progress" | "complete" | "issue"
+			description?: string
+			coordinates?: { x: number; y: number }
+		}) =>
+			MediaApi.upload(projectId, file, mediaType, {
+				planId,
+				markerId,
+				status,
+				description,
+				coordinates,
+			})
+	)
+}
+
+/**
+ * Hook for deleting media
+ */
+export function useDeleteMedia() {
+	return useMutation(MediaApi.delete)
 }

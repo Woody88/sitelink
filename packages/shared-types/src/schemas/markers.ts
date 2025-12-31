@@ -4,6 +4,7 @@ import { Schema } from "effect"
  * Marker/Hyperlink Schemas
  */
 export const HyperlinkSchema = Schema.Struct({
+	id: Schema.String,
 	calloutRef: Schema.String,
 	targetSheetRef: Schema.String,
 	x: Schema.Number,

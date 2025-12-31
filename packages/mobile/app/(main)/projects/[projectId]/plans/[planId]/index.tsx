@@ -1,13 +1,14 @@
 import { View, Text, StyleSheet, ActivityIndicator, Pressable } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Effect } from 'effect';
 import OpenSeadragonViewer, { type Marker } from '@/components/plan-viewer/OpenSeadragonViewer';
 import MarkerDetailsModal from '@/components/plan-viewer/MarkerDetailsModal';
-import { useSheets, useSheetMarkers } from '@/lib/api/hooks';
-import { SheetsApi, type DziMetadata } from '@/lib/api/client';
+import { MarkerTimelineModal } from '@/components/media';
+import { useSheets, useSheetMarkers, usePendingReviewMarkers } from '@/lib/api/hooks';
+import { SheetsApi, MarkersApi, type DziMetadata } from '@/lib/api/client';
 
 export default function PlanViewerScreen() {
   const insets = useSafeAreaInsets();
@@ -26,6 +27,12 @@ export default function PlanViewerScreen() {
   // Modal state
   const [selectedMarker, setSelectedMarker] = useState<Marker | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isTimelineVisible, setIsTimelineVisible] = useState(false);
+
+  // Marker highlight state for navigation
+  const [highlightMarkerRef, setHighlightMarkerRef] = useState<string | null>(null);
+  // Track if the sheet change was due to navigation (vs manual selection)
+  const isNavigatingRef = useRef(false);
 
   const { data, error, isLoading, refetch } = useSheets(planId ?? null);
 
@@ -35,8 +42,13 @@ export default function PlanViewerScreen() {
   // Fetch markers for the current sheet
   const { data: markersData } = useSheetMarkers(planId ?? null, selectedSheet?.id ?? null);
 
+  // Fetch pending review count for badge
+  const { data: pendingReviewData } = usePendingReviewMarkers(planId ?? null);
+  const pendingReviewCount = pendingReviewData?.total ?? 0;
+
   // Transform hyperlinks to markers
   const markers: Marker[] = (markersData?.hyperlinks ?? []).map((h) => ({
+    id: h.id,
     calloutRef: h.calloutRef,
     targetSheetRef: h.targetSheetRef,
     x: h.x,
@@ -54,6 +66,16 @@ export default function PlanViewerScreen() {
       setInitialSheetSet(true);
     }
   }, [sheets, sheetId, initialSheetSet]);
+
+  // Clear highlightMarkerRef when sheet changes manually (not via navigation)
+  useEffect(() => {
+    if (!isNavigatingRef.current && highlightMarkerRef) {
+      // Sheet changed manually, clear the highlight
+      setHighlightMarkerRef(null);
+    }
+    // Reset the navigation flag
+    isNavigatingRef.current = false;
+  }, [selectedSheetIndex]);
 
   // Fetch DZI metadata when sheet changes (from React Native, not webview)
   useEffect(() => {
@@ -113,20 +135,71 @@ export default function PlanViewerScreen() {
     });
 
     if (targetSheetIndex >= 0) {
+      // Get the callout ref from the current marker to highlight it on the target sheet
+      // The calloutRef is the detail number (e.g., "5" from marker "5/A7")
+      const markerToHighlight = selectedMarker?.calloutRef || null;
+
+      // Set flag to indicate this is a navigation (not manual sheet change)
+      isNavigatingRef.current = true;
+
+      // Set the marker to highlight on the target sheet
+      setHighlightMarkerRef(markerToHighlight);
+
+      // Change to the target sheet
       setSelectedSheetIndex(targetSheetIndex);
+
+      // Close the modal
       setIsModalVisible(false);
       setSelectedMarker(null);
+
+      console.log(`[PlanViewer] Navigated to sheet ${targetSheetRef}, highlighting marker ${markerToHighlight}`);
     } else {
       // Sheet not found - could show an alert here
       console.warn(`[PlanViewer] Sheet ${targetSheetRef} not found in plan`);
       setIsModalVisible(false);
     }
-  }, [sheets]);
+  }, [sheets, selectedMarker]);
 
   // Close modal
   const handleCloseModal = useCallback(() => {
     setIsModalVisible(false);
     setSelectedMarker(null);
+  }, []);
+
+  // Handle "View Timeline" button press
+  const handleViewTimeline = useCallback((marker: Marker) => {
+    console.log('[PlanViewer] Viewing timeline for marker:', marker.id);
+    setIsModalVisible(false);
+    setIsTimelineVisible(true);
+  }, []);
+
+  // Handle "Add Photo" button press
+  const handleAddPhoto = useCallback(() => {
+    console.log('[PlanViewer] Adding photo for marker:', selectedMarker?.id);
+    // Navigate to camera screen with markerId context
+    router.push({
+      pathname: `/(main)/projects/${projectId}/media/camera`,
+      params: { 
+        markerId: selectedMarker?.id,
+        planId,
+        sheetId: selectedSheet?.id
+      }
+    } as any);
+  }, [projectId, planId, selectedSheet?.id, selectedMarker]);
+
+  // Handle marker position update (long-press + drag)
+  const handleMarkerPositionUpdate = useCallback((marker: Marker, newX: number, newY: number) => {
+    console.log(`[PlanViewer] Updating marker ${marker.id} position to (${newX.toFixed(4)}, ${newY.toFixed(4)})`);
+
+    // Call the API to save the new position
+    Effect.runPromise(MarkersApi.updatePosition(marker.id, newX, newY))
+      .then(() => {
+        console.log(`[PlanViewer] Marker ${marker.id} position saved successfully`);
+      })
+      .catch((err) => {
+        console.error(`[PlanViewer] Failed to save marker position:`, err);
+        // TODO: Show error toast to user
+      });
   }, []);
 
   // Header component
@@ -145,7 +218,20 @@ export default function PlanViewerScreen() {
           </Text>
         )}
       </View>
-      <View style={styles.headerSpacer} />
+      {/* Review Markers Button with Badge */}
+      <Pressable
+        onPress={() => router.push(`/(main)/projects/${projectId}/plans/${planId}/review` as never)}
+        style={styles.reviewButton}
+      >
+        <Ionicons name="flag-outline" size={24} color="#fff" />
+        {pendingReviewCount > 0 && (
+          <View style={styles.reviewBadge}>
+            <Text style={styles.reviewBadgeText}>
+              {pendingReviewCount > 99 ? '99+' : pendingReviewCount}
+            </Text>
+          </View>
+        )}
+      </Pressable>
     </View>
   );
 
@@ -255,6 +341,8 @@ export default function PlanViewerScreen() {
         fetchTile={fetchTile}
         markers={markers}
         onMarkerPress={handleMarkerPress}
+        onMarkerPositionUpdate={handleMarkerPositionUpdate}
+        highlightMarkerRef={highlightMarkerRef || undefined}
         dom={{ style: { flex: 1, width: '100%', height: '100%' } }}
       />
       <MarkerDetailsModal
@@ -262,6 +350,14 @@ export default function PlanViewerScreen() {
         marker={selectedMarker}
         onClose={handleCloseModal}
         onGoToSheet={handleGoToSheet}
+        onViewTimeline={handleViewTimeline}
+      />
+      <MarkerTimelineModal
+        visible={isTimelineVisible}
+        markerId={selectedMarker?.id || null}
+        markerRef={selectedMarker?.calloutRef || null}
+        onClose={() => setIsTimelineVisible(false)}
+        onAddPhoto={handleAddPhoto}
       />
     </View>
   );
@@ -301,8 +397,29 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
   },
-  headerSpacer: {
+  reviewButton: {
     width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  reviewBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: '#c9623d',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  reviewBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
   },
   centerContent: {
     flex: 1,
