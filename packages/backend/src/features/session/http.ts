@@ -24,6 +24,7 @@ const SetActiveProjectRequest = Schema.Struct({
 const ActiveProjectResponse = Schema.Struct({
 	activeProjectId: Schema.NullOr(Schema.String),
 	activeOrganizationId: Schema.NullOr(Schema.String),
+	activeProjectUpdatedAt: Schema.NullOr(Schema.Date),
 })
 
 /**

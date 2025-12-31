@@ -20,6 +20,7 @@ const MediaResponse = Schema.Struct({
 	filePath: Schema.NullOr(Schema.String),
 	mediaType: Schema.NullOr(Schema.String),
 	status: Schema.NullOr(Schema.Literal("before", "progress", "complete", "issue")),
+	description: Schema.NullOr(Schema.String),
 	createdAt: Schema.Date,
 })
 
@@ -55,6 +56,10 @@ const projectIdParam = HttpApiSchema.param("projectId", Schema.String)
  */
 const UpdateStatusRequest = Schema.Struct({
 	status: Schema.Literal("before", "progress", "complete", "issue"),
+})
+
+const UpdateDescriptionRequest = Schema.Struct({
+	description: Schema.optional(Schema.String),
 })
 
 /**
@@ -105,6 +110,12 @@ export const MediaAPI = HttpApiGroup.make("media")
 			.addError(ProjectAccessDeniedError),
 	)
 	.add(
+		HttpApiEndpoint.get("searchProjectMedia")`/projects/${projectIdParam}/media/search`
+			.addSuccess(MediaSearchResponse)
+			.addError(ProjectAccessDeniedError)
+			.setUrlParams(MediaSearchQuery),
+	)
+	.add(
 		HttpApiEndpoint.del("deleteMedia")`/media/${mediaIdParam}`
 			.addSuccess(Schema.Struct({ success: Schema.Literal(true) }))
 			.addError(MediaNotFoundError)
@@ -117,6 +128,13 @@ export const MediaAPI = HttpApiGroup.make("media")
 			.addError(MediaNotFoundError)
 			.addError(ProjectAccessDeniedError)
 			.addError(InvalidStatusError),
+	)
+	.add(
+		HttpApiEndpoint.patch("updateMedia")`/media/${mediaIdParam}`
+			.setPayload(UpdateDescriptionRequest)
+			.addSuccess(MediaResponse)
+			.addError(MediaNotFoundError)
+			.addError(ProjectAccessDeniedError),
 	)
 	.prefix("/api")
 	.middleware(Authorization)
@@ -282,6 +300,27 @@ export const MediaAPILive = HttpApiBuilder.group(
 						return { media: mediaList }
 					}),
 				)
+				.handle("searchProjectMedia", ({ path, urlParams }) =>
+					Effect.gen(function* () {
+						// Verify access to project
+						yield* verifyProjectAccess(path.projectId)
+
+						// Search media with filters
+						const result = yield* mediaService.search({
+							projectId: path.projectId,
+							q: urlParams.q,
+							status: urlParams.status,
+							planId: urlParams.planId,
+							markerId: urlParams.markerId,
+							dateFrom: urlParams.dateFrom,
+							dateTo: urlParams.dateTo,
+							limit: urlParams.limit,
+							offset: urlParams.offset,
+						})
+
+						return result
+					}),
+				)
 				.handle("deleteMedia", ({ path }) =>
 					Effect.gen(function* () {
 						// Verify access
@@ -302,6 +341,20 @@ export const MediaAPILive = HttpApiBuilder.group(
 						const updatedMedia = yield* mediaService.updateStatus({
 							mediaId: path.id,
 							status: payload.status,
+						})
+
+						return updatedMedia
+					}),
+				)
+				.handle("updateMedia", ({ path, payload }) =>
+					Effect.gen(function* () {
+						// Verify access to media
+						yield* verifyMediaAccess(path.id)
+
+						// Update media description
+						const updatedMedia = yield* mediaService.update({
+							mediaId: path.id,
+							description: payload.description,
 						})
 
 						return updatedMedia

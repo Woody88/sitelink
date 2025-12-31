@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm"
+import { and, eq, gte, lte, like, sql } from "drizzle-orm"
 import { Effect, Schema } from "effect"
 import { Drizzle } from "../../core/database"
 import { StorageService } from "../../core/storage"
@@ -199,6 +199,29 @@ export class MediaService extends Effect.Service<MediaService>()(
 			})
 
 			/**
+			 * Update media description
+			 */
+			const update = Effect.fn("Media.update")(function* (params: {
+				mediaId: string
+				description?: string
+			}) {
+				// Verify media exists first
+				yield* get(params.mediaId)
+
+				// Update the description in database
+				yield* db
+					.update(schema.media)
+					.set({
+						description: params.description ?? null,
+						updatedAt: new Date(),
+					})
+					.where(eq(schema.media.id, params.mediaId))
+
+				// Return updated media
+				return yield* get(params.mediaId)
+			})
+
+			/**
 			 * Delete media (from both D1 and R2)
 			 */
 			const deleteMedia = Effect.fn("Media.delete")(function* (
@@ -218,13 +241,91 @@ export class MediaService extends Effect.Service<MediaService>()(
 				yield* db.delete(schema.media).where(eq(schema.media.id, mediaId))
 			})
 
+			/**
+			 * Search media with advanced filtering
+			 */
+			const search = Effect.fn("Media.search")(function* (params: {
+				projectId: string
+				q?: string
+				status?: "before" | "progress" | "complete" | "issue"
+				planId?: string
+				markerId?: string
+				dateFrom?: string
+				dateTo?: string
+				limit: number
+				offset: number
+			}) {
+				// Build WHERE conditions
+				const conditions = [eq(schema.media.projectId, params.projectId)]
+
+				// Search text in description
+				if (params.q) {
+					conditions.push(like(schema.media.description, `%${params.q}%`))
+				}
+
+				// Filter by status
+				if (params.status) {
+					conditions.push(eq(schema.media.status, params.status))
+				}
+
+				// Filter by planId
+				if (params.planId) {
+					conditions.push(eq(schema.media.planId, params.planId))
+				}
+
+				// Filter by markerId
+				if (params.markerId) {
+					conditions.push(eq(schema.media.markerId, params.markerId))
+				}
+
+				// Date range filtering
+				if (params.dateFrom && params.dateTo) {
+					conditions.push(
+						and(
+							gte(schema.media.createdAt, new Date(params.dateFrom)),
+							lte(schema.media.createdAt, new Date(params.dateTo)),
+						),
+					)
+				} else if (params.dateFrom) {
+					conditions.push(gte(schema.media.createdAt, new Date(params.dateFrom)))
+				} else if (params.dateTo) {
+					conditions.push(lte(schema.media.createdAt, new Date(params.dateTo)))
+				}
+
+				// Get total count
+				const [countResult] = yield* db
+					.select({ count: sql<number>`count(*)` })
+					.from(schema.media)
+					.where(and(...conditions))
+
+				const total = countResult?.count ?? 0
+
+				// Get paginated results
+				const media = yield* db
+					.select()
+					.from(schema.media)
+					.where(and(...conditions))
+					.orderBy(sql`${schema.media.createdAt} DESC`)
+					.limit(params.limit)
+					.offset(params.offset)
+
+				return {
+					media,
+					total,
+					limit: params.limit,
+					offset: params.offset,
+				}
+			})
+
 			return {
 				upload,
 				get,
 				download,
 				listByProject,
 				updateStatus,
+				update,
 				delete: deleteMedia,
+				search,
 			} as const
 		}),
 	},

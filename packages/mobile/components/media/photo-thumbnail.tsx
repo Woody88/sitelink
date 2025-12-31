@@ -14,7 +14,8 @@ import { cn } from "@/lib/utils";
  * - capturedAt: Timestamp for auto-bundling
  * - syncStatus: Upload status
  * - status: Work status (before/progress/complete/issue)
- * - note: Optional description (can add later)
+ * - description: Bundle label/description (can add later)
+ * - note: Optional photo-specific note
  */
 export interface PhotoData {
   id: string;
@@ -23,6 +24,7 @@ export interface PhotoData {
   capturedAt: Date;
   syncStatus: SyncStatus;
   status?: PhotoStatus;
+  description?: string;
   note?: string;
 }
 

@@ -11,8 +11,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/ui/text";
-import { useProject, useMedia, useUpdateMediaStatus, MediaApi } from "@/lib/api";
+import { useProject, useMedia, useUpdateMediaStatus, useUpdateMedia, useDeleteMedia, MediaApi } from "@/lib/api";
 import Toast from 'react-native-toast-message';
+import * as Sharing from 'expo-sharing';
 import {
   MediaHeader,
   MediaFilterBar,
@@ -20,6 +21,9 @@ import {
   TimelineDateHeader,
   MediaEmptyState,
   PhotoViewer,
+  LabelInputModal,
+  BundleActionsSheet,
+  DeleteBundleDialog,
   getSummaryStatus,
   countPendingItems,
   type WorkState,
@@ -46,6 +50,7 @@ function convertMediaToBundles(
     readonly id: string;
     readonly filePath: string | null;
     readonly mediaType: string | null;
+    readonly description: string | null;
     readonly createdAt: string;
   }[]
 ): PhotoBundle[] {
@@ -65,6 +70,7 @@ function convertMediaToBundles(
       capturedAt: createdAt,
       syncStatus: "SYNCED" as SyncStatus,
       status: undefined,
+      description: item.description ?? undefined,
     };
 
     if (bundlesByDate.has(dateKey)) {
@@ -73,6 +79,10 @@ function convertMediaToBundles(
       // Update end time if this photo is newer
       if (createdAt > bundle.endTime) {
         bundle.endTime = createdAt;
+      }
+      // Use first photo's description as bundle label
+      if (!bundle.label && item.description) {
+        bundle.label = item.description;
       }
     } else {
       // Create new bundle for this date
@@ -84,6 +94,7 @@ function convertMediaToBundles(
         capturedBy: "You",
         location: { latitude: 0, longitude: 0, name: "Project Site" },
         photos: [photo],
+        label: item.description ?? undefined,
       };
       bundlesByDate.set(dateKey, bundle);
     }
@@ -155,10 +166,25 @@ export default function MediaScreen() {
   // Hook for updating media status
   const { mutate: updateMediaStatus } = useUpdateMediaStatus();
 
+  // Hook for updating media (description)
+  const { mutate: updateMedia } = useUpdateMedia();
+
+  // Hook for deleting media
+  const { mutate: deleteMedia } = useDeleteMedia();
+
   const [refreshing, setRefreshing] = useState(false);
   const [workStateFilter, setWorkStateFilter] = useState<WorkState | "all">("all");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [activeTab, setActiveTab] = useState<TabName>("camera");
+
+  // Label modal state
+  const [labelModalVisible, setLabelModalVisible] = useState(false);
+  const [selectedBundle, setSelectedBundle] = useState<PhotoBundle | null>(null);
+
+  // Bundle actions sheet state
+  const [actionsSheetVisible, setActionsSheetVisible] = useState(false);
+  const [selectedBundleForActions, setSelectedBundleForActions] = useState<PhotoBundle | null>(null);
+  const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
 
   // Convert API media to bundles
   const bundles = useMemo(() => {
@@ -307,14 +333,103 @@ export default function MediaScreen() {
   }, [updateMediaStatus, refetchMedia]);
 
   const handleAddLabel = useCallback((bundle: PhotoBundle) => {
-    // TODO: Show label input modal
-    console.log("Add label to bundle:", bundle.id);
+    setSelectedBundle(bundle);
+    setLabelModalVisible(true);
   }, []);
 
+  const handleSaveLabel = useCallback(async (description: string) => {
+    if (!selectedBundle) return;
+
+    // Call API for first photo in bundle (represents bundle)
+    const result = await updateMedia({
+      mediaId: selectedBundle.photos[0].id,
+      data: { description },
+    });
+
+    if (result) {
+      await refetchMedia();
+      setLabelModalVisible(false);
+      Toast.show({
+        type: 'success',
+        text1: 'Label Saved',
+        text2: 'Bundle description updated',
+        visibilityTime: 2000,
+      });
+    } else {
+      Toast.show({
+        type: 'error',
+        text1: 'Save Failed',
+        text2: 'Could not save label',
+        visibilityTime: 3000,
+      });
+    }
+  }, [selectedBundle, updateMedia, refetchMedia]);
+
   const handleBundleMenuPress = useCallback((bundle: PhotoBundle) => {
-    // TODO: Show action sheet (Share, Edit, Delete)
-    console.log("Menu for bundle:", bundle.id);
+    setSelectedBundleForActions(bundle);
+    setActionsSheetVisible(true);
   }, []);
+
+  const handleShareBundle = useCallback(async (bundle: PhotoBundle) => {
+    // Share via system share sheet
+    // For now, just share the description/label
+    if (await Sharing.isAvailableAsync()) {
+      const message = bundle.label || `Photo bundle with ${bundle.photos.length} photos`;
+      await Sharing.shareAsync(message);
+    }
+    setActionsSheetVisible(false);
+  }, []);
+
+  const handleEditBundleLabel = useCallback((bundle: PhotoBundle) => {
+    setActionsSheetVisible(false);
+    setSelectedBundle(bundle);
+    setLabelModalVisible(true);
+  }, []);
+
+  const handleChangeBundleStatus = useCallback((bundle: PhotoBundle) => {
+    setActionsSheetVisible(false);
+    // TODO: Open status picker (future enhancement)
+    Toast.show({
+      type: 'info',
+      text1: 'Status Change',
+      text2: 'Status picker coming soon',
+    });
+  }, []);
+
+  const handleDeleteBundle = useCallback((bundle: PhotoBundle) => {
+    setActionsSheetVisible(false);
+    setDeleteDialogVisible(true);
+  }, []);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!selectedBundleForActions) return;
+
+    // Delete all photos in bundle
+    const deletePromises = selectedBundleForActions.photos.map(photo =>
+      deleteMedia(photo.id)
+    );
+
+    const results = await Promise.all(deletePromises);
+    const successCount = results.filter(r => r !== null).length;
+
+    if (successCount > 0) {
+      await refetchMedia();
+      Toast.show({
+        type: 'success',
+        text1: 'Bundle Deleted',
+        text2: `Deleted ${successCount} photo(s)`,
+      });
+    } else {
+      Toast.show({
+        type: 'error',
+        text1: 'Delete Failed',
+        text2: 'Could not delete bundle',
+      });
+    }
+
+    setDeleteDialogVisible(false);
+    setSelectedBundleForActions(null);
+  }, [selectedBundleForActions, deleteMedia, refetchMedia]);
 
   const handleClearFilters = useCallback(() => {
     setWorkStateFilter("all");
@@ -327,9 +442,8 @@ export default function MediaScreen() {
   }, [projectId]);
 
   const handleSearch = useCallback(() => {
-    // TODO: Navigate to search
-    console.log("Open search");
-  }, []);
+    router.push(`/(main)/projects/${projectId}/media/search` as any);
+  }, [projectId]);
 
   const handleTabChange = useCallback((tab: TabName) => {
     setActiveTab(tab);
@@ -435,6 +549,33 @@ export default function MediaScreen() {
         bundle={viewerBundle}
         onClose={handleCloseViewer}
         onStatusChange={handlePhotoStatusChange}
+      />
+
+      {/* Label Input Modal */}
+      <LabelInputModal
+        visible={labelModalVisible}
+        initialDescription={selectedBundle?.label}
+        onSave={handleSaveLabel}
+        onCancel={() => setLabelModalVisible(false)}
+      />
+
+      {/* Bundle Actions Sheet */}
+      <BundleActionsSheet
+        visible={actionsSheetVisible}
+        bundle={selectedBundleForActions}
+        onShare={handleShareBundle}
+        onEditLabel={handleEditBundleLabel}
+        onChangeStatus={handleChangeBundleStatus}
+        onDelete={handleDeleteBundle}
+        onClose={() => setActionsSheetVisible(false)}
+      />
+
+      {/* Delete Bundle Confirmation */}
+      <DeleteBundleDialog
+        visible={deleteDialogVisible}
+        photoCount={selectedBundleForActions?.photos.length || 0}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteDialogVisible(false)}
       />
     </View>
   );

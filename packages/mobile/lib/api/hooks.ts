@@ -188,28 +188,38 @@ export function useMutation<TInput, TOutput>(
 	})
 
 	const mutate = useCallback(
-		async (input: TInput): Promise<TOutput | null> => {
+		async (
+			input: TInput,
+			callbacks?: {
+				onSuccess?: (data: TOutput) => void
+				onError?: (error: ApiErrorType) => void
+			}
+		): Promise<TOutput | null> => {
 			setState({ data: null, error: null, isLoading: true })
 
 			const exit = await Effect.runPromiseExit(mutationFn(input))
 
 			if (Exit.isSuccess(exit)) {
 				setState({ data: exit.value, error: null, isLoading: false })
+				callbacks?.onSuccess?.(exit.value)
 				return exit.value
 			} else {
 				const failure = Cause.failureOption(exit.cause)
 				if (failure._tag === "Some") {
 					setState({ data: null, error: failure.value, isLoading: false })
+					callbacks?.onError?.(failure.value)
 				} else {
+					const error = {
+						_tag: "NetworkError",
+						message: "Unexpected error occurred",
+						endpoint: "",
+					} as ApiErrorType
 					setState({
 						data: null,
-						error: {
-							_tag: "NetworkError",
-							message: "Unexpected error occurred",
-							endpoint: "",
-						} as ApiErrorType,
+						error,
 						isLoading: false,
 					})
+					callbacks?.onError?.(error)
 				}
 				return null
 			}
@@ -318,5 +328,39 @@ export function useUpdateMediaStatus() {
 	return useMutation(
 		({ mediaId, status }: { mediaId: string; status: "before" | "progress" | "complete" | "issue" }) =>
 			MediaApi.updateStatus(mediaId, status)
+	)
+}
+
+/**
+ * Hook for updating media (description, etc.)
+ */
+export function useUpdateMedia() {
+	return useMutation(
+		({ mediaId, data }: { mediaId: string; data: { description?: string } }) =>
+			MediaApi.updateMedia(mediaId, data)
+	)
+}
+
+/**
+ * Hook for searching media
+ */
+export function useSearchMedia(
+	projectId: string | null,
+	params: {
+		q?: string
+		status?: string
+		dateFrom?: string
+		dateTo?: string
+		limit?: number
+		offset?: number
+	},
+	enabled: boolean = true
+) {
+	return useEffectApi(
+		() =>
+			projectId && enabled
+				? MediaApi.search(projectId, params)
+				: Effect.succeed({ media: [] as const, total: 0, limit: 0, offset: 0 }),
+		[projectId, JSON.stringify(params), enabled]
 	)
 }

@@ -78,11 +78,12 @@ export class SessionService extends Effect.Service<SessionService>()(
 						})
 					}
 
-					// Update session with new activeProjectId
+					// Update session with new activeProjectId and timestamp
 					yield* db
 						.update(sessions)
 						.set({
 							activeProjectId: params.projectId,
+							activeProjectUpdatedAt: new Date(),
 						})
 						.where(eq(sessions.token, params.sessionToken))
 
@@ -109,6 +110,7 @@ export class SessionService extends Effect.Service<SessionService>()(
 					return {
 						activeProjectId: session.activeProjectId ?? null,
 						activeOrganizationId: session.activeOrganizationId ?? null,
+						activeProjectUpdatedAt: session.activeProjectUpdatedAt ?? null,
 					}
 				},
 			)

@@ -135,7 +135,7 @@ export function PhotoBundleCard({
       {/* Label Row (if exists) or Add Label button */}
       {bundle.label ? (
         <View style={styles.labelRow}>
-          <Text style={styles.labelText} numberOfLines={1}>
+          <Text style={styles.labelText} numberOfLines={2}>
             {bundle.label}
           </Text>
         </View>
@@ -266,9 +266,10 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   labelText: {
-    fontSize: 15,
-    fontWeight: "500",
-    color: "#3d3929",
+    fontSize: 14,
+    fontStyle: "italic",
+    color: "#94a3b8",
+    lineHeight: 20,
   },
   addLabelButton: {
     flexDirection: "row",
