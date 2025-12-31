@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -12,8 +12,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMarkerMedia } from "@/lib/api/hooks";
 import { MediaApi } from "@/lib/api/client";
-import { PhotoThumbnail, type PhotoData, PhotoStatusBadge, type PhotoStatus } from ".";
-import { cn } from "@/lib/utils";
+import {
+  PhotoThumbnail,
+  type PhotoData,
+  PhotoStatusBadge,
+  type PhotoStatus,
+  PhotoViewer
+} from ".";
 
 interface MarkerTimelineModalProps {
   visible: boolean;
@@ -38,6 +43,11 @@ export function MarkerTimelineModal({
 }: MarkerTimelineModalProps) {
   const insets = useSafeAreaInsets();
   const { data, isLoading, error } = useMarkerMedia(markerId);
+
+  // PhotoViewer state
+  const [viewerVisible, setViewerVisible] = useState(false);
+  const [viewerPhotos, setViewerPhotos] = useState<PhotoData[]>([]);
+  const [viewerInitialIndex, setViewerInitialIndex] = useState(0);
 
   // Group media by status
   const groupedMedia = useMemo(() => {
@@ -70,6 +80,38 @@ export function MarkerTimelineModal({
   }, [data]);
 
   const hasMedia = data?.media && data.media.length > 0;
+
+  // Handle photo press - open viewer with all photos from the same status group
+  const handlePhotoPress = useCallback((photo: PhotoData, statusPhotos: PhotoData[]) => {
+    const photoIndex = statusPhotos.findIndex((p) => p.id === photo.id);
+    setViewerPhotos(statusPhotos);
+    setViewerInitialIndex(photoIndex >= 0 ? photoIndex : 0);
+    setViewerVisible(true);
+  }, []);
+
+  const handleCloseViewer = useCallback(() => {
+    setViewerVisible(false);
+  }, []);
+
+  /**
+   * Handle photo status change from the viewer
+   *
+   * In production, this would:
+   * 1. Update local SQLite database
+   * 2. Queue sync to backend
+   * 3. Update UI optimistically
+   */
+  const handlePhotoStatusChange = useCallback((photoId: string, status: PhotoStatus) => {
+    // Update the viewer photos if the viewer is open
+    setViewerPhotos((prevPhotos) =>
+      prevPhotos.map((photo) =>
+        photo.id === photoId ? { ...photo, status } : photo
+      )
+    );
+
+    // TODO: Update status via API when backend supports it
+    console.log(`Photo ${photoId} status changed to: ${status}`);
+  }, []);
 
   return (
     <Modal
@@ -129,7 +171,7 @@ export function MarkerTimelineModal({
                           <PhotoThumbnail
                             photo={photo}
                             size="lg"
-                            onPress={() => {}} // TODO: Open photo viewer
+                            onPress={() => handlePhotoPress(photo, photos)}
                           />
                           <Text style={styles.timestamp}>
                             {photo.capturedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -157,6 +199,15 @@ export function MarkerTimelineModal({
           )}
         </View>
       </View>
+
+      {/* Photo Viewer Modal */}
+      <PhotoViewer
+        visible={viewerVisible}
+        photos={viewerPhotos}
+        initialIndex={viewerInitialIndex}
+        onClose={handleCloseViewer}
+        onStatusChange={handlePhotoStatusChange}
+      />
     </Modal>
   );
 }

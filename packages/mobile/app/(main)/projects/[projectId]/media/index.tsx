@@ -11,7 +11,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/ui/text";
-import { useProject, useMedia, MediaApi } from "@/lib/api";
+import { useProject, useMedia, useUpdateMediaStatus, MediaApi } from "@/lib/api";
+import Toast from 'react-native-toast-message';
 import {
   MediaHeader,
   MediaFilterBar,
@@ -151,6 +152,9 @@ export default function MediaScreen() {
     refetch: refetchMedia,
   } = useMedia(projectId ?? null);
 
+  // Hook for updating media status
+  const { mutate: updateMediaStatus } = useUpdateMediaStatus();
+
   const [refreshing, setRefreshing] = useState(false);
   const [workStateFilter, setWorkStateFilter] = useState<WorkState | "all">("all");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
@@ -270,17 +274,37 @@ export default function MediaScreen() {
    * 2. Queue sync to backend
    * 3. Update UI optimistically
    */
-  const handlePhotoStatusChange = useCallback((photoId: string, status: PhotoStatus) => {
-    // Also update the viewer photos if the viewer is open
+  const handlePhotoStatusChange = useCallback(async (photoId: string, status: PhotoStatus) => {
+    // Update viewer photos optimistically
     setViewerPhotos((prevPhotos) =>
       prevPhotos.map((photo) =>
         photo.id === photoId ? { ...photo, status } : photo
       )
     );
 
-    // TODO: Update status via API when backend supports it
-    console.log(`Photo ${photoId} status changed to: ${status}`);
-  }, []);
+    // Call API to update status
+    const result = await updateMediaStatus({ mediaId: photoId, status });
+
+    if (result) {
+      // Success - refetch media list to update main view
+      await refetchMedia();
+      Toast.show({
+        type: 'success',
+        text1: 'Status Updated',
+        text2: `Photo marked as ${status}`,
+        visibilityTime: 2000,
+      });
+    } else {
+      // Error - show toast
+      console.error(`Failed to update photo ${photoId} status to: ${status}`);
+      Toast.show({
+        type: 'error',
+        text1: 'Update Failed',
+        text2: 'Could not update photo status. Please try again.',
+        visibilityTime: 3000,
+      });
+    }
+  }, [updateMediaStatus, refetchMedia]);
 
   const handleAddLabel = useCallback((bundle: PhotoBundle) => {
     // TODO: Show label input modal

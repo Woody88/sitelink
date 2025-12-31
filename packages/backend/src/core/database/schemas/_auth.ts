@@ -34,6 +34,10 @@ export const sessions = sqliteTable("sessions", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   activeOrganizationId: text("active_organization_id"),
+  activeProjectId: text("active_project_id"),
+  activeProjectUpdatedAt: integer("active_project_updated_at", {
+    mode: "timestamp_ms",
+  }),
 });
 
 export const accounts = sqliteTable("accounts", {

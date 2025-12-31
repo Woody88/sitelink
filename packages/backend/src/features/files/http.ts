@@ -69,7 +69,7 @@ export const FileAPI = HttpApiGroup.make("files")
 			.addSuccess(UploadResponse)
 			.addError(PlanAccessDeniedError)
 			.addError(Multipart.MultipartError)
-			.setPayload(HttpApiSchema.Multipart),
+			.setPayload(HttpApiSchema.MultipartStream(Schema.Struct({}))),
 	)
 	.add(
 		HttpApiEndpoint.get("getFile")`/files/${fileIdParam}`
