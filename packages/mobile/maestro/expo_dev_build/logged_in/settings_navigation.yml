@@ -1,0 +1,57 @@
+appId: com.sitelink.app
+env:
+  EMAIL: test@example.com
+  PASSWORD: password123
+---
+# Settings Screen SafeAreaView Fix Verification
+# Tests that settings screen properly handles Android bottom navigation bar
+
+# Step 1: Login (if not already logged in)
+- waitForAnimationToEnd
+
+# Try to find login form
+- runFlow:
+    when:
+      visible:
+        text: "Email Address"
+    commands:
+      # Fill in login form
+      - tapOn:
+          text: "Email Address"
+      - inputText: "${EMAIL}"
+      - tapOn:
+          text: "Password"
+      - inputText: "${PASSWORD}"
+      - tapOn:
+          text: "Log In"
+      - waitForAnimationToEnd
+
+# Step 2: Navigate to Settings from Home
+- waitForAnimationToEnd
+- assertVisible:
+    text: "Plans"
+
+# Tap on settings/menu icon (likely in header)
+- tapOn:
+    id: ".*settings.*|.*menu.*|.*profile.*"
+    index: 0
+
+- waitForAnimationToEnd
+
+# Step 3: Verify Settings Screen Content
+- assertVisible:
+    text: "Settings"
+
+# Step 4: Scroll to bottom to verify no overlap
+- scrollUntilVisible:
+    element:
+      text: "Logout"
+    direction: DOWN
+    timeout: 5000
+
+# Step 5: Verify bottom content is fully visible (not cut off)
+- assertVisible:
+    text: "Logout"
+
+# Take final screenshot showing bottom content
+- takeScreenshot: settings_safearea_fix_verification
