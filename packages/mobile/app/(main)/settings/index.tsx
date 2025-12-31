@@ -7,6 +7,7 @@ import {
   Linking,
   Platform,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/ui/text";
@@ -229,8 +230,8 @@ export default function SettingsScreen() {
       : Constants.expoConfig?.android?.versionCode?.toString() || "1";
 
   return (
-    <>
-      <ScrollView className="flex-1 bg-gray-900">
+    <SafeAreaView className="flex-1 bg-gray-900" edges={['bottom']}>
+      <ScrollView className="flex-1">
         {/* Header */}
         <View className="pt-12 pb-6 px-4 border-b border-gray-800">
           <View className="flex-row items-center mb-2">
@@ -387,6 +388,6 @@ export default function SettingsScreen() {
           </View>
         </View>
       </Modal>
-    </>
+    </SafeAreaView>
   );
 }

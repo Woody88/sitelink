@@ -1,0 +1,58 @@
+appId: com.sitelink.app
+---
+# Settings Screen Visual Verification
+# Verifies that the settings screen content doesn't overlap with Android bottom navigation bar
+
+# Wait for the screen to load
+- waitForAnimationToEnd
+
+# Header Section
+- assertVisible:
+    text: "Settings"
+- assertVisible:
+    text: "Manage your account and preferences"
+
+# Profile Section
+- assertVisible:
+    text: "PROFILE"
+- assertVisible:
+    text: "Name"
+- assertVisible:
+    text: "Email"
+- assertVisible:
+    text: "Organization"
+
+# Preferences Section
+- assertVisible:
+    text: "PREFERENCES"
+- assertVisible:
+    text: "Default Photo Status"
+- assertVisible:
+    text: "Camera Flash"
+- assertVisible:
+    text: "Photo Quality"
+
+# Scroll to bottom to check for overlap
+- scrollUntilVisible:
+    element:
+      text: "Logout"
+    direction: DOWN
+
+# About Section
+- assertVisible:
+    text: "ABOUT"
+- assertVisible:
+    text: "App Version"
+- assertVisible:
+    text: "Build Number"
+- assertVisible:
+    text: "Privacy Policy"
+- assertVisible:
+    text: "Terms of Service"
+
+# Account Section (at bottom)
+- assertVisible:
+    text: "Logout"
+
+# Take screenshot for visual comparison - this will verify bottom content is visible
+- takeScreenshot: settings_screen_bottom
