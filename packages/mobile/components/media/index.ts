@@ -44,3 +44,6 @@ export { MediaEmptyState } from "./empty-state";
 
 // Photo Viewer
 export { PhotoViewer } from "./photo-viewer";
+
+// Marker Timeline
+export { MarkerTimelineModal } from "./marker-timeline-modal";

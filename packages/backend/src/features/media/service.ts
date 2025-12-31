@@ -54,6 +54,9 @@ export class MediaService extends Effect.Service<MediaService>()(
 			 *
 			 * @param coordinates - Optional (x, y) coordinates on a plan
 			 * @param planId - Optional plan ID if media is linked to a specific plan
+			 * @param markerId - Optional marker ID (callout)
+			 * @param annotationId - Optional annotation ID
+			 * @param status - Optional status (before, progress, complete, issue)
 			 */
 			const upload = Effect.fn("Media.upload")(function* (params: {
 				projectId: string
@@ -63,8 +66,12 @@ export class MediaService extends Effect.Service<MediaService>()(
 				mediaType: "photo" | "video"
 				contentType: string
 				planId?: string
+				markerId?: string
+				annotationId?: string
+				status?: "before" | "progress" | "complete" | "issue"
 				coordinates?: MediaCoordinates
 				description?: string
+				capturedBy?: string
 			}) {
 				// Generate media ID
 				const mediaId = crypto.randomUUID()
@@ -95,9 +102,17 @@ export class MediaService extends Effect.Service<MediaService>()(
 				yield* db.insert(schema.media).values({
 					id: mediaId,
 					projectId: params.projectId,
+					planId: params.planId || null,
+					markerId: params.markerId || null,
+					annotationId: params.annotationId || null,
 					filePath,
 					mediaType: params.mediaType,
+					status: params.status || null,
+					description: params.description || null,
+					coordinates: params.coordinates ? JSON.stringify(params.coordinates) : null,
+					capturedBy: params.capturedBy || null,
 					createdAt: new Date(),
+					updatedAt: new Date(),
 				})
 
 				return { mediaId, filePath }

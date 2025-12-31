@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Project Selector - SiteLink</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#1e2936",
+                        "text-primary-light": "#0d141b",
+                        "text-primary-dark": "#ffffff",
+                        "text-secondary-light": "#4c739a",
+                        "text-secondary-dark": "#94a3b8",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "md": "0.375rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Lexend', sans-serif;
+        }
+        /* Custom scrollbar hide for cleaner look */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark antialiased h-screen flex flex-col overflow-hidden">
+<!-- Sticky Header Section -->
+<div class="z-20 flex flex-col bg-background-light dark:bg-background-dark shadow-sm">
+<!-- Status Bar Safe Area Placeholder (Simulated) -->
+<div class="h-1 w-full bg-background-light dark:bg-background-dark"></div>
+<!-- Top Navigation -->
+<div class="flex items-center px-4 py-3 justify-between">
+<button class="flex size-12 shrink-0 items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors text-text-primary-light dark:text-text-primary-dark">
+<span class="material-symbols-outlined text-3xl">chevron_left</span>
+</button>
+<h1 class="text-xl font-bold tracking-tight text-center flex-1">Select Project</h1>
+<div class="size-12"></div> <!-- Spacer for centering -->
+</div>
+<!-- Context Sub-header -->
+<div class="px-4 pb-2 text-center">
+<p class="text-sm font-normal text-text-secondary-light dark:text-text-secondary-dark">
+                Current Org: <span class="font-semibold text-primary">Acme Construction Co.</span>
+</p>
+</div>
+<!-- Search Bar -->
+<div class="px-4 py-3 pb-4">
+<label class="relative flex items-center group">
+<div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+<span class="material-symbols-outlined text-text-secondary-light dark:text-text-secondary-dark group-focus-within:text-primary transition-colors">search</span>
+</div>
+<input class="block w-full py-3.5 pl-12 pr-4 text-base text-text-primary-light dark:text-text-primary-dark bg-white dark:bg-surface-dark border-0 ring-1 ring-slate-200 dark:ring-slate-700 rounded-xl placeholder:text-slate-400 focus:ring-2 focus:ring-primary focus:outline-none shadow-sm transition-shadow" placeholder="Search by name or job number..." type="text"/>
+</label>
+</div>
+</div>
+<!-- Scrollable Content Area -->
+<div class="flex-1 overflow-y-auto no-scrollbar pb-32 px-4 pt-2">
+<div class="flex flex-col gap-4">
+<!-- Section Header -->
+<div class="flex justify-between items-end px-1">
+<span class="text-xs font-bold uppercase tracking-wider text-text-secondary-light dark:text-text-secondary-dark">Active Projects (3)</span>
+<span class="text-xs text-primary font-medium cursor-pointer">Sort by: recent</span>
+</div>
+<!-- Card 1: Selected State -->
+<div class="relative w-full group cursor-pointer">
+<div class="flex items-center justify-between w-full p-4 bg-white dark:bg-surface-dark rounded-xl ring-2 ring-primary shadow-md dark:shadow-none transition-all">
+<div class="flex flex-col gap-1.5 flex-1 min-w-0 pr-4">
+<div class="flex items-start justify-between">
+<h3 class="text-lg font-bold text-text-primary-light dark:text-text-primary-dark leading-tight line-clamp-2">Downtown Hospital Wing</h3>
+</div>
+<div class="flex flex-wrap items-center gap-2 text-sm text-text-secondary-light dark:text-text-secondary-dark">
+<span class="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-xs tracking-wide">#2023-45</span>
+<span class="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                Active
+                            </span>
+</div>
+<div class="flex items-center gap-1.5 mt-1 text-xs text-primary font-medium">
+<span class="material-symbols-outlined text-[18px]">cloud_done</span>
+<span>Available Offline</span>
+</div>
+</div>
+<!-- Selection Indicator -->
+<div class="shrink-0">
+<div class="size-7 rounded-full bg-primary flex items-center justify-center text-white shadow-sm">
+<span class="material-symbols-outlined text-lg font-bold">check</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 2: Normal State -->
+<div class="relative w-full group cursor-pointer">
+<div class="flex items-center justify-between w-full p-4 bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-700 hover:border-primary/50 dark:hover:border-primary/50 shadow-sm dark:shadow-none transition-all active:scale-[0.99]">
+<div class="flex flex-col gap-1.5 flex-1 min-w-0 pr-4">
+<h3 class="text-lg font-bold text-text-primary-light dark:text-text-primary-dark leading-tight line-clamp-2">City Center Parking Garage</h3>
+<div class="flex flex-wrap items-center gap-2 text-sm text-text-secondary-light dark:text-text-secondary-dark">
+<span class="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-xs tracking-wide">#2022-12</span>
+<span class="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                Active
+                            </span>
+</div>
+<div class="flex items-center gap-1.5 mt-1 text-xs text-text-secondary-light dark:text-text-secondary-dark/70">
+<span class="material-symbols-outlined text-[18px]">cloud_off</span>
+<span>Not downloaded</span>
+</div>
+</div>
+<!-- Selection Indicator (Empty) -->
+<div class="shrink-0">
+<div class="size-7 rounded-full border-2 border-slate-300 dark:border-slate-600 group-hover:border-primary transition-colors"></div>
+</div>
+</div>
+</div>
+<!-- Card 3: Planning State -->
+<div class="relative w-full group cursor-pointer">
+<div class="flex items-center justify-between w-full p-4 bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-700 hover:border-primary/50 dark:hover:border-primary/50 shadow-sm dark:shadow-none transition-all active:scale-[0.99]">
+<div class="flex flex-col gap-1.5 flex-1 min-w-0 pr-4">
+<h3 class="text-lg font-bold text-text-primary-light dark:text-text-primary-dark leading-tight line-clamp-2">Riverside Lofts Phase 2</h3>
+<div class="flex flex-wrap items-center gap-2 text-sm text-text-secondary-light dark:text-text-secondary-dark">
+<span class="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-xs tracking-wide">#2023-50</span>
+<span class="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                                Planning
+                            </span>
+</div>
+<div class="flex items-center gap-1.5 mt-1 text-xs text-text-secondary-light dark:text-text-secondary-dark/70">
+<span class="material-symbols-outlined text-[18px]">cloud_queue</span>
+<span>Tap to download</span>
+</div>
+</div>
+<div class="shrink-0">
+<div class="size-7 rounded-full border-2 border-slate-300 dark:border-slate-600 group-hover:border-primary transition-colors"></div>
+</div>
+</div>
+</div>
+<!-- Section Header -->
+<div class="flex justify-between items-end px-1 mt-4">
+<span class="text-xs font-bold uppercase tracking-wider text-text-secondary-light dark:text-text-secondary-dark opacity-70">Archived (1)</span>
+</div>
+<!-- Card 4: Archived State -->
+<div class="relative w-full group cursor-pointer opacity-70 hover:opacity-100 transition-opacity">
+<div class="flex items-center justify-between w-full p-4 bg-slate-100 dark:bg-surface-dark/50 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none">
+<div class="flex flex-col gap-1.5 flex-1 min-w-0 pr-4">
+<h3 class="text-lg font-bold text-text-secondary-light dark:text-text-secondary-dark line-through decoration-2 decoration-slate-300 dark:decoration-slate-600">Westside Highway Extension</h3>
+<div class="flex flex-wrap items-center gap-2 text-sm text-text-secondary-light dark:text-text-secondary-dark">
+<span class="font-mono bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded text-xs tracking-wide">#2021-88</span>
+<span class="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400">
+                                Archived
+                            </span>
+</div>
+</div>
+<div class="shrink-0">
+<div class="size-7 rounded-full border-2 border-slate-300 dark:border-slate-600"></div>
+</div>
+</div>
+</div>
+<!-- Bottom spacing for scroll -->
+<div class="h-8"></div>
+</div>
+</div>
+<!-- Sticky Footer CTA -->
+<div class="absolute bottom-0 left-0 right-0 p-4 pb-8 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 z-30">
+<button class="w-full flex items-center justify-center gap-3 bg-primary hover:bg-primary/90 active:bg-primary/95 text-white h-14 rounded-xl shadow-lg shadow-primary/25 transition-all transform active:scale-[0.98]">
+<span class="text-lg font-bold tracking-tight">Go to Project</span>
+<span class="material-symbols-outlined text-xl">arrow_forward</span>
+</button>
+</div>
+</body></html>

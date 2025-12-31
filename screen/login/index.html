@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SiteLink - Login</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "primary-dark": "#0f65bd",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem", 
+                        "lg": "0.5rem", 
+                        "xl": "0.75rem", 
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>body {
+            font-family: 'Lexend', sans-serif;
+        }::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white antialiased transition-colors duration-200">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto shadow-2xl bg-white dark:bg-background-dark">
+<div class="@container">
+<div class="p-4 pb-0">
+<div class="bg-cover bg-center flex flex-col justify-end overflow-hidden rounded-xl h-[200px] relative group" data-alt="Construction site at sunrise with blueprints overlay" style='background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.6) 100%), url("https://lh3.googleusercontent.com/aida-public/AB6AXuA9G_uzsOQxfwrr0KAQcseYDTG6xnrZ_RnoLJEn-EWW1PEMh0A18KtxTDjNx-QqQeciyHanLW2QECH9O7xTivpalZ2NzZROgKKPEeYXuNxM_i6-rcHTIZoa1XXdjaypLBtDR1GoAwJqkG2H0Ca66p6gi-bZDWHb8ZRDB953CMZSEoj7jOojDioFsWmJt_l4mfPBn33jFjhYNILT1WZRse0mlWhaiyXWMFW84VY-Xs4yer4aC840xoRDXZQqo-8xSwRuoY6fGWEZuLFb");'>
+<div class="absolute top-4 right-4 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full border border-white/30">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-white text-[16px]">wifi_off</span>
+<span class="text-xs font-medium text-white">Offline Ready</span>
+</div>
+</div>
+<div class="flex p-5 flex-col">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-primary text-[32px] bg-white rounded-lg p-1">architecture</span>
+</div>
+<p class="text-white tracking-tight text-[32px] font-bold leading-tight drop-shadow-md">SiteLink</p>
+<p class="text-white/90 text-sm font-medium">Field Management OS</p>
+</div>
+</div>
+</div>
+</div>
+<div class="px-4 pt-6 pb-2 text-center">
+<h3 class="text-slate-900 dark:text-white tracking-tight text-2xl font-bold leading-tight">Welcome Back</h3>
+<p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Manage plans anywhere, anytime.</p>
+</div>
+<div class="px-4 py-4">
+<div class="flex h-14 w-full items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 p-1.5 border border-slate-200 dark:border-slate-700">
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-2 transition-all duration-200 has-[:checked]:bg-white dark:has-[:checked]:bg-slate-700 has-[:checked]:shadow-sm has-[:checked]:text-primary dark:has-[:checked]:text-white text-slate-500 dark:text-slate-400 text-base font-semibold leading-normal">
+<span class="truncate">Log In</span>
+<input checked="" class="invisible w-0 absolute" name="auth-toggle" type="radio" value="Log In"/>
+</label>
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-2 transition-all duration-200 has-[:checked]:bg-white dark:has-[:checked]:bg-slate-700 has-[:checked]:shadow-sm has-[:checked]:text-primary dark:has-[:checked]:text-white text-slate-500 dark:text-slate-400 text-base font-semibold leading-normal">
+<span class="truncate">Sign Up</span>
+<input class="invisible w-0 absolute" name="auth-toggle" type="radio" value="Sign Up"/>
+</label>
+</div>
+</div>
+<form class="flex flex-col flex-1 px-4 gap-5 pb-8" onsubmit="event.preventDefault();">
+<label class="flex flex-col w-full gap-2">
+<span class="text-slate-900 dark:text-slate-100 text-sm font-semibold leading-normal ml-1">Email Address</span>
+<div class="relative flex items-center">
+<span class="absolute left-4 text-slate-400 material-symbols-outlined">mail</span>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/20 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 focus:border-primary h-14 pl-12 pr-4 placeholder:text-slate-400 text-base font-normal leading-normal transition-shadow" placeholder="foreman@site.com" required="" type="email"/>
+</div>
+</label>
+<div class="flex flex-col w-full gap-2">
+<div class="flex justify-between items-center ml-1">
+<span class="text-slate-900 dark:text-slate-100 text-sm font-semibold leading-normal">Password</span>
+<a class="text-primary text-sm font-semibold hover:underline p-2 -mr-2" href="#">Forgot?</a>
+</div>
+<div class="relative flex w-full flex-1 items-stretch rounded-xl">
+<span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 material-symbols-outlined z-10">lock</span>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-l-xl rounded-r-none text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/20 border border-slate-300 dark:border-slate-600 border-r-0 bg-white dark:bg-slate-800 focus:border-primary h-14 pl-12 pr-2 placeholder:text-slate-400 text-base font-normal leading-normal z-0" placeholder="••••••••" type="password"/>
+<button class="flex items-center justify-center px-4 bg-white dark:bg-slate-800 border border-l-0 border-slate-300 dark:border-slate-600 rounded-r-xl text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none transition-colors" type="button">
+<span class="material-symbols-outlined">visibility</span>
+</button>
+</div>
+</div>
+<div class="pt-2 flex flex-col gap-3">
+<button class="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl h-14 bg-primary hover:bg-primary-dark text-white gap-2 px-4 py-2 text-base font-bold leading-normal tracking-wide shadow-lg shadow-primary/20 transition-all active:scale-[0.98]" type="submit">
+<span class="truncate">Log In</span>
+<span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+<button class="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl h-14 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-white gap-2 px-4 py-2 text-base font-bold leading-normal transition-all active:scale-[0.98]" type="button">
+<span class="material-symbols-outlined text-primary text-[22px]">forward_to_inbox</span>
+<span class="truncate">Email me a login link</span>
+</button>
+</div>
+<div class="relative flex py-2 items-center">
+<div class="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
+<span class="flex-shrink mx-4 text-slate-400 text-sm">Or continue with</span>
+<div class="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<button class="flex h-14 w-full items-center justify-center gap-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" type="button">
+<svg class="h-6 w-6" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
+<path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
+<path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"></path>
+<path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path>
+</svg>
+<span class="text-slate-700 dark:text-slate-200 font-medium">Google</span>
+</button>
+<button class="flex h-14 w-full items-center justify-center gap-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" type="button">
+<svg class="h-6 w-6 dark:fill-white fill-black" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.74 1.18 0 2.45-1.02 3.8-1.02 1.34 0 2.58.63 3.23 1.64-2.85 1.57-2.36 6.04.42 7.31-.23.69-.5 1.4-.89 2.06-.61 1.05-1.25 2.11-1.64 2.24zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.17 2.37-2.03 4.27-3.74 4.25z"></path>
+</svg>
+<span class="text-slate-700 dark:text-slate-200 font-medium">Apple</span>
+</button>
+</div>
+</form>
+<div class="h-6 bg-transparent"></div>
+</div>
+
+</body></html>

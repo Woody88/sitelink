@@ -23,6 +23,20 @@
             "usesCleartextTraffic": true
           }
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow SiteLink to access your camera for site documentation",
+          "microphonePermission": "Allow SiteLink to access your microphone for video recording",
+          "recordAudioAndroid": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow SiteLink to access your photos for site documentation"
+        }
       ]
     ],
     "experiments": {
@@ -37,7 +51,12 @@
     },
     "ios": {
       "bundleIdentifier": "com.sitelink.app",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow SiteLink to access your camera for site documentation",
+        "NSMicrophoneUsageDescription": "Allow SiteLink to access your microphone for video recording",
+        "NSPhotoLibraryUsageDescription": "Allow SiteLink to access your photos for site documentation"
+      }
     },
     "web": {
       "bundler": "metro",

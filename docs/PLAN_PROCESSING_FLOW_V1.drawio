@@ -1,0 +1,628 @@
+<mxfile host="65bd71144e">
+    <diagram name="Plan Processing Flow" id="plan-processing">
+        <mxGraphModel dx="1597" dy="687" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1600" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="lane-user" value="User" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="40" width="1120" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="user-upload" value="Upload PDF&#xa;(5-page plan)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" parent="lane-user" vertex="1">
+                    <mxGeometry x="120" y="25" width="120" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="lane-backend" value="Backend Worker" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="140" width="1120" height="150" as="geometry"/>
+                </mxCell>
+                <mxCell id="backend-create" value="PlanService.create()&#xa;• Generate IDs&#xa;• Upload to R2&#xa;• Insert into D1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="lane-backend" vertex="1">
+                    <mxGeometry x="120" y="20" width="160" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="backend-enqueue" value="Enqueue PDF&#xa;Processing" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="lane-backend" vertex="1">
+                    <mxGeometry x="320" y="45" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="lane-queue1" value="Queue 1: PDF Processing" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="290" width="1120" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="pdf-process" value="PDF Processing Consumer&#xa;• Download original.pdf&#xa;• Split into 5 sheets&#xa;• Upload sheet-1.pdf ... sheet-5.pdf&#xa;• Insert 5 PLAN_SHEETS records" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="lane-queue1" vertex="1">
+                    <mxGeometry x="320" y="20" width="200" height="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="pdf-init-coord" value="Initialize&#xa;PlanCoordinator" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="lane-queue1" vertex="1">
+                    <mxGeometry x="560" y="60" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="lane-coordinator" value="PlanCoordinator DO" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="470" width="1120" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="coord-init" value="POST /initialize&#xa;State:&#xa;• totalSheets: 5&#xa;• completedSheets: []&#xa;• status: in_progress" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontFamily=Courier New;" parent="lane-coordinator" vertex="1">
+                    <mxGeometry x="560" y="15" width="180" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="coord-enqueue" value="Enqueue 5&#xa;Metadata Jobs" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="lane-coordinator" vertex="1">
+                    <mxGeometry x="780" y="35" width="120" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="lane-queue2" value="Queue 2: Metadata Extraction (PARALLEL)" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="590" width="1120" height="220" as="geometry"/>
+                </mxCell>
+                <mxCell id="metadata-jobs" value="5 Parallel Jobs" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#d5e8d4;strokeColor=#82b366;" parent="lane-queue2" vertex="1">
+                    <mxGeometry x="780" y="20" width="180" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="job1" value="Job 1: sheet-1.pdf → A5" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="metadata-jobs" vertex="1">
+                    <mxGeometry y="26" width="180" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="job2" value="Job 2: sheet-2.pdf → A6" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="metadata-jobs" vertex="1">
+                    <mxGeometry y="52" width="180" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="job3" value="Job 3: sheet-3.pdf → A7" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="metadata-jobs" vertex="1">
+                    <mxGeometry y="78" width="180" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="job4" value="Job 4: sheet-4.pdf → A8" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="metadata-jobs" vertex="1">
+                    <mxGeometry y="104" width="180" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="job5" value="Job 5: sheet-5.pdf → A9" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="metadata-jobs" vertex="1">
+                    <mxGeometry y="130" width="180" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="job-note" value="Max Concurrency: 20" style="text;strokeColor=none;fillColor=none;align=center;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=2" parent="metadata-jobs" vertex="1">
+                    <mxGeometry y="156" width="180" height="24" as="geometry"/>
+                </mxCell>
+                <mxCell id="lane-ocr-metadata" value="plan-ocr-service (Python)" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="810" width="1120" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="ocr-metadata" value="POST /api/extract-metadata&#xa;&#xa;• Download PDF from presigned URL&#xa;• OCR with Tesseract&#xa;• Extract sheet number&#xa;&#xa;Response: { sheet_number: &#39;A5&#39; }" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontFamily=Courier New;align=left;spacingLeft=10;" parent="lane-ocr-metadata" vertex="1">
+                    <mxGeometry x="780" y="20" width="280" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="lane-coordinator2" value="PlanCoordinator DO (Tracking)" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="970" width="1120" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="coord-track" value="POST /sheet-complete&#xa;&#xa;completedSheets: [1,2,3,4,5]&#xa;&#xa;✓ All 5 complete → Trigger Q3" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontFamily=Courier New;align=left;spacingLeft=10;" parent="lane-coordinator2" vertex="1">
+                    <mxGeometry x="780" y="15" width="250" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="lane-queue3" value="Queue 3: Plan Tile Generation" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="1090" width="1120" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="tile-gen" value="Plan Tile Generation Consumer&#xa;&#xa;• Query all PLAN_SHEETS&#xa;• Extract validSheets: [A5, A6, A7, A8, A9]&#xa;• Generate tiles for each sheet&#xa;• Upload tiles to R2&#xa;• Enqueue Marker Detection" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=10;" parent="lane-queue3" vertex="1">
+                    <mxGeometry x="100" y="20" width="280" height="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="tile-enqueue" value="Enqueue&#xa;Marker Detection" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="lane-queue3" vertex="1">
+                    <mxGeometry x="420" y="60" width="140" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="lane-queue4" value="Queue 4: Marker Detection" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="1270" width="1120" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="marker-detect" value="Marker Detection Consumer&#xa;&#xa;• List all tile JPEGs from R2 (~200)&#xa;• Generate presigned URLs&#xa;• Call plan-ocr-service&#xa;• Insert markers into DB" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=10;" parent="lane-queue4" vertex="1">
+                    <mxGeometry x="420" y="20" width="250" height="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="lane-ocr-markers" value="plan-ocr-service (Python)" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="1450" width="1120" height="200" as="geometry"/>
+                </mxCell>
+                <mxCell id="ocr-markers" value="POST /api/detect-markers&#xa;&#xa;Stage 1 (OpenCV): 777 candidates&#xa;Stage 2 (LLM): 169 validated&#xa;&#xa;• Temperature: 0.0&#xa;• Anti-hallucination: ✓&#xa;• Context: validSheets&#xa;&#xa;Response: { markers: [...169] }" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontFamily=Courier New;align=left;spacingLeft=10;" parent="lane-ocr-markers" vertex="1">
+                    <mxGeometry x="420" y="20" width="300" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="db-update" value="Update Database&#xa;&#xa;• Insert 169 PLAN_MARKERS&#xa;• Update PROCESSING_JOBS&#xa;  status: complete&#xa;  progress: 100" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontFamily=Courier New;align=left;spacingLeft=10;" parent="lane-ocr-markers" vertex="1">
+                    <mxGeometry x="760" y="40" width="220" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" source="user-upload" target="backend-create" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow1-label" value="1. Upload PDF" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=1" parent="arrow1" vertex="1" connectable="0">
+                    <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1" source="backend-create" target="backend-enqueue" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1" source="backend-enqueue" target="pdf-process" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow3-label" value="2. Enqueue" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=1" parent="arrow3" vertex="1" connectable="0">
+                    <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" source="pdf-process" target="pdf-init-coord" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow4-label" value="3. Split PDF" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=1" parent="arrow4" vertex="1" connectable="0">
+                    <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" source="pdf-init-coord" target="coord-init" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow5-label" value="4. Initialize" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=1" parent="arrow5" vertex="1" connectable="0">
+                    <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" source="coord-init" target="coord-enqueue" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" source="coord-enqueue" target="metadata-jobs" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow7-label" value="5. Enqueue 5 Jobs" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=1" parent="arrow7" vertex="1" connectable="0">
+                    <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" source="metadata-jobs" target="ocr-metadata" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow8-label" value="6. Process (Parallel)" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=1" parent="arrow8" vertex="1" connectable="0">
+                    <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" source="ocr-metadata" target="coord-track" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow9-label" value="7. Sheet Complete" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=1" parent="arrow9" vertex="1" connectable="0">
+                    <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fillColor=#f8cecc;strokeColor=#b85450;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="coord-track" target="tile-gen" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="1040" y="1030"/>
+                            <mxPoint x="1040" y="1180"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow10-label" value="8. Auto-Trigger" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=1" parent="arrow10" vertex="1" connectable="0">
+                    <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" source="tile-gen" target="tile-enqueue" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow11-label" value="9. Generate Tiles" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=1" parent="arrow11" vertex="1" connectable="0">
+                    <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" source="tile-enqueue" target="marker-detect" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow12-label" value="10. Enqueue" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=1" parent="arrow12" vertex="1" connectable="0">
+                    <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" source="marker-detect" target="ocr-markers" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow13-label" value="11. Detect Markers" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=1" parent="arrow13" vertex="1" connectable="0">
+                    <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" source="ocr-markers" target="db-update" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow14-label" value="12. Store Results" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=1" parent="arrow14" vertex="1" connectable="0">
+                    <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="legend" value="LEGEND" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#f5f5f5;strokeColor=#666666;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="1680" width="300" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend-timing" value="Timing (5-sheet plan): ~57 seconds" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1" parent="legend" vertex="1">
+                    <mxGeometry y="26" width="300" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend1" value="• PDF Split: ~2s" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="legend" vertex="1">
+                    <mxGeometry y="52" width="300" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend2" value="• Metadata Extraction: ~15s (parallel)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="legend" vertex="1">
+                    <mxGeometry y="78" width="300" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend3" value="• Tile Generation: ~25s" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="legend" vertex="1">
+                    <mxGeometry y="104" width="300" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend4" value="• Marker Detection: ~15s" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="legend" vertex="1">
+                    <mxGeometry y="130" width="300" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend5" value="Result: 169 markers detected" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=3" parent="legend" vertex="1">
+                    <mxGeometry y="156" width="300" height="24" as="geometry"/>
+                </mxCell>
+                <mxCell id="notes" value="NOTES" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#f5f5f5;strokeColor=#666666;" parent="1" vertex="1">
+                    <mxGeometry x="380" y="1680" width="400" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="note1" value="• PlanCoordinator tracks sheet completion" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="notes" vertex="1">
+                    <mxGeometry y="26" width="400" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="note2" value="• Metadata extraction is PARALLEL (max concurrency: 20)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="notes" vertex="1">
+                    <mxGeometry y="52" width="400" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="note3" value="• validSheets context improves LLM accuracy" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="notes" vertex="1">
+                    <mxGeometry y="78" width="400" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="note4" value="• Anti-hallucination safeguard prevents fake markers" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="notes" vertex="1">
+                    <mxGeometry y="104" width="400" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="note5" value="• Feature flag: ENABLE_PLAN_OCR for gradual rollout" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="notes" vertex="1">
+                    <mxGeometry y="130" width="400" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="note6" value="• Idempotent sheet completion for safe retries" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" parent="notes" vertex="1">
+                    <mxGeometry y="156" width="400" height="24" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+    <diagram name="System Architecture &amp; Database" id="system-architecture">
+        <mxGraphModel dx="1597" dy="687" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1400" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+
+                <!-- Title -->
+                <mxCell id="sys-title" value="Sitelink System Architecture &amp; Database Schema" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1" vertex="1" parent="1">
+                    <mxGeometry x="40" y="20" width="520" height="30" as="geometry"/>
+                </mxCell>
+
+                <!-- System Components Section -->
+                <mxCell id="sys-components-bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;" vertex="1" parent="1">
+                    <mxGeometry x="40" y="70" width="760" height="580" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="sys-components-title" value="SYSTEM COMPONENTS" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1" vertex="1" parent="1">
+                    <mxGeometry x="60" y="80" width="200" height="30" as="geometry"/>
+                </mxCell>
+
+                <!-- Cloudflare Platform -->
+                <mxCell id="cf-platform" value="Cloudflare Workers Platform" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+                    <mxGeometry x="60" y="120" width="320" height="250" as="geometry"/>
+                </mxCell>
+
+                <!-- Backend Worker -->
+                <mxCell id="sys-backend" value="Backend Worker&#xa;(Effect-TS)&#xa;&#xa;• PlanService&#xa;• FileService&#xa;• StorageService&#xa;• QueueService" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;spacingLeft=10;fontFamily=Courier New;" vertex="1" parent="1">
+                    <mxGeometry x="80" y="160" width="140" height="120" as="geometry"/>
+                </mxCell>
+
+                <!-- Durable Objects -->
+                <mxCell id="sys-do" value="Durable Objects&#xa;&#xa;• PlanCoordinator&#xa;• PdfProcessor" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;spacingLeft=10;fontFamily=Courier New;" vertex="1" parent="1">
+                    <mxGeometry x="240" y="160" width="120" height="80" as="geometry"/>
+                </mxCell>
+
+                <!-- Queues -->
+                <mxCell id="sys-queues" value="Cloudflare Queues&#xa;&#xa;Q1: PDF Processing&#xa;Q2: Metadata Extraction&#xa;Q3: Tile Generation&#xa;Q4: Marker Detection" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=10;fontFamily=Courier New;" vertex="1" parent="1">
+                    <mxGeometry x="80" y="300" width="280" height="60" as="geometry"/>
+                </mxCell>
+
+                <!-- Storage -->
+                <mxCell id="sys-r2" value="R2 Storage&#xa;&#xa;• PDFs (original + sheets)&#xa;• DZI Tiles (.jpg)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;spacingLeft=10;fontFamily=Courier New;" vertex="1" parent="1">
+                    <mxGeometry x="60" y="390" width="150" height="80" as="geometry"/>
+                </mxCell>
+
+                <!-- Database -->
+                <mxCell id="sys-d1" value="D1 Database&#xa;(SQLite)&#xa;&#xa;See schema →" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=10;fontFamily=Courier New;" vertex="1" parent="1">
+                    <mxGeometry x="230" y="390" width="130" height="80" as="geometry"/>
+                </mxCell>
+
+                <!-- Python Services -->
+                <mxCell id="python-services-bg" value="Python Containers" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+                    <mxGeometry x="420" y="120" width="360" height="250" as="geometry"/>
+                </mxCell>
+
+                <!-- plan-ocr-service -->
+                <mxCell id="sys-ocr" value="plan-ocr-service&#xa;(FastAPI + Python)&#xa;&#xa;Endpoints:&#xa;• POST /api/extract-metadata&#xa;• POST /api/detect-markers&#xa;&#xa;Libraries:&#xa;• OpenCV (geometric detection)&#xa;• Tesseract (OCR)&#xa;• Gemini 2.5 Flash (LLM)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;spacingLeft=10;fontFamily=Courier New;" vertex="1" parent="1">
+                    <mxGeometry x="440" y="160" width="320" height="180" as="geometry"/>
+                </mxCell>
+
+                <!-- PDF Processor Container -->
+                <mxCell id="sys-pdf-proc" value="PDF Processor Container&#xa;(vips + Docker)&#xa;&#xa;• Tile generation&#xa;• DZI format" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;spacingLeft=10;fontFamily=Courier New;" vertex="1" parent="1">
+                    <mxGeometry x="60" y="500" width="300" height="80" as="geometry"/>
+                </mxCell>
+
+                <!-- External Services -->
+                <mxCell id="external-bg" value="External Services" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontStyle=1;fontSize=12;dashed=1;" vertex="1" parent="1">
+                    <mxGeometry x="420" y="390" width="360" height="190" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="sys-openrouter" value="OpenRouter API&#xa;(Gemini 2.5 Flash)&#xa;&#xa;• Temperature: 0.0&#xa;• Batch size: 10" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff4e6;strokeColor=#d79b00;align=left;spacingLeft=10;fontFamily=Courier New;" vertex="1" parent="1">
+                    <mxGeometry x="440" y="430" width="160" height="100" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="sys-auth" value="Better-Auth&#xa;&#xa;• OAuth (Google, MS)&#xa;• Organizations&#xa;• Sessions" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;spacingLeft=10;fontFamily=Courier New;" vertex="1" parent="1">
+                    <mxGeometry x="620" y="430" width="140" height="100" as="geometry"/>
+                </mxCell>
+
+                <!-- Database Schema Section -->
+                <mxCell id="db-schema-bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;" vertex="1" parent="1">
+                    <mxGeometry x="840" y="70" width="720" height="1300" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="db-schema-title" value="DATABASE SCHEMA (D1 / SQLite)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1" vertex="1" parent="1">
+                    <mxGeometry x="860" y="80" width="300" height="30" as="geometry"/>
+                </mxCell>
+
+                <!-- PLANS table -->
+                <mxCell id="table-plans" value="PLANS" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+                    <mxGeometry x="860" y="120" width="200" height="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="plans-pk" value="🔑 id (PK)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1" vertex="1" parent="table-plans">
+                    <mxGeometry y="26" width="200" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="plans-fk" value="🔗 projectId (FK)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-plans">
+                    <mxGeometry y="52" width="200" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="plans-name" value="name" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-plans">
+                    <mxGeometry y="78" width="200" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="plans-desc" value="description" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-plans">
+                    <mxGeometry y="104" width="200" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="plans-created" value="createdAt" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-plans">
+                    <mxGeometry y="130" width="200" height="10" as="geometry"/>
+                </mxCell>
+
+                <!-- PLAN_UPLOADS table -->
+                <mxCell id="table-uploads" value="PLAN_UPLOADS" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+                    <mxGeometry x="860" y="280" width="200" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="uploads-pk" value="🔑 id (PK)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1" vertex="1" parent="table-uploads">
+                    <mxGeometry y="26" width="200" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="uploads-uploadid" value="uploadId (unique)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1" vertex="1" parent="table-uploads">
+                    <mxGeometry y="52" width="200" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="uploads-fk" value="🔗 planId (FK)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-uploads">
+                    <mxGeometry y="78" width="200" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="uploads-path" value="filePath" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-uploads">
+                    <mxGeometry y="104" width="200" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="uploads-active" value="isActive" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-uploads">
+                    <mxGeometry y="130" width="200" height="26" as="geometry"/>
+                </mxCell>
+
+                <!-- PLAN_SHEETS table (MOST IMPORTANT) -->
+                <mxCell id="table-sheets" value="PLAN_SHEETS ⭐" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+                    <mxGeometry x="1100" y="120" width="220" height="340" as="geometry"/>
+                </mxCell>
+                <mxCell id="sheets-pk" value="🔑 id (PK)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1" vertex="1" parent="table-sheets">
+                    <mxGeometry y="26" width="220" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="sheets-fk1" value="🔗 uploadId (FK)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-sheets">
+                    <mxGeometry y="52" width="220" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="sheets-fk2" value="🔗 planId (FK)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-sheets">
+                    <mxGeometry y="78" width="220" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="sheets-num" value="sheetNumber (1-indexed)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-sheets">
+                    <mxGeometry y="104" width="220" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="sheets-key" value="sheetKey (R2 path)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-sheets">
+                    <mxGeometry y="130" width="220" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="sheets-divider1" value="" style="line;strokeWidth=2;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;strokeColor=#82b366;" vertex="1" parent="table-sheets">
+                    <mxGeometry y="156" width="220" height="8" as="geometry"/>
+                </mxCell>
+                <mxCell id="sheets-name" value="✨ sheetName (e.g., &quot;A5&quot;)" style="text;strokeColor=none;fillColor=#d5e8d4;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1" vertex="1" parent="table-sheets">
+                    <mxGeometry y="164" width="220" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="sheets-meta-status" value="✨ metadataStatus" style="text;strokeColor=none;fillColor=#d5e8d4;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1" vertex="1" parent="table-sheets">
+                    <mxGeometry y="190" width="220" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="sheets-meta" value="✨ metadata (JSON)" style="text;strokeColor=none;fillColor=#d5e8d4;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1" vertex="1" parent="table-sheets">
+                    <mxGeometry y="216" width="220" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="sheets-meta-at" value="✨ metadataExtractedAt" style="text;strokeColor=none;fillColor=#d5e8d4;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1" vertex="1" parent="table-sheets">
+                    <mxGeometry y="242" width="220" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="sheets-divider2" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;strokeColor=#82b366;" vertex="1" parent="table-sheets">
+                    <mxGeometry y="268" width="220" height="8" as="geometry"/>
+                </mxCell>
+                <mxCell id="sheets-status" value="status (tile processing)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-sheets">
+                    <mxGeometry y="276" width="220" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="sheets-tiles" value="tileCount" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-sheets">
+                    <mxGeometry y="302" width="220" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="sheets-error" value="errorMessage" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-sheets">
+                    <mxGeometry y="328" width="220" height="12" as="geometry"/>
+                </mxCell>
+
+                <!-- PLAN_MARKERS table (NEW!) -->
+                <mxCell id="table-markers" value="PLAN_MARKERS ⭐ NEW!" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+                    <mxGeometry x="1350" y="120" width="190" height="340" as="geometry"/>
+                </mxCell>
+                <mxCell id="markers-pk" value="🔑 id (PK)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1" vertex="1" parent="table-markers">
+                    <mxGeometry y="26" width="190" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="markers-fk1" value="🔗 uploadId (FK)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-markers">
+                    <mxGeometry y="52" width="190" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="markers-fk2" value="🔗 planId (FK)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-markers">
+                    <mxGeometry y="78" width="190" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="markers-sheet-num" value="sheetNumber" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-markers">
+                    <mxGeometry y="104" width="190" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="markers-divider" value="" style="line;strokeWidth=2;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;strokeColor=#82b366;" vertex="1" parent="table-markers">
+                    <mxGeometry y="130" width="190" height="8" as="geometry"/>
+                </mxCell>
+                <mxCell id="markers-text" value="markerText (&quot;3/A7&quot;)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-markers">
+                    <mxGeometry y="138" width="190" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="markers-detail" value="detail (&quot;3&quot;)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-markers">
+                    <mxGeometry y="164" width="190" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="markers-sheet" value="sheet (&quot;A7&quot;)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-markers">
+                    <mxGeometry y="190" width="190" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="markers-type" value="markerType" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-markers">
+                    <mxGeometry y="216" width="190" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="markers-conf" value="confidence (0.0-1.0)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-markers">
+                    <mxGeometry y="242" width="190" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="markers-valid" value="isValid (boolean)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-markers">
+                    <mxGeometry y="268" width="190" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="markers-fuzzy" value="fuzzyMatched" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-markers">
+                    <mxGeometry y="294" width="190" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="markers-tile" value="sourceTile" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-markers">
+                    <mxGeometry y="320" width="190" height="20" as="geometry"/>
+                </mxCell>
+
+                <!-- PROCESSING_JOBS table -->
+                <mxCell id="table-jobs" value="PROCESSING_JOBS" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+                    <mxGeometry x="860" y="460" width="200" height="200" as="geometry"/>
+                </mxCell>
+                <mxCell id="jobs-pk" value="🔑 id (PK)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1" vertex="1" parent="table-jobs">
+                    <mxGeometry y="26" width="200" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="jobs-fk" value="🔗 uploadId (FK)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-jobs">
+                    <mxGeometry y="52" width="200" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="jobs-status" value="status" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-jobs">
+                    <mxGeometry y="78" width="200" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="jobs-pages" value="totalPages" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-jobs">
+                    <mxGeometry y="104" width="200" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="jobs-complete" value="completedPages" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-jobs">
+                    <mxGeometry y="130" width="200" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="jobs-progress" value="progress (0-100)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-jobs">
+                    <mxGeometry y="156" width="200" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="jobs-times" value="startedAt, completedAt" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="table-jobs">
+                    <mxGeometry y="182" width="200" height="18" as="geometry"/>
+                </mxCell>
+
+                <!-- Relationships -->
+                <mxCell id="rel1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#82b366;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;" edge="1" parent="1" source="plans-pk" target="uploads-fk">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="rel2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#82b366;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;" edge="1" parent="1" source="uploads-uploadid" target="sheets-fk1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="1080" y="345"/>
+                            <mxPoint x="1080" y="185"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="rel3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#82b366;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;" edge="1" parent="1" source="uploads-uploadid" target="markers-fk1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="1080" y="345"/>
+                            <mxPoint x="1080" y="480"/>
+                            <mxPoint x="1330" y="480"/>
+                            <mxPoint x="1330" y="185"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+
+                <!-- System Connections -->
+                <mxCell id="conn1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#9673a6;dashed=1;endArrow=classic;endFill=1;" edge="1" parent="1" source="sys-backend" target="sys-d1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="conn1-label" value="Read/Write" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;" vertex="1" connectable="0" parent="conn1">
+                    <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+
+                <mxCell id="conn2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#6c8ebf;dashed=1;endArrow=classic;endFill=1;" edge="1" parent="1" source="sys-backend" target="sys-r2">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="conn2-label" value="Upload/Download" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;" vertex="1" connectable="0" parent="conn2">
+                    <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+
+                <mxCell id="conn3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#d6b656;dashed=1;endArrow=classic;endFill=1;" edge="1" parent="1" source="sys-backend" target="sys-queues">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="conn3-label" value="Enqueue" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;" vertex="1" connectable="0" parent="conn3">
+                    <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+
+                <mxCell id="conn4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#d79b00;dashed=1;endArrow=classic;endFill=1;" edge="1" parent="1" source="sys-queues" target="sys-ocr">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="400" y="330"/>
+                            <mxPoint x="400" y="250"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn4-label" value="HTTP POST" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;" vertex="1" connectable="0" parent="conn4">
+                    <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+
+                <mxCell id="conn5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#d79b00;dashed=1;endArrow=classic;endFill=1;" edge="1" parent="1" source="sys-ocr" target="sys-openrouter">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="600" y="360"/>
+                            <mxPoint x="520" y="360"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="conn5-label" value="LLM API" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;" vertex="1" connectable="0" parent="conn5">
+                    <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+
+                <!-- Legend for Database -->
+                <mxCell id="db-legend" value="DATABASE LEGEND" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+                    <mxGeometry x="1100" y="480" width="260" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="db-leg1" value="🔑 Primary Key" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="db-legend">
+                    <mxGeometry y="26" width="260" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="db-leg2" value="🔗 Foreign Key" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="db-legend">
+                    <mxGeometry y="52" width="260" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="db-leg3" value="✨ New columns for plan-ocr" style="text;strokeColor=none;fillColor=#d5e8d4;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1" vertex="1" parent="db-legend">
+                    <mxGeometry y="78" width="260" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="db-leg4" value="⭐ Important tables for integration" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1" vertex="1" parent="db-legend">
+                    <mxGeometry y="104" width="260" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="db-leg5" value="uploadId: Links all plan processing" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=2" vertex="1" parent="db-legend">
+                    <mxGeometry y="130" width="260" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="db-leg6" value="CASCADE deletes: uploadId deletion" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=2" vertex="1" parent="db-legend">
+                    <mxGeometry y="156" width="260" height="24" as="geometry"/>
+                </mxCell>
+
+                <!-- Data Flow Example -->
+                <mxCell id="flow-title" value="DATA FLOW EXAMPLE" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1" vertex="1" parent="1">
+                    <mxGeometry x="860" y="680" width="200" height="30" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="flow-box" value="1. User uploads 5-page PDF&#xa;   → PLANS created&#xa;   → PLAN_UPLOADS created&#xa;&#xa;2. Queue 1 splits PDF&#xa;   → 5 PLAN_SHEETS created&#xa;   → metadataStatus: &quot;pending&quot;&#xa;&#xa;3. Queue 2 extracts metadata (parallel)&#xa;   → sheetName: &quot;A5&quot;, &quot;A6&quot;, &quot;A7&quot;, &quot;A8&quot;, &quot;A9&quot;&#xa;   → metadataStatus: &quot;extracted&quot;&#xa;&#xa;4. Queue 3 generates tiles&#xa;   → validSheets: [&quot;A5&quot;, &quot;A6&quot;, &quot;A7&quot;, &quot;A8&quot;, &quot;A9&quot;]&#xa;&#xa;5. Queue 4 detects markers&#xa;   → 169 PLAN_MARKERS inserted&#xa;   → markerText, detail, sheet, confidence, etc.&#xa;&#xa;6. PROCESSING_JOBS updated&#xa;   → status: &quot;complete&quot;&#xa;   → progress: 100" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=10;fontFamily=Courier New;fontSize=11;" vertex="1" parent="1">
+                    <mxGeometry x="860" y="720" width="480" height="300" as="geometry"/>
+                </mxCell>
+
+                <!-- R2 Storage Structure -->
+                <mxCell id="r2-title" value="R2 STORAGE STRUCTURE" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1" vertex="1" parent="1">
+                    <mxGeometry x="860" y="1040" width="200" height="30" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="r2-structure" value="organizations/{orgId}/&#xa;  projects/{projectId}/&#xa;    plans/{planId}/&#xa;      uploads/{uploadId}/&#xa;        original.pdf&#xa;        sheet-1.pdf&#xa;        sheet-2.pdf&#xa;        sheet-3.pdf&#xa;        ...&#xa;      sheets/&#xa;        sheet-1/&#xa;          sheet.dzi&#xa;          tiles/&#xa;            0_0.jpg&#xa;            0_1.jpg&#xa;            ...&#xa;        sheet-2/&#xa;          sheet.dzi&#xa;          tiles/&#xa;            ..." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;spacingLeft=10;fontFamily=Courier New;fontSize=11;" vertex="1" parent="1">
+                    <mxGeometry x="860" y="1080" width="280" height="280" as="geometry"/>
+                </mxCell>
+
+                <!-- Key Integration Points -->
+                <mxCell id="integration-title" value="KEY INTEGRATION POINTS" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1" vertex="1" parent="1">
+                    <mxGeometry x="1160" y="1040" width="240" height="30" as="geometry"/>
+                </mxCell>
+
+                <mxCell id="integration-box" value="✅ PLAN_SHEETS.sheetName&#xa;   Populated by plan-ocr-service&#xa;   Used to build validSheets array&#xa;&#xa;✅ PLAN_MARKERS table&#xa;   Populated by marker detection&#xa;   Links markers to sheets + positions&#xa;&#xa;✅ PlanCoordinator DO&#xa;   Tracks sheet completion&#xa;   Auto-triggers next phase&#xa;&#xa;✅ Queue 2 → plan-ocr-service&#xa;   /api/extract-metadata&#xa;   Parallel sheet processing&#xa;&#xa;✅ Queue 4 → plan-ocr-service&#xa;   /api/detect-markers&#xa;   Context-aware validation&#xa;&#xa;✅ Anti-hallucination safeguard&#xa;   Prevents LLM from generating&#xa;   fake markers (output ≤ input)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;spacingLeft=10;fontFamily=Courier New;fontSize=11;" vertex="1" parent="1">
+                    <mxGeometry x="1160" y="1080" width="380" height="280" as="geometry"/>
+                </mxCell>
+
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

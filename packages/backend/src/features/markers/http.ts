@@ -46,6 +46,19 @@ const BulkReviewResponse = Schema.Struct({
 	reviewStatus: Schema.String,
 })
 
+const MarkerMediaItem = Schema.Struct({
+	id: Schema.String,
+	filePath: Schema.String,
+	mediaType: Schema.NullOr(Schema.String),
+	status: Schema.NullOr(Schema.Literal("before", "progress", "complete", "issue")),
+	description: Schema.NullOr(Schema.String),
+	createdAt: Schema.Number,
+})
+
+const MarkerMediaResponse = Schema.Struct({
+	media: Schema.Array(MarkerMediaItem),
+})
+
 /**
  * URL Parameters
  */
@@ -71,6 +84,11 @@ export const MarkersAPI = HttpApiGroup.make("markers")
 		HttpApiEndpoint.post("bulkReview")`/markers/bulk-review`
 			.setPayload(BulkReviewRequest)
 			.addSuccess(BulkReviewResponse),
+	)
+	.add(
+		HttpApiEndpoint.get("getMarkerMedia")`/markers/${markerIdParam}/media`
+			.addSuccess(MarkerMediaResponse)
+			.addError(MarkerNotFoundError),
 	)
 	.prefix("/api")
 	.middleware(Authorization)
@@ -132,6 +150,24 @@ export const MarkersAPILive = HttpApiBuilder.group(
 							success: true as const,
 							updated: result.updated,
 							reviewStatus: result.reviewStatus,
+						}
+					}),
+				)
+				.handle("getMarkerMedia", ({ path }) =>
+					Effect.gen(function* () {
+						const { media } = yield* markersService.getMedia({
+							markerId: path.markerId,
+						})
+
+						return {
+							media: media.map((m) => ({
+								id: m.id,
+								filePath: m.filePath,
+								mediaType: m.mediaType,
+								status: m.status as any,
+								description: m.description,
+								createdAt: m.createdAt.getTime(),
+							})),
 						}
 					}),
 				)

@@ -162,9 +162,19 @@ export const MediaAPILive = HttpApiBuilder.group(
 					Effect.gen(function* () {
 						// Verify access to project
 						const { project, orgId } = yield* verifyProjectAccess(path.projectId)
+						const { user } = yield* CurrentSession
 
-						// Parse multipart stream to get media files
+						// Parse multipart stream to get media files and fields
 						const parts = yield* Stream.runCollect(payload)
+						
+						// Collect form fields
+						const fields: Record<string, string> = {}
+						for (const part of parts) {
+							if (Multipart.isField(part)) {
+								fields[part.name] = part.value
+							}
+						}
+
 						const uploadedMedia: Array<{
 							mediaId: string
 							fileName: string
@@ -180,8 +190,15 @@ export const MediaAPILive = HttpApiBuilder.group(
 								// Determine media type from content type
 								const mediaType = getMediaType(part.contentType)
 
-								// TODO: Parse coordinates and description from form fields
-								// For now, coordinates are null (project-wide media)
+								// Parse coordinates if provided
+								let coordinates: { x: number; y: number } | undefined = undefined
+								if (fields.coordinates) {
+									try {
+										coordinates = JSON.parse(fields.coordinates)
+									} catch {
+										// Ignore invalid coordinates
+									}
+								}
 
 								// Upload media to R2
 								const { mediaId } = yield* mediaService.upload({
@@ -191,9 +208,13 @@ export const MediaAPILive = HttpApiBuilder.group(
 									fileName: part.name,
 									mediaType,
 									contentType: part.contentType,
-									// planId: undefined, // TODO: Get from form field
-									// coordinates: undefined, // TODO: Get from form field
-									// description: undefined, // TODO: Get from form field
+									planId: fields.planId,
+									markerId: fields.markerId,
+									annotationId: fields.annotationId,
+									status: fields.status as any,
+									description: fields.description,
+									coordinates,
+									capturedBy: user.id,
 								})
 
 								uploadedMedia.push({

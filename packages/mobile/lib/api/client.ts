@@ -431,4 +431,223 @@ export const SheetsApi = {
 export const MarkersApi = {
 	getPendingReview: (planId: string) =>
 		request(`/api/plans/${planId}/markers/pending-review`, PendingReviewResponse),
+
+	/**
+	 * Update marker position (from mobile adjustment)
+	 */
+	updatePosition: (markerId: string, x: number, y: number) =>
+		request(`/api/markers/${markerId}/position`, SuccessResponse, {
+			method: "PATCH",
+			body: JSON.stringify({ x, y }),
+		}),
+
+	/**
+	 * Review a single marker (confirm or reject)
+	 */
+	reviewMarker: (markerId: string, action: "confirm" | "reject", notes?: string) =>
+		request(`/api/markers/${markerId}/review`, SuccessResponse, {
+			method: "PATCH",
+			body: JSON.stringify({ action, notes }),
+		}),
+
+	/**
+	 * Bulk review multiple markers
+	 */
+	bulkReviewMarkers: (markerIds: string[], action: "confirm" | "reject", notes?: string) =>
+		request(`/api/markers/bulk-review`, SuccessResponse, {
+			method: "POST",
+			body: JSON.stringify({ markerIds, action, notes }),
+		}),
+
+	/**
+	 * Get media for a marker
+	 */
+	getMedia: (markerId: string) =>
+		request(`/api/markers/${markerId}/media`, MarkerMediaResponse),
+}
+
+/**
+ * Media Response Schemas
+ */
+const PendingReviewResponse = Schema.Struct({
+	markers: Schema.Array(PendingReviewMarker),
+	total: Schema.Number,
+})
+
+const MarkerMediaItem = Schema.Struct({
+	id: Schema.String,
+	filePath: Schema.String,
+	mediaType: Schema.NullOr(Schema.String),
+	status: Schema.NullOr(Schema.Literal("before", "progress", "complete", "issue")),
+	description: Schema.NullOr(Schema.String),
+	createdAt: Schema.Number,
+})
+
+const MarkerMediaResponse = Schema.Struct({
+	media: Schema.Array(MarkerMediaItem),
+})
+
+const SuccessResponse = Schema.Struct({
+	success: Schema.Literal(true),
+})
+
+const MediaItem = Schema.Struct({
+	id: Schema.String,
+	filePath: Schema.NullOr(Schema.String),
+	mediaType: Schema.NullOr(Schema.String),
+	createdAt: Schema.String,
+})
+
+const MediaListResponse = Schema.Struct({
+	media: Schema.Array(MediaItem),
+})
+
+const MediaResponse = Schema.Struct({
+	id: Schema.String,
+	projectId: Schema.String,
+	filePath: Schema.NullOr(Schema.String),
+	mediaType: Schema.NullOr(Schema.String),
+	createdAt: Schema.String,
+})
+
+const UploadMediaResponse = Schema.Struct({
+	media: Schema.Array(
+		Schema.Struct({
+			mediaId: Schema.String,
+			fileName: Schema.String,
+			mediaType: Schema.String,
+		})
+	),
+})
+
+export type MediaItemType = Schema.Schema.Type<typeof MediaItem>
+
+/**
+ * Media API - Site photos and videos
+ */
+export const MediaApi = {
+	/**
+	 * Upload media (photo or video) to a project
+	 */
+	upload: (
+		projectId: string,
+		file: { uri: string; name: string; type: string },
+		mediaType: "photo" | "video",
+		options?: {
+			planId?: string
+			markerId?: string
+			status?: "before" | "progress" | "complete" | "issue"
+			description?: string
+			coordinates?: { x: number; y: number }
+		}
+	): Effect.Effect<typeof UploadMediaResponse.Type, ApiErrorType> =>
+		Effect.gen(function* () {
+			const baseUrl = getApiUrl()
+			const url = `${baseUrl}/api/projects/${projectId}/media`
+
+			// Create FormData for multipart upload
+			const formData = new FormData()
+			formData.append("file", {
+				uri: file.uri,
+				name: file.name,
+				type: file.type,
+			} as unknown as Blob)
+			formData.append("mediaType", mediaType)
+
+			if (options?.planId) formData.append("planId", options.planId)
+			if (options?.markerId) formData.append("markerId", options.markerId)
+			if (options?.status) formData.append("status", options.status)
+			if (options?.description) formData.append("description", options.description)
+			if (options?.coordinates)
+				formData.append("coordinates", JSON.stringify(options.coordinates))
+
+			const response = yield* Effect.tryPromise({
+				try: () =>
+					fetch(url, {
+						method: "POST",
+						credentials: "include",
+						body: formData,
+						// Don't set Content-Type - let browser set it with boundary
+					}),
+				catch: (error) =>
+					new NetworkError({
+						message: error instanceof Error ? error.message : "Network error",
+						endpoint: url,
+					}),
+			})
+
+			if (response.status === 401) {
+				return yield* new UnauthorizedError({
+					message: "Authentication required",
+				})
+			}
+
+			if (!response.ok) {
+				const errorText = yield* Effect.tryPromise({
+					try: () => response.text(),
+					catch: () =>
+						new ApiError({
+							status: response.status,
+							message: "Failed to read error response",
+							endpoint: url,
+						}),
+				})
+				return yield* new ApiError({
+					status: response.status,
+					message: typeof errorText === "string" ? errorText : "Upload failed",
+					endpoint: url,
+				})
+			}
+
+			const json = yield* Effect.tryPromise({
+				try: () => response.json(),
+				catch: () =>
+					new ApiError({
+						status: response.status,
+						message: "Failed to parse response",
+						endpoint: url,
+					}),
+			})
+
+			const decoded = yield* Schema.decodeUnknown(UploadMediaResponse)(json).pipe(
+				Effect.mapError(
+					(error) =>
+						new ApiError({
+							status: response.status,
+							message: `Schema validation failed: ${String(error)}`,
+							endpoint: url,
+						})
+				)
+			)
+
+			return decoded
+		}),
+
+	/**
+	 * List all media for a project
+	 */
+	list: (projectId: string) =>
+		request(`/api/projects/${projectId}/media`, MediaListResponse),
+
+	/**
+	 * Get single media item
+	 */
+	get: (mediaId: string) =>
+		request(`/api/media/${mediaId}`, MediaResponse),
+
+	/**
+	 * Delete media
+	 */
+	delete: (mediaId: string) =>
+		request(`/api/media/${mediaId}`, SuccessResponse, {
+			method: "DELETE",
+		}),
+
+	/**
+	 * Get download URL for media
+	 */
+	getDownloadUrl: (mediaId: string) => {
+		const baseUrl = getApiUrl()
+		return `${baseUrl}/api/media/${mediaId}/download`
+	},
 }

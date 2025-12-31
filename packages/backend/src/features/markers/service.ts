@@ -150,10 +150,37 @@ export class MarkersService extends Effect.Service<MarkersService>()("MarkersSer
 			return { success: true, updated: params.markerIds.length, reviewStatus }
 		})
 
+		/**
+		 * Get media for a marker
+		 */
+		const getMedia = Effect.fn("Markers.getMedia")(function* (params: {
+			markerId: string
+		}) {
+			// Verify marker exists
+			yield* db
+				.select()
+				.from(schema.planMarkers)
+				.where(eq(schema.planMarkers.id, params.markerId))
+				.pipe(
+					Effect.head,
+					Effect.mapError(() => new MarkerNotFoundError({ markerId: params.markerId })),
+				)
+
+			// Query media linked to this marker
+			const results = yield* db
+				.select()
+				.from(schema.media)
+				.where(eq(schema.media.markerId, params.markerId))
+				.pipe(Effect.map((rows) => rows.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())))
+
+			return { media: results }
+		})
+
 		return {
 			updatePosition,
 			review,
 			bulkReview,
+			getMedia,
 		} as const
 	}),
 }) {}
