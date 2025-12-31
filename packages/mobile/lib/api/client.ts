@@ -474,6 +474,7 @@ const MediaItem = Schema.Struct({
 	id: Schema.String,
 	filePath: Schema.NullOr(Schema.String),
 	mediaType: Schema.NullOr(Schema.String),
+	description: Schema.NullOr(Schema.String),
 	createdAt: Schema.String,
 })
 
@@ -632,10 +633,53 @@ export const MediaApi = {
 		}),
 
 	/**
+	 * Update media (description, etc.)
+	 */
+	updateMedia: (mediaId: string, data: { description?: string }) =>
+		request(`/api/media/${mediaId}`, SuccessResponse, {
+			method: "PATCH",
+			body: JSON.stringify(data),
+		}),
+
+	/**
 	 * Get download URL for media
 	 */
 	getDownloadUrl: (mediaId: string) => {
 		const baseUrl = getApiUrl()
 		return `${baseUrl}/api/media/${mediaId}/download`
+	},
+
+	/**
+	 * Search media with filters
+	 */
+	search: (
+		projectId: string,
+		params: {
+			q?: string
+			status?: string
+			planId?: string
+			markerId?: string
+			dateFrom?: string
+			dateTo?: string
+			limit?: number
+			offset?: number
+		}
+	) => {
+		const queryString = new URLSearchParams(
+			Object.entries(params)
+				.filter(([_, v]) => v !== undefined)
+				.map(([k, v]) => [k, String(v)])
+		).toString()
+
+		return request(
+			`/api/projects/${projectId}/media/search?${queryString}`,
+			Schema.Struct({
+				media: Schema.Array(MediaItem),
+				total: Schema.Number,
+				limit: Schema.Number,
+				offset: Schema.Number,
+			}),
+			{ method: "GET" }
+		)
 	},
 }

@@ -162,6 +162,7 @@ export const auth = betterAuth({
 					}
 
 					// Set the user's most recent project as active if not already set
+					let activeProjectUpdatedAt = session.activeProjectUpdatedAt
 					if (!activeProjectId && activeOrganizationId) {
 						try {
 							console.log(`[Better Auth] Setting active project for session: ${session.userId}`)
@@ -184,6 +185,7 @@ export const auth = betterAuth({
 
 							if (projects.length > 0) {
 								activeProjectId = projects[0].id
+								activeProjectUpdatedAt = new Date()
 								console.log(`[Better Auth] Setting activeProjectId: ${activeProjectId}`)
 							} else {
 								console.log(`[Better Auth] No projects found for organization`)
@@ -198,6 +200,7 @@ export const auth = betterAuth({
 							...session,
 							activeOrganizationId,
 							activeProjectId,
+							activeProjectUpdatedAt,
 						},
 					}
 				},

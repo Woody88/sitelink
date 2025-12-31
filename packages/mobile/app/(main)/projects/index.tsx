@@ -71,13 +71,11 @@ export default function ProjectsScreen() {
   }, [selectedProjectId]);
 
   const handleCreateProject = useCallback(() => {
-    // TODO: Navigate to create project screen
-    console.log("Create project");
+    router.push("/(main)/projects/new");
   }, []);
 
   const handleSettings = useCallback(() => {
-    // TODO: Navigate to settings
-    console.log("Settings");
+    router.push("/(main)/settings");
   }, []);
 
   // Loading state
