@@ -63,6 +63,27 @@ const UpdateDescriptionRequest = Schema.Struct({
 })
 
 /**
+ * Search Query Parameters
+ */
+const MediaSearchQuery = Schema.Struct({
+	q: Schema.optional(Schema.String),
+	status: Schema.optional(Schema.Literal("before", "progress", "complete", "issue")),
+	planId: Schema.optional(Schema.String),
+	markerId: Schema.optional(Schema.String),
+	dateFrom: Schema.optional(Schema.DateFromString),
+	dateTo: Schema.optional(Schema.DateFromString),
+	limit: Schema.optional(Schema.NumberFromString),
+	offset: Schema.optional(Schema.NumberFromString),
+})
+
+const MediaSearchResponse = Schema.Struct({
+	media: Schema.Array(MediaResponse),
+	total: Schema.Number,
+	limit: Schema.Number,
+	offset: Schema.Number,
+})
+
+/**
  * Access control errors
  */
 export class ProjectAccessDeniedError extends Schema.TaggedError<ProjectAccessDeniedError>()(
