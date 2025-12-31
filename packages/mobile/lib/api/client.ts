@@ -525,13 +525,16 @@ export const MediaApi = {
 			const baseUrl = getApiUrl()
 			const url = `${baseUrl}/api/projects/${projectId}/media`
 
-			// Create FormData for multipart upload
+			// Create FormData for multipart upload (React Native compatible)
 			const formData = new FormData()
+
+			// React Native FormData expects the file object in this specific format
 			formData.append("file", {
 				uri: file.uri,
 				name: file.name,
 				type: file.type,
-			} as unknown as Blob)
+			} as any)
+
 			formData.append("mediaType", mediaType)
 
 			if (options?.planId) formData.append("planId", options.planId)
@@ -541,6 +544,8 @@ export const MediaApi = {
 			if (options?.coordinates)
 				formData.append("coordinates", JSON.stringify(options.coordinates))
 
+			console.log("MediaApi.upload: Sending request to", url)
+
 			const response = yield* Effect.tryPromise({
 				try: () =>
 					fetch(url, {
@@ -549,14 +554,19 @@ export const MediaApi = {
 						body: formData,
 						// Don't set Content-Type - let browser set it with boundary
 					}),
-				catch: (error) =>
-					new NetworkError({
+				catch: (error) => {
+					console.error("MediaApi.upload: Network error", error)
+					return new NetworkError({
 						message: error instanceof Error ? error.message : "Network error",
 						endpoint: url,
-					}),
+					})
+				},
 			})
 
+			console.log("MediaApi.upload: Response status", response.status)
+
 			if (response.status === 401) {
+				console.error("MediaApi.upload: Unauthorized")
 				return yield* new UnauthorizedError({
 					message: "Authentication required",
 				})
@@ -572,6 +582,7 @@ export const MediaApi = {
 							endpoint: url,
 						}),
 				})
+				console.error("MediaApi.upload: Error response", response.status, errorText)
 				return yield* new ApiError({
 					status: response.status,
 					message: typeof errorText === "string" ? errorText : "Upload failed",
@@ -588,6 +599,8 @@ export const MediaApi = {
 						endpoint: url,
 					}),
 			})
+
+			console.log("MediaApi.upload: Response JSON", json)
 
 			const decoded = yield* Schema.decodeUnknown(UploadMediaResponse)(json).pipe(
 				Effect.mapError(

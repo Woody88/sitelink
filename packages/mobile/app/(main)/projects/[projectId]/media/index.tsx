@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import {
   View,
   ScrollView,
@@ -8,7 +8,7 @@ import {
   Pressable,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Text } from "@/components/ui/text";
 import { useProject, useMedia, useUpdateMediaStatus, useUpdateMedia, useDeleteMedia, MediaApi } from "@/lib/api";
@@ -257,6 +257,14 @@ export default function MediaScreen() {
   }, [bundles]);
 
   const hasActiveFilters = workStateFilter !== "all" || dateFilter !== "all";
+
+  // Refetch media when screen comes into focus (after returning from camera)
+  useFocusEffect(
+    useCallback(() => {
+      console.log("Media screen focused, refetching media...");
+      refetchMedia();
+    }, [refetchMedia])
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
