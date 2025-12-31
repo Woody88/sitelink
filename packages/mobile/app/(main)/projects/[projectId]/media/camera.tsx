@@ -61,6 +61,15 @@ export default function CameraScreen() {
       const fileName = `site-photo-${timestamp}.jpg`;
 
       // Upload immediately
+      console.log("Uploading photo:", {
+        projectId: projectId!,
+        fileName,
+        uri: photo.uri,
+        markerId,
+        planId,
+        status,
+      });
+
       const result = await uploadMedia({
         projectId: projectId!,
         file: {
@@ -74,9 +83,15 @@ export default function CameraScreen() {
         status,
       });
 
+      console.log("Upload result:", result);
+
       if (result) {
         // Success - navigate back
+        console.log("Upload successful, navigating back");
         router.back();
+      } else {
+        console.error("Upload failed - no result returned");
+        Alert.alert("Error", "Failed to upload photo. Please try again.");
       }
     } catch (error) {
       console.error("Capture error:", error);

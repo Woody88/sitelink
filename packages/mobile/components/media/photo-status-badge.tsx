@@ -149,7 +149,7 @@ interface PhotoStatusSelectorProps {
  *
  * Design principles:
  * - Minimum 48px touch targets (construction gloves)
- * - High contrast colors
+ * - Outlined style for professional appearance
  * - Clear visual feedback for selection
  * - One tap to change status
  */
@@ -173,25 +173,30 @@ export function PhotoStatusSelector({
             key={status}
             onPress={() => onStatusChange(status)}
             className={cn(
-              "flex-1 items-center justify-center rounded-xl border-2",
+              "flex-1 items-center justify-center rounded-xl",
               isCompact ? "py-2" : "py-3",
-              isSelected
-                ? "border-transparent"
-                : "border-border bg-card"
+              isSelected ? "border-2 bg-opacity-10" : "border border-white/30"
             )}
-            style={isSelected ? { backgroundColor: config.iconColor } : undefined}
+            style={{
+              borderColor: isSelected ? config.iconColor : "rgba(255, 255, 255, 0.3)",
+              backgroundColor: isSelected
+                ? `${config.iconColor}15`
+                : "rgba(0, 0, 0, 0.2)",
+            }}
           >
             <Ionicons
               name={config.icon}
               size={isCompact ? 20 : 28}
-              color={isSelected ? "#ffffff" : config.iconColor}
+              color={isSelected ? config.iconColor : "rgba(255, 255, 255, 0.8)"}
             />
             <Text
               className={cn(
                 "font-semibold mt-1",
-                isCompact ? "text-xs" : "text-sm",
-                isSelected ? "text-white" : "text-foreground"
+                isCompact ? "text-xs" : "text-sm"
               )}
+              style={{
+                color: isSelected ? config.iconColor : "rgba(255, 255, 255, 0.9)",
+              }}
             >
               {config.shortLabel}
             </Text>

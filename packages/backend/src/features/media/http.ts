@@ -223,31 +223,34 @@ export const MediaAPILive = HttpApiBuilder.group(
 			return handlers
 				.handle("uploadMedia", ({ path, payload }) =>
 					Effect.gen(function* () {
+						console.log("MediaAPI.uploadMedia: Starting upload for project", path.projectId)
+
 						// Verify access to project
 						const { project, orgId } = yield* verifyProjectAccess(path.projectId)
 						const { user } = yield* CurrentSession
 
+						console.log("MediaAPI.uploadMedia: Access verified for org", orgId, "user", user.id)
+
 						// Parse multipart stream to get media files and fields
 						const parts = yield* Stream.runCollect(payload)
-						
-						// Collect form fields
-						const fields: Record<string, string> = {}
-						for (const part of parts) {
-							if (Multipart.isField(part)) {
-								fields[part.name] = part.value
-							}
-						}
+						console.log("MediaAPI.uploadMedia: Received", parts.length, "parts")
 
+						// Collect form fields and process files in a SINGLE iteration
+						const fields: Record<string, string> = {}
 						const uploadedMedia: Array<{
 							mediaId: string
 							fileName: string
 							mediaType: string
 						}> = []
 
-						// Process each file part
+						// Process each part (fields first, then files)
 						for (const part of parts) {
-							if (Multipart.isFile(part)) {
-								// Get file content as Uint8Array
+							if (Multipart.isField(part)) {
+								fields[part.name] = part.value
+								console.log("MediaAPI.uploadMedia: Field", part.name, "=", part.value)
+							} else if (Multipart.isFile(part)) {
+								console.log("MediaAPI.uploadMedia: Processing file", part.name, "type", part.contentType)
+								// Get file content as Uint8Array - MUST be consumed immediately
 								const mediaData = yield* part.contentEffect
 
 								// Determine media type from content type
@@ -264,6 +267,7 @@ export const MediaAPILive = HttpApiBuilder.group(
 								}
 
 								// Upload media to R2
+								console.log("MediaAPI.uploadMedia: Uploading to R2, size:", mediaData.byteLength, "bytes")
 								const { mediaId } = yield* mediaService.upload({
 									projectId: project.id,
 									orgId,
@@ -280,6 +284,8 @@ export const MediaAPILive = HttpApiBuilder.group(
 									capturedBy: user.id,
 								})
 
+								console.log("MediaAPI.uploadMedia: Upload successful, mediaId:", mediaId)
+
 								uploadedMedia.push({
 									mediaId,
 									fileName: part.name,
@@ -288,6 +294,7 @@ export const MediaAPILive = HttpApiBuilder.group(
 							}
 						}
 
+						console.log("MediaAPI.uploadMedia: Returning", uploadedMedia.length, "uploaded media items")
 						return { media: uploadedMedia }
 					}),
 				)
