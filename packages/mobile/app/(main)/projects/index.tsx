@@ -37,7 +37,7 @@ export default function ProjectsScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
-  const projects = (data?.projects ?? []) as Project[];
+  const projects = (data?.projects ?? []) as unknown as Project[];
 
   // Filter and group projects
   const { activeProjects, archivedProjects } = useMemo(() => {

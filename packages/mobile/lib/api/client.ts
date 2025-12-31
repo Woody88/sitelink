@@ -15,6 +15,7 @@ import {
 	SheetListResponse,
 	SheetMarkersResponse,
 	PendingReviewResponse,
+	MarkerMediaResponse,
 	SuccessResponse,
 	JobStatusResponse,
 } from "@sitelink/shared-types"
@@ -469,28 +470,6 @@ export const MarkersApi = {
 /**
  * Media Response Schemas
  */
-const PendingReviewResponse = Schema.Struct({
-	markers: Schema.Array(PendingReviewMarker),
-	total: Schema.Number,
-})
-
-const MarkerMediaItem = Schema.Struct({
-	id: Schema.String,
-	filePath: Schema.String,
-	mediaType: Schema.NullOr(Schema.String),
-	status: Schema.NullOr(Schema.Literal("before", "progress", "complete", "issue")),
-	description: Schema.NullOr(Schema.String),
-	createdAt: Schema.Number,
-})
-
-const MarkerMediaResponse = Schema.Struct({
-	media: Schema.Array(MarkerMediaItem),
-})
-
-const SuccessResponse = Schema.Struct({
-	success: Schema.Literal(true),
-})
-
 const MediaItem = Schema.Struct({
 	id: Schema.String,
 	filePath: Schema.NullOr(Schema.String),

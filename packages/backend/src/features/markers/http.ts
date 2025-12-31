@@ -5,6 +5,7 @@ import {
 	HttpApiSchema,
 } from "@effect/platform"
 import { Effect, Schema } from "effect"
+import { MarkerMediaResponse } from "@sitelink/shared-types"
 import { BaseApi } from "../../core/api"
 import { Authorization, CurrentSession } from "../../core/middleware"
 import { MarkerNotFoundError, MarkersService } from "./service"
@@ -44,19 +45,6 @@ const BulkReviewResponse = Schema.Struct({
 	success: Schema.Literal(true),
 	updated: Schema.Number,
 	reviewStatus: Schema.String,
-})
-
-const MarkerMediaItem = Schema.Struct({
-	id: Schema.String,
-	filePath: Schema.String,
-	mediaType: Schema.NullOr(Schema.String),
-	status: Schema.NullOr(Schema.Literal("before", "progress", "complete", "issue")),
-	description: Schema.NullOr(Schema.String),
-	createdAt: Schema.Number,
-})
-
-const MarkerMediaResponse = Schema.Struct({
-	media: Schema.Array(MarkerMediaItem),
 })
 
 /**
