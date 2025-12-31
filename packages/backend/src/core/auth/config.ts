@@ -43,6 +43,18 @@ export const betterAuthConfig = {
 		maxPasswordLength: 128,
 		requireEmailVerification: false,
 	},
+	session: {
+		additionalFields: {
+			activeProjectId: {
+				type: "string",
+				required: false,
+			},
+			activeProjectUpdatedAt: {
+				type: "date",
+				required: false,
+			},
+		},
+	},
 	trustedOrigins: [
 		"http://localhost:8787",
 		"http://localhost:3000",
@@ -120,7 +132,10 @@ export const auth = betterAuth({
 			create: {
 				before: async (session, ctx) => {
 					// Set the user's first organization as active if not already set
-					if (!session.activeOrganizationId) {
+					let activeOrganizationId = session.activeOrganizationId
+					let activeProjectId = session.activeProjectId
+
+					if (!activeOrganizationId) {
 						try {
 							console.log(`[Better Auth] Setting active organization for session: ${session.userId}`)
 
@@ -136,14 +151,8 @@ export const auth = betterAuth({
 							})
 
 							if (memberships.length > 0) {
-								const firstOrgId = memberships[0].organizationId
-								console.log(`[Better Auth] Setting activeOrganizationId: ${firstOrgId}`)
-								return {
-									data: {
-										...session,
-										activeOrganizationId: firstOrgId,
-									},
-								}
+								activeOrganizationId = memberships[0].organizationId
+								console.log(`[Better Auth] Setting activeOrganizationId: ${activeOrganizationId}`)
 							} else {
 								console.log(`[Better Auth] No organization memberships found for user`)
 							}
@@ -152,7 +161,45 @@ export const auth = betterAuth({
 						}
 					}
 
-					return { data: session }
+					// Set the user's most recent project as active if not already set
+					if (!activeProjectId && activeOrganizationId) {
+						try {
+							console.log(`[Better Auth] Setting active project for session: ${session.userId}`)
+
+							// Query projects table to find user's most recent project
+							const projects = await ctx.adapter.findMany({
+								model: "project",
+								where: [
+									{
+										field: "organizationId",
+										value: activeOrganizationId,
+									},
+								],
+								limit: 1,
+								sortBy: {
+									field: "createdAt",
+									direction: "desc",
+								},
+							})
+
+							if (projects.length > 0) {
+								activeProjectId = projects[0].id
+								console.log(`[Better Auth] Setting activeProjectId: ${activeProjectId}`)
+							} else {
+								console.log(`[Better Auth] No projects found for organization`)
+							}
+						} catch (error) {
+							console.error("[Better Auth] Failed to set active project:", error)
+						}
+					}
+
+					return {
+						data: {
+							...session,
+							activeOrganizationId,
+							activeProjectId,
+						},
+					}
 				},
 			},
 		},

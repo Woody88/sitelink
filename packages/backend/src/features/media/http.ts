@@ -19,6 +19,7 @@ const MediaResponse = Schema.Struct({
 	projectId: Schema.String,
 	filePath: Schema.NullOr(Schema.String),
 	mediaType: Schema.NullOr(Schema.String),
+	status: Schema.NullOr(Schema.Literal("before", "progress", "complete", "issue")),
 	createdAt: Schema.Date,
 })
 
@@ -50,12 +51,27 @@ const mediaIdParam = HttpApiSchema.param("id", Schema.String)
 const projectIdParam = HttpApiSchema.param("projectId", Schema.String)
 
 /**
- * Access control error
+ * Request Schemas
+ */
+const UpdateStatusRequest = Schema.Struct({
+	status: Schema.Literal("before", "progress", "complete", "issue"),
+})
+
+/**
+ * Access control errors
  */
 export class ProjectAccessDeniedError extends Schema.TaggedError<ProjectAccessDeniedError>()(
 	"ProjectAccessDeniedError",
 	{
 		projectId: Schema.String,
+		message: Schema.String,
+	},
+) {}
+
+export class InvalidStatusError extends Schema.TaggedError<InvalidStatusError>()(
+	"InvalidStatusError",
+	{
+		status: Schema.String,
 		message: Schema.String,
 	},
 ) {}
@@ -69,7 +85,7 @@ export const MediaAPI = HttpApiGroup.make("media")
 			.addSuccess(UploadMediaResponse)
 			.addError(ProjectAccessDeniedError)
 			.addError(Multipart.MultipartError)
-			.setPayload(HttpApiSchema.Multipart),
+			.setPayload(HttpApiSchema.MultipartStream(Schema.Struct({}))),
 	)
 	.add(
 		HttpApiEndpoint.get("getMedia")`/media/${mediaIdParam}`
@@ -93,6 +109,14 @@ export const MediaAPI = HttpApiGroup.make("media")
 			.addSuccess(Schema.Struct({ success: Schema.Literal(true) }))
 			.addError(MediaNotFoundError)
 			.addError(ProjectAccessDeniedError),
+	)
+	.add(
+		HttpApiEndpoint.patch("updateMediaStatus")`/media/${mediaIdParam}/status`
+			.setPayload(UpdateStatusRequest)
+			.addSuccess(MediaResponse)
+			.addError(MediaNotFoundError)
+			.addError(ProjectAccessDeniedError)
+			.addError(InvalidStatusError),
 	)
 	.prefix("/api")
 	.middleware(Authorization)
@@ -267,6 +291,20 @@ export const MediaAPILive = HttpApiBuilder.group(
 						yield* mediaService.delete(path.id)
 
 						return { success: true as const }
+					}),
+				)
+				.handle("updateMediaStatus", ({ path, payload }) =>
+					Effect.gen(function* () {
+						// Verify access to media
+						yield* verifyMediaAccess(path.id)
+
+						// Update media status
+						const updatedMedia = yield* mediaService.updateStatus({
+							mediaId: path.id,
+							status: payload.status,
+						})
+
+						return updatedMedia
 					}),
 				)
 		}),

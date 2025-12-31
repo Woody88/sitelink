@@ -34,6 +34,12 @@ export class Session extends Schema.Class<Session>("Session")({
 		activeOrganizationId: Schema.optional(
 			Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
 		),
+		activeProjectId: Schema.optional(
+			Schema.Union(Schema.String, Schema.Null, Schema.Undefined),
+		),
+		activeProjectUpdatedAt: Schema.optional(
+			Schema.Union(Schema.Date, Schema.Null, Schema.Undefined),
+		),
 	} satisfies ValidateSessionFields),
 	user: Schema.Struct({
 		id: Schema.String,

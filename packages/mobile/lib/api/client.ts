@@ -623,6 +623,15 @@ export const MediaApi = {
 		}),
 
 	/**
+	 * Update photo status
+	 */
+	updateStatus: (mediaId: string, status: "before" | "progress" | "complete" | "issue") =>
+		request(`/api/media/${mediaId}/status`, SuccessResponse, {
+			method: "PATCH",
+			body: JSON.stringify({ status }),
+		}),
+
+	/**
 	 * Get download URL for media
 	 */
 	getDownloadUrl: (mediaId: string) => {

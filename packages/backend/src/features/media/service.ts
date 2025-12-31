@@ -176,6 +176,29 @@ export class MediaService extends Effect.Service<MediaService>()(
 			})
 
 			/**
+			 * Update media status
+			 */
+			const updateStatus = Effect.fn("Media.updateStatus")(function* (params: {
+				mediaId: string
+				status: "before" | "progress" | "complete" | "issue"
+			}) {
+				// Verify media exists first
+				yield* get(params.mediaId)
+
+				// Update the status in database
+				yield* db
+					.update(schema.media)
+					.set({
+						status: params.status,
+						updatedAt: new Date(),
+					})
+					.where(eq(schema.media.id, params.mediaId))
+
+				// Return updated media
+				return yield* get(params.mediaId)
+			})
+
+			/**
 			 * Delete media (from both D1 and R2)
 			 */
 			const deleteMedia = Effect.fn("Media.delete")(function* (
@@ -200,6 +223,7 @@ export class MediaService extends Effect.Service<MediaService>()(
 				get,
 				download,
 				listByProject,
+				updateStatus,
 				delete: deleteMedia,
 			} as const
 		}),

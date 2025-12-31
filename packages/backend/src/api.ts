@@ -17,6 +17,8 @@ import { RegistrationModule } from "./features/registration"
 import { RegistrationAPI } from "./features/registration/http"
 import { ProcessingAPI } from "./features/processing/http"
 import { ProcessingModule } from "./features/processing"
+import { SessionAPI } from "./features/session/http"
+import { SessionAPIModule } from "./features/session"
 
 export const Api = HttpApiBuilder.api(
 	BaseApi.add(HealthAPI)
@@ -24,22 +26,24 @@ export const Api = HttpApiBuilder.api(
 		.add(RegistrationAPI)
 		.add(OrganizationAPI)
 		.add(ProjectAPI)
+		.add(SessionAPI)
 		.add(PlanAPI)
 		.add(MarkersAPI)
 		.add(ProcessingAPI)
+		.add(MediaAPI)
 	// .add(FileAPI)
-	// .add(MediaAPI),
 ).pipe(
 	Layer.provideMerge(AuthAPIModule),
 	Layer.provideMerge(HealthModule),
 	Layer.provideMerge(RegistrationModule),
 	Layer.provideMerge(OrganizationModule),
 	Layer.provideMerge(ProjectModule),
+	Layer.provideMerge(SessionAPIModule),
 	Layer.provideMerge(PlanModule),
 	Layer.provideMerge(MarkersModule),
 	Layer.provideMerge(ProcessingModule),
+	Layer.provideMerge(MediaModule),
 	// Layer.provideMerge(FileModule),
-	// Layer.provideMerge(MediaModule),
 	Layer.provide(AuthorizationMiddlewareLive),
 	Layer.provide(AuthorizationApiKeyMiddlewareLayer)
 )

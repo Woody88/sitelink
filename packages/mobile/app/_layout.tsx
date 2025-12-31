@@ -5,6 +5,7 @@ import { PortalHost } from "@rn-primitives/portal";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AuthProvider } from "@/lib/auth-context";
+import Toast from 'react-native-toast-message';
 
 // Main navigation stack
 function RootNavigator() {
@@ -26,6 +27,8 @@ export default function RootLayout() {
           <RootNavigator />
           {/* Default Portal Host (one per app) */}
           <PortalHost />
+          {/* Toast notifications - must be last */}
+          <Toast />
         </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

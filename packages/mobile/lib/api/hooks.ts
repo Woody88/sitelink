@@ -310,3 +310,13 @@ export function useUploadMedia() {
 export function useDeleteMedia() {
 	return useMutation(MediaApi.delete)
 }
+
+/**
+ * Hook for updating media status
+ */
+export function useUpdateMediaStatus() {
+	return useMutation(
+		({ mediaId, status }: { mediaId: string; status: "before" | "progress" | "complete" | "issue" }) =>
+			MediaApi.updateStatus(mediaId, status)
+	)
+}
