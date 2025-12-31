@@ -128,7 +128,7 @@ export function MarkerTimelineModal({
                         <View key={photo.id} style={styles.photoWrapper}>
                           <PhotoThumbnail
                             photo={photo}
-                            size="large"
+                            size="lg"
                             onPress={() => {}} // TODO: Open photo viewer
                           />
                           <Text style={styles.timestamp}>

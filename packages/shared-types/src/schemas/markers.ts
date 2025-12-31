@@ -46,3 +46,21 @@ export const PendingReviewResponse = Schema.Struct({
 	confidenceThreshold: Schema.Number,
 })
 export type PendingReviewResponse = typeof PendingReviewResponse.Type
+
+/**
+ * Marker Media Schemas
+ */
+export const MarkerMediaItem = Schema.Struct({
+	id: Schema.String,
+	filePath: Schema.String,
+	mediaType: Schema.NullOr(Schema.String),
+	status: Schema.NullOr(Schema.Literal("before", "progress", "complete", "issue")),
+	description: Schema.NullOr(Schema.String),
+	createdAt: Schema.Number,
+})
+export type MarkerMediaItem = typeof MarkerMediaItem.Type
+
+export const MarkerMediaResponse = Schema.Struct({
+	media: Schema.Array(MarkerMediaItem),
+})
+export type MarkerMediaResponse = typeof MarkerMediaResponse.Type
