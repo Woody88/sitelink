@@ -210,6 +210,13 @@ export const PlanAPI = HttpApiGroup.make("plans")
 	)
 	.add(
 		HttpApiEndpoint.get(
+			"getHighResJpeg",
+		)`/plans/${planIdParam}/sheets/${sheetIdParam}/high-res.jpg`
+			.addSuccess(HttpApiSchema.Uint8Array({ contentType: "image/jpeg" }))
+			.addError(SheetNotFoundError),
+	)
+	.add(
+		HttpApiEndpoint.get(
 			"getSheetMarkers",
 		)`/plans/${planIdParam}/sheets/${sheetIdParam}/markers`
 			.addSuccess(SheetMarkersResponse)
@@ -448,6 +455,19 @@ export const PlanAPILive = HttpApiBuilder.group(
 								sheetId: path.sheetId,
 								level: path.level,
 								tile: path.tile,
+							})
+							.pipe(Effect.orDie)
+
+						// Return as Uint8Array
+						return new Uint8Array(data)
+					}),
+				)
+				.handle("getHighResJpeg", ({ path }) =>
+					Effect.gen(function* () {
+						// Get the high-res JPEG file
+						const { data } = yield* planService
+							.getHighResJpeg({
+								sheetId: path.sheetId,
 							})
 							.pipe(Effect.orDie)
 

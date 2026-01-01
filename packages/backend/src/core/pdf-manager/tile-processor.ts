@@ -201,14 +201,23 @@ export async function executePlanTileGeneration({
 export async function generateTilesStream(pdfPath: string, sheetId: string, uploadId: string) {
 	const OUTPUT_DIR = `/tmp/uploads/${uploadId}`
 	const OUTPUT_PREFIX = `${OUTPUT_DIR}/sheet-${sheetId}`
+	const HIGH_RES_JPEG = `${OUTPUT_DIR}/high-res.jpg`
 
 	// 0. Create output directory
 	await $`mkdir -p ${OUTPUT_DIR}`
 
-	// 1. run vips - creates OUTPUT_PREFIX.dzi and OUTPUT_PREFIX_files/
+	// 1. Generate DZI tiles (existing functionality)
+	// Creates OUTPUT_PREFIX.dzi and OUTPUT_PREFIX_files/
 	await $`vips dzsave ${pdfPath}[page=0,dpi=150] ${OUTPUT_PREFIX} --tile-size 254 --overlap 1 --depth onetile --suffix .jpg[Q=85]`
 
-	// 2. stream the entire output directory (includes both .dzi and _files/)
+	// 2. Generate high-res JPEG for mobile app (NEW)
+	// Target: 300 DPI, Quality 85%, ~7200×10800 pixels for 24"×36" construction sheet
+	// Note: vips copy preserves resolution from PDF, we set quality with [Q=85]
+	await $`vips copy ${pdfPath}[page=0,dpi=300] ${HIGH_RES_JPEG}[Q=85]`
+
+	console.info(`✅ Generated high-res JPEG: ${HIGH_RES_JPEG}`)
+
+	// 3. stream the entire output directory (includes .dzi, _files/, and high-res.jpg)
 	return streamTilesDirectory(OUTPUT_DIR)
 }
 

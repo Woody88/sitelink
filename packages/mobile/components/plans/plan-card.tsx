@@ -3,6 +3,7 @@ import { View, Pressable, Image, LayoutAnimation, Platform, UIManager, ActivityI
 import { Text } from "@/components/ui/text";
 import { Ionicons } from "@expo/vector-icons";
 import { DisciplineBadge, StatusBadge, VersionBadge } from "./badge";
+import { ProcessingStatusBadge } from "./processing-status-badge";
 import { SheetItem, type SheetItemData } from "./sheet-item";
 import type { DisciplineType, StatusType } from "./badge";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,10 @@ export interface PlanCardData {
   thumbnailUrl?: string;
   sheets?: SheetItemData[];
   reviewNeededCount?: number;
+  // Processing status
+  processingStatus?: "pending" | "processing" | "completed" | "failed" | null;
+  processedSheets?: number; // Number of sheets that are completed
+  totalSheets?: number; // Total sheets in the plan
 }
 
 interface PlanCardProps {
@@ -108,7 +113,20 @@ export function PlanCard({
           {/* Badges */}
           <View className="flex-row items-center gap-2 mt-2">
             <DisciplineBadge discipline={plan.discipline} />
-            <StatusBadge status={plan.status} />
+            {plan.processingStatus === "processing" || plan.processingStatus === "pending" ? (
+              <ProcessingStatusBadge
+                status={plan.processingStatus}
+                progress={
+                  plan.processedSheets !== undefined && plan.totalSheets
+                    ? { current: plan.processedSheets, total: plan.totalSheets }
+                    : undefined
+                }
+              />
+            ) : plan.processingStatus === "failed" ? (
+              <ProcessingStatusBadge status="failed" />
+            ) : (
+              <StatusBadge status={plan.status} />
+            )}
           </View>
 
           {/* Stats */}

@@ -427,6 +427,84 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 			}
 		})
 
+		/**
+		 * Get high-res JPEG for a sheet (NEW - for mobile app)
+		 *
+		 * Retrieves the high-resolution JPEG file from R2 storage.
+		 * High-res path format: organizations/{orgId}/projects/{projectId}/plans/{planId}/sheets/sheet-{n}/high-res.jpg
+		 */
+		const getHighResJpeg = Effect.fn("Plan.getHighResJpeg")(function* (params: {
+			sheetId: string
+		}) {
+			// Get sheet to verify it exists and get the high-res path
+			const sheet = yield* getSheet(params.sheetId)
+
+			console.log(`🔍 getHighResJpeg: sheetId=${params.sheetId}`)
+			console.log(`🔍 getHighResJpeg: highResPath=${sheet.highResPath}`)
+
+			// Use the stored highResPath from the database
+			const highResPath = sheet.highResPath
+
+			if (!highResPath) {
+				// Fallback: construct path from sheetKey if not stored in DB yet
+				const sheetKeyMatch = sheet.sheetKey.match(/^(organizations\/[^\/]+\/projects\/[^\/]+\/plans\/[^\/]+)\//)
+				if (!sheetKeyMatch) {
+					console.error(`❌ getHighResJpeg: sheetKey regex did not match: ${sheet.sheetKey}`)
+					return yield* Effect.fail(
+						new SheetNotFoundError({ sheetId: params.sheetId }),
+					)
+				}
+				const basePath = sheetKeyMatch[1]
+				const constructedPath = `${basePath}/sheets/sheet-${sheet.sheetNumber}/high-res.jpg`
+				console.log(`⚠️ getHighResJpeg: highResPath not in DB, using constructed path: ${constructedPath}`)
+
+				// Fetch high-res JPEG from R2
+				const highResObject = yield* storage.use((r2) => r2.get(constructedPath))
+
+				if (!highResObject) {
+					console.error(`❌ getHighResJpeg: High-res JPEG NOT FOUND at path: ${constructedPath}`)
+					return yield* Effect.fail(
+						new SheetNotFoundError({ sheetId: params.sheetId }),
+					)
+				}
+
+				console.log(`✅ getHighResJpeg: Found high-res JPEG, size=${highResObject.size} bytes`)
+
+				// Read the binary content
+				const jpegData = yield* Effect.promise(() => highResObject.arrayBuffer())
+
+				return {
+					data: jpegData,
+					contentType: "image/jpeg",
+					sheet,
+				}
+			}
+
+			console.log(`🔍 getHighResJpeg: Looking for high-res JPEG at R2 path: ${highResPath}`)
+
+			// Fetch high-res JPEG from R2
+			const highResObject = yield* storage.use((r2) => r2.get(highResPath))
+
+			// Check if file exists
+			if (!highResObject) {
+				console.error(`❌ getHighResJpeg: High-res JPEG NOT FOUND at path: ${highResPath}`)
+				return yield* Effect.fail(
+					new SheetNotFoundError({ sheetId: params.sheetId }),
+				)
+			}
+
+			console.log(`✅ getHighResJpeg: Found high-res JPEG, size=${highResObject.size} bytes`)
+
+			// Read the binary content
+			const jpegData = yield* Effect.promise(() => highResObject.arrayBuffer())
+
+			return {
+				data: jpegData,
+				contentType: "image/jpeg",
+				sheet,
+			}
+		})
+
 		return {
 			create,
 			get,
@@ -437,6 +515,7 @@ export class PlanService extends Effect.Service<PlanService>()("PlanService", {
 			getSheet,
 			getDziFile,
 			getTile,
+			getHighResJpeg,
 		} as const
 	}),
 }) {}

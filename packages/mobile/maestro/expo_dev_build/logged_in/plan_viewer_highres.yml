@@ -1,0 +1,217 @@
+appId: com.sitelink.app
+env:
+  EMAIL: test@example.com
+  PASSWORD: password123
+---
+# High-Resolution Plan Viewer Test
+# Tests the updated OpenSeadragon viewer with high-res JPEG loading and caching
+#
+# Test Scenarios:
+# A) First-time load (cache miss) - download progress UI
+# B) Second load (cache hit) - instant load
+# C) Marker functionality - tap, long-press, navigation
+# D) Multi-sheet navigation - caching behavior
+
+# Step 1: Login (if not already logged in)
+- waitForAnimationToEnd
+
+- runFlow:
+    when:
+      visible:
+        text: "Email Address"
+    commands:
+      # Fill in login form
+      - tapOn:
+          text: "Email Address"
+      - inputText: "${EMAIL}"
+      - tapOn:
+          text: "Password"
+      - inputText: "${PASSWORD}"
+      - tapOn:
+          text: "Log In"
+      - waitForAnimationToEnd
+
+# Step 2: Navigate to Plans screen
+- waitForAnimationToEnd
+- assertVisible:
+    text: "Plans"
+
+# Take initial screenshot
+- takeScreenshot: plan_viewer_01_plans_screen
+
+# Step 3: Open a project with plans
+# Look for any project card and tap it
+- tapOn:
+    id: ".*project.*card.*|.*plan.*card.*"
+    index: 0
+
+- waitForAnimationToEnd
+
+# Step 4: Open first plan
+- tapOn:
+    id: ".*plan.*item.*|.*plan.*card.*"
+    index: 0
+
+- waitForAnimationToEnd
+
+# Step 5: SCENARIO A - First-time load (Cache Miss)
+# Wait for plan viewer to appear and check for download progress
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# Take screenshot showing initial state (may show progress)
+- takeScreenshot: plan_viewer_02_download_progress
+
+# Wait for image to fully load (give it time to download)
+- waitForAnimationToEnd:
+    timeout: 15000
+
+# Step 6: Verify high-res image loaded
+- takeScreenshot: plan_viewer_03_highres_loaded
+
+# Step 7: Test marker functionality
+# Look for a marker on the plan and tap it
+- runFlow:
+    when:
+      visible:
+        id: ".*marker.*|.*callout.*"
+    commands:
+      # Tap on first marker
+      - tapOn:
+          id: ".*marker.*|.*callout.*"
+          index: 0
+
+      - waitForAnimationToEnd
+
+      # Verify modal opened
+      - assertVisible:
+          text: ".*Detail.*|.*Marker.*|.*Callout.*"
+
+      # Take screenshot of marker modal
+      - takeScreenshot: plan_viewer_04_marker_modal
+
+      # Close modal (tap outside or close button)
+      - tapOn:
+          id: ".*close.*|.*dismiss.*"
+          index: 0
+
+      - waitForAnimationToEnd
+
+# Step 8: Test marker long-press (adjustment mode)
+- runFlow:
+    when:
+      visible:
+        id: ".*marker.*|.*callout.*"
+    commands:
+      # Long press on marker
+      - longPressOn:
+          id: ".*marker.*|.*callout.*"
+          index: 0
+
+      - waitForAnimationToEnd
+
+      # Take screenshot showing adjustment mode
+      - takeScreenshot: plan_viewer_05_marker_adjustment
+
+      # Tap somewhere else to exit adjustment mode
+      - tapOn:
+          point: "50%,20%"
+
+      - waitForAnimationToEnd
+
+# Step 9: SCENARIO B - Second Load (Cache Hit)
+# Navigate back to plans list
+- back
+
+- waitForAnimationToEnd
+
+- back
+
+- waitForAnimationToEnd
+
+# Re-open the same plan
+- tapOn:
+    id: ".*plan.*item.*|.*plan.*card.*"
+    index: 0
+
+- waitForAnimationToEnd
+
+# This should load instantly from cache
+- takeScreenshot: plan_viewer_06_cache_instant_load
+
+# Step 10: SCENARIO D - Multi-Sheet Navigation
+# Look for sheet selector/navigation
+- runFlow:
+    when:
+      visible:
+        id: ".*sheet.*selector.*|.*sheet.*nav.*|.*next.*sheet.*"
+    commands:
+      # Tap on next sheet or sheet selector
+      - tapOn:
+          id: ".*sheet.*selector.*|.*sheet.*nav.*|.*next.*sheet.*"
+          index: 0
+
+      - waitForAnimationToEnd
+
+      # Wait for potential download progress
+      - waitForAnimationToEnd:
+          timeout: 10000
+
+      # Take screenshot of second sheet
+      - takeScreenshot: plan_viewer_07_sheet_navigation
+
+      # Navigate back to first sheet (should load from cache)
+      - tapOn:
+          id: ".*sheet.*selector.*|.*sheet.*nav.*|.*prev.*sheet.*|.*back.*sheet.*"
+          index: 0
+
+      - waitForAnimationToEnd
+
+      # Take screenshot showing cached sheet
+      - takeScreenshot: plan_viewer_08_cached_sheet_reload
+
+# Step 11: Test "Go to Sheet" marker navigation
+- runFlow:
+    when:
+      visible:
+        id: ".*marker.*|.*callout.*"
+    commands:
+      # Find a marker with a sheet reference
+      - tapOn:
+          id: ".*marker.*|.*callout.*"
+          index: 0
+
+      - waitForAnimationToEnd
+
+      # Look for "Go to Sheet" button in modal
+      - runFlow:
+          when:
+            visible:
+              text: ".*Go to.*|.*Navigate.*|.*View Sheet.*"
+          commands:
+            # Tap "Go to Sheet"
+            - tapOn:
+                text: ".*Go to.*|.*Navigate.*|.*View Sheet.*"
+                index: 0
+
+            - waitForAnimationToEnd:
+                timeout: 10000
+
+            # Take screenshot of target sheet with highlighted marker
+            - takeScreenshot: plan_viewer_09_marker_navigation
+
+# Step 12: Final verification screenshot
+- waitForAnimationToEnd
+- takeScreenshot: plan_viewer_10_final_state
+
+# Summary:
+# - plan_viewer_01_plans_screen: Initial plans list
+# - plan_viewer_02_download_progress: First load with progress UI
+# - plan_viewer_03_highres_loaded: High-res image after download
+# - plan_viewer_04_marker_modal: Marker details modal
+# - plan_viewer_05_marker_adjustment: Marker in adjustment mode
+# - plan_viewer_06_cache_instant_load: Second load from cache
+# - plan_viewer_07_sheet_navigation: Multi-sheet navigation
+# - plan_viewer_08_cached_sheet_reload: Cached sheet reload
+# - plan_viewer_09_marker_navigation: Target sheet after "Go to Sheet"
+# - plan_viewer_10_final_state: Final state verification

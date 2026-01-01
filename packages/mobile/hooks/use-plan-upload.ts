@@ -27,6 +27,8 @@ export interface UsePlanUploadReturn {
   currentFileName: string | null;
   error: UploadErrorType | null;
   errorMessage: string | null;
+  isProcessing: boolean; // True after upload completes, while processing
+  processingProgress: number; // Processing progress (0-100)
   startUpload: (projectId: string, file: DocumentPickerAsset) => Promise<boolean>;
   cancelUpload: () => void;
   clearError: () => void;
@@ -58,6 +60,8 @@ export function usePlanUpload(): UsePlanUploadReturn {
   const [currentFileName, setCurrentFileName] = useState<string | null>(null);
   const [error, setError] = useState<UploadErrorType | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState(0);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -84,6 +88,8 @@ export function usePlanUpload(): UsePlanUploadReturn {
     setUploadProgress(0);
     setEstimatedTimeRemaining(null);
     setCurrentFileName(null);
+    setIsProcessing(false);
+    setProcessingProgress(0);
   }, []);
 
   const startUpload = useCallback(
@@ -136,6 +142,11 @@ export function usePlanUpload(): UsePlanUploadReturn {
 
         const { jobId } = uploadResult;
 
+        // Upload is complete, now processing
+        setIsUploading(false);
+        setUploadProgress(100);
+        setIsProcessing(true);
+
         // Start polling for job status
         return new Promise((resolve) => {
           pollingIntervalRef.current = setInterval(async () => {
@@ -144,12 +155,9 @@ export function usePlanUpload(): UsePlanUploadReturn {
                 ProcessingApi.getJobStatus(jobId)
               );
 
-              // Update progress
+              // Update processing progress
               const progress = jobStatus.progress ?? 0;
-              setUploadProgress(progress);
-              setEstimatedTimeRemaining(
-                calculateTimeRemaining(progress, startTimeRef.current)
-              );
+              setProcessingProgress(progress);
 
               // Check for completion
               if (jobStatus.status === "completed") {
@@ -157,8 +165,8 @@ export function usePlanUpload(): UsePlanUploadReturn {
                   clearInterval(pollingIntervalRef.current);
                   pollingIntervalRef.current = null;
                 }
-                setIsUploading(false);
-                setUploadProgress(100);
+                setIsProcessing(false);
+                setProcessingProgress(100);
                 setEstimatedTimeRemaining(0);
                 resolve(true);
               }
@@ -171,7 +179,7 @@ export function usePlanUpload(): UsePlanUploadReturn {
                 }
                 setError("processing_failed");
                 setErrorMessage(jobStatus.lastError || "Processing failed");
-                setIsUploading(false);
+                setIsProcessing(false);
                 resolve(false);
               }
             } catch (pollError) {
@@ -221,6 +229,8 @@ export function usePlanUpload(): UsePlanUploadReturn {
     currentFileName,
     error,
     errorMessage,
+    isProcessing,
+    processingProgress,
     startUpload,
     cancelUpload,
     clearError,

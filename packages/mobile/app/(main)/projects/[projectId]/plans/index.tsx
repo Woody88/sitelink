@@ -12,12 +12,15 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import { Text } from "@/components/ui/text";
-import { usePlans, useProject, useSheets } from "@/lib/api";
+import { useProject, useSheets } from "@/lib/api";
+import { usePlansWithPolling } from "@/hooks/use-plans-with-polling";
+import { usePlanSheetsMap } from "@/hooks/use-plan-sheets-map";
 import {
   PlansHeader,
   PlansSearchBar,
   FilterModal,
   UploadProgress,
+  ProcessingProgress,
   PlanCard,
   BottomTabs,
   FloatingActionButton,
@@ -35,13 +38,16 @@ import {
 import { usePlanUpload } from "@/hooks/use-plan-upload";
 
 // Helper to map API plan to PlanCardData
-function mapPlanToCardData(plan: {
-  readonly id: string;
-  readonly name: string;
-  readonly description: string | null;
-  readonly processingStatus: string | null;
-  readonly createdAt: Date;
-}): PlanCardData {
+function mapPlanToCardData(
+  plan: {
+    readonly id: string;
+    readonly name: string;
+    readonly description: string | null;
+    readonly processingStatus: string | null;
+    readonly createdAt: Date;
+  },
+  sheets?: Array<{ readonly id: string; readonly status: string }>
+): PlanCardData {
   // Extract discipline from plan name (e.g., "A-100" -> ARCH, "E-200" -> ELEC)
   const disciplineMap: Record<string, DisciplineType> = {
     A: "ARCH",
@@ -62,16 +68,23 @@ function mapPlanToCardData(plan: {
   };
   const status = statusMap[plan.processingStatus ?? ""] ?? "PENDING";
 
+  // Calculate processed sheets
+  const processedSheets = sheets?.filter((s) => s.status === "ready" || s.status === "completed").length ?? 0;
+  const totalSheets = sheets?.length ?? 0;
+
   return {
     id: plan.id,
     name: plan.name,
     discipline,
     status,
     version: 1,
-    sheetCount: 0,
+    sheetCount: totalSheets,
     markerCount: 0,
     reviewNeededCount: 0,
     sheets: [],
+    processingStatus: plan.processingStatus as "pending" | "processing" | "completed" | "failed" | null,
+    processedSheets,
+    totalSheets: totalSheets > 0 ? totalSheets : undefined,
   };
 }
 
@@ -183,7 +196,7 @@ export default function PlansScreen() {
     error,
     isLoading: plansLoading,
     refetch,
-  } = usePlans(projectId ?? null);
+  } = usePlansWithPolling(projectId ?? null);
 
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -204,6 +217,8 @@ export default function PlansScreen() {
     estimatedTimeRemaining,
     currentFileName,
     error: uploadError,
+    isProcessing,
+    processingProgress,
     startUpload,
     cancelUpload,
     clearError,
@@ -215,14 +230,26 @@ export default function PlansScreen() {
   // Update planSheets when sheets data loads
   useEffect(() => {
     if (expandedPlanId && sheetsData?.sheets && sheetsData.sheets.length > 0) {
-      const mappedSheets: SheetItemData[] = sheetsData.sheets.map((sheet) => ({
-        id: sheet.id,
-        sheetId: sheet.sheetName ?? `Sheet ${sheet.pageNumber}`,
-        name: sheet.sheetName ?? `Page ${sheet.pageNumber}`,
-        status: sheet.processingStatus === "completed" ? "Ready" : "Processing",
-        confidence: 85, // Default - would come from markers API
-        thumbnailUrl: undefined,
-      }));
+      const mappedSheets: SheetItemData[] = sheetsData.sheets.map((sheet) => {
+        // Map processing status to display text
+        const statusMap: Record<string, string> = {
+          pending: "Pending",
+          processing: "Processing tiles...",
+          ready: "Ready to view",
+          completed: "Ready to view",
+          failed: "Processing failed",
+        };
+        const displayStatus = statusMap[sheet.processingStatus] ?? "Unknown";
+
+        return {
+          id: sheet.id,
+          sheetId: sheet.sheetName ?? `Sheet ${sheet.pageNumber}`,
+          name: sheet.sheetName ?? `Page ${sheet.pageNumber}`,
+          status: displayStatus,
+          confidence: sheet.markerCount > 0 ? 85 : undefined, // Only show confidence if markers detected
+          thumbnailUrl: undefined,
+        };
+      });
       setPlanSheets((prev) => ({
         ...prev,
         [expandedPlanId]: mappedSheets,
@@ -234,7 +261,14 @@ export default function PlansScreen() {
 
   // Use API data if available, otherwise use mock data for demo
   const apiPlans = plansData?.plans ?? [];
-  const basePlans = apiPlans.length > 0 ? apiPlans.map(mapPlanToCardData) : MOCK_PLANS;
+
+  // Fetch sheets for all plans to get processing progress
+  const planIds = apiPlans.map((p) => p.id);
+  const { sheetsMap } = usePlanSheetsMap(planIds);
+
+  const basePlans = apiPlans.length > 0
+    ? apiPlans.map((plan) => mapPlanToCardData(plan, sheetsMap[plan.id]))
+    : MOCK_PLANS;
 
   // Merge sheets into plans
   const plans = basePlans.map((plan) => ({
@@ -451,6 +485,14 @@ export default function PlansScreen() {
           progress={uploadProgressValue}
           estimatedTimeRemaining={estimatedTimeRemaining}
           onCancel={cancelUpload}
+        />
+      )}
+
+      {/* Processing Progress - shown after upload completes */}
+      {isProcessing && currentFileName && (
+        <ProcessingProgress
+          fileName={currentFileName}
+          progress={processingProgress}
         />
       )}
 
