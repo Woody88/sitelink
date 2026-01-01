@@ -101,6 +101,7 @@ const tileFileParam = HttpApiSchema.param("tile", Schema.String)
  * Marker Response Schemas (for frontend integration)
  */
 const HyperlinkSchema = Schema.Struct({
+	id: Schema.String,              // Marker ID (for interactions)
 	calloutRef: Schema.String,      // Full marker text e.g., "3/A7"
 	targetSheetRef: Schema.String,  // Referenced sheet e.g., "A7"
 	x: Schema.Number,               // Normalized x coordinate (0-1)
