@@ -224,8 +224,9 @@ async function processJob(message: Message<TileJob>, env: Env) {
     console.log(`📦 Starting tar extraction...`)
   const extractor = extract()
 
-  // Track tile count
+  // Track tile count and high-res path
   let tileCount = 0
+  let highResPath: string | null = null
 
   extractor.on("entry", (header, entryStream, next) => {
     console.log(`📦 Processing tar entry: ${header.name} (${header.size} bytes)`)
@@ -253,12 +254,22 @@ async function processJob(message: Message<TileJob>, env: Env) {
       ? 'application/xml'
       : 'application/octet-stream'
 
-    // Count JPEG tiles only (not DZI metadata files)
-    if (header.name.endsWith('.jpg')) {
+    // Count JPEG tiles only (not DZI metadata files or high-res.jpg)
+    if (header.name.endsWith('.jpg') && header.name !== 'high-res.jpg') {
       tileCount++
     }
 
-    const r2Key = `organizations/${job.organizationId}/projects/${job.projectId}/plans/${job.planId}/sheets/sheet-${job.sheetNumber}/${header.name}`
+    // Determine R2 path based on file type
+    let r2Key: string
+    if (header.name === 'high-res.jpg') {
+      // Store high-res JPEG at: organizations/{org}/projects/{proj}/plans/{plan}/sheets/sheet-{n}/high-res.jpg
+      r2Key = `organizations/${job.organizationId}/projects/${job.projectId}/plans/${job.planId}/sheets/sheet-${job.sheetNumber}/high-res.jpg`
+      highResPath = r2Key // Track path for database update
+      console.log(`📸 Found high-res JPEG, uploading to: ${r2Key}`)
+    } else {
+      // Store tiles and DZI in tiles subdirectory
+      r2Key = `organizations/${job.organizationId}/projects/${job.projectId}/plans/${job.planId}/sheets/sheet-${job.sheetNumber}/${header.name}`
+    }
 
     // CRITICAL: Resume the Node.js stream BEFORE starting the async pipeline
     // Without this, the stream stays paused and pipeTo() never receives data
@@ -272,11 +283,11 @@ async function processJob(message: Message<TileJob>, env: Env) {
         entryStream.on('data', (chunk: Buffer) => {
           controller.enqueue(new Uint8Array(chunk))
         })
-        
+
         entryStream.on('end', () => {
           controller.close()
         })
-        
+
         entryStream.on('error', (error) => {
           controller.error(error)
         })
@@ -369,11 +380,12 @@ async function processJob(message: Message<TileJob>, env: Env) {
     .set({
       status: "complete",
       tileCount: tileCount,
+      highResPath: highResPath,
       processingCompletedAt: new Date()
     })
     .where(eq(planSheets.id, sheetRecord.id))
 
-  console.log(`✅ Updated plan_sheets: status=complete, tileCount=${tileCount}`)
+  console.log(`✅ Updated plan_sheets: status=complete, tileCount=${tileCount}, highResPath=${highResPath}`)
 
   // Notify PlanCoordinator that this sheet's tile generation is complete
   console.log(`📦 Notifying PlanCoordinator of tile completion...`)

@@ -8,7 +8,9 @@ import OpenSeadragonViewer, { type Marker } from '@/components/plan-viewer/OpenS
 import MarkerDetailsModal from '@/components/plan-viewer/MarkerDetailsModal';
 import { MarkerTimelineModal } from '@/components/media';
 import { useSheets, useSheetMarkers, usePendingReviewMarkers } from '@/lib/api/hooks';
-import { SheetsApi, MarkersApi, type DziMetadata } from '@/lib/api/client';
+import { MarkersApi } from '@/lib/api/client';
+import { SheetCacheAsync } from '@/lib/cache';
+import { ApiConfig } from '@/lib/api/config';
 
 export default function PlanViewerScreen() {
   const insets = useSafeAreaInsets();
@@ -20,9 +22,12 @@ export default function PlanViewerScreen() {
 
   const [selectedSheetIndex, setSelectedSheetIndex] = useState(0);
   const [initialSheetSet, setInitialSheetSet] = useState(false);
-  const [dziMetadata, setDziMetadata] = useState<DziMetadata | null>(null);
-  const [metadataError, setMetadataError] = useState<string | null>(null);
-  const [isLoadingMetadata, setIsLoadingMetadata] = useState(false);
+
+  // Image loading state
+  const [imageSource, setImageSource] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   // Modal state
   const [selectedMarker, setSelectedMarker] = useState<Marker | null>(null);
@@ -77,43 +82,55 @@ export default function PlanViewerScreen() {
     isNavigatingRef.current = false;
   }, [selectedSheetIndex]);
 
-  // Fetch DZI metadata when sheet changes (from React Native, not webview)
+  // Load sheet image when sheet changes
   useEffect(() => {
-    if (!planId || !selectedSheet?.id) {
-      setDziMetadata(null);
-      return;
+    async function loadSheet() {
+      if (!selectedSheet?.id || !planId) {
+        setImageSource(null);
+        return;
+      }
+
+      setIsDownloading(true);
+      setImageError(null);
+      setDownloadProgress(0);
+
+      try {
+        // Check cache first
+        console.log('[PlanViewer] Checking cache for sheet:', selectedSheet.id);
+        const localPath = await SheetCacheAsync.getLocalPath(selectedSheet.id);
+
+        if (localPath) {
+          // Load from cache immediately
+          console.log('[PlanViewer] Sheet found in cache:', localPath);
+          setImageSource(localPath);
+          setIsDownloading(false);
+        } else {
+          // Download high-res with progress
+          const imageUrl = `${ApiConfig.baseUrl}/api/plans/${planId}/sheets/${selectedSheet.id}/high-res.jpg`;
+          console.log('[PlanViewer] Downloading sheet from:', imageUrl);
+
+          const path = await SheetCacheAsync.downloadSheet(
+            selectedSheet.id,
+            imageUrl,
+            (progress) => {
+              console.log(`[PlanViewer] Download progress: ${progress.percentComplete}%`);
+              setDownloadProgress(progress.percentComplete);
+            }
+          );
+
+          console.log('[PlanViewer] Sheet downloaded to:', path);
+          setImageSource(path);
+          setIsDownloading(false);
+        }
+      } catch (err) {
+        console.error('[PlanViewer] Failed to load sheet:', err);
+        setImageError(err instanceof Error ? err.message : 'Failed to load sheet image');
+        setIsDownloading(false);
+      }
     }
 
-    setIsLoadingMetadata(true);
-    setMetadataError(null);
-
-    console.log('[PlanViewer] Fetching DZI metadata from RN...');
-
-    Effect.runPromise(SheetsApi.getDziMetadata(planId, selectedSheet.id))
-      .then((metadata) => {
-        console.log('[PlanViewer] DZI metadata loaded:', metadata);
-        setDziMetadata(metadata);
-        setIsLoadingMetadata(false);
-      })
-      .catch((err) => {
-        console.error('[PlanViewer] Failed to load DZI metadata:', err);
-        setMetadataError(err.message || 'Failed to load plan metadata');
-        setIsLoadingMetadata(false);
-      });
-  }, [planId, selectedSheet?.id]);
-
-  // Native action for fetching tiles (called from webview via Expo DOM bridge)
-  const fetchTile = useCallback(async (level: number, x: number, y: number): Promise<string> => {
-    if (!planId || !selectedSheet?.id || !dziMetadata) {
-      throw new Error('Missing plan/sheet data');
-    }
-
-    console.log(`[PlanViewer] Fetching tile ${level}/${x}_${y} from RN...`);
-
-    return Effect.runPromise(
-      SheetsApi.getTileBase64(planId, selectedSheet.id, level, x, y, dziMetadata.format)
-    );
-  }, [planId, selectedSheet?.id, dziMetadata]);
+    loadSheet();
+  }, [selectedSheet?.id, planId]);
 
   // Handle marker press - show modal
   const handleMarkerPress = useCallback((marker: Marker) => {
@@ -286,32 +303,39 @@ export default function PlanViewerScreen() {
     );
   }
 
-  // Loading metadata
-  if (isLoadingMetadata) {
+  // Loading or downloading sheet
+  if (isDownloading && !imageSource) {
     return (
       <View style={styles.container}>
         <Header />
         <View style={styles.centerContent}>
           <ActivityIndicator size="large" color="#c9623d" />
-          <Text style={styles.loadingText}>Loading plan metadata...</Text>
+          {downloadProgress > 0 ? (
+            <>
+              <Text style={styles.loadingText}>Downloading sheet...</Text>
+              <Text style={styles.progressText}>{downloadProgress}%</Text>
+            </>
+          ) : (
+            <Text style={styles.loadingText}>Checking cache...</Text>
+          )}
         </View>
       </View>
     );
   }
 
-  // Metadata error
-  if (metadataError) {
+  // Image error
+  if (imageError) {
     return (
       <View style={styles.container}>
         <Header />
         <View style={styles.centerContent}>
-          <Text style={styles.errorTitle}>Failed to load plan</Text>
-          <Text style={styles.errorMessage}>{metadataError}</Text>
+          <Text style={styles.errorTitle}>Failed to load sheet</Text>
+          <Text style={styles.errorMessage}>{imageError}</Text>
           <Text style={styles.retryButton} onPress={() => {
-            setMetadataError(null);
-            setIsLoadingMetadata(true);
-            // Re-trigger the useEffect
-            setDziMetadata(null);
+            setImageError(null);
+            setIsDownloading(true);
+            // Re-trigger the useEffect by clearing imageSource
+            setImageSource(null);
           }}>
             Tap to retry
           </Text>
@@ -320,8 +344,8 @@ export default function PlanViewerScreen() {
     );
   }
 
-  // No metadata yet
-  if (!dziMetadata) {
+  // No image yet
+  if (!imageSource) {
     return (
       <View style={styles.container}>
         <Header />
@@ -337,8 +361,7 @@ export default function PlanViewerScreen() {
     <View style={styles.container}>
       <Header />
       <OpenSeadragonViewer
-        metadata={dziMetadata}
-        fetchTile={fetchTile}
+        imageSource={imageSource}
         markers={markers}
         onMarkerPress={handleMarkerPress}
         onMarkerPositionUpdate={handleMarkerPositionUpdate}
@@ -431,6 +454,12 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     marginTop: 16,
     fontSize: 16,
+  },
+  progressText: {
+    color: '#c9623d',
+    marginTop: 8,
+    fontSize: 20,
+    fontWeight: '600',
   },
   errorTitle: {
     color: '#ef4444',

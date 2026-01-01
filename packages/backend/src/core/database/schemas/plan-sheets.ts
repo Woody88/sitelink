@@ -27,6 +27,9 @@ export const planSheets = D.sqliteTable(
 			mode: "timestamp_ms",
 		}),
 
+		// High-res JPEG path for mobile viewing
+		highResPath: D.text("high_res_path"), // R2 path to high-res JPEG (e.g., organizations/{org}/projects/{proj}/plans/{plan}/sheets/sheet-{n}/high-res.jpg)
+
 		status: D.text()
 			.notNull()
 			.default("pending"), // pending|processing|ready|failed (renamed from processingStatus)

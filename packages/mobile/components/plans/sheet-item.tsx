@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Pressable, Image } from "react-native";
+import { View, Pressable, Image, ActivityIndicator } from "react-native";
 import { Text } from "@/components/ui/text";
 import { Ionicons } from "@expo/vector-icons";
 import { ConfidenceBadge } from "./badge";
@@ -43,6 +43,9 @@ export function SheetItem({
       onSelect(sheet.id);
     }
   };
+
+  // Check if sheet is processing
+  const isProcessing = sheet.status?.includes("Processing") || sheet.status === "Pending";
 
   return (
     <Pressable
@@ -95,19 +98,29 @@ export function SheetItem({
           {sheet.confidence !== undefined && (
             <ConfidenceBadge confidence={sheet.confidence} />
           )}
+          {isProcessing && (
+            <ActivityIndicator size="small" color="#f59e0b" />
+          )}
         </View>
         <Text className="text-sm text-muted-foreground mt-0.5" numberOfLines={1}>
           {sheet.name}
         </Text>
         {sheet.status && (
-          <Text className="text-xs text-muted-foreground mt-0.5">
+          <Text className={cn(
+            "text-xs mt-0.5",
+            isProcessing ? "text-amber-600" : "text-muted-foreground"
+          )}>
             {sheet.status}
           </Text>
         )}
       </View>
 
-      {/* Chevron */}
-      <Ionicons name="chevron-forward" size={18} color="#828180" />
+      {/* Chevron or checkmark */}
+      {isProcessing ? (
+        <View className="w-5 h-5" />
+      ) : (
+        <Ionicons name="chevron-forward" size={18} color="#828180" />
+      )}
     </Pressable>
   );
 }

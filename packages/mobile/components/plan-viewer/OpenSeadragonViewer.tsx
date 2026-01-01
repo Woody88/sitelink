@@ -3,17 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 
 /**
- * DZI Metadata - matches the schema from client.ts
- */
-interface DziMetadata {
-  width: number;
-  height: number;
-  tileSize: number;
-  overlap: number;
-  format: string;
-}
-
-/**
  * Marker/Hyperlink data from the API
  */
 export interface Marker {
@@ -27,14 +16,9 @@ export interface Marker {
 
 interface Props {
   /**
-   * Pre-fetched DZI metadata from React Native
+   * Image source - either local file path (file://) or remote URL (http://)
    */
-  metadata: DziMetadata;
-  /**
-   * Callback to fetch tiles from React Native (handles auth)
-   * Returns base64 data URL for the tile
-   */
-  fetchTile: (level: number, x: number, y: number) => Promise<string>;
+  imageSource: string;
   /**
    * Markers/callouts to display on the plan
    */
@@ -76,13 +60,12 @@ const MARKER_STYLES = {
 };
 
 /**
- * OpenSeadragon viewer that displays DZI tiles with marker overlays
+ * OpenSeadragon viewer that displays a single high-res image with marker overlays
  *
  * Architecture:
- * 1. React Native fetches tiles (authenticated)
- * 2. Returns base64 data URLs via fetchTile callback
- * 3. OpenSeadragon uses custom ImageLoader to load from base64
- * 4. Markers are rendered as small transparent anchors that scale with zoom
+ * 1. Accepts either local file path (file://) or remote URL (http://)
+ * 2. OpenSeadragon loads the image directly (no tiling)
+ * 3. Markers are rendered as small transparent anchors that scale with zoom
  *
  * Marker Interaction:
  * - Tap: Show marker details (onMarkerPress)
@@ -91,8 +74,7 @@ const MARKER_STYLES = {
  * - Release: Save new position (onMarkerPositionUpdate) and exit adjustment mode
  */
 export default function OpenSeadragonViewer({
-  metadata,
-  fetchTile,
+  imageSource,
   markers = [],
   onMarkerPress,
   onMarkerPositionUpdate,
@@ -495,26 +477,13 @@ export default function OpenSeadragonViewer({
       try {
         const OpenSeadragon = OSD.default;
 
-        const maxLevel = Math.ceil(Math.log2(Math.max(metadata.width, metadata.height) / metadata.tileSize));
-
-        // Create a simple tile source with proper DZI structure
-        const tileSourceConfig = {
-          width: metadata.width,
-          height: metadata.height,
-          tileSize: metadata.tileSize,
-          tileOverlap: metadata.overlap,
-          minLevel: 0,
-          maxLevel,
-          // Use a custom protocol so we can identify our tiles
-          getTileUrl: function(level: number, x: number, y: number): string {
-            return `native-bridge://${level}/${x}_${y}`;
-          },
-        };
-
-        // Create viewer
+        // Create viewer with simple image source
         viewerRef.current = OpenSeadragon({
           element: containerRef.current,
-          tileSources: tileSourceConfig,
+          tileSources: {
+            type: 'image',
+            url: imageSource,
+          },
           // Hide navigation icons (zoom buttons, home, fullscreen)
           showNavigationControl: false,
           showNavigator: false,
@@ -526,10 +495,7 @@ export default function OpenSeadragonViewer({
           maxZoomLevel: 10,
           visibilityRatio: 1,
           zoomPerScroll: 2,
-          // Increase timeout
           timeout: 120000,
-          // Limit concurrent requests
-          imageLoaderLimit: 2,
           // Disable rotation - only allow zoom and pan
           gestureSettingsTouch: {
             pinchRotate: false,
@@ -542,87 +508,8 @@ export default function OpenSeadragonViewer({
 
         const viewer = viewerRef.current;
 
-        // Override the addTiledImage to inject our custom loading
-        const originalAddJob = (viewer as any).imageLoader.addJob;
-        (viewer as any).imageLoader.addJob = function(options: any) {
-          const src = options.src;
-
-          // Check if this is our custom protocol
-          if (src && src.startsWith('native-bridge://')) {
-            // Parse the tile coordinates from URL
-            const match = src.match(/native-bridge:\/\/(\d+)\/(\d+)_(\d+)/);
-            if (match) {
-              const level = parseInt(match[1], 10);
-              const x = parseInt(match[2], 10);
-              const y = parseInt(match[3], 10);
-
-              console.log(`[ImageLoader] Loading tile ${level}/${x}_${y} via native bridge...`);
-
-              // Create a proper job object that OpenSeadragon expects
-              const job = {
-                src,
-                crossOriginPolicy: options.crossOriginPolicy || false,
-                callback: options.callback,
-                abort: options.abort,
-                timeout: options.timeout,
-                image: null as HTMLImageElement | null,
-                errorMsg: null as string | null,
-              };
-
-              // Fetch tile via React Native
-              fetchTile(level, x, y)
-                .then((base64Data) => {
-                  console.log(`[ImageLoader] Tile ${level}/${x}_${y} fetched, creating image...`);
-
-                  // Create image from base64
-                  const img = new Image();
-                  img.crossOrigin = options.crossOriginPolicy || 'anonymous';
-
-                  img.onload = () => {
-                    console.log(`[ImageLoader] Tile ${level}/${x}_${y} image loaded successfully`);
-
-                    // Store image in job object
-                    job.image = img;
-
-                    // Call the callback with just the image (OpenSeadragon's expected signature)
-                    if (job.callback) {
-                      job.callback(img, job.errorMsg, job.src);
-                    }
-                  };
-
-                  img.onerror = (e) => {
-                    console.error(`[ImageLoader] Tile ${level}/${x}_${y} image error:`, e);
-                    job.errorMsg = 'Image failed to load';
-                    if (job.abort) {
-                      job.abort();
-                    } else if (job.callback) {
-                      job.callback(null, job.errorMsg, job.src);
-                    }
-                  };
-
-                  img.src = base64Data;
-                })
-                .catch((err) => {
-                  console.error(`[ImageLoader] Failed to fetch tile ${level}/${x}_${y}:`, err);
-                  job.errorMsg = err.message || 'Failed to fetch tile';
-                  if (job.abort) {
-                    job.abort();
-                  } else if (job.callback) {
-                    job.callback(null, job.errorMsg, job.src);
-                  }
-                });
-
-              // Return the job object
-              return job;
-            }
-          }
-
-          // Fall back to original implementation for non-native-bridge URLs
-          return originalAddJob.call(this, options);
-        };
-
         viewer.addHandler('open', () => {
-          console.log('[OpenSeadragon] Viewer opened successfully');
+          console.log('[OpenSeadragon] Image loaded successfully');
           setStatus('');
           // Add markers once the viewer is ready, passing OpenSeadragon for Rect/MouseTracker
           addMarkersToViewer(viewer, OpenSeadragon);
@@ -631,18 +518,10 @@ export default function OpenSeadragonViewer({
         viewer.addHandler('open-failed', (event: any) => {
           const errorMsg = event.message || 'Unknown error';
           console.error('[OpenSeadragon] open-failed:', event);
-          setStatus(`Failed to load plan: ${errorMsg}`);
+          setStatus(`Failed to load image: ${errorMsg}`);
         });
 
-        viewer.addHandler('tile-loaded', (event: any) => {
-          console.log('[OpenSeadragon] Tile loaded:', event.tile?.level, event.tile?.x, event.tile?.y);
-        });
-
-        viewer.addHandler('tile-load-failed', (event: any) => {
-          console.error('[OpenSeadragon] Tile load failed:', event.tile?.level, event.tile?.x, event.tile?.y);
-        });
-
-        setStatus('Loading tiles...');
+        setStatus('Loading image...');
 
       } catch (err) {
         console.error('[OpenSeadragon] Initialization error:', err);
@@ -663,7 +542,7 @@ export default function OpenSeadragonViewer({
         viewerRef.current = null;
       }
     };
-  }, [metadata, fetchTile]);
+  }, [imageSource]);
 
   // Re-add markers when they change
   useEffect(() => {
