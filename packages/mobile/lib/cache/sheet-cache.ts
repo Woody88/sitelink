@@ -61,12 +61,14 @@ export interface CacheStats {
 
 /**
  * Get the cache directory path for sheets
+ * Falls back to documentDirectory if cacheDirectory is not available
  */
 const getCacheDir = (): string => {
-	if (!FileSystem.cacheDirectory) {
-		throw new Error("FileSystem.cacheDirectory is not available")
+	const baseDir = FileSystem.cacheDirectory || FileSystem.documentDirectory
+	if (!baseDir) {
+		throw new Error("FileSystem is not available (neither cacheDirectory nor documentDirectory)")
 	}
-	return `${FileSystem.cacheDirectory}sheets/`
+	return `${baseDir}sheets/`
 }
 
 /**
