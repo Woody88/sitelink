@@ -1,0 +1,8 @@
+appId: host.exp.exponent
+---
+- launchApp
+- tapOn: '@sitelink/mobile'
+- assertVisible: 'Plans'
+- assertVisible: 'Camera'
+- assertVisible: 'Projects'
+- assertVisible: 'More'

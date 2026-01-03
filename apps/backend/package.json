@@ -1,0 +1,15 @@
+{
+  "name": "@sitelink/backend",
+  "version": "0.0.0",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts"
+  },
+  "dependencies": {
+    "@sitelink/domain": "workspace:*",
+    "effect": "catalog:effect",
+    "@effect/platform": "0.82.4",
+    "@effect/platform-bun": "0.65.1"
+  }
+}

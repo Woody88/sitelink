@@ -1,4 +1,3 @@
-
 Default to using Bun instead of Node.js.
 
 - Use `bun <file>` instead of `node <file>` or `ts-node <file>`
@@ -104,3 +103,16 @@ bun --hot ./index.ts
 ```
 
 For more information, read the Bun API docs in `node_modules/bun-types/docs/**.md`.
+
+<!-- effect-solutions:start -->
+
+## Effect Best Practices
+
+**Before implementing Effect features**, run `effect-solutions list` and read the relevant guide.
+
+Topics include: services and layers, data modeling, error handling, configuration, testing, HTTP clients, CLIs, observability, and project structure.
+
+**Effect Source Reference:** `~/.local/share/effect-solutions/effect`
+Search here for real implementations when docs aren't enough.
+
+<!-- effect-solutions:end -->

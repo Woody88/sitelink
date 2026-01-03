@@ -1,0 +1,9 @@
+{
+  "name": "@sitelink/domain",
+  "version": "0.0.0",
+  "main": "src/index.ts",
+  "type": "module",
+  "dependencies": {
+    "effect": "catalog:effect"
+  }
+}
