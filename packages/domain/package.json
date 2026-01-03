@@ -4,6 +4,7 @@
   "main": "src/index.ts",
   "type": "module",
   "dependencies": {
+    "@livestore/livestore": "catalog:livestore",
     "effect": "catalog:effect"
   }
 }

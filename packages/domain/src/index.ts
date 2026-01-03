@@ -1,12 +1,5 @@
-import { Effect, Context, Layer } from "effect";
-
-export class Greeter extends Context.Tag("Greeter")<
-  Greeter,
-  {
-    readonly greet: (name: string) => Effect.Effect<string>;
-  }
->() {}
-
-export const GreeterLive = Layer.succeed(Greeter, {
-  greet: (name) => Effect.succeed(`Hello, ${name}!`),
-});
+// packages/domain/src/index.ts
+export { events } from './events'
+export { tables } from './tables'
+export { materializers } from './materializers'
+export { schema } from './schema'

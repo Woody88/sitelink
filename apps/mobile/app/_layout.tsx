@@ -9,13 +9,12 @@ import { useUniwind } from 'uniwind'
 import * as SplashScreen from 'expo-splash-screen'
 import React, { useEffect } from 'react'
 import { makePersistedAdapter } from '@livestore/adapter-expo'
-import { nanoid } from '@livestore/livestore'
 import { LiveStoreProvider } from '@livestore/react'
 import { makeCfSync } from '@livestore/sync-cf'
 import { View, unstable_batchedUpdates as batchUpdates } from 'react-native'
 import { Text } from '@/components/ui/text'
 import { Button } from '@/components/ui/button'
-import { events, schema, tables } from '@/src/livestore/schema'
+import { schema } from '@sitelink/domain'
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -62,11 +61,6 @@ export default function RootLayout() {
               <Button title="Reload" onPress={() => rerender({})} />
             </View>
           )
-        }}
-        boot={(store) => {
-          if (store.query(tables.todos.count()) === 0) {
-            store.commit(events.todoCreated({ id: nanoid(), text: 'Make coffee' }))
-          }
         }}
         batchUpdates={batchUpdates}>
         <Stack
