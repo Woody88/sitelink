@@ -4,16 +4,83 @@ import { events } from './events'
 import { tables } from './tables'
 
 export const materializers = State.SQLite.materializers(events, {
+  // ===================
+  // User materializers
+  // ===================
+  'v1.UserCreated': (event) =>
+    tables.users.insert({
+      id: event.id,
+      email: event.email,
+      name: event.name,
+      avatarUrl: event.avatarUrl ?? null,
+      company: null,
+      phone: null,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    }),
+
+  'v1.UserUpdated': (event) =>
+    tables.users.update({
+      ...(event.name && { name: event.name }),
+      ...(event.company !== undefined && { company: event.company }),
+      ...(event.phone !== undefined && { phone: event.phone }),
+      ...(event.avatarUrl !== undefined && { avatarUrl: event.avatarUrl }),
+      updatedAt: Date.now(),
+    }).where({ id: event.userId }),
+
+  'v1.UserDeleted': (event) =>
+    tables.users.delete().where({ id: event.userId }),
+
+  // ===================
   // Organization materializers
+  // ===================
   'v1.OrganizationCreated': (event) =>
     tables.organizations.insert({
       id: event.id,
       name: event.name,
       ownerId: event.ownerId,
       createdAt: Date.now(),
+      updatedAt: Date.now(),
     }),
 
+  'v1.OrganizationUpdated': (event) =>
+    tables.organizations.update({
+      ...(event.name && { name: event.name }),
+      updatedAt: Date.now(),
+    }).where({ id: event.organizationId }),
+
+  'v1.OrganizationDeleted': (event) =>
+    tables.organizations.delete().where({ id: event.organizationId }),
+
+  // ===================
+  // Organization membership materializers
+  // ===================
+  'v1.MemberAdded': (event) =>
+    tables.organizationMembers.insert({
+      id: `${event.organizationId}_${event.userId}`,
+      organizationId: event.organizationId,
+      userId: event.userId,
+      role: event.role,
+      addedAt: Date.now(),
+    }),
+
+  'v1.MemberRemoved': (event) =>
+    tables.organizationMembers.delete().where({
+      organizationId: event.organizationId,
+      userId: event.userId,
+    }),
+
+  'v1.MemberRoleUpdated': (event) =>
+    tables.organizationMembers.update({
+      role: event.newRole,
+    }).where({
+      organizationId: event.organizationId,
+      userId: event.userId,
+    }),
+
+  // ===================
   // Project materializers
+  // ===================
   'v1.ProjectCreated': (event) =>
     tables.projects.insert({
       id: event.id,
@@ -21,6 +88,7 @@ export const materializers = State.SQLite.materializers(events, {
       name: event.name,
       address: event.address ?? null,
       isArchived: false,
+      createdBy: event.createdBy,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     }),
@@ -35,12 +103,89 @@ export const materializers = State.SQLite.materializers(events, {
   'v1.ProjectArchived': (event) =>
     tables.projects.update({ isArchived: true, updatedAt: Date.now() }).where({ id: event.projectId }),
 
-  // Sheet materializers - insert each sheet
+  'v1.ProjectUnarchived': (event) =>
+    tables.projects.update({ isArchived: false, updatedAt: Date.now() }).where({ id: event.projectId }),
+
+  'v1.ProjectDeleted': (event) =>
+    tables.projects.delete().where({ id: event.projectId }),
+
+  // ===================
+  // Project sharing materializers
+  // ===================
+  'v1.ProjectShared': (event) =>
+    tables.projectShares.insert({
+      id: `${event.projectId}_${event.sharedWithEmail}`,
+      projectId: event.projectId,
+      sharedWithEmail: event.sharedWithEmail,
+      sharedWithUserId: event.sharedWithUserId ?? null,
+      role: event.role,
+      sharedBy: event.sharedBy,
+      accepted: false,
+      sharedAt: Date.now(),
+    }),
+
+  'v1.ShareAccepted': (event) =>
+    tables.projectShares.update({
+      accepted: true,
+      sharedWithUserId: event.userId,
+    }).where({ projectId: event.projectId, sharedWithEmail: event.email }),
+
+  'v1.ShareRevoked': (event) =>
+    tables.projectShares.delete().where({
+      projectId: event.projectId,
+      sharedWithEmail: event.email,
+    }),
+
+  // ===================
+  // Plan materializers
+  // ===================
+  'v1.PlanUploaded': (event) =>
+    tables.plans.insert({
+      id: event.id,
+      projectId: event.projectId,
+      fileName: event.fileName,
+      fileSize: event.fileSize,
+      mimeType: event.mimeType,
+      remotePath: event.remotePath,
+      status: 'uploaded',
+      sheetCount: null,
+      errorMessage: null,
+      uploadedBy: event.uploadedBy,
+      uploadedAt: event.uploadedAt.getTime(),
+      processedAt: null,
+    }),
+
+  'v1.PlanProcessingStarted': (event) =>
+    tables.plans.update({
+      status: 'processing',
+    }).where({ id: event.planId }),
+
+  'v1.PlanProcessingCompleted': (event) =>
+    tables.plans.update({
+      status: 'completed',
+      sheetCount: event.sheetCount,
+      processedAt: event.completedAt.getTime(),
+    }).where({ id: event.planId }),
+
+  'v1.PlanProcessingFailed': (event) =>
+    tables.plans.update({
+      status: 'failed',
+      errorMessage: event.error,
+      processedAt: event.failedAt.getTime(),
+    }).where({ id: event.planId }),
+
+  'v1.PlanDeleted': (event) =>
+    tables.plans.delete().where({ id: event.planId }),
+
+  // ===================
+  // Sheet materializers
+  // ===================
   'v1.SheetsReceived': (event) =>
     event.sheets.map((sheet, index) =>
       tables.sheets.insert({
         id: sheet.id,
         projectId: event.projectId,
+        planId: event.planId,
         number: sheet.number,
         title: sheet.title,
         discipline: sheet.discipline,
@@ -51,7 +196,12 @@ export const materializers = State.SQLite.materializers(events, {
       })
     ),
 
-  // Marker materializers - insert each marker
+  'v1.SheetDeleted': (event) =>
+    tables.sheets.delete().where({ id: event.sheetId }),
+
+  // ===================
+  // Marker materializers
+  // ===================
   'v1.MarkersReceived': (event) =>
     event.markers.map((marker) =>
       tables.markers.insert({
@@ -62,10 +212,38 @@ export const materializers = State.SQLite.materializers(events, {
         x: marker.x,
         y: marker.y,
         confidence: marker.confidence,
+        createdBy: null, // AI-detected
+        createdAt: null,
       })
     ),
 
+  'v1.MarkerCreated': (event) =>
+    tables.markers.insert({
+      id: event.id,
+      sheetId: event.sheetId,
+      label: event.label,
+      targetSheetId: null,
+      x: event.x,
+      y: event.y,
+      confidence: null, // Manual marker
+      createdBy: event.createdBy,
+      createdAt: Date.now(),
+    }),
+
+  'v1.MarkerUpdated': (event) =>
+    tables.markers.update({
+      ...(event.label && { label: event.label }),
+      ...(event.x !== undefined && { x: event.x }),
+      ...(event.y !== undefined && { y: event.y }),
+      ...(event.targetSheetId !== undefined && { targetSheetId: event.targetSheetId }),
+    }).where({ id: event.markerId }),
+
+  'v1.MarkerDeleted': (event) =>
+    tables.markers.delete().where({ id: event.markerId }),
+
+  // ===================
   // Photo materializers
+  // ===================
   'v1.PhotoCaptured': (event) =>
     tables.photos.insert({
       id: event.id,
@@ -90,7 +268,12 @@ export const materializers = State.SQLite.materializers(events, {
   'v1.PhotoUploaded': (event) =>
     tables.photos.update({ remotePath: event.remotePath }).where({ id: event.photoId }),
 
+  'v1.PhotoDeleted': (event) =>
+    tables.photos.delete().where({ id: event.photoId }),
+
+  // ===================
   // Voice note materializers
+  // ===================
   'v1.VoiceNoteRecorded': (event) =>
     tables.voiceNotes.insert({
       id: event.id,
@@ -101,14 +284,12 @@ export const materializers = State.SQLite.materializers(events, {
       transcription: null,
     }),
 
+  'v1.VoiceNoteUploaded': (event) =>
+    tables.voiceNotes.update({ remotePath: event.remotePath }).where({ id: event.voiceNoteId }),
+
   'v1.VoiceNoteTranscribed': (event) =>
     tables.voiceNotes.update({ transcription: event.transcription }).where({ id: event.voiceNoteId }),
 
-  // User materializers
-  'v1.UserUpdated': (event) =>
-    tables.users.update({
-      ...(event.name && { name: event.name }),
-      ...(event.company !== undefined && { company: event.company }),
-      ...(event.phone !== undefined && { phone: event.phone }),
-    }).where({ id: event.userId }),
+  'v1.VoiceNoteDeleted': (event) =>
+    tables.voiceNotes.delete().where({ id: event.voiceNoteId }),
 })

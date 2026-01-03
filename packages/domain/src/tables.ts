@@ -2,6 +2,27 @@
 import { State } from '@livestore/livestore'
 
 export const tables = {
+  // ===================
+  // Users
+  // ===================
+  users: State.SQLite.table({
+    name: 'users',
+    columns: {
+      id: State.SQLite.text({ primaryKey: true }),
+      email: State.SQLite.text(),
+      name: State.SQLite.text(),
+      avatarUrl: State.SQLite.text({ nullable: true }),
+      company: State.SQLite.text({ nullable: true }),
+      phone: State.SQLite.text({ nullable: true }),
+      createdAt: State.SQLite.integer(),
+      updatedAt: State.SQLite.integer(),
+    },
+    indexes: [{ name: 'users_email', columns: ['email'] }],
+  }),
+
+  // ===================
+  // Organizations
+  // ===================
   organizations: State.SQLite.table({
     name: 'organizations',
     columns: {
@@ -9,9 +30,28 @@ export const tables = {
       name: State.SQLite.text(),
       ownerId: State.SQLite.text(),
       createdAt: State.SQLite.integer(),
+      updatedAt: State.SQLite.integer(),
     },
   }),
 
+  organizationMembers: State.SQLite.table({
+    name: 'organization_members',
+    columns: {
+      id: State.SQLite.text({ primaryKey: true }), // organizationId_userId
+      organizationId: State.SQLite.text(),
+      userId: State.SQLite.text(),
+      role: State.SQLite.text(), // 'owner' | 'admin' | 'member' | 'viewer'
+      addedAt: State.SQLite.integer(),
+    },
+    indexes: [
+      { name: 'orgMembers_orgId', columns: ['organizationId'] },
+      { name: 'orgMembers_userId', columns: ['userId'] },
+    ],
+  }),
+
+  // ===================
+  // Projects
+  // ===================
   projects: State.SQLite.table({
     name: 'projects',
     columns: {
@@ -20,17 +60,66 @@ export const tables = {
       name: State.SQLite.text(),
       address: State.SQLite.text({ nullable: true }),
       isArchived: State.SQLite.boolean({ default: false }),
+      createdBy: State.SQLite.text(),
       createdAt: State.SQLite.integer(),
       updatedAt: State.SQLite.integer(),
     },
     indexes: [{ name: 'projects_organizationId', columns: ['organizationId'] }],
   }),
 
+  projectShares: State.SQLite.table({
+    name: 'project_shares',
+    columns: {
+      id: State.SQLite.text({ primaryKey: true }), // projectId_email
+      projectId: State.SQLite.text(),
+      sharedWithEmail: State.SQLite.text(),
+      sharedWithUserId: State.SQLite.text({ nullable: true }),
+      role: State.SQLite.text(), // 'viewer' | 'editor'
+      sharedBy: State.SQLite.text(),
+      accepted: State.SQLite.boolean({ default: false }),
+      sharedAt: State.SQLite.integer(),
+    },
+    indexes: [
+      { name: 'projectShares_projectId', columns: ['projectId'] },
+      { name: 'projectShares_userId', columns: ['sharedWithUserId'] },
+      { name: 'projectShares_projectId_email', columns: ['projectId', 'sharedWithEmail'] },
+    ],
+  }),
+
+  // ===================
+  // Plans (uploaded PDFs)
+  // ===================
+  plans: State.SQLite.table({
+    name: 'plans',
+    columns: {
+      id: State.SQLite.text({ primaryKey: true }),
+      projectId: State.SQLite.text(),
+      fileName: State.SQLite.text(),
+      fileSize: State.SQLite.integer(),
+      mimeType: State.SQLite.text(),
+      remotePath: State.SQLite.text(),
+      status: State.SQLite.text(), // 'uploaded' | 'processing' | 'completed' | 'failed'
+      sheetCount: State.SQLite.integer({ nullable: true }),
+      errorMessage: State.SQLite.text({ nullable: true }),
+      uploadedBy: State.SQLite.text(),
+      uploadedAt: State.SQLite.integer(),
+      processedAt: State.SQLite.integer({ nullable: true }),
+    },
+    indexes: [
+      { name: 'plans_projectId', columns: ['projectId'] },
+      { name: 'plans_status', columns: ['status'] },
+    ],
+  }),
+
+  // ===================
+  // Sheets (extracted from plans)
+  // ===================
   sheets: State.SQLite.table({
     name: 'sheets',
     columns: {
       id: State.SQLite.text({ primaryKey: true }),
       projectId: State.SQLite.text(),
+      planId: State.SQLite.text(),
       number: State.SQLite.text(),
       title: State.SQLite.text(),
       discipline: State.SQLite.text(),
@@ -41,10 +130,14 @@ export const tables = {
     },
     indexes: [
       { name: 'sheets_projectId', columns: ['projectId'] },
+      { name: 'sheets_planId', columns: ['planId'] },
       { name: 'sheets_projectId_discipline', columns: ['projectId', 'discipline'] },
     ],
   }),
 
+  // ===================
+  // Markers (callouts on sheets)
+  // ===================
   markers: State.SQLite.table({
     name: 'markers',
     columns: {
@@ -54,11 +147,16 @@ export const tables = {
       targetSheetId: State.SQLite.text({ nullable: true }),
       x: State.SQLite.real(),
       y: State.SQLite.real(),
-      confidence: State.SQLite.real(),
+      confidence: State.SQLite.real({ nullable: true }), // null for manual markers
+      createdBy: State.SQLite.text({ nullable: true }), // null for AI-detected markers
+      createdAt: State.SQLite.integer({ nullable: true }),
     },
     indexes: [{ name: 'markers_sheetId', columns: ['sheetId'] }],
   }),
 
+  // ===================
+  // Photos
+  // ===================
   photos: State.SQLite.table({
     name: 'photos',
     columns: {
@@ -78,6 +176,9 @@ export const tables = {
     ],
   }),
 
+  // ===================
+  // Voice Notes
+  // ===================
   voiceNotes: State.SQLite.table({
     name: 'voice_notes',
     columns: {
@@ -89,17 +190,5 @@ export const tables = {
       transcription: State.SQLite.text({ nullable: true }),
     },
     indexes: [{ name: 'voiceNotes_photoId', columns: ['photoId'] }],
-  }),
-
-  users: State.SQLite.table({
-    name: 'users',
-    columns: {
-      id: State.SQLite.text({ primaryKey: true }),
-      email: State.SQLite.text(),
-      name: State.SQLite.text(),
-      avatarUrl: State.SQLite.text({ nullable: true }),
-      company: State.SQLite.text({ nullable: true }),
-      phone: State.SQLite.text({ nullable: true }),
-    },
   }),
 }
