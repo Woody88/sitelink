@@ -4,12 +4,33 @@
   "main": "src/index.ts",
   "type": "module",
   "scripts": {
-    "dev": "bun run --watch src/index.ts"
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "cf-typegen": "wrangler types",
+    "db:create": "wrangler d1 create sitelink-db",
+    "db:generate": "better-auth generate --config ./auth.config.ts --yes",
+    "db:migrate:local": "wrangler d1 migrations apply sitelink-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply sitelink-db --remote",
+    "db:query:local": "wrangler d1 execute sitelink-db --local --command",
+    "db:query:remote": "wrangler d1 execute sitelink-db --remote --command",
+    "db:tables:local": "wrangler d1 execute sitelink-db --local --command \"SELECT name FROM sqlite_master WHERE type='table'\"",
+    "db:tables:remote": "wrangler d1 execute sitelink-db --remote --command \"SELECT name FROM sqlite_master WHERE type='table'\"",
+    "logs": "wrangler tail"
   },
   "dependencies": {
-    "@sitelink/domain": "workspace:*",
-    "effect": "catalog:effect",
     "@effect/platform": "0.82.4",
-    "@effect/platform-bun": "0.65.1"
+    "@sitelink/domain": "workspace:*",
+    "@livestore/sync-cf": "catalog:livestore",
+    "@livestore/adapter-web": "catalog:livestore",
+    "better-auth": "^1.4.10",
+    "drizzle-orm": "^0.45.1",
+    "effect": "catalog:effect"
+  },
+  "devDependencies": {
+    "@better-auth/cli": "^1.4.10",
+    "@types/node": "^25.0.3",
+    "better-sqlite3": "^11.0.0",
+    "drizzle-kit": "^0.31.8",
+    "wrangler": "^4.54.0"
   }
 }

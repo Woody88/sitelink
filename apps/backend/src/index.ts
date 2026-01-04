@@ -1,22 +1,42 @@
-import { Effect, Layer } from "effect";
-import { BunHttpServer, BunRuntime } from "@effect/platform-bun";
-import { HttpServer, HttpRouter, HttpServerResponse, HttpMiddleware } from "@effect/platform";
+// apps/backend/src/index.ts
+import { createAuth } from './auth/auth';
+import { WebSocketServer } from './sync/websocket-server';
+import { handleSyncRequest } from './sync/worker';
+import type { Env } from './types/env';
 
-const HttpLive = HttpRouter.empty.pipe(
-  HttpRouter.get(
-    "/",
-    Effect.succeed(HttpServerResponse.text("Sitelink API")),
-  ),
-  HttpRouter.get(
-    "/health",
-    HttpServerResponse.json({ status: "ok" }),
-  ),
-  HttpServer.serve(HttpMiddleware.logger),
-  HttpServer.withLogAddress,
-);
+// Export Durable Object for Cloudflare Workers
+export { WebSocketServer };
 
-const MainLayer = HttpLive.pipe(
-  Layer.provide(BunHttpServer.layer({ port: 3000 })),
-);
-
-BunRuntime.runMain(Layer.launch(MainLayer));
+export default {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const url = new URL(request.url);
+    
+    // Initialize Better Auth
+    const auth = createAuth(env.DB);
+    
+    // Handle Better Auth endpoints (e.g., /api/auth/*)
+    if (url.pathname.startsWith('/api/auth')) {
+      return auth.handler(request);
+    }
+    
+    // Handle LiveStore sync WebSocket endpoint
+    const syncResponse = handleSyncRequest(request, env, ctx, auth);
+    if (syncResponse) {
+      return syncResponse;
+    }
+    
+    // Handle other API endpoints
+    if (url.pathname === '/') {
+      return new Response('Sitelink API', { status: 200 });
+    }
+    
+    if (url.pathname === '/health') {
+      return Response.json({ 
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+      });
+    }
+    
+    return new Response('Not Found', { status: 404 });
+  },
+};
