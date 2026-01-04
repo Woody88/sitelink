@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button'
 import { schema } from '@sitelink/domain'
 import { useAuth } from '@/hooks/useAuth'
 import { getCookie } from '@/lib/auth'
+import { ProjectProvider } from '@/context/project-context'
 import {
   isBiometricEnabled,
   authenticateWithBiometric,
@@ -247,9 +248,9 @@ export default function RootLayout() {
           </SafeAreaView>
         )}
         batchUpdates={batchUpdates}>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" />
-        </Stack>
+        <ProjectProvider>
+          <Stack screenOptions={{ headerShown: false }} />
+        </ProjectProvider>
       </LiveStoreProvider>
       <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
       <PortalHost />

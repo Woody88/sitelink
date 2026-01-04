@@ -1,0 +1,1428 @@
+time=2025-12-30T15:31:50.307-05:00 level=INFO msg="Daemon started (interval: %v, auto-commit: %v, auto-push: %v)" !BADKEY=5s !BADKEY=false !BADKEY=false
+time=2025-12-30T15:31:50.307-05:00 level=INFO msg="using database" path=/home/woodson/Code/projects/sitelink/.beads/beads.db
+time=2025-12-30T15:31:50.316-05:00 level=INFO msg="database opened" path=/home/woodson/Code/projects/sitelink/.beads/beads.db freshness_checking=true
+time=2025-12-30T15:31:50.316-05:00 level=INFO msg="upgrading .beads/.gitignore"
+time=2025-12-30T15:31:50.316-05:00 level=WARN msg="failed to upgrade .gitignore" error="open .beads/.gitignore: no such file or directory"
+time=2025-12-30T15:31:50.338-05:00 level=INFO msg="Repository fingerprint validated: %s" !BADKEY=b47a2306
+time=2025-12-30T15:31:50.338-05:00 level=INFO msg="starting RPC server" socket=/home/woodson/Code/projects/sitelink/.beads/bd.sock
+time=2025-12-30T15:31:50.339-05:00 level=INFO msg="RPC server ready (socket listening)"
+time=2025-12-30T15:31:50.341-05:00 level=INFO msg="registered in global registry"
+time=2025-12-30T15:31:50.341-05:00 level=INFO msg="Starting %s..." !BADKEY="sync cycle"
+time=2025-12-30T15:31:50.341-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T15:31:51.195-05:00 level=INFO msg="Sync branch pull failed: %v" !BADKEY="git pull failed in worktree: exit status 1\nfatal: couldn't find remote ref beads-sync\n"
+time=2025-12-30T15:31:51.195-05:00 level=INFO msg="monitoring parent process" pid=0
+time=2025-12-30T15:31:51.195-05:00 level=INFO msg="using event-driven mode"
+time=2025-12-30T15:31:51.195-05:00 level=INFO msg="Auto-pull disabled: use 'git pull' manually to sync remote changes"
+time=2025-12-30T17:09:40.940-05:00 level=INFO msg="Git ref change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.git/refs/heads/backend-dev.lock
+time=2025-12-30T17:09:41.943-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T17:09:41.943-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T17:09:41.943-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T17:20:43.094-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-jdy
+time=2025-12-30T17:20:43.595-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T17:20:43.595-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T17:20:43.596-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T17:20:43.596-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T17:20:43.598-05:00 level=INFO msg="Export complete"
+time=2025-12-30T17:20:44.596-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T17:20:44.597-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T17:20:44.597-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T17:20:54.745-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-dtv
+time=2025-12-30T17:20:55.245-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T17:20:55.246-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T17:20:55.252-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T17:20:55.252-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T17:20:55.252-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T17:20:55.254-05:00 level=INFO msg="Export complete"
+time=2025-12-30T17:20:56.254-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T17:20:56.254-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T17:20:56.254-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T17:21:02.213-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-zqh
+time=2025-12-30T17:21:02.714-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T17:21:02.714-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T17:21:02.716-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T17:21:02.716-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T17:21:02.716-05:00 level=INFO msg="Export complete"
+time=2025-12-30T17:21:03.717-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T17:21:03.717-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T17:21:03.717-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T17:21:11.762-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-9yo
+time=2025-12-30T17:21:12.263-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T17:21:12.263-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T17:21:12.268-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T17:21:12.268-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T17:21:12.268-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T17:21:12.270-05:00 level=INFO msg="Export complete"
+time=2025-12-30T17:21:13.270-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T17:21:13.270-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T17:21:13.270-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T17:21:20.872-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-niv
+time=2025-12-30T17:21:21.373-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T17:21:21.374-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T17:21:21.375-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T17:21:21.375-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T17:21:21.375-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T17:21:21.375-05:00 level=INFO msg="Export complete"
+time=2025-12-30T17:21:22.377-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T17:21:22.377-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T17:21:22.377-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T17:21:28.192-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-fr8
+time=2025-12-30T17:21:28.693-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T17:21:28.693-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T17:21:28.695-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T17:21:28.695-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T17:21:28.695-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T17:21:28.695-05:00 level=INFO msg="Export complete"
+time=2025-12-30T17:21:29.696-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T17:21:29.697-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T17:21:29.697-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T17:21:35.490-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-dzn
+time=2025-12-30T17:21:35.991-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T17:21:35.991-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T17:21:35.992-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T17:21:35.992-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T17:21:35.994-05:00 level=INFO msg="Export complete"
+time=2025-12-30T17:21:36.993-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T17:21:36.994-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T17:21:36.994-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T17:25:24.509-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T17:25:24.509-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T17:25:25.265-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T17:25:25.265-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T17:25:25.510-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T17:25:25.510-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T17:25:25.511-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T17:25:26.266-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T17:25:26.267-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T17:25:26.267-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T17:25:41.375-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-fr8
+time=2025-12-30T17:25:41.875-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T17:25:41.875-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T17:25:41.877-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T17:25:41.877-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T17:25:41.877-05:00 level=INFO msg="Export complete"
+time=2025-12-30T17:25:42.878-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T17:25:42.878-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T17:25:42.879-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T17:25:59.824-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-jdy
+time=2025-12-30T17:26:00.324-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T17:26:00.325-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T17:26:00.326-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T17:26:00.326-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T17:26:00.326-05:00 level=INFO msg="Export complete"
+time=2025-12-30T17:26:01.327-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T17:26:01.327-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T17:26:01.328-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T17:52:19.469-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-jdy
+time=2025-12-30T17:52:19.969-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T17:52:19.969-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T17:52:19.971-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T17:52:19.971-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T17:52:19.971-05:00 level=INFO msg="Export complete"
+time=2025-12-30T17:52:20.973-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T17:52:20.973-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T17:52:20.973-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T17:52:30.128-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-dtv
+time=2025-12-30T17:52:30.629-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T17:52:30.629-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T17:52:30.631-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T17:52:30.631-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T17:52:30.631-05:00 level=INFO msg="Export complete"
+time=2025-12-30T17:52:31.632-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T17:52:31.632-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T17:52:31.632-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T17:55:46.920-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-dtv
+time=2025-12-30T17:55:47.421-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T17:55:47.421-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T17:55:47.423-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T17:55:47.423-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T17:55:47.423-05:00 level=INFO msg="Export complete"
+time=2025-12-30T17:55:48.424-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T17:55:48.425-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T17:55:48.425-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T17:56:10.132-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-zqh
+time=2025-12-30T17:56:10.633-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T17:56:10.633-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T17:56:10.635-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T17:56:10.635-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T17:56:10.635-05:00 level=INFO msg="Export complete"
+time=2025-12-30T17:56:10.635-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T17:56:11.637-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T17:56:11.637-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T17:56:11.637-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T18:34:01.343-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-zqh
+time=2025-12-30T18:34:01.843-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T18:34:01.843-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T18:34:01.845-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T18:34:01.845-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T18:34:01.845-05:00 level=INFO msg="Export complete"
+time=2025-12-30T18:34:02.846-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T18:34:02.846-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T18:34:02.847-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T18:43:32.663-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-9yo
+time=2025-12-30T18:43:33.164-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T18:43:33.164-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T18:43:33.166-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T18:43:33.166-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T18:43:33.167-05:00 level=INFO msg="Export complete"
+time=2025-12-30T18:43:34.168-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T18:43:34.168-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T18:43:34.168-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T18:55:14.173-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-dzn
+time=2025-12-30T18:55:14.674-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T18:55:14.674-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T18:55:14.677-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T18:55:14.677-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T18:55:14.677-05:00 level=INFO msg="Export complete"
+time=2025-12-30T18:55:15.678-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T18:55:15.679-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T18:55:15.679-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T19:01:12.921-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-niv
+time=2025-12-30T19:01:13.422-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T19:01:13.422-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T19:01:13.424-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T19:01:13.424-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T19:01:13.424-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T19:01:13.425-05:00 level=INFO msg="Export complete"
+time=2025-12-30T19:01:14.425-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T19:01:14.425-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T19:01:14.425-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T19:01:18.266-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-dzn
+time=2025-12-30T19:01:18.767-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T19:01:18.767-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T19:01:18.769-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T19:01:18.769-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T19:01:18.769-05:00 level=INFO msg="Export complete"
+time=2025-12-30T19:01:19.769-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T19:01:19.769-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T19:01:19.769-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T19:04:03.164-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T19:04:03.164-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T19:04:03.910-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T19:04:03.910-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T19:04:04.165-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T19:04:04.165-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T19:04:04.166-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T19:04:04.911-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T19:04:04.911-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T19:04:04.912-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T19:05:28.624-05:00 level=INFO msg="Git ref change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.git/refs/heads/backend-dev.lock
+time=2025-12-30T19:05:29.625-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T19:05:29.625-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T19:05:29.625-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T19:37:35.188-05:00 level=INFO msg="Git ref change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.git/refs/heads/backend-dev.lock
+time=2025-12-30T19:37:36.190-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T19:37:36.190-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T19:37:36.191-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T22:38:07.625-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-sby
+time=2025-12-30T22:38:08.127-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T22:38:08.127-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T22:38:08.131-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T22:38:08.132-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T22:38:08.132-05:00 level=INFO msg="Export complete"
+time=2025-12-30T22:38:09.133-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T22:38:09.133-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T22:38:09.133-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T22:40:11.779-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-sby.1
+time=2025-12-30T22:40:12.280-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T22:40:12.281-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T22:40:12.284-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T22:40:12.284-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T22:40:12.284-05:00 level=INFO msg="Export complete"
+time=2025-12-30T22:40:13.285-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T22:40:13.285-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T22:40:13.285-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T22:40:16.827-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-sby.2
+time=2025-12-30T22:40:17.327-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T22:40:17.327-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T22:40:17.329-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T22:40:17.329-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T22:40:17.330-05:00 level=INFO msg="Export complete"
+time=2025-12-30T22:40:18.331-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T22:40:18.331-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T22:40:18.332-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T22:40:19.140-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-sby.3
+time=2025-12-30T22:40:19.640-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T22:40:19.640-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T22:40:19.643-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T22:40:19.643-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T22:40:19.643-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T22:40:19.644-05:00 level=INFO msg="Export complete"
+time=2025-12-30T22:40:20.644-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T22:40:20.644-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T22:40:20.644-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T22:40:22.152-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-sby.4
+time=2025-12-30T22:40:22.653-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T22:40:22.653-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T22:40:22.655-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T22:40:22.655-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T22:40:22.655-05:00 level=INFO msg="Export complete"
+time=2025-12-30T22:40:23.656-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T22:40:23.656-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T22:40:23.656-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T22:40:24.446-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-sby.5
+time=2025-12-30T22:40:24.946-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T22:40:24.947-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T22:40:24.949-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T22:40:24.949-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T22:40:24.949-05:00 level=INFO msg="Export complete"
+time=2025-12-30T22:40:25.949-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T22:40:25.949-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T22:40:25.949-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T22:40:28.245-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-sby.6
+time=2025-12-30T22:40:28.745-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T22:40:28.745-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T22:40:28.748-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T22:40:28.748-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T22:40:28.748-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T22:40:28.748-05:00 level=INFO msg="Export complete"
+time=2025-12-30T22:40:29.749-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T22:40:29.749-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T22:40:29.750-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T22:40:32.396-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-sby.7
+time=2025-12-30T22:40:32.896-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T22:40:32.896-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T22:40:32.898-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T22:40:32.898-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T22:40:32.899-05:00 level=INFO msg="Export complete"
+time=2025-12-30T22:40:33.899-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T22:40:33.899-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T22:40:33.899-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T22:40:37.791-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-sby.8
+time=2025-12-30T22:40:38.292-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T22:40:38.292-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T22:40:38.295-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T22:40:38.295-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T22:40:38.295-05:00 level=INFO msg="Export complete"
+time=2025-12-30T22:40:39.296-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T22:40:39.297-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T22:40:39.297-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T22:40:41.726-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-sby.9
+time=2025-12-30T22:40:42.226-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T22:40:42.226-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T22:40:42.229-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T22:40:42.229-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T22:40:42.229-05:00 level=INFO msg="Export complete"
+time=2025-12-30T22:40:43.230-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T22:40:43.230-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T22:40:43.231-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T23:07:13.472-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-sby.1
+time=2025-12-30T23:07:13.973-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T23:07:13.973-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T23:07:13.978-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T23:07:13.978-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T23:07:13.978-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T23:07:13.978-05:00 level=INFO msg="Export complete"
+time=2025-12-30T23:07:14.979-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T23:07:14.979-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T23:07:14.979-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T23:19:59.666-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-sby.1
+time=2025-12-30T23:20:00.167-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T23:20:00.167-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T23:20:00.171-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T23:20:00.171-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T23:20:00.171-05:00 level=INFO msg="Export complete"
+time=2025-12-30T23:20:00.462-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-sby.3
+time=2025-12-30T23:20:00.963-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T23:20:00.963-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T23:20:00.966-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T23:20:00.966-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T23:20:00.967-05:00 level=INFO msg="Export complete"
+time=2025-12-30T23:20:01.172-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T23:20:01.172-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T23:20:01.173-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T23:20:01.968-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T23:20:01.968-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T23:20:01.968-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T23:26:26.255-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-sby.3
+time=2025-12-30T23:26:26.755-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T23:26:26.755-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T23:26:26.759-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T23:26:26.759-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T23:26:26.759-05:00 level=INFO msg="Export complete"
+time=2025-12-30T23:26:26.785-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-sby.2
+time=2025-12-30T23:26:27.286-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T23:26:27.286-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T23:26:27.288-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T23:26:27.288-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T23:26:27.289-05:00 level=INFO msg="Export complete"
+time=2025-12-30T23:26:27.760-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T23:26:27.760-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T23:26:27.760-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T23:26:28.289-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T23:26:28.289-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T23:26:28.290-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T23:29:19.212-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-sby.2
+time=2025-12-30T23:29:19.713-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T23:29:19.713-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T23:29:19.715-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T23:29:19.715-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T23:29:19.715-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T23:29:19.716-05:00 level=INFO msg="Export complete"
+time=2025-12-30T23:29:19.741-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-sby.4
+time=2025-12-30T23:29:20.239-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-30T23:29:20.239-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-30T23:29:20.242-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T23:29:20.242-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-30T23:29:20.242-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T23:29:20.242-05:00 level=INFO msg="Export complete"
+time=2025-12-30T23:29:20.371-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T23:29:20.715-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T23:29:20.715-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T23:29:20.715-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T23:29:21.131-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T23:29:21.131-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-30T23:29:21.374-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T23:29:21.374-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T23:29:21.375-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-30T23:29:22.132-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-30T23:29:22.132-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-30T23:29:22.133-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T02:06:02.579-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-sby.4
+time=2025-12-31T02:06:03.080-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-31T02:06:03.080-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-31T02:06:03.084-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T02:06:03.085-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T02:06:03.085-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-31T02:06:03.085-05:00 level=INFO msg="Export complete"
+time=2025-12-31T02:06:03.176-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T02:06:04.057-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T02:06:04.057-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T02:06:04.178-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T02:06:04.178-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T02:06:04.179-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T02:06:05.058-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T02:06:05.058-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T02:06:05.058-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T02:06:42.175-05:00 level=INFO msg="Git ref change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.git/refs/heads/backend-dev.lock
+time=2025-12-31T02:06:43.176-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T02:06:43.176-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T02:06:43.176-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T02:06:48.792-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T02:06:48.792-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T02:06:49.701-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T02:06:49.701-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T02:06:49.794-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T02:06:49.794-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T02:06:49.795-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T02:06:50.701-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T02:06:50.701-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T02:06:50.701-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T03:38:57.065-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-sby.5
+time=2025-12-31T03:38:57.566-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-31T03:38:57.566-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-31T03:38:57.570-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-31T03:38:57.570-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T03:38:57.570-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T03:38:57.570-05:00 level=INFO msg="Export complete"
+time=2025-12-31T03:38:58.571-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T03:38:58.571-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T03:38:58.572-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T03:42:57.970-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-sby.7
+time=2025-12-31T03:42:58.471-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-31T03:42:58.472-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-31T03:42:58.476-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T03:42:58.476-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-31T03:42:58.476-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T03:42:58.476-05:00 level=INFO msg="Export complete"
+time=2025-12-31T03:42:59.477-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T03:42:59.477-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T03:42:59.477-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T03:49:10.450-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-sby.6
+time=2025-12-31T03:49:10.951-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-31T03:49:10.951-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-31T03:49:10.954-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-31T03:49:10.954-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T03:49:10.954-05:00 level=INFO msg="Export complete"
+time=2025-12-31T03:49:11.956-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T03:49:11.956-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T03:49:11.957-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T03:54:45.048-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-sby.5
+time=2025-12-31T03:54:45.050-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-sby.6
+time=2025-12-31T03:54:45.053-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-sby.7
+time=2025-12-31T03:54:45.055-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-sby.8
+time=2025-12-31T03:54:45.057-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-sby.9
+time=2025-12-31T03:54:45.557-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-31T03:54:45.557-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-31T03:54:45.560-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T03:54:45.560-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T03:54:45.560-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-31T03:54:45.560-05:00 level=INFO msg="Export complete"
+time=2025-12-31T03:54:46.561-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T03:54:46.561-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T03:54:46.561-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T04:15:15.112-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T04:15:15.112-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T04:15:15.878-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T04:15:15.878-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T04:15:16.114-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T04:15:16.114-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T04:15:16.115-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T04:15:16.880-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T04:15:16.880-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T04:15:16.880-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T04:16:08.781-05:00 level=INFO msg="Git ref change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.git/refs/heads/backend-dev.lock
+time=2025-12-31T04:16:09.783-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T04:16:09.783-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T04:16:09.783-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T04:16:13.193-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T04:16:13.193-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T04:16:13.916-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T04:16:13.916-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T04:16:14.194-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T04:16:14.194-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T04:16:14.195-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T04:16:14.917-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T04:16:14.917-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T04:16:14.917-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T04:17:19.871-05:00 level=INFO msg="Git ref change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.git/refs/heads/backend-dev.lock
+time=2025-12-31T04:17:20.871-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T04:17:20.872-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T04:17:20.872-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T05:13:29.739-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-fks
+time=2025-12-31T05:13:30.241-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-31T05:13:30.241-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-31T05:13:30.250-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T05:13:30.250-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-31T05:13:30.250-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T05:13:30.251-05:00 level=INFO msg="Export complete"
+time=2025-12-31T05:13:31.251-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T05:13:31.252-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T05:13:31.252-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T05:13:38.449-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-5sm
+time=2025-12-31T05:13:38.950-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-31T05:13:38.950-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-31T05:13:38.963-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T05:13:38.963-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-31T05:13:38.965-05:00 level=INFO msg="Export complete"
+time=2025-12-31T05:13:39.964-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T05:13:39.964-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T05:13:39.964-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T05:13:46.783-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-di6
+time=2025-12-31T05:13:47.284-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-31T05:13:47.284-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-31T05:13:47.288-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T05:13:47.288-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T05:13:47.288-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-31T05:13:47.288-05:00 level=INFO msg="Export complete"
+time=2025-12-31T05:13:48.289-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T05:13:48.290-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T05:13:48.290-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T05:13:54.470-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-xk7
+time=2025-12-31T05:13:54.971-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-31T05:13:54.971-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-31T05:13:54.981-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T05:13:54.981-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-31T05:13:54.983-05:00 level=INFO msg="Export complete"
+time=2025-12-31T05:13:55.982-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T05:13:55.982-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T05:13:55.982-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T05:14:03.746-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-aah
+time=2025-12-31T05:14:04.247-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-31T05:14:04.247-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-31T05:14:04.252-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-31T05:14:04.252-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T05:14:04.252-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T05:14:04.254-05:00 level=INFO msg="Export complete"
+time=2025-12-31T05:14:05.253-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T05:14:05.253-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T05:14:05.254-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T05:14:22.707-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T05:14:22.707-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T05:14:23.708-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T05:14:23.708-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T05:14:23.708-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T05:14:24.272-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T05:14:24.272-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T05:14:25.274-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T05:14:25.274-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T05:14:25.274-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T05:20:13.576-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-xk7
+time=2025-12-31T05:20:14.077-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-31T05:20:14.077-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-31T05:20:14.079-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T05:20:14.080-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T05:20:14.079-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-31T05:20:14.080-05:00 level=INFO msg="Export complete"
+time=2025-12-31T05:20:15.081-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T05:20:15.081-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T05:20:15.082-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T05:20:32.566-05:00 level=INFO msg="Git ref change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.git/refs/heads/backend-dev.lock
+time=2025-12-31T05:20:33.567-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T05:20:33.567-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T05:20:33.567-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T05:20:42.176-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T05:20:42.176-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T05:20:43.058-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T05:20:43.058-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T05:20:43.177-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T05:20:43.177-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T05:20:43.178-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T05:20:44.059-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T05:20:44.060-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T05:20:44.060-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T05:23:05.996-05:00 level=INFO msg="Git ref change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.git/refs/heads/backend-dev.lock
+time=2025-12-31T05:23:06.998-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T05:23:06.998-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T05:23:06.998-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T05:23:11.145-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-fks
+time=2025-12-31T05:23:11.147-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-5sm
+time=2025-12-31T05:23:11.149-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-aah
+time=2025-12-31T05:23:11.650-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-31T05:23:11.650-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-31T05:23:11.654-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-31T05:23:11.654-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T05:23:11.654-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T05:23:11.654-05:00 level=INFO msg="Export complete"
+time=2025-12-31T05:23:12.655-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T05:23:12.655-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T05:23:12.655-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T05:23:16.421-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T05:23:16.421-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T05:23:17.422-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T05:23:17.422-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T05:23:17.423-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T05:23:17.653-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T05:23:17.653-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T05:23:18.655-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T05:23:18.655-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T05:23:18.655-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T13:14:07.577-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-di6
+time=2025-12-31T13:14:08.079-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-31T13:14:08.079-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-31T13:14:08.086-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T13:14:08.086-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T13:14:08.086-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-31T13:14:08.087-05:00 level=INFO msg="Export complete"
+time=2025-12-31T13:14:09.086-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T13:14:09.087-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T13:14:09.087-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T19:18:38.114-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-di6
+time=2025-12-31T19:18:38.616-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-31T19:18:38.616-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-31T19:18:38.622-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T19:18:38.622-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-31T19:18:38.623-05:00 level=INFO msg="Export complete"
+time=2025-12-31T19:18:39.624-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T19:18:39.624-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T19:18:39.624-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T19:18:45.450-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T19:18:45.450-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T19:18:46.217-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T19:18:46.217-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T19:18:46.451-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T19:18:46.451-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T19:18:46.452-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T19:18:47.218-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T19:18:47.218-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T19:18:47.218-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T19:18:58.802-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-sby
+time=2025-12-31T19:18:59.303-05:00 level=INFO msg="Export triggered by mutation events"
+time=2025-12-31T19:18:59.303-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2025-12-31T19:18:59.308-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T19:18:59.308-05:00 level=INFO msg="Exported to JSONL"
+time=2025-12-31T19:18:59.308-05:00 level=INFO msg="Export complete"
+time=2025-12-31T19:19:00.309-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T19:19:00.309-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T19:19:00.309-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T21:22:16.629-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T21:22:16.629-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T21:22:17.477-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T21:22:17.477-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T21:22:17.630-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T21:22:17.630-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T21:22:17.631-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T21:22:18.479-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T21:22:18.479-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T21:22:18.479-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T21:25:20.628-05:00 level=INFO msg="Git ref change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.git/refs/heads/backend-dev.lock
+time=2025-12-31T21:25:21.271-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T21:25:21.271-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T21:25:21.629-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T21:25:21.629-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T21:25:21.630-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T21:25:22.023-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T21:25:22.023-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2025-12-31T21:25:22.271-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T21:25:22.272-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T21:25:22.272-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2025-12-31T21:25:23.024-05:00 level=INFO msg="Import triggered by file change"
+time=2025-12-31T21:25:23.024-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2025-12-31T21:25:23.024-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T03:49:40.912-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-0g6
+time=2026-01-01T03:49:41.414-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-01T03:49:41.414-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-01T03:49:41.422-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-01T03:49:41.422-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T03:49:41.422-05:00 level=INFO msg="Export complete"
+time=2026-01-01T03:49:42.423-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T03:49:42.423-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T03:49:42.424-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T03:50:08.533-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-0g6.1
+time=2026-01-01T03:50:09.034-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-01T03:50:09.034-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-01T03:50:09.039-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-01T03:50:09.039-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T03:50:09.040-05:00 level=INFO msg="Export complete"
+time=2026-01-01T03:50:09.308-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-0g6.2
+time=2026-01-01T03:50:09.808-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-01T03:50:09.808-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-01T03:50:09.814-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T03:50:09.814-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-01T03:50:09.814-05:00 level=INFO msg="Export complete"
+time=2026-01-01T03:50:10.040-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T03:50:10.041-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T03:50:10.041-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T03:50:10.089-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-0g6.3
+time=2026-01-01T03:50:10.589-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-01T03:50:10.589-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-01T03:50:10.593-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-01T03:50:10.593-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T03:50:10.594-05:00 level=INFO msg="Export complete"
+time=2026-01-01T03:50:10.761-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-0g6.4
+time=2026-01-01T03:50:10.815-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T03:50:10.816-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T03:50:10.816-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T03:50:11.262-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-01T03:50:11.262-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-01T03:50:11.265-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-01T03:50:11.265-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T03:50:11.265-05:00 level=INFO msg="Export complete"
+time=2026-01-01T03:50:11.446-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-0g6.5
+time=2026-01-01T03:50:11.595-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T03:50:11.595-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T03:50:11.595-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T03:50:11.947-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-01T03:50:11.947-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-01T03:50:11.953-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T03:50:11.953-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-01T03:50:11.953-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T03:50:11.953-05:00 level=INFO msg="Export complete"
+time=2026-01-01T03:50:12.152-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-0g6.6
+time=2026-01-01T03:50:12.266-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T03:50:12.266-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T03:50:12.266-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T03:50:12.653-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-01T03:50:12.653-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-01T03:50:12.656-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T03:50:12.656-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-01T03:50:12.656-05:00 level=INFO msg="Export complete"
+time=2026-01-01T03:50:12.955-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T03:50:12.955-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T03:50:12.955-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T03:50:13.657-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T03:50:13.657-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T03:50:13.657-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T03:52:19.967-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-0g6.2
+time=2026-01-01T03:52:20.373-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-0g6.4
+time=2026-01-01T03:52:20.727-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-0g6.4
+time=2026-01-01T03:52:21.096-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-0g6.5
+time=2026-01-01T03:52:21.450-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-0g6.6
+time=2026-01-01T03:52:21.807-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-0g6.6
+time=2026-01-01T03:52:22.308-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-01T03:52:22.308-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-01T03:52:22.313-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T03:52:22.313-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T03:52:22.313-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-01T03:52:22.314-05:00 level=INFO msg="Export complete"
+time=2026-01-01T03:52:23.313-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T03:52:23.313-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T03:52:23.313-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T03:52:30.450-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T03:52:30.450-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T03:52:31.260-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T03:52:31.260-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T03:52:31.451-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T03:52:31.451-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T03:52:31.452-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T03:52:32.261-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T03:52:32.261-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T03:52:32.261-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T03:53:15.690-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-0g6.7
+time=2026-01-01T03:53:16.190-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-01T03:53:16.190-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-01T03:53:16.195-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-01T03:53:16.195-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T03:53:16.195-05:00 level=INFO msg="Export complete"
+time=2026-01-01T03:53:16.510-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-0g6.7
+time=2026-01-01T03:53:17.011-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-01T03:53:17.011-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-01T03:53:17.018-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-01T03:53:17.018-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T03:53:17.018-05:00 level=INFO msg="Export complete"
+time=2026-01-01T03:53:17.197-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T03:53:17.197-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T03:53:17.197-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T03:53:18.018-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T03:53:18.018-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T03:53:18.019-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T04:02:17.980-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-0g6.1
+time=2026-01-01T04:02:18.342-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-0g6.3
+time=2026-01-01T04:02:18.843-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-01T04:02:18.844-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-01T04:02:18.848-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T04:02:18.848-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-01T04:02:18.849-05:00 level=INFO msg="Export complete"
+time=2026-01-01T04:02:19.849-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T04:02:19.850-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T04:02:19.850-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T04:07:43.903-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-0g6.1
+time=2026-01-01T04:07:44.404-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-01T04:07:44.404-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-01T04:07:44.408-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T04:07:44.408-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-01T04:07:44.408-05:00 level=INFO msg="Export complete"
+time=2026-01-01T04:07:44.643-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-0g6.3
+time=2026-01-01T04:07:45.143-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-01T04:07:45.144-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-01T04:07:45.150-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T04:07:45.150-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-01T04:07:45.151-05:00 level=INFO msg="Export complete"
+time=2026-01-01T04:07:45.409-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T04:07:45.409-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T04:07:45.410-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T04:07:45.749-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T04:07:45.750-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T04:07:46.151-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T04:07:46.151-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T04:07:46.152-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T04:07:46.751-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T04:07:46.751-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T04:07:46.752-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T04:07:46.791-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T04:07:46.791-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T04:07:47.793-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T04:07:47.793-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T04:07:47.793-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T04:12:17.468-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-0g6.2
+time=2026-01-01T04:12:17.969-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-01T04:12:17.969-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-01T04:12:17.973-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-01T04:12:17.973-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T04:12:17.973-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T04:12:17.973-05:00 level=INFO msg="Export complete"
+time=2026-01-01T04:12:18.974-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T04:12:18.975-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T04:12:18.975-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T04:18:38.397-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-0g6.4
+time=2026-01-01T04:18:38.898-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-01T04:18:38.898-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-01T04:18:38.903-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T04:18:38.903-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T04:18:38.903-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-01T04:18:38.903-05:00 level=INFO msg="Export complete"
+time=2026-01-01T04:18:39.905-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T04:18:39.905-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T04:18:39.905-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T11:08:35.778-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-0g6.7
+time=2026-01-01T11:08:36.279-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-01T11:08:36.279-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-01T11:08:36.284-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-01T11:08:36.284-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T11:08:36.284-05:00 level=INFO msg="Export complete"
+time=2026-01-01T11:08:37.285-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T11:08:37.285-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T11:08:37.285-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T11:14:05.167-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-0g6.7
+time=2026-01-01T11:14:05.668-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-01T11:14:05.668-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-01T11:14:05.673-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T11:14:05.673-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-01T11:14:05.674-05:00 level=INFO msg="Export complete"
+time=2026-01-01T11:14:06.675-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T11:14:06.675-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T11:14:06.675-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T11:14:10.049-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T11:14:10.049-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T11:14:10.915-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T11:14:10.915-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T11:14:11.051-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T11:14:11.051-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T11:14:11.052-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T11:14:11.916-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T11:14:11.916-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T11:14:11.917-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T12:13:03.691-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T12:13:03.692-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T12:13:04.596-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T12:13:04.596-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T12:13:04.693-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T12:13:04.693-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T12:13:04.695-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T12:13:05.597-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T12:13:05.597-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T12:13:05.598-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T12:13:05.688-05:00 level=INFO msg="Git ref change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.git/refs/heads/backend-dev.lock
+time=2026-01-01T12:13:06.690-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T12:13:06.691-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T12:13:06.691-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T12:13:12.180-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T12:13:12.180-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T12:13:12.926-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T12:13:12.926-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-01T12:13:13.182-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T12:13:13.182-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T12:13:13.183-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T12:13:13.927-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T12:13:13.928-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T12:13:13.928-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-01T22:06:48.267-05:00 level=INFO msg="Daemon started (interval: %v, auto-commit: %v, auto-push: %v)" !BADKEY=5s !BADKEY=false !BADKEY=false
+time=2026-01-01T22:06:48.267-05:00 level=INFO msg="using database" path=/home/woodson/Code/projects/sitelink/.beads/beads.db
+time=2026-01-01T22:06:48.279-05:00 level=INFO msg="database opened" path=/home/woodson/Code/projects/sitelink/.beads/beads.db freshness_checking=true
+time=2026-01-01T22:06:48.297-05:00 level=INFO msg="Repository fingerprint validated: %s" !BADKEY=b47a2306
+time=2026-01-01T22:06:48.297-05:00 level=INFO msg="starting RPC server" socket=/home/woodson/Code/projects/sitelink/.beads/bd.sock
+time=2026-01-01T22:06:48.299-05:00 level=INFO msg="RPC server ready (socket listening)"
+time=2026-01-01T22:06:48.302-05:00 level=INFO msg="registered in global registry"
+time=2026-01-01T22:06:48.302-05:00 level=INFO msg="Starting %s..." !BADKEY="sync cycle"
+time=2026-01-01T22:06:48.307-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-01T22:06:49.183-05:00 level=INFO msg="Sync branch pull failed: %v" !BADKEY="git pull failed in worktree: exit status 1\nfatal: couldn't find remote ref beads-sync\n"
+time=2026-01-01T22:06:49.183-05:00 level=INFO msg="monitoring parent process" pid=0
+time=2026-01-01T22:06:49.183-05:00 level=INFO msg="using event-driven mode"
+time=2026-01-01T22:06:49.183-05:00 level=INFO msg="Auto-pull disabled: use 'git pull' manually to sync remote changes"
+time=2026-01-01T23:31:53.753-05:00 level=INFO msg="Git ref change detected: %s" !BADKEY=.git/refs/heads/backend-dev.lock
+time=2026-01-01T23:31:54.754-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-01T23:31:54.754-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-01T23:31:54.755-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T02:33:21.878-05:00 level=INFO msg="Git ref change detected: %s" !BADKEY=.git/refs/heads/dev-livestore.lock
+time=2026-01-03T02:33:22.880-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T02:33:22.880-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T02:33:22.882-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T03:56:12.289-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-0g6.5
+time=2026-01-03T03:56:12.790-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T03:56:12.791-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T03:56:12.800-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T03:56:12.800-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T03:56:12.800-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T03:56:12.801-05:00 level=INFO msg="Export complete"
+time=2026-01-03T03:56:13.801-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T03:56:13.801-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T03:56:13.802-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T04:07:46.757-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-8fl
+time=2026-01-03T04:07:47.258-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T04:07:47.258-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T04:07:47.262-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T04:07:47.262-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T04:07:47.262-05:00 level=INFO msg="Export complete"
+time=2026-01-03T04:07:47.627-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-uar
+time=2026-01-03T04:07:48.128-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T04:07:48.128-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T04:07:48.133-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T04:07:48.133-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T04:07:48.134-05:00 level=INFO msg="Export complete"
+time=2026-01-03T04:07:48.264-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T04:07:48.264-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T04:07:48.264-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T04:07:49.133-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T04:07:49.133-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T04:07:49.134-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T12:25:41.650-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-ad7
+time=2026-01-03T12:25:42.151-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T12:25:42.151-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T12:25:42.157-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T12:25:42.157-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T12:25:42.158-05:00 level=INFO msg="Export complete"
+time=2026-01-03T12:25:43.158-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T12:25:43.158-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T12:25:43.158-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T12:26:22.065-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-s7f
+time=2026-01-03T12:26:22.566-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T12:26:22.566-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T12:26:22.579-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T12:26:22.579-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T12:26:22.581-05:00 level=INFO msg="Export complete"
+time=2026-01-03T12:26:22.612-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-zqm
+time=2026-01-03T12:26:23.082-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-jss
+time=2026-01-03T12:26:23.583-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T12:26:23.583-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T12:26:23.583-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T12:26:23.583-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T12:26:23.584-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T12:26:23.587-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T12:26:23.587-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T12:26:23.588-05:00 level=INFO msg="Export complete"
+time=2026-01-03T12:26:24.589-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T12:26:24.589-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T12:26:24.589-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T12:27:11.645-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-6ge
+time=2026-01-03T12:27:12.146-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T12:27:12.146-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T12:27:12.151-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T12:27:12.151-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T12:27:12.152-05:00 level=INFO msg="Export complete"
+time=2026-01-03T12:27:13.153-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T12:27:13.153-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T12:27:13.153-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T13:00:37.481-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-fq6
+time=2026-01-03T13:00:37.982-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T13:00:37.982-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T13:00:37.987-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T13:00:37.987-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T13:00:37.990-05:00 level=INFO msg="Export complete"
+time=2026-01-03T13:00:38.057-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-or9
+time=2026-01-03T13:00:38.557-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T13:00:38.557-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T13:00:38.566-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T13:00:38.566-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T13:00:38.567-05:00 level=INFO msg="Export complete"
+time=2026-01-03T13:00:38.989-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T13:00:38.989-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T13:00:38.989-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T13:00:39.567-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T13:00:39.567-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T13:00:39.568-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T13:01:31.681-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-69m
+time=2026-01-03T13:01:32.129-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-f8d
+time=2026-01-03T13:01:32.575-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-00q
+time=2026-01-03T13:01:33.075-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T13:01:33.075-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T13:01:33.080-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T13:01:33.080-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T13:01:33.080-05:00 level=INFO msg="Export complete"
+time=2026-01-03T13:01:34.080-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T13:01:34.080-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T13:01:34.081-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T13:02:22.206-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-14v
+time=2026-01-03T13:02:22.707-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T13:02:22.707-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T13:02:22.717-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T13:02:22.717-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T13:02:22.719-05:00 level=INFO msg="Export complete"
+time=2026-01-03T13:02:23.176-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-0i1
+time=2026-01-03T13:02:23.677-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T13:02:23.677-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T13:02:23.681-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T13:02:23.681-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T13:02:23.682-05:00 level=INFO msg="Export complete"
+time=2026-01-03T13:02:23.718-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T13:02:23.718-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T13:02:23.718-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T13:02:24.683-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T13:02:24.684-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T13:02:24.684-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T13:02:54.690-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-rnh
+time=2026-01-03T13:02:55.144-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-lsk
+time=2026-01-03T13:02:55.645-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T13:02:55.645-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T13:02:55.650-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T13:02:55.650-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T13:02:55.650-05:00 level=INFO msg="Export complete"
+time=2026-01-03T13:02:56.651-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T13:02:56.652-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T13:02:56.652-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T13:02:58.208-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-s68
+time=2026-01-03T13:02:58.709-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T13:02:58.709-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T13:02:58.713-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T13:02:58.713-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T13:02:58.714-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T13:02:58.714-05:00 level=INFO msg="Export complete"
+time=2026-01-03T13:02:59.715-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T13:02:59.715-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T13:02:59.715-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T13:03:50.993-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-gum
+time=2026-01-03T13:03:51.467-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-9mx
+time=2026-01-03T13:03:51.934-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-q9l
+time=2026-01-03T13:03:52.435-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T13:03:52.435-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T13:03:52.441-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T13:03:52.441-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T13:03:52.441-05:00 level=INFO msg="Export complete"
+time=2026-01-03T13:03:53.442-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T13:03:53.442-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T13:03:53.443-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T13:04:22.493-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-iie
+time=2026-01-03T13:04:22.899-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-fr8
+time=2026-01-03T13:04:23.400-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T13:04:23.400-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T13:04:23.405-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T13:04:23.405-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T13:04:23.405-05:00 level=INFO msg="Export complete"
+time=2026-01-03T13:04:24.407-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T13:04:24.407-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T13:04:24.408-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T13:04:50.642-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-1l4
+time=2026-01-03T13:04:51.105-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-7jy
+time=2026-01-03T13:04:51.555-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-xbe
+time=2026-01-03T13:04:52.055-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T13:04:52.056-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T13:04:52.061-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T13:04:52.061-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T13:04:52.061-05:00 level=INFO msg="Export complete"
+time=2026-01-03T13:04:53.061-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T13:04:53.062-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T13:04:53.062-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T13:05:40.240-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-ahq
+time=2026-01-03T13:05:40.696-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-68s
+time=2026-01-03T13:05:41.174-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-4fv
+time=2026-01-03T13:05:41.675-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T13:05:41.675-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T13:05:41.681-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T13:05:41.681-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T13:05:41.682-05:00 level=INFO msg="Export complete"
+time=2026-01-03T13:05:42.683-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T13:05:42.683-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T13:05:42.683-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T13:06:02.857-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-1l4
+time=2026-01-03T13:06:03.066-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-7jy
+time=2026-01-03T13:06:03.264-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-xbe
+time=2026-01-03T13:06:03.497-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-ahq
+time=2026-01-03T13:06:03.699-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-68s
+time=2026-01-03T13:06:03.883-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-4fv
+time=2026-01-03T13:06:04.384-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T13:06:04.384-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T13:06:04.389-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T13:06:04.389-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T13:06:04.390-05:00 level=INFO msg="Export complete"
+time=2026-01-03T13:06:05.391-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T13:06:05.391-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T13:06:05.392-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T13:06:06.768-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-7jy
+time=2026-01-03T13:06:07.096-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-xbe
+time=2026-01-03T13:06:07.336-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-68s
+time=2026-01-03T13:06:07.586-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-4fv
+time=2026-01-03T13:06:08.086-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T13:06:08.086-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T13:06:08.100-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T13:06:08.100-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T13:06:08.101-05:00 level=INFO msg="Export complete"
+time=2026-01-03T13:06:09.102-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T13:06:09.103-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T13:06:09.104-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T13:06:10.823-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-jss
+time=2026-01-03T13:06:11.111-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-jss
+time=2026-01-03T13:06:11.348-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-6ge
+time=2026-01-03T13:06:11.611-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-6ge
+time=2026-01-03T13:06:11.852-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-fq6
+time=2026-01-03T13:06:12.093-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-fq6
+time=2026-01-03T13:06:12.384-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-or9
+time=2026-01-03T13:06:12.587-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-iie
+time=2026-01-03T13:06:13.087-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T13:06:13.087-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T13:06:13.093-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T13:06:13.093-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T13:06:13.093-05:00 level=INFO msg="Export complete"
+time=2026-01-03T13:06:14.094-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T13:06:14.094-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T13:06:14.095-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T13:06:29.295-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-f8d
+time=2026-01-03T13:06:29.500-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-00q
+time=2026-01-03T13:06:29.693-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-14v
+time=2026-01-03T13:06:29.916-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-14v
+time=2026-01-03T13:06:30.161-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-69m
+time=2026-01-03T13:06:30.379-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-rnh
+time=2026-01-03T13:06:30.591-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-0i1
+time=2026-01-03T13:06:30.800-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-lsk
+time=2026-01-03T13:06:31.028-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-s68
+time=2026-01-03T13:06:31.281-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-gum
+time=2026-01-03T13:06:31.492-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-9mx
+time=2026-01-03T13:06:31.702-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-q9l
+time=2026-01-03T13:06:32.203-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T13:06:32.203-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T13:06:32.208-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T13:06:32.208-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T13:06:32.209-05:00 level=INFO msg="Export complete"
+time=2026-01-03T13:06:33.210-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T13:06:33.211-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T13:06:33.211-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T13:07:03.842-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-0pd
+time=2026-01-03T13:07:04.307-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-9g5
+time=2026-01-03T13:07:04.768-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-16w
+time=2026-01-03T13:07:05.269-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T13:07:05.269-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T13:07:05.275-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T13:07:05.275-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T13:07:05.276-05:00 level=INFO msg="Export complete"
+time=2026-01-03T13:07:06.276-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T13:07:06.276-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T13:07:06.276-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T13:39:16.490-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-0pd
+time=2026-01-03T13:39:16.732-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-9g5
+time=2026-01-03T13:39:16.933-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-16w
+time=2026-01-03T13:39:17.130-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-9g5
+time=2026-01-03T13:39:17.356-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-16w
+time=2026-01-03T13:39:17.857-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T13:39:17.857-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T13:39:17.864-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T13:39:17.864-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T13:39:17.864-05:00 level=INFO msg="Export complete"
+time=2026-01-03T13:39:17.900-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-d4s
+time=2026-01-03T13:39:18.401-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T13:39:18.401-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T13:39:18.408-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T13:39:18.408-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T13:39:18.410-05:00 level=INFO msg="Export complete"
+time=2026-01-03T13:39:18.427-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-es6
+time=2026-01-03T13:39:18.865-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T13:39:18.865-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T13:39:18.866-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T13:39:18.928-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T13:39:18.928-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T13:39:18.939-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T13:39:18.939-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T13:39:18.941-05:00 level=INFO msg="Export complete"
+time=2026-01-03T13:39:19.409-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T13:39:19.409-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T13:39:19.410-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T13:39:19.940-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T13:39:19.940-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T13:39:19.940-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T13:39:39.285-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-d4s
+time=2026-01-03T13:39:39.494-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-es6
+time=2026-01-03T13:39:39.712-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-es6
+time=2026-01-03T13:39:40.135-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-0ua
+time=2026-01-03T13:39:40.636-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T13:39:40.636-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T13:39:40.642-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T13:39:40.642-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T13:39:40.642-05:00 level=INFO msg="Export complete"
+time=2026-01-03T13:39:41.643-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T13:39:41.644-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T13:39:41.644-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T13:40:20.512-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-0ua
+time=2026-01-03T13:40:21.013-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T13:40:21.013-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T13:40:21.019-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T13:40:21.019-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T13:40:21.020-05:00 level=INFO msg="Export complete"
+time=2026-01-03T13:40:22.020-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T13:40:22.021-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T13:40:22.021-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T13:41:09.298-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-8fl
+time=2026-01-03T13:41:09.527-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-uar
+time=2026-01-03T13:41:10.028-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T13:41:10.029-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T13:41:10.036-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T13:41:10.036-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T13:41:10.036-05:00 level=INFO msg="Export complete"
+time=2026-01-03T13:41:11.037-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T13:41:11.037-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T13:41:11.037-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T16:50:36.495-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T16:50:36.496-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T16:50:36.508-05:00 level=INFO msg="Git ref change detected: %s" !BADKEY=.git/refs/heads/dev-livestore.lock
+time=2026-01-03T16:50:37.510-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T16:50:37.510-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T16:50:37.511-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T16:50:44.440-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-1l4
+time=2026-01-03T16:50:44.444-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-7jy
+time=2026-01-03T16:50:44.446-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-xbe
+time=2026-01-03T16:50:44.449-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-ad7
+time=2026-01-03T16:50:44.950-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T16:50:44.950-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T16:50:44.958-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T16:50:44.958-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T16:50:44.958-05:00 level=INFO msg="Export complete"
+time=2026-01-03T16:50:45.959-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T16:50:45.959-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T16:50:45.959-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T16:51:28.332-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T16:51:28.332-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T16:51:29.334-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T16:51:29.334-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T16:51:29.335-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T17:06:56.198-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-ahq
+time=2026-01-03T17:06:56.202-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-68s
+time=2026-01-03T17:06:56.204-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-4fv
+time=2026-01-03T17:06:56.207-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-zqm
+time=2026-01-03T17:06:56.708-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T17:06:56.708-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T17:06:56.715-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T17:06:56.715-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T17:06:56.716-05:00 level=INFO msg="Export complete"
+time=2026-01-03T17:06:57.716-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T17:06:57.716-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T17:06:57.716-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T17:07:23.099-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T17:07:23.099-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T17:07:23.113-05:00 level=INFO msg="Git ref change detected: %s" !BADKEY=.git/refs/heads/dev-livestore.lock
+time=2026-01-03T17:07:24.114-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T17:07:24.114-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T17:07:24.115-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T17:20:32.724-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T17:20:32.725-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T17:20:32.736-05:00 level=INFO msg="Git ref change detected: %s" !BADKEY=.git/refs/heads/dev-livestore.lock
+time=2026-01-03T17:20:33.737-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T17:20:33.738-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T17:20:33.738-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T18:36:33.369-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-s7f
+time=2026-01-03T18:36:33.870-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T18:36:33.870-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T18:36:33.878-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T18:36:33.878-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T18:36:33.878-05:00 level=INFO msg="Export complete"
+time=2026-01-03T18:36:34.879-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T18:36:34.879-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T18:36:34.880-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T20:35:40.781-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T20:35:40.782-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T20:35:40.796-05:00 level=INFO msg="Git ref change detected: %s" !BADKEY=.git/refs/heads/dev-livestore.lock
+time=2026-01-03T20:35:41.797-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T20:35:41.798-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T20:35:41.798-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T20:36:27.621-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T20:36:27.621-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T20:36:27.633-05:00 level=INFO msg="Git ref change detected: %s" !BADKEY=.git/refs/heads/dev-livestore.lock
+time=2026-01-03T20:36:28.634-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T20:36:28.634-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T20:36:28.634-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T20:36:32.842-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T20:36:32.842-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T20:36:33.843-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T20:36:33.843-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T20:36:33.844-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T20:42:10.843-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-s7f.1
+time=2026-01-03T20:42:11.343-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T20:42:11.343-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T20:42:11.355-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T20:42:11.355-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T20:42:11.355-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T20:42:11.356-05:00 level=INFO msg="Export complete"
+time=2026-01-03T20:42:11.684-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-s7f.2
+time=2026-01-03T20:42:12.184-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T20:42:12.184-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T20:42:12.195-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T20:42:12.195-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T20:42:12.196-05:00 level=INFO msg="Export complete"
+time=2026-01-03T20:42:12.356-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T20:42:12.356-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T20:42:12.356-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T20:42:12.475-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-s7f.3
+time=2026-01-03T20:42:12.976-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-03T20:42:12.976-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-03T20:42:12.986-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-03T20:42:12.986-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T20:42:12.987-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T20:42:12.987-05:00 level=INFO msg="Export complete"
+time=2026-01-03T20:42:13.195-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T20:42:13.196-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T20:42:13.196-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T20:42:13.988-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T20:42:13.988-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T20:42:13.989-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-03T22:04:20.843-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T22:04:20.844-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-03T22:04:20.859-05:00 level=INFO msg="Git ref change detected: %s" !BADKEY=.git/refs/heads/dev-livestore.lock
+time=2026-01-03T22:04:21.859-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-03T22:04:21.860-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-03T22:04:21.860-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-04T00:49:27.648-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-04T00:49:27.648-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-04T00:49:27.662-05:00 level=INFO msg="Git ref change detected: %s" !BADKEY=.git/refs/heads/dev-livestore.lock
+time=2026-01-04T00:49:28.661-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-04T00:49:28.662-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-04T00:49:28.662-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-04T00:51:12.843-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-04T00:51:12.843-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-04T00:51:12.855-05:00 level=INFO msg="Git ref change detected: %s" !BADKEY=.git/refs/heads/dev-livestore.lock
+time=2026-01-04T00:51:13.857-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-04T00:51:13.857-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-04T00:51:13.857-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-04T00:51:56.443-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-04T00:51:56.443-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-04T00:51:57.444-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-04T00:51:57.444-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-04T00:51:57.445-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-04T15:37:23.332-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-7i3
+time=2026-01-04T15:37:23.834-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-04T15:37:23.835-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-04T15:37:23.861-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-04T15:37:23.861-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-04T15:37:23.866-05:00 level=INFO msg="Export complete"
+time=2026-01-04T15:37:24.862-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-04T15:37:24.862-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-04T15:37:24.862-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-04T15:38:41.614-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-576
+time=2026-01-04T15:38:42.065-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-sku
+time=2026-01-04T15:38:42.556-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-ju1
+time=2026-01-04T15:38:43.018-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-dbw
+time=2026-01-04T15:38:43.519-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-04T15:38:43.519-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-04T15:38:43.527-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-04T15:38:43.527-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-04T15:38:43.529-05:00 level=INFO msg="Export complete"
+time=2026-01-04T15:38:43.539-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-bb2
+time=2026-01-04T15:38:43.944-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-e4j
+time=2026-01-04T15:38:44.444-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-04T15:38:44.444-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-04T15:38:44.455-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-04T15:38:44.455-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-04T15:38:44.456-05:00 level=INFO msg="Export complete"
+time=2026-01-04T15:38:44.528-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-04T15:38:44.528-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-04T15:38:44.529-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-04T15:38:45.457-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-04T15:38:45.457-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-04T15:38:45.457-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-04T15:39:16.008-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-aq5
+time=2026-01-04T15:39:16.509-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-04T15:39:16.509-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-04T15:39:16.522-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-04T15:39:16.522-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-04T15:39:16.522-05:00 level=INFO msg="Export complete"
+time=2026-01-04T15:39:16.627-05:00 level=INFO msg="Mutation detected: %s %s" create=sitelink-auf
+time=2026-01-04T15:39:17.128-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-04T15:39:17.128-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-04T15:39:17.135-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-04T15:39:17.135-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-04T15:39:17.135-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-04T15:39:17.140-05:00 level=INFO msg="Export complete"
+time=2026-01-04T15:39:17.524-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-04T15:39:17.524-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-04T15:39:17.524-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-04T15:39:18.137-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-04T15:39:18.137-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-04T15:39:18.137-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-04T15:39:24.266-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-sku
+time=2026-01-04T15:39:24.451-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-ju1
+time=2026-01-04T15:39:24.729-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-e4j
+time=2026-01-04T15:39:25.012-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-aq5
+time=2026-01-04T15:39:25.180-05:00 level=INFO msg="Mutation detected: %s %s" update=sitelink-dbw
+time=2026-01-04T15:39:25.681-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-04T15:39:25.681-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-04T15:39:25.688-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-04T15:39:25.688-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-04T15:39:25.688-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-04T15:39:25.688-05:00 level=INFO msg="Export complete"
+time=2026-01-04T15:39:26.689-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-04T15:39:26.689-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-04T15:39:26.689-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-04T15:41:12.232-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-6ge
+time=2026-01-04T15:41:12.237-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-or9
+time=2026-01-04T15:41:12.241-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-fq6
+time=2026-01-04T15:41:12.741-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-04T15:41:12.741-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-04T15:41:12.749-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-04T15:41:12.749-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-04T15:41:12.750-05:00 level=INFO msg="Export complete"
+time=2026-01-04T15:41:13.750-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-04T15:41:13.751-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-04T15:41:13.751-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-04T15:41:47.687-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-04T15:41:47.687-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-04T15:41:47.705-05:00 level=INFO msg="Git ref change detected: %s" !BADKEY=.git/refs/heads/dev-livestore.lock
+time=2026-01-04T15:41:48.706-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-04T15:41:48.706-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-04T15:41:48.707-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-04T15:50:39.391-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-04T15:50:39.392-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-04T15:50:39.410-05:00 level=INFO msg="Git ref change detected: %s" !BADKEY=.git/refs/heads/dev-livestore.lock
+time=2026-01-04T15:50:40.410-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-04T15:50:40.410-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-04T15:50:40.411-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-04T15:59:17.602-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-576
+time=2026-01-04T15:59:18.103-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-04T15:59:18.103-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-04T15:59:18.112-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-04T15:59:18.112-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-04T15:59:18.112-05:00 level=INFO msg="Export complete"
+time=2026-01-04T15:59:19.113-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-04T15:59:19.113-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-04T15:59:19.114-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-04T16:04:34.242-05:00 level=INFO msg="Mutation detected: %s %s" status=sitelink-576
+time=2026-01-04T16:04:34.745-05:00 level=INFO msg="Export triggered by mutation events"
+time=2026-01-04T16:04:34.745-05:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-01-04T16:04:34.755-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-04T16:04:34.755-05:00 level=INFO msg="Exported to JSONL"
+time=2026-01-04T16:04:34.757-05:00 level=INFO msg="Export complete"
+time=2026-01-04T16:04:35.756-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-04T16:04:35.756-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-04T16:04:35.757-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
