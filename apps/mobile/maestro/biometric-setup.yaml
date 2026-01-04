@@ -1,0 +1,15 @@
+appId: com.nessei.sitelink
+---
+# Requires: iOS Simulator - Features → Face ID → Enrolled
+# Or: Android Emulator - Settings → Security → Fingerprint
+# Also requires: User must be signed in first
+- launchApp
+# ... (sign in flow first if not already signed in)
+- assertVisible: "Enable Face ID"
+- tapOn:
+    text: "Enable Face ID"
+    testID: "enable-biometric-button"
+# Manual: User must complete biometric prompt
+- waitForAnimationToEnd
+- assertVisible: "Plans"
+

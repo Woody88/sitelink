@@ -6,6 +6,7 @@
     "@effect-native/bun-test": "^0.1.3",
     "@effect/language-service": "^0.63.2",
     "@types/bun": "latest",
+    "concurrently": "^9.1.0",
     "oxlint": "^1.36.0",
     "prettier": "^3.7.4"
   },
@@ -17,7 +18,8 @@
     "prepare": "effect-language-service patch",
     "typecheck": "tsc --build --noEmit",
     "format": "prettier --write .",
-    "check-format": "prettier --check ."
+    "check-format": "prettier --check .",
+    "dev:all": "concurrently \"bun --cwd apps/backend dev\" \"bun --cwd apps/mobile dev\""
   },
   "type": "module",
   "workspaces": {

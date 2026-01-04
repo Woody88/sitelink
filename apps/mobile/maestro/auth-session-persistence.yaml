@@ -1,0 +1,10 @@
+appId: com.nessei.sitelink
+---
+# Requires manual setup: User must be logged in first
+# Run this test after auth-login.yaml or manually sign in
+- launchApp
+- assertVisible: "Plans"
+- pressBack
+- launchApp
+- assertVisible: "Plans"
+

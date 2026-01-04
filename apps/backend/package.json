@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
+    "dev:network": "wrangler dev --host 0.0.0.0",
     "deploy": "wrangler deploy",
     "cf-typegen": "wrangler types",
     "db:create": "wrangler d1 create sitelink-db",

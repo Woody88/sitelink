@@ -1,0 +1,25 @@
+appId: com.nessei.sitelink
+---
+- launchApp
+- tapOn:
+    text: "Sign Up"
+    testID: "signup-link"
+- assertVisible: "Create Account"
+- tapOn:
+    text: "Name"
+    testID: "name-input"
+- inputText: "Test User"
+- tapOn:
+    text: "Email"
+    testID: "email-input"
+- inputText: "newuser@example.com"
+- tapOn:
+    text: "Password"
+    testID: "password-input"
+- inputText: "password123"
+- tapOn:
+    text: "Sign Up"
+    testID: "signup-button"
+- waitForAnimationToEnd
+- assertVisible: "Plans"
+
