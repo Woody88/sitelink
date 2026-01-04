@@ -1,25 +1,35 @@
-appId: com.nessei.sitelink
+appId: host.exp.exponent
 ---
 - launchApp
-- tapOn:
-    text: "Sign Up"
-    testID: "signup-link"
-- assertVisible: "Create Account"
-- tapOn:
-    text: "Name"
-    testID: "name-input"
-- inputText: "Test User"
-- tapOn:
-    text: "Email"
-    testID: "email-input"
-- inputText: "newuser@example.com"
-- tapOn:
-    text: "Password"
-    testID: "password-input"
-- inputText: "password123"
-- tapOn:
-    text: "Sign Up"
-    testID: "signup-button"
+- tapOn: '@sitelink/mobile'
 - waitForAnimationToEnd
-- assertVisible: "Plans"
-
+- tapOn:
+    id: 'signup-link'
+- assertVisible: 'Create Account'
+- tapOn:
+    id: 'name-input'
+- inputText: 'Tester'
+- tapOn:
+    id: 'email-input'
+- inputText: 'test@example.com'
+- tapOn:
+    id: 'password-input'
+- inputText: 'password123'
+- tapOn:
+    id: 'signup-button'
+- waitForAnimationToEnd
+# After signup, should see biometric setup screen - not immediately redirect to Plans
+- assertVisible:
+    text: 'Enable Face ID?'
+    optional: true
+- runFlow:
+    when:
+      visible: 'Enable Fingerprint?'
+    commands:
+      - assertVisible: 'Enable Fingerprint?'
+# Skip biometric setup for test
+- tapOn:
+    id: 'skip-biometric-button'
+- waitForAnimationToEnd
+# Now should see Plans
+- assertVisible: 'Plans'

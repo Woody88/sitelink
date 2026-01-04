@@ -3,16 +3,12 @@ appId: com.nessei.sitelink
 - launchApp
 - assertVisible: "Sign In"
 - tapOn:
-    text: "Email"
-    testID: "email-input"
+    id: "email-input"
 - inputText: "test@example.com"
 - tapOn:
-    text: "Password"
-    testID: "password-input"
+    id: "password-input"
 - inputText: "password123"
 - tapOn:
-    text: "Sign In"
-    testID: "signin-button"
+    id: "signin-button"
 - waitForAnimationToEnd
 - assertVisible: "Plans"
-

@@ -1,25 +1,25 @@
 // apps/mobile/app/(auth)/login.tsx
-import { useState } from "react"
-import { View, ScrollView, KeyboardAvoidingView, Platform } from "react-native"
-import { useRouter } from "expo-router"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Text } from "@/components/ui/text"
-import { Label } from "@/components/ui/label"
-import { useAuth } from "@/hooks/useAuth"
-import { SyncStatus } from "@/components/SyncStatus"
+import { useState } from 'react'
+import { View, ScrollView, KeyboardAvoidingView, Platform } from 'react-native'
+import { useRouter } from 'expo-router'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Text } from '@/components/ui/text'
+import { Label } from '@/components/ui/label'
+import { useAuth } from '@/hooks/useAuth'
+import { SyncStatus } from '@/components/SyncStatus'
 
 export default function LoginScreen() {
   const router = useRouter()
   const { signIn } = useAuth()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   async function handleSignIn() {
     if (!email || !password) {
-      setError("Please fill in all fields")
+      setError('Please fill in all fields')
       return
     }
 
@@ -29,23 +29,22 @@ export default function LoginScreen() {
     const result = await signIn(email, password)
 
     if (result.success) {
-      router.replace("/(tabs)/plan")
+      // Don't redirect immediately - let _layout.tsx handle biometric check first
+      // The routing logic in _layout.tsx will redirect after biometric check completes
     } else {
-      setError(result.error || "Sign in failed")
+      setError(result.error || 'Sign in failed')
       setLoading(false)
     }
   }
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1"
-    >
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      className="flex-1">
       <ScrollView
         contentContainerClassName="flex-1 justify-center p-6 gap-6"
-        keyboardShouldPersistTaps="handled"
-      >
-        <View className="items-center mb-2">
+        keyboardShouldPersistTaps="handled">
+        <View className="mb-2 items-center">
           <SyncStatus size="sm" showText={true} />
         </View>
 
@@ -93,16 +92,9 @@ export default function LoginScreen() {
             />
           </View>
 
-          {error && (
-            <Text className="text-destructive text-sm">{error}</Text>
-          )}
+          {error && <Text className="text-destructive text-sm">{error}</Text>}
 
-          <Button
-            testID="signin-button"
-            onPress={handleSignIn}
-            disabled={loading}
-            className="mt-2"
-          >
+          <Button testID="signin-button" onPress={handleSignIn} disabled={loading} className="mt-2">
             <Text>Sign In</Text>
           </Button>
         </View>
@@ -112,34 +104,23 @@ export default function LoginScreen() {
           <Button
             variant="link"
             testID="signup-link"
-            onPress={() => router.push("/(auth)/signup" as any)}
-            disabled={loading}
-          >
+            onPress={() => router.push('/(auth)/signup' as any)}
+            disabled={loading}>
             <Text variant="link">Sign Up</Text>
           </Button>
         </View>
 
-        <View className="gap-3 mt-4">
-          <Button
-            variant="outline"
-            testID="oauth-google-button"
-            disabled
-            className="opacity-50"
-          >
+        <View className="mt-4 gap-3">
+          <Button variant="outline" testID="oauth-google-button" disabled className="opacity-50">
             <Text>Continue with Google</Text>
-            <Text variant="muted" className="text-xs ml-2">
+            <Text variant="muted" className="ml-2 text-xs">
               (Coming Soon)
             </Text>
           </Button>
 
-          <Button
-            variant="outline"
-            testID="oauth-microsoft-button"
-            disabled
-            className="opacity-50"
-          >
+          <Button variant="outline" testID="oauth-microsoft-button" disabled className="opacity-50">
             <Text>Continue with Microsoft</Text>
-            <Text variant="muted" className="text-xs ml-2">
+            <Text variant="muted" className="ml-2 text-xs">
               (Coming Soon)
             </Text>
           </Button>
@@ -148,4 +129,3 @@ export default function LoginScreen() {
     </KeyboardAvoidingView>
   )
 }
-

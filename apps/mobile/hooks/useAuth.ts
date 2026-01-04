@@ -1,86 +1,56 @@
 // apps/mobile/hooks/useAuth.ts
-import { useEffect, useState } from "react"
-import { getSession, signIn, signOut, signUp } from "@/lib/auth"
-import type { User } from "better-auth/types"
-
-interface AuthState {
-  user: User | null
-  isLoading: boolean
-  isAuthenticated: boolean
-}
+import { signIn, signOut, signUp, authClient } from '@/lib/auth'
+import { clearBiometricSettings } from '@/lib/biometric'
 
 export function useAuth() {
-  const [state, setState] = useState<AuthState>({
-    user: null,
-    isLoading: true,
-    isAuthenticated: false,
-  })
+  const { data: session, isPending } = authClient.useSession()
 
-  useEffect(() => {
-    checkSession()
-  }, [])
-
-  async function checkSession() {
-    try {
-      const session = await getSession()
-      setState({
-        user: session?.user || null,
-        isLoading: false,
-        isAuthenticated: !!session?.user,
-      })
-    } catch {
-      setState({
-        user: null,
-        isLoading: false,
-        isAuthenticated: false,
-      })
-    }
-  }
+  const user = session?.user || null
+  const isAuthenticated = !!session?.user
+  const isLoading = isPending
 
   async function handleSignIn(email: string, password: string) {
     const result = await signIn({ email, password })
     if (result.data?.user) {
-      await checkSession()
       return { success: true }
     }
     return {
       success: false,
-      error: result.error?.message || "Sign in failed",
+      error: result.error?.message || 'Sign in failed',
     }
   }
 
-  async function handleSignUp(
-    email: string,
-    password: string,
-    name: string
-  ) {
+  async function handleSignUp(email: string, password: string, name: string) {
     const result = await signUp({ email, password, name })
     if (result.data?.user) {
-      await checkSession()
+      // Clear any existing biometric settings so new user gets the setup screen
+      await clearBiometricSettings()
       return { success: true, isNewUser: true }
     }
     return {
       success: false,
-      error: result.error?.message || "Sign up failed",
+      error: result.error?.message || 'Sign up failed',
       isNewUser: false,
     }
   }
 
   async function handleSignOut() {
+    // Clear biometric settings so next user gets the setup screen
+    await clearBiometricSettings()
     await signOut()
-    setState({
-      user: null,
-      isLoading: false,
-      isAuthenticated: false,
-    })
+  }
+
+  async function refresh() {
+    await authClient.getSession()
   }
 
   return {
-    ...state,
+    user,
+    isLoading,
+    isAuthenticated,
     signIn: handleSignIn,
     signUp: handleSignUp,
     signOut: handleSignOut,
-    refresh: checkSession,
+    refresh,
   }
 }
-

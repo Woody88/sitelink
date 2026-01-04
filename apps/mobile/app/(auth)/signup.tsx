@@ -1,31 +1,31 @@
 // apps/mobile/app/(auth)/signup.tsx
-import { useState } from "react"
-import { View, ScrollView, KeyboardAvoidingView, Platform } from "react-native"
-import { useRouter } from "expo-router"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Text } from "@/components/ui/text"
-import { Label } from "@/components/ui/label"
-import { useAuth } from "@/hooks/useAuth"
-import { SyncStatus } from "@/components/SyncStatus"
+import { useState } from 'react'
+import { View, ScrollView, KeyboardAvoidingView, Platform } from 'react-native'
+import { useRouter } from 'expo-router'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Text } from '@/components/ui/text'
+import { Label } from '@/components/ui/label'
+import { useAuth } from '@/hooks/useAuth'
+import { SyncStatus } from '@/components/SyncStatus'
 
 export default function SignUpScreen() {
   const router = useRouter()
   const { signUp } = useAuth()
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   async function handleSignUp() {
     if (!name || !email || !password) {
-      setError("Please fill in all fields")
+      setError('Please fill in all fields')
       return
     }
 
     if (password.length < 8) {
-      setError("Password must be at least 8 characters")
+      setError('Password must be at least 8 characters')
       return
     }
 
@@ -33,29 +33,25 @@ export default function SignUpScreen() {
     setLoading(true)
 
     const result = await signUp(email, password, name)
+    console.log('[SIGNUP] Result:', JSON.stringify(result, null, 2))
 
     if (result.success) {
-      if (result.isNewUser) {
-        router.replace("/(auth)/biometric-setup" as any)
-      } else {
-        router.replace("/(tabs)/plan" as any)
-      }
+      console.log('[SIGNUP] Success! Layout will handle navigation.')
+      // Don't navigate here - the layout detects auth state change and handles flow
     } else {
-      setError(result.error || "Sign up failed")
+      setError(result.error || 'Sign up failed')
       setLoading(false)
     }
   }
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1"
-    >
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      className="flex-1">
       <ScrollView
         contentContainerClassName="flex-1 justify-center p-6 gap-6"
-        keyboardShouldPersistTaps="handled"
-      >
-        <View className="items-center mb-2">
+        keyboardShouldPersistTaps="handled">
+        <View className="mb-2 items-center">
           <SyncStatus size="sm" showText={true} />
         </View>
 
@@ -119,16 +115,9 @@ export default function SignUpScreen() {
             />
           </View>
 
-          {error && (
-            <Text className="text-destructive text-sm">{error}</Text>
-          )}
+          {error && <Text className="text-destructive text-sm">{error}</Text>}
 
-          <Button
-            testID="signup-button"
-            onPress={handleSignUp}
-            disabled={loading}
-            className="mt-2"
-          >
+          <Button testID="signup-button" onPress={handleSignUp} disabled={loading} className="mt-2">
             <Text>Sign Up</Text>
           </Button>
         </View>
@@ -138,34 +127,23 @@ export default function SignUpScreen() {
           <Button
             variant="link"
             testID="login-link"
-            onPress={() => router.push("/(auth)/login" as any)}
-            disabled={loading}
-          >
+            onPress={() => router.push('/(auth)/login' as any)}
+            disabled={loading}>
             <Text variant="link">Sign In</Text>
           </Button>
         </View>
 
-        <View className="gap-3 mt-4">
-          <Button
-            variant="outline"
-            testID="oauth-google-button"
-            disabled
-            className="opacity-50"
-          >
+        <View className="mt-4 gap-3">
+          <Button variant="outline" testID="oauth-google-button" disabled className="opacity-50">
             <Text>Continue with Google</Text>
-            <Text variant="muted" className="text-xs ml-2">
+            <Text variant="muted" className="ml-2 text-xs">
               (Coming Soon)
             </Text>
           </Button>
 
-          <Button
-            variant="outline"
-            testID="oauth-microsoft-button"
-            disabled
-            className="opacity-50"
-          >
+          <Button variant="outline" testID="oauth-microsoft-button" disabled className="opacity-50">
             <Text>Continue with Microsoft</Text>
-            <Text variant="muted" className="text-xs ml-2">
+            <Text variant="muted" className="ml-2 text-xs">
               (Coming Soon)
             </Text>
           </Button>
@@ -174,4 +152,3 @@ export default function SignUpScreen() {
     </KeyboardAvoidingView>
   )
 }
-

@@ -1,9 +1,10 @@
 // apps/mobile/app/(tabs)/more.tsx
 import { Text } from "@/components/ui/text"
 import { View, ScrollView } from "react-native"
-import { Switch } from "@rn-primitives/switch"
+import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { useState, useEffect } from "react"
+import { useState, useCallback } from "react"
+import { useFocusEffect } from "@react-navigation/native"
 import {
   isBiometricAvailable,
   isBiometricEnabled,
@@ -18,16 +19,19 @@ export default function MoreScreen() {
   const [biometricAvailable, setBiometricAvailable] = useState(false)
   const [biometricEnabled, setBiometricEnabledState] = useState(false)
 
-  useEffect(() => {
-    loadBiometricState()
-  }, [])
-
-  async function loadBiometricState() {
+  const loadBiometricState = useCallback(async () => {
     const available = await isBiometricAvailable()
     const enabled = await isBiometricEnabled()
     setBiometricAvailable(available)
     setBiometricEnabledState(enabled)
-  }
+  }, [])
+
+  // Reload biometric state when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadBiometricState()
+    }, [loadBiometricState])
+  )
 
   async function handleBiometricToggle(value: boolean) {
     await setBiometricEnabled(value)

@@ -8,6 +8,9 @@ const { addLiveStoreDevtoolsMiddleware } = require('@livestore/devtools-expo')
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname)
 
+// Enable package exports for Better Auth
+config.resolver.unstable_enablePackageExports = true
+
 addLiveStoreDevtoolsMiddleware(config, { schemaPath: '../../packages/domain/src/schema.ts' })
 
 module.exports = withUniwindConfig(config, {
