@@ -1,14 +1,16 @@
-import { ProjectFilters } from '@/components/project/project-filters';
-import { ProjectList } from '@/components/project/project-list';
 import { CreateProjectModal } from '@/components/project/create-project-modal';
 import type { Project } from '@/components/project/project-card';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { Text } from '@/components/ui/text';
+import { Separator } from '@/components/ui/separator';
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from '@/components/ui/empty';
 import { useProject } from '@/context/project-context';
 import { Stack, useRouter } from 'expo-router';
-import { Filter, Plus } from 'lucide-react-native';
+import { Bell, User, FolderOpen, ChevronRight, MapPin } from 'lucide-react-native';
 import * as React from 'react';
-import { View } from 'react-native';
+import { View, ScrollView, Pressable, FlatList } from 'react-native';
+import { cn } from '@/lib/utils';
 
 // Mock data
 const MOCK_PROJECTS: Project[] = [
@@ -53,10 +55,93 @@ const MOCK_PROJECTS: Project[] = [
   },
 ];
 
+interface FilterChipProps {
+  label: string;
+  count: number;
+  isActive: boolean;
+  onPress: () => void;
+}
+
+const FilterChip = React.memo(function FilterChip({ 
+  label, 
+  count, 
+  isActive, 
+  onPress 
+}: FilterChipProps) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className={cn(
+        'px-3 py-1.5 rounded-full mr-2',
+        isActive
+          ? 'bg-foreground'
+          : 'bg-transparent'
+      )}
+      style={{ minHeight: 32 }} // Slimmer but still tappable
+    >
+      <Text
+        className={cn(
+          'text-sm',
+          isActive ? 'text-background font-medium' : 'text-muted-foreground'
+        )}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+});
+
+// Project List Item - Wealthsimple style with separator
+interface ProjectListItemProps {
+  project: Project;
+  onPress: (project: Project) => void;
+  isLast?: boolean;
+}
+
+const ProjectListItem = React.memo(function ProjectListItem({
+  project,
+  onPress,
+  isLast = false,
+}: ProjectListItemProps) {
+  return (
+    <>
+      <Pressable
+        onPress={() => onPress(project)}
+        className="flex-row items-center px-4 py-4 active:bg-muted/50"
+        style={{ minHeight: 64 }}
+      >
+        <View className="flex-1">
+          <Text className="text-base font-medium text-foreground">
+            {project.name}
+          </Text>
+          {project.address ? (
+            <View className="flex-row items-center mt-1">
+              <Icon as={MapPin} className="size-3 text-muted-foreground mr-1" />
+              <Text className="text-sm text-muted-foreground">
+                {project.address}
+              </Text>
+            </View>
+          ) : (
+            <Text className="text-sm text-muted-foreground mt-0.5">
+              {project.sheetCount} sheets • {project.memberCount} members
+            </Text>
+          )}
+        </View>
+        <View className="flex-row items-center gap-2">
+          <Text className="text-xs text-muted-foreground">
+            {project.updatedAt}
+          </Text>
+          <Icon as={ChevronRight} className="size-5 text-muted-foreground" />
+        </View>
+      </Pressable>
+      {!isLast && <Separator className="ml-4" />}
+    </>
+  );
+});
+
 export default function ProjectsScreen() {
   const router = useRouter();
   const { setActiveProjectId } = useProject();
-  const [filterVisible, setFilterVisible] = React.useState(false);
   const [createModalVisible, setCreateModalVisible] = React.useState(false);
   const [activeFilter, setActiveFilter] = React.useState('all');
 
@@ -65,15 +150,25 @@ export default function ProjectsScreen() {
     return MOCK_PROJECTS.filter((p) => p.status === activeFilter);
   }, [activeFilter]);
 
-  const handleCreateProject = (data: { name: string; address?: string }) => {
-    console.log('Create project:', data);
-    setCreateModalVisible(false);
-  };
+  const filterCounts = React.useMemo(() => ({
+    all: MOCK_PROJECTS.length,
+    active: MOCK_PROJECTS.filter((p) => p.status === 'active').length,
+    completed: MOCK_PROJECTS.filter((p) => p.status === 'completed').length,
+    archived: MOCK_PROJECTS.filter((p) => p.status === 'archived').length,
+  }), []);
 
-  const handleProjectPress = (project: Project) => {
+  const handleProjectPress = React.useCallback((project: Project) => {
     setActiveProjectId(project.id);
     router.push(`/project/${project.id}/` as any);
-  };
+  }, [setActiveProjectId, router]);
+
+  const handleNotifications = React.useCallback(() => {
+    router.push('/notifications' as any);
+  }, [router]);
+
+  const handleProfile = React.useCallback(() => {
+    router.push('/settings' as any);
+  }, [router]);
 
   return (
     <>
@@ -81,46 +176,101 @@ export default function ProjectsScreen() {
         options={{
           title: 'Projects',
           headerShown: true,
+          headerTitleAlign: 'center',
+          headerLeft: () => (
+            <Pressable
+              onPress={handleNotifications}
+              className="w-10 h-10 items-center justify-center ml-2"
+            >
+              <Icon as={Bell} className="size-6 text-foreground" />
+              {/* TODO: Add badge for unread count */}
+            </Pressable>
+          ),
           headerRight: () => (
-            <View className="flex-row gap-2">
-              <Button
-                size="icon"
-                variant="ghost"
-                className="rounded-full"
-                onPress={() => setFilterVisible(true)}
-              >
-                <Icon as={Filter} className="size-6 text-foreground" />
-              </Button>
-              <Button
-                size="icon"
-                className="rounded-full bg-primary"
-                onPress={() => setCreateModalVisible(true)}
-              >
-                <Icon as={Plus} className="size-6 text-primary-foreground" />
-              </Button>
-            </View>
+            <Pressable
+              onPress={handleProfile}
+              className="w-10 h-10 items-center justify-center mr-2"
+            >
+              <Icon as={User} className="size-6 text-foreground" />
+            </Pressable>
           ),
         }}
       />
-      <View className="flex-1 bg-background pt-4">
-        <ProjectList 
-          projects={filteredProjects} 
-          activeProjectId={null}
-          onProjectPress={handleProjectPress}
-        />
-      </View>
+      
+      <View className="flex-1 bg-background">
+        {/* Horizontal Filter Chips - Wealthsimple Pattern */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          className="flex-grow-0"
+          contentContainerClassName="px-4 py-2"
+        >
+          <FilterChip
+            label="All"
+            count={filterCounts.all}
+            isActive={activeFilter === 'all'}
+            onPress={() => setActiveFilter('all')}
+          />
+          <FilterChip
+            label="Active"
+            count={filterCounts.active}
+            isActive={activeFilter === 'active'}
+            onPress={() => setActiveFilter('active')}
+          />
+          <FilterChip
+            label="Completed"
+            count={filterCounts.completed}
+            isActive={activeFilter === 'completed'}
+            onPress={() => setActiveFilter('completed')}
+          />
+          <FilterChip
+            label="Archived"
+            count={filterCounts.archived}
+            isActive={activeFilter === 'archived'}
+            onPress={() => setActiveFilter('archived')}
+          />
+        </ScrollView>
 
-      <ProjectFilters
-        isVisible={filterVisible}
-        onClose={() => setFilterVisible(false)}
-        activeFilter={activeFilter}
-        onFilterChange={setActiveFilter}
-      />
+        {/* Project List - Wealthsimple style with separators */}
+        {filteredProjects.length > 0 ? (
+          <FlatList
+            data={filteredProjects}
+            renderItem={({ item, index }) => (
+              <ProjectListItem
+                project={item}
+                onPress={handleProjectPress}
+                isLast={index === filteredProjects.length - 1}
+              />
+            )}
+            keyExtractor={(item) => item.id}
+          />
+        ) : (
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Icon as={FolderOpen} className="size-8 text-muted-foreground" />
+              </EmptyMedia>
+              <EmptyTitle>No Projects Found</EmptyTitle>
+              <EmptyDescription>
+                No projects match the selected filter. Try a different filter or create a new project.
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button onPress={() => setCreateModalVisible(true)}>
+                <Text className="text-primary-foreground font-medium">Create Project</Text>
+              </Button>
+            </EmptyContent>
+          </Empty>
+        )}
+      </View>
 
       <CreateProjectModal
         isVisible={createModalVisible}
         onClose={() => setCreateModalVisible(false)}
-        onSubmit={handleCreateProject}
+        onSubmit={(data) => {
+          console.log('Create project:', data);
+          setCreateModalVisible(false);
+        }}
       />
     </>
   );

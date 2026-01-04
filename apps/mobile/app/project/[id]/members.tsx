@@ -7,7 +7,6 @@ import { Plus, MoreHorizontal, Search } from 'lucide-react-native';
 import * as React from 'react';
 import { FlatList, View, TextInput } from 'react-native';
 import { Stack } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 const MOCK_MEMBERS = [
   { id: '1', name: 'John Smith', email: 'john@sitelink.com', role: 'Owner' },
@@ -28,11 +27,12 @@ export default function MembersScreen() {
   }, [search]);
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
+    <View className="flex-1 bg-background">
       <Stack.Screen
         options={{
           title: 'Project Members',
           headerShown: true,
+          headerTitleAlign: 'center',
           headerRight: () => (
             <Button size="icon" variant="ghost">
                 <Icon as={Plus} className="size-6 text-primary" />
@@ -86,6 +86,6 @@ export default function MembersScreen() {
           </Card>
         )}
       />
-    </SafeAreaView>
+    </View>
   );
 }

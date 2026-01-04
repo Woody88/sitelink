@@ -5,15 +5,15 @@ import { Camera } from 'lucide-react-native';
 import * as React from 'react';
 import { ScrollView, TextInput, View, Pressable } from 'react-native';
 import { Stack } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ProfileScreen() {
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
+    <View className="flex-1 bg-background">
       <Stack.Screen 
         options={{ 
           title: 'Profile', 
-          headerShown: true 
+          headerShown: true,
+          headerTitleAlign: 'center',
         }} 
       />
       
@@ -72,6 +72,6 @@ export default function ProfileScreen() {
             <Text>Save Changes</Text>
         </Button>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

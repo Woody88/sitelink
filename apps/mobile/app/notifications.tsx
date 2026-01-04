@@ -5,7 +5,6 @@ import { Info, AlertTriangle, CheckCircle } from 'lucide-react-native';
 import * as React from 'react';
 import { SectionList, View } from 'react-native';
 import { Stack } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 const NOTIFICATIONS_DATA = [
   {
@@ -59,8 +58,14 @@ export default function NotificationsScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
-      <Stack.Screen options={{ title: 'Notifications', headerShown: true }} />
+    <View className="flex-1 bg-background">
+      <Stack.Screen 
+        options={{ 
+          title: 'Notifications', 
+          headerShown: true,
+          headerTitleAlign: 'center',
+        }} 
+      />
       
       <SectionList
         sections={NOTIFICATIONS_DATA}
@@ -89,6 +94,6 @@ export default function NotificationsScreen() {
           </Card>
         )}
       />
-    </SafeAreaView>
+    </View>
   );
 }

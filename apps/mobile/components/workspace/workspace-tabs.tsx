@@ -22,7 +22,7 @@ export const WorkspaceTabs = memo(function WorkspaceTabs({
 
   useEffect(() => {
     Animated.spring(indicatorPosition, {
-      toValue: activeTab * TAB_WIDTH,
+      toValue: activeTab * TAB_WIDTH + (TAB_WIDTH - INDICATOR_WIDTH) / 2,
       useNativeDriver: true,
       damping: 20,
       stiffness: 200,
@@ -37,6 +37,7 @@ export const WorkspaceTabs = memo(function WorkspaceTabs({
             key={tab}
             onPress={() => onTabChange(index)}
             className="flex-1 h-12 items-center justify-center"
+            style={{ minHeight: 48 }}
             role="button"
             accessibilityLabel={`${tab} tab`}
             accessibilityState={{ selected: activeTab === index }}
@@ -58,16 +59,7 @@ export const WorkspaceTabs = memo(function WorkspaceTabs({
         className="bg-primary h-[3px] rounded-full absolute bottom-0"
         style={{
           width: INDICATOR_WIDTH,
-          transform: [
-            {
-              translateX: indicatorPosition.interpolate({
-                inputRange: [0, TAB_WIDTH * (tabs.length - 1)],
-                outputRange: tabs.map((_, i) =>
-                  i * TAB_WIDTH + (TAB_WIDTH - INDICATOR_WIDTH) / 2
-                ),
-              }),
-            },
-          ],
+          transform: [{ translateX: indicatorPosition }],
         }}
       />
     </View>
