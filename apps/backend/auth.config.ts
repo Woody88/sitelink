@@ -3,13 +3,18 @@
 // The actual runtime auth is created in src/auth/auth.ts with the D1 binding
 
 import { betterAuth } from "better-auth"
+import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import Database from "better-sqlite3"
+import { drizzle } from "drizzle-orm/better-sqlite3"
 
 // Create or open a local SQLite database for CLI operations
 const db = new Database("./auth.db")
+const drizzleDb = drizzle(db)
 
 export const auth = betterAuth({
-  database: db,
+  database: drizzleAdapter(drizzleDb, {
+    provider: "sqlite",
+  }),
   emailAndPassword: {
     enabled: true,
   },

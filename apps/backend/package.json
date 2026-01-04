@@ -16,13 +16,15 @@
     "db:query:remote": "wrangler d1 execute sitelink-db --remote --command",
     "db:tables:local": "wrangler d1 execute sitelink-db --local --command \"SELECT name FROM sqlite_master WHERE type='table'\"",
     "db:tables:remote": "wrangler d1 execute sitelink-db --remote --command \"SELECT name FROM sqlite_master WHERE type='table'\"",
+    "db:delete-test-user": "wrangler d1 execute sitelink-db --local --command \"DELETE FROM user WHERE email = 'test@example.com'\"",
     "logs": "wrangler tail"
   },
   "dependencies": {
+    "@better-auth/expo": "^1.4.10",
     "@effect/platform": "0.82.4",
-    "@sitelink/domain": "workspace:*",
-    "@livestore/sync-cf": "catalog:livestore",
     "@livestore/adapter-web": "catalog:livestore",
+    "@livestore/sync-cf": "catalog:livestore",
+    "@sitelink/domain": "workspace:*",
     "better-auth": "^1.4.10",
     "drizzle-orm": "^0.45.1",
     "effect": "catalog:effect"

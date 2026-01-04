@@ -36,8 +36,8 @@ export async function validateSyncPayload(
       throw new Error('Session expired');
     }
     
-    // Add user context to payload
-    // This will be available in onPush/onPull handlers
+    // Return validated payload with user context
+    // The sync library will pass this as the context to onPush/onPull
     return {
       ...payload,
       userId: session.user.id,
@@ -74,8 +74,15 @@ export function handleSyncRequest(
   
   if (url.pathname.endsWith('/websocket') || url.pathname.endsWith('/sync')) {
     return handleWebSocket(request, env, ctx, {
-      validatePayload: (payload: any) =>
-        validateSyncPayload(payload, auth, request),
+      validatePayload: async (payload: any) => {
+        const validated = await validateSyncPayload(payload, auth, request);
+        // Include env in the validated payload so it's available in handlers
+        return {
+          ...validated,
+          env,
+          request,
+        };
+      },
     });
   }
   

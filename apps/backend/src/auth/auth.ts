@@ -2,13 +2,15 @@
 import { betterAuth } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { drizzle } from "drizzle-orm/d1"
+import * as schema from "../db/schema"
 
 export function createAuth(db: D1Database) {
-  const drizzleDb = drizzle(db)
+  const drizzleDb = drizzle(db, { schema })
 
   return betterAuth({
     database: drizzleAdapter(drizzleDb, {
       provider: "sqlite",
+      schema,
     }),
     emailAndPassword: {
       enabled: true,
@@ -25,6 +27,8 @@ export function createAuth(db: D1Database) {
       expiresIn: 60 * 60 * 24 * 7, // 7 days
       updateAge: 60 * 60 * 24, // 1 day
     },
+    // Note: expo() plugin is only needed for Expo API routes, not Cloudflare Workers
+    // The client-side expoClient plugin handles Expo-specific functionality
   })
 }
 
