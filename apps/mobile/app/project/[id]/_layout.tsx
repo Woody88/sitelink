@@ -2,57 +2,57 @@ import { useState, useCallback } from 'react'
 import { View } from 'react-native'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { WorkspaceHeader } from '@/components/workspace/workspace-header'
-import { WorkspaceTabs } from '@/components/workspace/workspace-tabs'
-import { TabContent } from '@/components/workspace/tab-content'
+import { ProjectContext } from '@/components/workspace/project-context'
+import { SegmentedControl } from '@/components/ui/segmented-control'
+import { CameraFAB } from '@/components/workspace/camera-fab'
 import PlansScreen from './plans'
-import CameraScreen from './camera'
 import ActivityScreen from './activity'
 
-const TABS = ['Plans', 'Camera', 'Activity']
+type ActiveView = 'plans' | 'activity'
 
 export default function ProjectWorkspaceLayout() {
   const router = useRouter()
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const params = useLocalSearchParams<{ id: string }>()
-  const [activeTab, setActiveTab] = useState(0)
+  const [activeView, setActiveView] = useState<ActiveView>('plans')
 
   const handleBack = useCallback(() => {
     router.back()
   }, [router])
 
-  const handleNotifications = useCallback(() => {
-    // TODO: Implement notifications screen (Phase 3 - sitelink-dbw)
-    console.log('Notifications tapped')
+  const handleMenu = useCallback(() => {
+    // TODO: Implement menu actions
+    console.log('Menu tapped')
   }, [])
 
-  const handleSettings = useCallback(() => {
-    // TODO: Implement settings screen (Phase 3 - sitelink-bb2)
-    console.log('Settings tapped')
+  const handleCamera = useCallback(() => {
+    // TODO: Navigate to camera screen
+    console.log('Camera tapped')
   }, [])
 
-  // TODO: Get project name from LiveStore query using params.id
+  // TODO: Get project name and address from LiveStore query using params.id
   const projectName = 'Riverside Apartments'
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-background">
-        <WorkspaceHeader
+        <WorkspaceHeader onBack={handleBack} onMenu={handleMenu}>
+          <SegmentedControl
+            options={['Plans', 'Activity']}
+            selectedIndex={activeView === 'plans' ? 0 : 1}
+            onIndexChange={(index) => setActiveView(index === 0 ? 'plans' : 'activity')}
+          />
+        </WorkspaceHeader>
+
+        <ProjectContext
           projectName={projectName}
-          onBack={handleBack}
-          onNotifications={handleNotifications}
-          onSettings={handleSettings}
+          address="123 Main St, Denver, CO"
         />
-        <WorkspaceTabs
-          tabs={TABS}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-        />
-        <TabContent activeTab={activeTab}>
-          <PlansScreen />
-          <CameraScreen />
-          <ActivityScreen />
-        </TabContent>
+
+        {activeView === 'plans' ? <PlansScreen /> : <ActivityScreen />}
+
+        <CameraFAB onPress={handleCamera} className="absolute bottom-4 right-4" />
       </View>
     </>
   )

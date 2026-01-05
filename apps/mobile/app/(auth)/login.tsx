@@ -100,7 +100,7 @@ export default function LoginScreen() {
         </View>
 
         <View className="flex-row justify-center gap-2">
-          <Text variant="muted">Don't have an account?</Text>
+          <Text variant="muted">Don&apos;t have an account?</Text>
           <Button
             variant="link"
             testID="signup-link"

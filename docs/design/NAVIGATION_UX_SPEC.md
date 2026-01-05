@@ -1,8 +1,8 @@
 # SiteLink Navigation & UX Specification
 
-**Version:** 1.0
+**Version:** 2.0
 **Date:** January 4, 2026
-**Status:** Approved for Implementation
+**Status:** Revised - Ready for Implementation
 **Design Inspiration:** Wealthsimple (see `/docs/design/inspiration/wealthsimple/`)
 
 ---
@@ -26,8 +26,9 @@
 
 | Principle | Application |
 |-----------|-------------|
-| **Clarity Over Cleverness** | Obvious interactions. No hidden gestures as primary navigation. Large, clear tap targets. |
-| **Support, Don't Dictate** | Preserve state across tab switches. Don't reset user context. |
+| **Clarity Over Cleverness** | Obvious interactions. No hidden gestures as primary navigation. Large, clear tap targets (48px minimum). |
+| **Action Over Destination** | Camera is an action (FAB), not a destination. Primary workflows are one-tap away. |
+| **Support, Don't Dictate** | Preserve state across view switches. Don't reset user context. |
 | **Design for Interruption** | Workers constantly switch between app and physical world. App must feel like picking up a tool. |
 | **Glove-First Interaction** | 48px minimum touch targets. Forgiving gestures. No precision required. |
 
@@ -35,13 +36,24 @@
 
 | Pattern | Wealthsimple Usage | SiteLink Adaptation |
 |---------|-------------------|---------------------|
-| **Horizontal filter chips** | Transaction type filters | Project status filters (All, Active, Completed, Archived) |
-| **Bottom sheet modals** | Multi-level filter drill-down | Sheet discipline filter, callout selection |
-| **Card-based layouts** | Account summary cards | Project cards, AI summary card |
-| **Back arrow + title** | Navigation header | `← Projects` header in workspace |
-| **Notification bell with badge** | Top-left alerts | Top-right in workspace header |
-| **Settings as stack** | Profile/Settings drill-down | Gear icon → Settings stack |
+| **Horizontal filter chips** | Transaction type filters | Project status filters (All, Active, Completed, Archived) - **48px height** |
+| **Segmented control** | Two-option toggles | Plans/Activity view switcher in project workspace |
+| **Bottom sheet modals** | Multi-level filter drill-down | Notification actions, sheet discipline filter |
+| **Subtle banners** | Account alerts | Daily summary generation (no heavy card styling) |
+| **Back arrow + title** | Navigation header | `← Back to Projects` header in workspace |
+| **Contextual headers** | Different headers per screen type | Global nav vs project nav vs detail nav |
 | **Dark theme** | Full dark UI | Dark theme as default (construction site visibility) |
+
+### Key Design Change: Camera as Action
+
+**Previous:** Camera was a tab destination alongside Plans and Activity
+**New:** Camera is a Floating Action Button (FAB) accessible from Plans and Activity views
+
+**Rationale:**
+- Camera is the **primary action**, not a browsing destination
+- Construction workers need 1-tap photo capture
+- FAB is ergonomic for gloved, one-handed use (bottom-right, thumb zone)
+- Eliminates unnecessary navigation step in the core workflow
 
 ---
 
@@ -54,11 +66,10 @@
 ├── /projects                          # HOME - Projects list
 │   └── (modal) CreateProjectModal
 │
-├── /project/[id]/                     # PROJECT WORKSPACE
-│   ├── /project/[id]/plans            # Plans tab (default)
-│   │   └── /project/[id]/plans/[sheetId]  # Sheet viewer
-│   ├── /project/[id]/camera           # Camera tab
-│   └── /project/[id]/activity         # Activity tab
+├── /project/[id]/                     # PROJECT WORKSPACE (layout)
+│   ├── (view) plans                   # Plans view (segmented control)
+│   ├── (view) activity                # Activity view (segmented control)
+│   └── (modal) camera                 # Camera modal (triggered by FAB)
 │
 ├── /notifications                     # NOTIFICATION CENTER (stack)
 │
@@ -72,573 +83,459 @@
 ### Navigation Flow Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                      APP ENTRY                              │
-│                         │                                   │
-│                         ▼                                   │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │              /projects (HOME)                        │   │
-│  │  ┌─────────────────────────────────────────────┐    │   │
-│  │  │  [🔔]        Projects          [👤 Profile] │    │   │
-│  │  ├─────────────────────────────────────────────┤    │   │
-│  │  │  [All] [Active] [Completed] [Archived]      │    │   │
-│  │  ├─────────────────────────────────────────────┤    │   │
-│  │  │  ┌─────────────────────────────────────┐   │    │   │
-│  │  │  │  Project Card                       │───┼────┼───┼──► /project/[id]/
-│  │  │  └─────────────────────────────────────┘   │    │   │
-│  │  │  ┌─────────────────────────────────────┐   │    │   │
-│  │  │  │  Project Card                       │   │    │   │
-│  │  │  └─────────────────────────────────────┘   │    │   │
-│  │  │           [+ New Project]                  │    │   │
-│  │  └─────────────────────────────────────────────┘    │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                         │                                   │
-│            ┌────────────┴────────────┐                     │
-│            ▼                         ▼                     │
-│    /notifications              /settings                   │
-└─────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────┐
-│                  /project/[id]/ (WORKSPACE)                 │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │  [← Projects]  Riverside Apartments    [🔔] [⚙️]    │   │
-│  ├─────────────────────────────────────────────────────┤   │
-│  │      Plans     │     Camera     │     Activity      │   │
-│  │     ═══════    │                │                   │   │
-│  ├─────────────────────────────────────────────────────┤   │
-│  │                                                     │   │
-│  │              [Tab Content Area]                     │   │
-│  │                                                     │   │
-│  │         ◄─── Swipe left/right ───►                 │   │
-│  │                                                     │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                         │                                   │
-│            ┌────────────┼────────────┐                     │
-│            ▼            ▼            ▼                     │
-│         Plans        Camera       Activity                 │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                         APP LAUNCH                              │
+│                             │                                   │
+│                             ▼                                   │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │              /projects (HOME)                             │  │
+│  │  ┌────────────────────────────────────────────────────┐   │  │
+│  │  │  [🔔]        Projects            [👤 Profile]      │   │  │
+│  │  ├────────────────────────────────────────────────────┤   │  │
+│  │  │  [All] [Active] [Completed] [Archived] ← 48px      │   │  │
+│  │  ├────────────────────────────────────────────────────┤   │  │
+│  │  │  Riverside Apartments                      2h ago  │   │  │
+│  │  │  📍 123 Main St, Denver, CO                     >  │───┼──┼──► Tap Project
+│  │  │  ──────────────────────────────────────────────   │   │  │
+│  │  │  Downtown Office                          1d ago  │   │  │
+│  │  │  📍 456 Market St, San Francisco, CA        >     │   │  │
+│  │  └────────────────────────────────────────────────────┘   │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│              │                         │                        │
+│              ▼ Tap Bell                ▼ Tap Profile            │
+│      /notifications              /settings                      │
+└─────────────────────────────────────────────────────────────────┘
+                         │
+                         ▼ Select Project
+┌─────────────────────────────────────────────────────────────────┐
+│                    PROJECT WORKSPACE                            │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  [← Back]  [ (Plans) | Activity ]          [ ⋯ Menu ]   │   │  Primary Nav
+│  ├──────────────────────────────────────────────────────────┤   │
+│  │  Riverside Apartments                                    │   │  Context Row
+│  │  📍 123 Main St, Denver, CO                              │   │  (Sticky)
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌────────────────────────────────────────────┐                 │
+│  │  [Plans View Content]                      │                 │
+│  │   - PDF plan viewer                        │                 │
+│  │   - Zoom, pan, marker overlay              │                 │
+│  │                                             │                 │
+│  │                              OR             │                 │
+│  │                                             │                 │
+│  │  [Activity View Content]                   │                 │
+│  │   - Daily summary banner (subtle)          │                 │
+│  │   - Chronological photo timeline           │                 │
+│  │                                             │                 │
+│  │                                    ┌─────┐ │                 │
+│  │                                    │ 📷  │ │ ← FAB (56x56px) │
+│  │                                    └─────┘ │                 │
+│  └────────────────────────────────────────────┘                 │
+└─────────────────────────────────────────────────────────────────┘
+                         │
+                         ▼ Tap FAB
+┌─────────────────────────────────────────────────────────────────┐
+│                    CAMERA MODAL                                 │
+│  [Full-screen camera viewfinder]                                │
+│  [Issue Toggle] [Shutter Button] [Gallery]                     │
+└─────────────────────────────────────────────────────────────────┘
 ```
-
-### Back Navigation Behavior
-
-**Primary: Back Arrow**
-```
-[← Projects]    Riverside Apartments
-     │
-     └── Tap returns to /projects
-         Uses router.back() or router.replace('/projects')
-```
-
-**Secondary: Slide-from-left Gesture (Power User)**
-- Swipe from left edge reveals /projects as overlay
-- 20% of screen width triggers gesture recognition
-- Not the primary method - back arrow is discoverable default
 
 ---
 
 ## 3. Screen Specifications
 
-### 3.1 Projects Screen (Home)
+### 3.1 Projects List (Home Screen)
 
+**Route:** `/projects`
+**Purpose:** Central hub for project access, global notifications, profile
+
+#### Header Layout
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  PROJECTS SCREEN                                            │
-│  Route: /projects                                           │
-│  ═══════════════════════════════════════════════════════════│
-│                                                             │
-│  ┌─────────────────────────────────────────────────────────┐│
-│  │  [🔔]              Projects                    [👤]     ││
-│  │   │                                             │       ││
-│  │   │                                             │       ││
-│  │   ▼                                             ▼       ││
-│  │ Notifications                              Profile/     ││
-│  │ (badge if unread)                          Settings     ││
-│  └─────────────────────────────────────────────────────────┘│
-│                                                             │
-│  ┌────────┬─────────┬───────────┬──────────┐               │
-│  │  All   │ Active  │ Completed │ Archived │  ← Scrollable │
-│  │ (12)   │  (8)    │   (3)     │   (1)    │    chips      │
-│  └────────┴─────────┴───────────┴──────────┘               │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────────┐│
-│  │  Riverside Apartments                                   ││
-│  │  ─────────────────────────────────────────────────────  ││
-│  │  📄 12 sheets  •  📷 47 photos  •  👥 3 members        ││
-│  │                                                         ││
-│  │  ⚡ 3 issues                             Active ●       ││
-│  └─────────────────────────────────────────────────────────┘│
-│                                                             │
-│  ┌─────────────────────────────────────────────────────────┐│
-│  │  Downtown Office                                        ││
-│  │  ─────────────────────────────────────────────────────  ││
-│  │  📄 8 sheets  •  📷 23 photos  •  👥 2 members         ││
-│  │                                                         ││
-│  │  ✓ On track                              Active ●       ││
-│  └─────────────────────────────────────────────────────────┘│
-│                                                             │
-│  ┌─────────────────────────────────────────────────────────┐│
-│  │                                                         ││
-│  │                  + New Project                          ││
-│  │                                                         ││
-│  └─────────────────────────────────────────────────────────┘│
-│                                                             │
-│  NO BOTTOM TAB BAR - Projects is the home screen           │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────┐
+│  [🔔 48x48]        Projects         [👤 48x48]         │
+└────────────────────────────────────────────────────────┘
 ```
 
-**Component Breakdown:**
+#### Filter Chips (Redesigned for Glove Use)
 ```
-ProjectsScreen/
-├── ProjectsHeader/
-│   ├── NotificationBell (with badge)
-│   ├── Title ("Projects")
-│   └── ProfileAvatar (navigates to Settings)
-├── ProjectFilters/
-│   └── FilterChip[] (horizontal ScrollView)
-├── ProjectList/
-│   └── ProjectCard[] (FlatList)
-│       ├── ProjectCardHeader (name)
-│       ├── ProjectCardStats (sheets, photos, members)
-│       └── ProjectCardFooter (issues, status badge)
-└── CreateProjectButton/
-    └── (triggers CreateProjectModal)
+┌────────────────────────────────────────────────────────┐
+│  [ All (filled) ] [ Active ] [ Completed ] [ Archived ]│  ← 48px height
+│  ← Spacing: 8px between chips                          │
+└────────────────────────────────────────────────────────┘
 ```
+
+**Filter Chip Specs:**
+- Height: **48px** (was too small before)
+- Padding: 16px horizontal, 12px vertical
+- Border radius: 24px (full pill)
+- Active state: Filled background (foreground color), text is background color
+- Inactive state: Transparent background, text is muted-foreground
+- Typography: 14px medium weight
+
+#### Project List Item
+```
+┌────────────────────────────────────────────────────────┐
+│  Riverside Apartments                       2h ago  >  │  ← 64px min height
+│  📍 123 Main St, Denver, CO                            │
+├────────────────────────────────────────────────────────┤  ← Separator
+│  Downtown Office                           1 day ago > │
+│  📍 456 Market St, San Francisco, CA                   │
+└────────────────────────────────────────────────────────┘
+```
+
+**List Item Specs:**
+- Min height: 64px
+- Padding: 16px horizontal, 16px vertical
+- Active state: `bg-muted/50`
+- Typography:
+  - Project name: 16px medium
+  - Address: 14px regular, muted-foreground
+  - Timestamp: 12px regular, muted-foreground
+
+---
 
 ### 3.2 Project Workspace
 
+**Route:** `/project/[id]/` (layout with view state)
+**Purpose:** Unified workspace for viewing plans and activity within a project
+
+#### Header Pattern (Two Rows)
+
+**Row 1: Navigation & View Selector**
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  PROJECT WORKSPACE                                          │
-│  Route: /project/[id]/                                      │
-│  ═══════════════════════════════════════════════════════════│
-│                                                             │
-│  ┌─────────────────────────────────────────────────────────┐│
-│  │  [← Projects]    Riverside Apartments      [🔔] [⚙️]    ││
-│  │       │                  │                   │    │     ││
-│  │       │                  │                   │    │     ││
-│  │       ▼                  │                   │    ▼     ││
-│  │  Back to                 │               Notifications  ││
-│  │  /projects               │               Settings       ││
-│  │                          │                              ││
-│  │                          ▼                              ││
-│  │              Project name (not tappable)                ││
-│  └─────────────────────────────────────────────────────────┘│
-│                                                             │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │      Plans      │     Camera     │     Activity      │  │
-│  │     ════════    │                │                   │  │
-│  │                                                      │  │
-│  │  ◄── Swipeable tabs with indicator bar ──►          │  │
-│  │                                                      │  │
-│  │  Tab underline animates on swipe/tap                │  │
-│  └──────────────────────────────────────────────────────┘  │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────────┐│
-│  │                                                         ││
-│  │                                                         ││
-│  │              [TAB CONTENT AREA]                         ││
-│  │                                                         ││
-│  │         Content determined by active tab                ││
-│  │                                                         ││
-│  │         PanGestureHandler for swipe navigation          ││
-│  │                                                         ││
-│  │                                                         ││
-│  │                                                         ││
-│  └─────────────────────────────────────────────────────────┘│
-│                                                             │
-│  NO BOTTOM TAB BAR - Maximizes plan/camera viewport        │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────┐
+│  [← Back]    [ (Plans) | Activity ]       [ ⋯ Menu ]   │  ← Sticky
+└────────────────────────────────────────────────────────┘
 ```
 
-**Component Breakdown:**
+**Component Specs:**
+- Back button: 48x48px touch target, includes arrow + "Back" text
+- Segmented control: 48px height, centered
+  - Plans/Activity toggle
+  - Selected state: Solid background
+  - Unselected state: Transparent
+- Menu (⋯): 48x48px touch target, opens project settings
+
+**Row 2: Project Context**
 ```
-ProjectWorkspace/
-├── WorkspaceHeader/
-│   ├── BackButton ("← Projects")
-│   ├── ProjectTitle (text only, not tappable)
-│   ├── NotificationBell
-│   └── SettingsGear
-├── WorkspaceTabs/
-│   ├── TabBar/
-│   │   ├── Tab ("Plans")
-│   │   ├── Tab ("Camera")
-│   │   └── Tab ("Activity")
-│   └── TabIndicator (animated underline)
-└── TabContent/ (PagerView or ScrollView with paging)
-    ├── PlansTab/
-    ├── CameraTab/
-    └── ActivityTab/
+┌────────────────────────────────────────────────────────┐
+│  Riverside Apartments                                  │  ← Sticky
+│  📍 123 Main St, Denver, CO                            │
+└────────────────────────────────────────────────────────┘
 ```
 
-### 3.3 Camera Tab
+**Context Row Specs:**
+- Padding: 16px horizontal, 12px vertical
+- Background: Subtle contrast from main content area
+- Typography:
+  - Project name: 16px semibold
+  - Address: 14px regular, muted-foreground
+
+#### Floating Action Button (FAB)
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  CAMERA TAB                                                 │
-│  Route: /project/[id]/camera                                │
-│  ═══════════════════════════════════════════════════════════│
-│                                                             │
-│  ┌─────────────────────────────────────────────────────────┐│
-│  │                                                         ││
-│  │                                                         ││
-│  │                                                         ││
-│  │                                                         ││
-│  │              [  CAMERA VIEWFINDER  ]                    ││
-│  │                                                         ││
-│  │              expo-camera component                      ││
-│  │                                                         ││
-│  │                                                         ││
-│  │                                                         ││
-│  │                                                         ││
-│  └─────────────────────────────────────────────────────────┘│
-│                                                             │
-│  ┌─────────────────────────────────────────────────────────┐│
-│  │  📍 Linked to: 5/A7 - Electrical Junction    [Change]   ││
-│  │                                                         ││
-│  │  Shows current callout context                          ││
-│  │  [Change] opens CalloutPickerSheet                      ││
-│  └─────────────────────────────────────────────────────────┘│
-│                                                             │
-│  ┌─────────────────────────────────────────────────────────┐│
-│  │                                                         ││
-│  │       [🎤]              ⚪              [Gallery]       ││
-│  │       Voice            Photo             Recent         ││
-│  │       Note            (72pt)            Photos          ││
-│  │                                                         ││
-│  │                                                         ││
-│  │                  ┌──────────────┐                       ││
-│  │                  │  ⚠️  Issue   │  ← Toggle button      ││
-│  │                  └──────────────┘    (off = gray)       ││
-│  │                                      (on = red bg)      ││
-│  │                                                         ││
-│  └─────────────────────────────────────────────────────────┘│
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-
-ISSUE MODE ACTIVE:
-┌─────────────────────────────────────────────────────────────┐
-│  ┌─────────────────────────────────────────────────────────┐│
-│  │  ⚠️ ISSUE MODE                                          ││
-│  │  Photo will be flagged as issue                         ││
-│  ├─────────────────────────────────────────────────────────┤│
-│  │                                                         ││
-│  │              [  CAMERA VIEWFINDER  ]                    ││
-│  │                 (subtle red border)                     ││
-│  │                                                         ││
-│  └─────────────────────────────────────────────────────────┘│
-│                                                             │
-│       [🎤]              🔴              [Gallery]           │
-│       Voice         RED shutter          Recent            │
-│                       (72pt)                               │
-│                                                             │
-│                  ┌──────────────┐                           │
-│                  │  ⚠️  Issue   │  ← ACTIVE (red bg)        │
-│                  └──────────────┘                           │
-└─────────────────────────────────────────────────────────────┘
+                                   ┌────────┐
+                                   │   📷   │  ← 56x56px
+                                   └────────┘
 ```
 
-**Component Breakdown:**
-```
-CameraTab/
-├── CameraViewfinder/
-│   ├── Camera (expo-camera)
-│   └── IssueModeOverlay (conditional red border + banner)
-├── CalloutLinkBar/
-│   ├── LocationIcon
-│   ├── CalloutLabel ("5/A7 - Electrical Junction")
-│   └── ChangeButton (opens CalloutPickerSheet)
-├── CameraControls/
-│   ├── VoiceNoteButton (left)
-│   │   └── (hold to record, animated ring)
-│   ├── ShutterButton (center, 72pt)
-│   │   └── (white = normal, red = issue mode)
-│   └── GalleryButton (right)
-│       └── (shows last photo thumbnail)
-└── IssueToggle/
-    └── Toggle button (gray off, red on)
+**FAB Specs:**
+- Size: **56x56px** (exceeds 48px minimum)
+- Position: Bottom-right, 16px from edges
+- Elevation: 6dp shadow
+- Background: Primary color
+- Icon: Camera glyph, 24px
+- Behavior:
+  - Persistent across Plans and Activity views
+  - Tapping opens camera modal
+  - Optional: Fade to 60% opacity on scroll (keeps visible but less obtrusive)
 
-State to persist across tab switches:
-- linkedCalloutId
-- isIssueMode
-- cameraZoom (optional)
-```
+---
 
-### 3.4 Activity Tab
+### 3.3 Plans View (within Project Workspace)
 
+**State:** Active when segmented control shows "Plans" selected
+**Purpose:** View construction plans, place markers, zoom/pan
+
+#### Layout
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  ACTIVITY TAB                                               │
-│  Route: /project/[id]/activity                              │
-│  ═══════════════════════════════════════════════════════════│
-│                                                             │
-│  ┌─────────────────────────────────────────────────────────┐│
-│  │  📊 Today's Summary                                     ││
-│  │  ─────────────────────────────────────────────────────  ││
-│  │                                                         ││
-│  │  Work documented:                                       ││
-│  │  • Electrical junction (5/A7): 7 photos                ││
-│  │    Note: Junction box needs repositioning ~6" left     ││
-│  │  • Panel rough-in (3/A2): 3 photos, in progress        ││
-│  │                                                         ││
-│  │  ⚠️ Issues flagged: 1                                  ││
-│  │                                                         ││
-│  │  ┌───────────────┐  ┌───────────────┐  ┌────────────┐  ││
-│  │  │  📋 Copy      │  │  📤 Share     │  │ 🔄 Refresh │  ││
-│  │  └───────────────┘  └───────────────┘  └────────────┘  ││
-│  │                                                         ││
-│  │  Last generated: 2 hours ago                           ││
-│  └─────────────────────────────────────────────────────────┘│
-│                                                             │
-│  ┌─────────────────────────────────────────────────────────┐│
-│  │  📷 Photo Timeline                        [Filter ▼]    ││
-│  └─────────────────────────────────────────────────────────┘│
-│                                                             │
-│  TODAY - January 4, 2026                                    │
-│  ┌─────────────────────────────────────────────────────────┐│
-│  │  5/A7 - Electrical Junction                            ││
-│  │  ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐              ││
-│  │  │  📷   │ │  📷   │ │ 📷⚠️  │ │  📷   │              ││
-│  │  │ 9:15  │ │ 9:22  │ │ 10:30 │ │ 11:45 │              ││
-│  │  └───────┘ └───────┘ └───────┘ └───────┘              ││
-│  │       └── Voice note attached                          ││
-│  └─────────────────────────────────────────────────────────┘│
-│                                                             │
-│  ┌─────────────────────────────────────────────────────────┐│
-│  │  3/A2 - Panel Rough-in                                 ││
-│  │  ┌───────┐ ┌───────┐ ┌───────┐                         ││
-│  │  │  📷   │ │  📷   │ │  🎤   │                         ││
-│  │  │ 1:20  │ │ 2:15  │ │ 2:18  │                         ││
-│  │  └───────┘ └───────┘ └───────┘                         ││
-│  └─────────────────────────────────────────────────────────┘│
-│                                                             │
-│  YESTERDAY - January 3, 2026                                │
-│  ┌─────────────────────────────────────────────────────────┐│
-│  │  2/A1 - HVAC Duct                                      ││
-│  │  ┌───────┐ ┌───────┐                                   ││
-│  │  │  📷   │ │  📷   │                                   ││
-│  │  │ 4:30  │ │ 4:45  │                                   ││
-│  │  └───────┘ └───────┘                                   ││
-│  └─────────────────────────────────────────────────────────┘│
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────┐
+│  [PDF Plan Viewer]                                     │
+│   - Pinch to zoom                                      │
+│   - Pan gesture                                        │
+│   - Marker overlay (tappable pins)                     │
+│                                                         │
+│                                            ┌────────┐  │
+│                                            │   📷   │  │  ← FAB
+│                                            └────────┘  │
+└────────────────────────────────────────────────────────┘
 ```
 
-**Component Breakdown:**
+**Markers:**
+- Size: 32x32px minimum (glove-friendly)
+- Color coding: By discipline (from backend config)
+- Tap behavior: Opens marker detail sheet
+
+---
+
+### 3.4 Activity View (within Project Workspace)
+
+**State:** Active when segmented control shows "Activity" selected
+**Purpose:** Unified timeline of photos/videos with voice notes, organized chronologically
+
+#### Layout - Daily Summary Banner (Professional, Subtle)
+
 ```
-ActivityTab/
-├── SummaryCard/
-│   ├── SummaryHeader ("Today's Summary")
-│   ├── SummaryContent (AI-generated text or loading state)
-│   ├── SummaryActions/
-│   │   ├── CopyButton
-│   │   ├── ShareButton
-│   │   └── RefreshButton (regenerate)
-│   └── SummaryMeta ("Last generated: 2 hours ago")
-├── TimelineHeader/
-│   ├── Title ("Photo Timeline")
-│   └── FilterButton (opens TimelineFilterSheet)
-└── PhotoTimeline/ (SectionList)
-    └── TimelineSection[] (grouped by date)
-        ├── SectionHeader (date)
-        └── CalloutGroup[] (grouped by callout)
-            ├── CalloutLabel ("5/A7 - Electrical")
-            └── PhotoThumbnail[] (horizontal scroll)
-                ├── Thumbnail image
-                ├── Timestamp
-                ├── IssueBadge (if flagged)
-                └── VoiceNoteBadge (if attached)
+┌────────────────────────────────────────────────────────┐
+│  ✨ Today's Summary                        [↗ Share]   │  ← Banner, not card
+│  ─────────────────────────────────────────────────────  │
+│  AI-generated summary of today's progress goes here.   │
+│  Includes photo count, issues detected, key activities.│
+│  ─────────────────────────────────────────────────────  │
+│                                  [✨ Generate Summary]  │
+└────────────────────────────────────────────────────────┘
 ```
+
+**Daily Summary Banner Specs:**
+- **NOT a heavy card** - use subtle borders, minimal elevation
+- Padding: 16px
+- Background: Very subtle contrast (e.g., `bg-muted/20`)
+- Border: 1px solid `border` color
+- Collapsible: Can be collapsed to just the title bar
+- Share button: Only appears when summary is generated
+  - Icon: ↗ (share/external link)
+  - Opens native share sheet
+  - Shares summary as text
+
+**States:**
+1. **Empty state** (no summary):
+   ```
+   ✨ Today's Summary
+   Generate an AI summary of today's progress and photos.
+   [✨ Generate Summary]
+   ```
+
+2. **Loading state**:
+   ```
+   ✨ Today's Summary
+   [Spinner] Generating summary...
+   ```
+
+3. **Generated state**:
+   ```
+   ✨ Today's Summary                        [↗ Share]
+   Today's work at Riverside Apartments focused on electrical
+   installations. 5 photos captured across 2 locations. 1 issue
+   flagged requiring attention.
+   ```
+
+#### Layout - Photo Timeline
+
+```
+┌────────────────────────────────────────────────────────┐
+│  ── Today ────────────────────────────────────────────  │  ← Date header
+│                                                         │
+│  📍 5/A7 - Electrical Junction (3 photos)              │  ← Marker group
+│  ┌──────────────────────────────────────────────────┐  │
+│  │ [Photo 1] [Photo 2] [Photo 3]                  > │  │  ← Horizontal scroll
+│  │  5:40 PM   ❗5:10 PM  4:40 PM                     │  │
+│  └──────────────────────────────────────────────────┘  │
+│                                                         │
+│  📍 3/A2 - Panel Rough-in (2 photos)                   │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │ [Photo 4🎤] [Photo 5]                          > │  │
+│  │  4:10 PM    3:40 PM                              │  │
+│  └──────────────────────────────────────────────────┘  │
+│                                                         │
+│  ── Yesterday ────────────────────────────────────────  │
+│                                                         │
+│  📍 2/A1 - HVAC Duct (2 photos)                        │
+│  ...                                                    │
+│                                            ┌────────┐  │
+│                                            │   📷   │  │  ← FAB
+│                                            └────────┘  │
+└────────────────────────────────────────────────────────┘
+```
+
+**Timeline Specs:**
+
+**Date Headers:**
+- Typography: 20px bold, foreground color
+- Spacing: 24px top margin, 12px bottom margin
+- Format: "Today", "Yesterday", or "October 25, 2023"
+
+**Marker Groups:**
+- Typography: 16px medium, foreground color
+- Icon: 📍 (pin icon)
+- Photo count: 14px regular, muted-foreground
+
+**Photo Carousels:**
+- Horizontal scrolling (FlatList with horizontal prop)
+- Thumbnail size: 160x160px
+- Spacing: 8px between thumbnails
+- Timestamp overlay: Bottom-left, 12px regular, white text with dark shadow
+
+**Photo Badges:**
+- Issue badge (❗): Red circle, 20px, top-right corner
+- Voice note badge (🎤): Blue circle, 20px, bottom-right corner
+
+---
 
 ### 3.5 Notifications Screen
 
+**Route:** `/notifications`
+**Purpose:** Show user notifications with quick actions
+
+#### Header & Bottom Sheet Pattern
+
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  NOTIFICATIONS                                              │
-│  Route: /notifications (Stack)                              │
-│  ═══════════════════════════════════════════════════════════│
-│                                                             │
-│  ┌─────────────────────────────────────────────────────────┐│
-│  │  [← Back]         Notifications              [⚙️]       ││
-│  │                                                         ││
-│  │  Back returns to previous screen                        ││
-│  │  Gear opens notification preferences                    ││
-│  └─────────────────────────────────────────────────────────┘│
-│                                                             │
-│  TODAY                                                      │
-│  ┌─────────────────────────────────────────────────────────┐│
-│  │  🔴  Issue flagged at 5/A7                    2h ago ●  ││
-│  │      Junction box needs repositioning                   ││
-│  │      Riverside Apartments                               ││
-│  ├─────────────────────────────────────────────────────────┤│
-│  │  📷  12 photos synced                         4h ago    ││
-│  │      Riverside Apartments                               ││
-│  ├─────────────────────────────────────────────────────────┤│
-│  │  ✅  Daily summary ready                      6h ago    ││
-│  │      Riverside Apartments - Jan 3                       ││
-│  └─────────────────────────────────────────────────────────┘│
-│                                                             │
-│  THIS WEEK                                                  │
-│  ┌─────────────────────────────────────────────────────────┐│
-│  │  👤  John Smith joined project                2d ago    ││
-│  │      Downtown Office                                    ││
-│  ├─────────────────────────────────────────────────────────┤│
-│  │  ⚠️  Sync failed - retry                      3d ago    ││
-│  │      2 photos pending upload                            ││
-│  └─────────────────────────────────────────────────────────┘│
-│                                                             │
-│  EARLIER                                                    │
-│  ┌─────────────────────────────────────────────────────────┐│
-│  │  📄  New plans uploaded                       1w ago    ││
-│  │      Riverside Apartments - E-series                    ││
-│  └─────────────────────────────────────────────────────────┘│
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────┐
+│  [← Back]      Notifications               [⚙️ Gear]   │
+└────────────────────────────────────────────────────────┘
+│                                                         │
+│  John Doe added a photo to Riverside Apartments        │
+│  2 hours ago                                            │
+│  ───────────────────────────────────────────────────    │
+│  New issue created in Downtown Office                  │
+│  5 hours ago                                            │
+│                                                         │
+                         │
+                         ▼ Tap Gear Icon
+┌─────────────────────────────────────────────────────────┐
+│                      ────                               │  ← Drag handle
+│   Manage Notifications                                  │  ← Title
+│  ──────────────────────────────────────────────────────  │
+│  ⚙️  Notification settings                          >   │  ← 48px height
+│  ──────────────────────────────────────────────────────  │
+│  🗑️  Clear all notifications                            │  ← 48px, RED text
+└─────────────────────────────────────────────────────────┘
 ```
 
-**Component Breakdown:**
+**Bottom Sheet Specs:**
+- Backdrop: Dim screen to 40% opacity
+- Sheet background: Card background color
+- Drag handle: 32px wide, 4px tall, centered
+- Title: 18px semibold
+- List items: 48px minimum height
+- Destructive action ("Clear all"): Red text (#ef4444)
+- Tap behavior on "Clear all": Shows confirmation dialog first
+
+**Confirmation Dialog:**
 ```
-NotificationsScreen/
-├── NotificationsHeader/
-│   ├── BackButton
-│   ├── Title ("Notifications")
-│   └── SettingsButton (notification preferences)
-└── NotificationsList/ (SectionList)
-    └── NotificationSection[] (grouped by time)
-        ├── SectionHeader ("TODAY", "THIS WEEK", "EARLIER")
-        └── NotificationItem[]
-            ├── NotificationIcon (colored by type)
-            ├── NotificationContent/
-            │   ├── Title
-            │   ├── Description
-            │   └── ProjectName
-            ├── Timestamp
-            └── UnreadIndicator (blue dot)
+┌────────────────────────────────────────────┐
+│  Clear All Notifications                   │
+│                                             │
+│  Are you sure you want to clear all        │
+│  notifications? This cannot be undone.     │
+│                                             │
+│           [Cancel]    [Clear All (RED)]    │
+└────────────────────────────────────────────┘
 ```
+
+---
+
+### 3.6 Camera Modal
+
+**Route:** Triggered by FAB, not a route
+**Purpose:** Capture photos/videos with issue toggle
+
+#### Layout (Full Screen)
+```
+┌────────────────────────────────────────────────────────┐
+│  [✕ Close]                                  [Gallery]  │
+│                                                         │
+│                                                         │
+│            [Live Camera Viewfinder]                    │
+│                                                         │
+│                                                         │
+│  [Standard] [Issue]  ← Toggle (48px height)            │
+│         [⚫ Shutter Button 72px]                        │
+└────────────────────────────────────────────────────────┘
+```
+
+**Component Specs:**
+- Close button: Top-left, 48x48px, "✕" icon
+- Gallery button: Top-right, 48x48px, opens device gallery
+- Issue toggle: Segmented control, 48px height
+  - Standard: Default state
+  - Issue: Red accent when selected
+- Shutter button: 72x72px (large for gloved use), centered bottom
 
 ---
 
 ## 4. Component Hierarchy
 
-### Design Principles
+### 4.1 Projects Screen Component Tree
 
 ```
-COMPONENT ORGANIZATION
-═══════════════════════
-
-apps/mobile/
-├── components/
-│   ├── ui/                    # PRIMITIVES (no business logic)
-│   │   ├── button.tsx
-│   │   ├── card.tsx
-│   │   ├── text.tsx
-│   │   ├── badge.tsx
-│   │   ├── icon.tsx
-│   │   ├── switch.tsx
-│   │   ├── input.tsx
-│   │   ├── sheet.tsx          # Bottom sheet primitive
-│   │   ├── tabs.tsx           # Tab bar primitive
-│   │   └── thumbnail.tsx      # Image thumbnail primitive
-│   │
-│   ├── project/               # PROJECT DOMAIN
-│   │   ├── project-card.tsx
-│   │   ├── project-list.tsx
-│   │   ├── project-filters.tsx
-│   │   └── create-project-modal.tsx
-│   │
-│   ├── workspace/             # WORKSPACE DOMAIN
-│   │   ├── workspace-header.tsx
-│   │   ├── workspace-tabs.tsx
-│   │   └── tab-content.tsx
-│   │
-│   ├── camera/                # CAMERA DOMAIN
-│   │   ├── camera-viewfinder.tsx
-│   │   ├── camera-controls.tsx
-│   │   ├── shutter-button.tsx
-│   │   ├── voice-note-button.tsx
-│   │   ├── issue-toggle.tsx
-│   │   └── callout-link-bar.tsx
-│   │
-│   ├── activity/              # ACTIVITY DOMAIN
-│   │   ├── summary-card.tsx
-│   │   ├── photo-timeline.tsx
-│   │   ├── timeline-section.tsx
-│   │   ├── callout-group.tsx
-│   │   └── photo-thumbnail.tsx
-│   │
-│   ├── notifications/         # NOTIFICATIONS DOMAIN
-│   │   ├── notification-item.tsx
-│   │   └── notification-list.tsx
-│   │
-│   └── shared/                # CROSS-DOMAIN COMPONENTS
-│       ├── header.tsx         # Generic header with back/title/actions
-│       ├── filter-chips.tsx   # Horizontal scrollable chips
-│       └── empty-state.tsx    # Empty list states
-│
-├── hooks/                     # BUSINESS LOGIC EXTRACTION
-│   ├── use-projects.ts        # Project list queries
-│   ├── use-project.ts         # Single project queries
-│   ├── use-camera-state.ts    # Camera persistence state
-│   ├── use-photos.ts          # Photo queries by project/callout
-│   ├── use-notifications.ts   # Notification queries
-│   └── use-summary.ts         # AI summary generation
-│
-├── stores/                    # ZUSTAND STORES (if needed beyond LiveStore)
-│   └── camera-store.ts        # Camera UI state (issue toggle, linked callout)
-│
-└── app/                       # SCREENS (minimal logic, composition only)
-    ├── projects.tsx
-    └── project/
-        └── [id]/
-            ├── _layout.tsx    # Workspace layout with tabs
-            ├── plans.tsx
-            ├── camera.tsx
-            └── activity.tsx
+ProjectsScreen
+├── Stack.Screen (header config)
+├── ProjectsHeader
+│   ├── NotificationButton (→ /notifications)
+│   └── ProfileButton (→ /settings)
+├── FilterChips (48px height, horizontal scroll)
+│   └── FilterChip (x4: All, Active, Completed, Archived)
+├── ProjectList (FlatList)
+│   └── ProjectListItem (x N)
+│       ├── ProjectInfo (name, address)
+│       ├── Timestamp
+│       └── ChevronRight
+└── CreateProjectModal (conditional)
 ```
 
-### Render Optimization Rules
+### 4.2 Project Workspace Component Tree
 
-```typescript
-// ❌ BAD: Action in parent causes full tree re-render
-function ParentComponent() {
-  const [filter, setFilter] = useState('all')
+```
+ProjectWorkspaceLayout
+├── WorkspaceHeader
+│   ├── BackButton (→ /projects)
+│   ├── SegmentedControl
+│   │   ├── PlansTab
+│   │   └── ActivityTab
+│   └── ProjectMenuButton (⋯)
+├── ProjectContext (sticky row)
+│   ├── ProjectName
+│   └── ProjectAddress
+├── ViewContainer (switches between views)
+│   ├── PlansView (when Plans selected)
+│   │   └── PlanViewer (PDF + markers)
+│   └── ActivityView (when Activity selected)
+│       ├── DailySummaryBanner
+│       │   ├── SummaryHeader (✨ + Share button)
+│       │   ├── SummaryContent
+│       │   └── GenerateButton (conditional)
+│       └── PhotoTimeline (FlatList)
+│           └── TimelineSection (x N, by date)
+│               ├── DateHeader
+│               └── MarkerGroup (x N)
+│                   ├── MarkerHeader
+│                   └── PhotoCarousel (horizontal FlatList)
+│                       └── PhotoThumbnail (x N)
+│                           ├── Image
+│                           ├── Timestamp
+│                           └── Badges (issue, voice note)
+└── CameraFAB (persistent)
+    └── CameraModal (triggered)
+```
 
-  return (
-    <View>
-      <FilterChips value={filter} onChange={setFilter} />
-      <ProjectList filter={filter} /> {/* Re-renders on every filter change */}
-    </View>
-  )
-}
+### 4.3 Notification Screen Component Tree
 
-// ✅ GOOD: Isolated state with memo
-const ProjectList = memo(function ProjectList({ filter }: { filter: string }) {
-  const projects = useProjects(filter) // LiveStore reactive query
-  return (
-    <FlatList
-      data={projects}
-      renderItem={({ item }) => <ProjectCard project={item} />}
-      keyExtractor={(item) => item.id}
-    />
-  )
-})
-
-// ✅ GOOD: Callbacks stabilized
-function CameraControls() {
-  const { isIssueMode, toggleIssue } = useCameraStore()
-
-  const handleShutter = useCallback(() => {
-    capturePhoto({ isIssue: isIssueMode })
-  }, [isIssueMode])
-
-  return (
-    <View>
-      <ShutterButton onPress={handleShutter} isIssue={isIssueMode} />
-      <IssueToggle value={isIssueMode} onToggle={toggleIssue} />
-    </View>
-  )
-}
+```
+NotificationsScreen
+├── NotificationsHeader
+│   ├── BackButton
+│   └── GearButton (opens bottom sheet)
+├── NotificationList (FlatList)
+│   └── NotificationItem (x N)
+│       ├── Message
+│       ├── Timestamp
+│       └── Separator
+└── NotificationActionsSheet (bottom sheet)
+    ├── SheetHandle
+    ├── SheetTitle
+    ├── NotificationSettingsButton (→ /settings/notifications)
+    └── ClearAllButton (shows confirmation)
 ```
 
 ---
@@ -647,77 +544,39 @@ function CameraControls() {
 
 ### Typography Scale
 
-```typescript
-// Based on Wealthsimple's clean typography
-const typography = {
-  // Headers
-  h1: 'text-3xl font-bold tracking-tight',      // 30px - Screen titles
-  h2: 'text-2xl font-semibold',                  // 24px - Section headers
-  h3: 'text-xl font-semibold',                   // 20px - Card titles
+| Element | Size | Weight | Color | Usage |
+|---------|------|--------|-------|-------|
+| **Screen Title** | 20px | Bold | foreground | "Projects", "Notifications" |
+| **Section Header** | 20px | Bold | foreground | "Today", "Yesterday" |
+| **Card Title** | 18px | Semibold | foreground | Bottom sheet titles |
+| **Project Name** | 16px | Semibold | foreground | Project context row |
+| **Body Text** | 16px | Medium | foreground | List item primary text |
+| **Label** | 14px | Medium | foreground | Filter chip active state |
+| **Secondary Text** | 14px | Regular | muted-foreground | Addresses, marker labels |
+| **Timestamp** | 12px | Regular | muted-foreground | Photo timestamps, relative times |
+| **Caption** | 12px | Regular | muted-foreground | Photo counts, helper text |
 
-  // Body
-  large: 'text-lg font-medium',                  // 18px - Primary info
-  base: 'text-base',                             // 16px - Body text
-  small: 'text-sm',                              // 14px - Secondary text
+### Spacing System
 
-  // Meta
-  muted: 'text-sm text-muted-foreground',        // 14px - Timestamps, hints
-  caption: 'text-xs text-muted-foreground',      // 12px - Badges, labels
-}
-```
+| Token | Value | Usage |
+|-------|-------|-------|
+| `spacing-xs` | 4px | Icon-to-text gap |
+| `spacing-sm` | 8px | Between filter chips, photo thumbnails |
+| `spacing-md` | 12px | Internal component padding (context row vertical) |
+| `spacing-lg` | 16px | Standard padding (horizontal, vertical for list items) |
+| `spacing-xl` | 24px | Section spacing (between date groups) |
+| `spacing-2xl` | 32px | Large gaps (not used often) |
 
-### Spacing Scale
+### Touch Target Minimums
 
-```typescript
-const spacing = {
-  // Page layout
-  pageHorizontal: 'px-4',           // 16px - Screen edge padding
-  pageVertical: 'py-4',             // 16px - Top/bottom padding
-
-  // Sections
-  sectionGap: 'gap-6',              // 24px - Between major sections
-  itemGap: 'gap-4',                 // 16px - Between list items
-
-  // Cards
-  cardPadding: 'p-4',               // 16px - Internal card padding
-  cardRadius: 'rounded-xl',         // 12px - Card corner radius
-
-  // Buttons
-  buttonPadding: 'px-4 py-3',       // 16px x 12px
-  buttonRadius: 'rounded-full',     // Pill buttons
-
-  // Touch targets
-  minTouchTarget: 48,               // 48px minimum for gloved hands
-}
-```
-
-### Color Tokens (Dark Theme Default)
-
-```typescript
-const colors = {
-  // Backgrounds
-  background: '#000000',            // Pure black
-  card: '#1C1C1E',                  // Elevated surfaces
-  cardHover: '#2C2C2E',             // Card pressed state
-
-  // Text
-  foreground: '#FFFFFF',            // Primary text
-  mutedForeground: '#8E8E93',       // Secondary text
-
-  // Borders
-  border: '#38383A',                // Subtle borders
-
-  // Accent
-  primary: '#FFFFFF',               // Primary buttons (white on dark)
-  primaryForeground: '#000000',     // Text on primary
-
-  // Status
-  destructive: '#FF453A',           // Errors, issues
-  success: '#30D158',               // Success states
-  warning: '#FF9F0A',               // Warnings
-  info: '#0A84FF',                  // Info, unread indicators
-}
-```
+| Component | Minimum Size | Actual Implementation |
+|-----------|--------------|----------------------|
+| **Icon Buttons** | 48x48px | 48x48px |
+| **Filter Chips** | 48px height | 48px height, variable width |
+| **List Items** | 48px height | 64px height (more comfortable) |
+| **Segmented Control** | 48px height | 48px height |
+| **FAB** | 48x48px | 56x56px (exceeds minimum) |
+| **Shutter Button** | 56x56px | 72x72px (easier for gloves) |
 
 ---
 
@@ -725,216 +584,278 @@ const colors = {
 
 ### Animation Principles
 
-```typescript
-// Timing
-const timing = {
-  fast: 150,        // Micro-interactions (button press, toggle)
-  normal: 250,      // Standard transitions (tab switch, sheet open)
-  slow: 350,        // Complex animations (page transitions)
-}
-
-// Easing
-const easing = {
-  easeOut: Easing.out(Easing.cubic),      // Elements entering
-  easeIn: Easing.in(Easing.cubic),        // Elements exiting
-  easeInOut: Easing.inOut(Easing.cubic),  // Position changes
-  spring: { damping: 15, stiffness: 150 }, // Bouncy feedback
-}
-```
+| Principle | Application |
+|-----------|-------------|
+| **Fast & Snappy** | Animations should feel instant, not sluggish. Max duration: 300ms. |
+| **Spring Physics** | Use spring-based animations (damping: 20, stiffness: 200) for natural feel. |
+| **Preserve Context** | When switching views, use cross-fade to maintain spatial awareness. |
+| **Minimize Motion** | Respect device accessibility settings (reduce motion). |
 
 ### Specific Animations
 
+#### Segmented Control Transition
 ```typescript
-// Tab indicator slide
-const tabIndicatorAnimation = {
-  type: 'spring',
-  config: { damping: 20, stiffness: 200 },
-}
-
-// Bottom sheet
-const sheetAnimation = {
-  enter: { duration: 250, easing: Easing.out(Easing.cubic) },
-  exit: { duration: 200, easing: Easing.in(Easing.cubic) },
-}
-
-// Shutter button press
-const shutterPressAnimation = {
-  scale: withSpring(0.9, { damping: 10, stiffness: 400 }),
-  release: withSpring(1, { damping: 15, stiffness: 300 }),
-}
-
-// Issue toggle
-const issueToggleAnimation = {
-  backgroundColor: withTiming(isIssue ? '#FF453A' : '#38383A', { duration: 150 }),
-}
-
-// Photo capture flash
-const captureFlashAnimation = {
-  opacity: withSequence(
-    withTiming(1, { duration: 50 }),
-    withTiming(0, { duration: 150 }),
-  ),
-}
-
-// List item press
-const listItemPressAnimation = {
-  backgroundColor: withTiming('#2C2C2E', { duration: 100 }),
-  release: withTiming('#1C1C1E', { duration: 150 }),
-}
+// When switching between Plans and Activity
+Animated.spring(viewOpacity, {
+  toValue: 1,
+  useNativeDriver: true,
+  damping: 20,
+  stiffness: 200,
+}).start()
 ```
 
-### Gesture Handling
+- Duration: ~250ms
+- Type: Cross-fade
+- Easing: Spring (damping: 20, stiffness: 200)
 
+#### FAB Scroll Behavior (Optional)
 ```typescript
-// Swipeable tabs
-const tabSwipeGesture = Gesture.Pan()
-  .onUpdate((e) => {
-    translateX.value = e.translationX
-  })
-  .onEnd((e) => {
-    const threshold = SCREEN_WIDTH * 0.3
-    if (Math.abs(e.translationX) > threshold) {
-      // Switch tab
-      const direction = e.translationX > 0 ? -1 : 1
-      activeTab.value = clamp(activeTab.value + direction, 0, 2)
-    }
-    translateX.value = withSpring(0)
-  })
-
-// Back gesture (slide from left)
-const backGesture = Gesture.Pan()
-  .activeOffsetX(20)  // Start from edge
-  .onUpdate((e) => {
-    if (e.translationX > 0) {
-      overlayOpacity.value = interpolate(e.translationX, [0, SCREEN_WIDTH], [0, 0.5])
-    }
-  })
-  .onEnd((e) => {
-    if (e.translationX > SCREEN_WIDTH * 0.4) {
-      router.back()
-    }
-    overlayOpacity.value = withTiming(0)
-  })
+// Fade to 60% opacity when scrolling down
+Animated.timing(fabOpacity, {
+  toValue: 0.6,
+  duration: 150,
+  useNativeDriver: true,
+}).start()
 ```
+
+#### Bottom Sheet Entrance
+```typescript
+// Slide up from bottom with backdrop fade
+Animated.parallel([
+  Animated.spring(sheetPosition, {
+    toValue: 0,
+    useNativeDriver: true,
+    damping: 30,
+  }),
+  Animated.timing(backdropOpacity, {
+    toValue: 0.4,
+    duration: 200,
+    useNativeDriver: true,
+  }),
+]).start()
+```
+
+#### Photo Thumbnail Tap
+- Scale: 0.95 on press down, 1.0 on release
+- Duration: 100ms
+- Haptic feedback: Light impact
 
 ---
 
 ## 7. State Management Patterns
 
-### LiveStore Integration
+### View State (Plans vs Activity)
+
+**Location:** Project workspace layout
+**Pattern:** Local state (useState) with transition animation
 
 ```typescript
-// Reactive queries - UI auto-updates
-function useProjects(filter: ProjectStatus | 'all') {
-  return useQuery(
-    filter === 'all'
-      ? tables.projects.orderBy('updatedAt', 'desc')
-      : tables.projects.where({ status: filter }).orderBy('updatedAt', 'desc')
-  )
+const [activeView, setActiveView] = useState<'plans' | 'activity'>('plans')
+
+// No persistence needed - user can quickly switch
+```
+
+### Camera State Persistence
+
+**Location:** Zustand store (`useCameraStore`)
+**Pattern:** Persist issue toggle state across sessions
+
+```typescript
+interface CameraState {
+  isIssueMode: boolean
+  setIssueMode: (isIssue: boolean) => void
 }
 
-// Event commits - Actions that persist
-function useCapturePhoto() {
-  const store = useStore()
+// Persisted to AsyncStorage
+```
 
-  return useCallback(async (options: CaptureOptions) => {
-    const id = crypto.randomUUID()
-    const localPath = await savePhotoLocally(options.uri, id)
+### Daily Summary State
 
-    store.commit(events.photoCaptured({
-      id,
-      projectId: options.projectId,
-      markerId: options.markerId,
-      localPath,
-      isIssue: options.isIssue,
-      capturedAt: new Date(),
-    }))
+**Location:** Hook (`useDailySummary`)
+**Pattern:** Async state with loading/error handling
 
-    return id
-  }, [store])
+```typescript
+interface SummaryState {
+  summary: string | null
+  isLoading: boolean
+  error: Error | null
+  generate: () => Promise<void>
+  share: () => Promise<void>
 }
 ```
 
-### Camera State Persistence (Zustand)
+### Photo Timeline Data
+
+**Location:** Hook (`usePhotosTimeline`)
+**Pattern:** LiveStore query with grouping logic
 
 ```typescript
-// stores/camera-store.ts
-interface CameraState {
-  linkedCalloutId: string | null
-  linkedCalloutLabel: string | null
-  isIssueMode: boolean
-
-  setLinkedCallout: (id: string | null, label: string | null) => void
-  toggleIssueMode: () => void
-  resetIssueMode: () => void  // Called after capture
-}
-
-export const useCameraStore = create<CameraState>()(
-  persist(
-    (set) => ({
-      linkedCalloutId: null,
-      linkedCalloutLabel: null,
-      isIssueMode: false,
-
-      setLinkedCallout: (id, label) => set({ linkedCalloutId: id, linkedCalloutLabel: label }),
-      toggleIssueMode: () => set((s) => ({ isIssueMode: !s.isIssueMode })),
-      resetIssueMode: () => set({ isIssueMode: false }),
-    }),
-    {
-      name: 'camera-state',
-      storage: createJSONStorage(() => AsyncStorage),
-    }
-  )
-)
+// Query photos for project, group by date then marker
+const sections = usePhotosTimeline(projectId)
+// Returns: { title: string, data: MarkerGroup[] }[]
 ```
 
 ---
 
 ## 8. Implementation Guidelines
 
-### Agent Consultation Matrix
+### Component Structure Best Practices
 
-| Task | Research Agent | Execution Agent | Review Agent |
-|------|----------------|-----------------|--------------|
-| Navigation refactor | `Explore` (codebase patterns) | `Plan` (implementation) | `codereview` |
-| Camera component | `Context7` (expo-camera docs) | `Plan` | `unit-testing:test-automator` |
-| Animations | `Explore` + `Context7` (reanimated) | `Plan` | `codereview` |
-| State management | `Explore` (LiveStore patterns) | `Plan` | `codereview` |
-| Accessibility | `WebSearch` (WCAG guidelines) | `Plan` | `codereview` |
+#### 1. Extract Business Logic
+```typescript
+// ❌ Bad: Logic in component
+function ActivityView({ projectId }) {
+  const [summary, setSummary] = useState(null)
+  const [loading, setLoading] = useState(false)
 
-### Code Quality Checklist
+  const generateSummary = async () => {
+    setLoading(true)
+    // ... API call logic
+    setLoading(false)
+  }
 
-- [ ] Component < 150 lines (split if larger)
-- [ ] Business logic extracted to hooks
-- [ ] Callbacks wrapped in useCallback
-- [ ] Lists use memo + keyExtractor
-- [ ] Animations use native driver where possible
-- [ ] Touch targets >= 48px
-- [ ] Dark theme tokens used (no hardcoded colors)
-- [ ] TypeScript strict mode compliant
+  return <View>...</View>
+}
 
-### Performance Checklist
+// ✅ Good: Logic in hook
+function ActivityView({ projectId }) {
+  const { summary, isLoading, generate, share } = useDailySummary(projectId)
 
-- [ ] FlatList instead of ScrollView for lists
-- [ ] Images use proper sizing/caching
-- [ ] Heavy computations in useMemo
-- [ ] Avoid inline object/array props
-- [ ] useLayoutEffect only when necessary
-- [ ] Gesture handlers use worklets
+  return <View>...</View>
+}
+```
+
+#### 2. Memoize List Items
+```typescript
+// Photo thumbnails in carousel
+const PhotoThumbnail = React.memo(function PhotoThumbnail({ photo, onPress }) {
+  return (
+    <Pressable onPress={() => onPress(photo.id)}>
+      {/* ... */}
+    </Pressable>
+  )
+})
+```
+
+#### 3. Use useCallback for Event Handlers
+```typescript
+const handlePhotoPress = useCallback((photoId: string) => {
+  // Navigate to photo detail
+  router.push(`/photo/${photoId}`)
+}, [router])
+```
+
+#### 4. Optimize FlatList Rendering
+```typescript
+<FlatList
+  data={photos}
+  renderItem={({ item }) => <PhotoThumbnail photo={item} onPress={handlePhotoPress} />}
+  keyExtractor={(item) => item.id}
+  // Performance optimizations
+  windowSize={5}
+  maxToRenderPerBatch={10}
+  updateCellsBatchingPeriod={50}
+  removeClippedSubviews={true}
+  getItemLayout={(data, index) => ({
+    length: 160,
+    offset: 160 * index,
+    index,
+  })}
+/>
+```
+
+### File Organization
+
+```
+components/
+├── workspace/
+│   ├── workspace-header.tsx         # Back + Segmented Control + Menu
+│   ├── project-context.tsx          # Project name + address row
+│   ├── camera-fab.tsx               # Floating action button
+│   └── segmented-control.tsx        # Reusable Plans/Activity toggle
+├── activity/
+│   ├── daily-summary-banner.tsx     # Subtle banner (not card)
+│   ├── summary-header.tsx           # Title + share button
+│   ├── summary-content.tsx          # Generated text
+│   ├── photo-timeline.tsx           # Main timeline FlatList
+│   ├── timeline-section.tsx         # Date group
+│   ├── marker-group.tsx             # Photos grouped by marker
+│   └── photo-thumbnail.tsx          # Individual thumbnail with badges
+├── project/
+│   ├── filter-chips.tsx             # 48px filter chips
+│   ├── filter-chip.tsx              # Individual chip
+│   ├── project-list.tsx             # FlatList of projects
+│   └── project-list-item.tsx        # Project card item
+├── notifications/
+│   ├── notification-list.tsx
+│   ├── notification-item.tsx
+│   └── notification-actions-sheet.tsx  # Bottom sheet
+└── ui/
+    ├── bottom-sheet.tsx             # Reusable bottom sheet
+    ├── icon.tsx
+    ├── text.tsx
+    └── ...
+```
+
+### Naming Conventions
+
+- **Components:** PascalCase, descriptive (`ProjectListItem`, `DailySummaryBanner`)
+- **Hooks:** camelCase, prefixed with `use` (`useDailySummary`, `usePhotosTimeline`)
+- **Event handlers:** camelCase, prefixed with `handle` (`handlePhotoPress`, `handleGenerateSummary`)
+- **Props interfaces:** PascalCase, suffixed with `Props` (`ProjectListItemProps`)
+
+### Accessibility
+
+- All interactive elements must have `accessibilityLabel`
+- Use `accessibilityRole` appropriately (`button`, `header`, `image`)
+- Provide `accessibilityHint` for non-obvious actions
+- Support dynamic type scaling
+- Test with VoiceOver/TalkBack
 
 ---
 
-## Appendix: AI Features Reference
+## Appendix: Design Decisions
 
-| Feature | Trigger | Implementation |
-|---------|---------|----------------|
-| **Voice Transcription** | Voice note recorded | Whisper API (server-side, async via sync) |
-| **Daily Summary** | "Generate" button in Activity | LLM summarization (server-side) |
-| **Plan Text Search** | Search input in Plans | Full-text on OCR'd content |
-| **Photo OCR** | Photo captured | Extract labels (server-side, async) |
+### Why Remove Camera Tab?
 
-**Note:** RFI generation is NOT a feature. SiteLink explicitly avoids enterprise workflow tools.
+**Problem:** Camera was a destination tab, requiring:
+1. Tap project → 2. Land on default tab → 3. Tap Camera → 4. Take photo
 
----
+**Solution:** Camera as a FAB (Floating Action Button)
+1. Tap project → 2. Tap FAB → 3. Take photo
 
-*End of Specification*
+**Impact:**
+- Reduces steps from 4 to 3
+- FAB is persistent across Plans and Activity
+- Ergonomically placed for one-handed, gloved operation
+- Aligns with the principle of "camera is an action, not a destination"
+
+### Why Segmented Control Over Swipeable Tabs?
+
+**Wealthsimple uses horizontal swipe for multiple items (3+), but for just 2 items, a segmented control is superior:**
+
+- **Clearer intent:** Tapping is more decisive than swiping
+- **Faster:** Direct tap vs swipe gesture
+- **Less error-prone:** With gloves, accidental swipes are common
+- **Better visual feedback:** Selected state is immediately obvious
+
+### Why Bottom Sheet for Notification Actions?
+
+**Alternative considered:** Gear icon directly navigates to settings
+
+**Bottom sheet is better because:**
+- Groups related actions ("Settings" + "Clear all")
+- "Clear all" is immediate (no extra navigation)
+- Thumb-friendly zone (bottom of screen)
+- Follows Wealthsimple pattern
+
+### Why Sticky Project Context Row?
+
+**Problem:** With segmented control in center, no room for project name in primary header
+
+**Solution:** Dedicated second row for project name + address
+
+**Benefits:**
+- Always visible (sticky) as user scrolls
+- Clear separation: Navigation (row 1) vs Context (row 2)
+- Prevents user confusion about which project they're in

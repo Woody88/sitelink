@@ -1,16 +1,23 @@
-import { CreateProjectModal } from '@/components/project/create-project-modal';
-import type { Project } from '@/components/project/project-card';
-import { Button } from '@/components/ui/button';
-import { Icon } from '@/components/ui/icon';
-import { Text } from '@/components/ui/text';
-import { Separator } from '@/components/ui/separator';
-import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from '@/components/ui/empty';
-import { useProject } from '@/context/project-context';
-import { Stack, useRouter } from 'expo-router';
-import { Bell, User, FolderOpen, ChevronRight, MapPin } from 'lucide-react-native';
-import * as React from 'react';
-import { View, ScrollView, Pressable, FlatList } from 'react-native';
-import { cn } from '@/lib/utils';
+import { CreateProjectModal } from '@/components/project/create-project-modal'
+import type { Project } from '@/components/project/project-card'
+import { Button } from '@/components/ui/button'
+import { Icon } from '@/components/ui/icon'
+import { Text } from '@/components/ui/text'
+import { Separator } from '@/components/ui/separator'
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyContent,
+} from '@/components/ui/empty'
+import { useProject } from '@/context/project-context'
+import { Stack, useRouter } from 'expo-router'
+import { Bell, User, FolderOpen, ChevronRight, MapPin } from 'lucide-react-native'
+import * as React from 'react'
+import { View, ScrollView, Pressable, FlatList } from 'react-native'
+import { cn } from '@/lib/utils'
 
 // Mock data
 const MOCK_PROJECTS: Project[] = [
@@ -53,49 +60,46 @@ const MOCK_PROJECTS: Project[] = [
     updatedAt: '1 week ago',
     status: 'archived',
   },
-];
+]
 
 interface FilterChipProps {
-  label: string;
-  count: number;
-  isActive: boolean;
-  onPress: () => void;
+  label: string
+  count: number
+  isActive: boolean
+  onPress: () => void
 }
 
-const FilterChip = React.memo(function FilterChip({ 
-  label, 
-  count, 
-  isActive, 
-  onPress 
+const FilterChip = React.memo(function FilterChip({
+  label,
+  count,
+  isActive,
+  onPress,
 }: FilterChipProps) {
   return (
     <Pressable
       onPress={onPress}
       className={cn(
-        'px-3 py-1.5 rounded-full mr-2',
-        isActive
-          ? 'bg-foreground'
-          : 'bg-transparent'
+        'mr-2 rounded-full px-4 py-3',
+        isActive ? 'bg-foreground' : 'bg-transparent'
       )}
-      style={{ minHeight: 32 }} // Slimmer but still tappable
+      style={{ minHeight: 48, borderRadius: 24 }}
     >
       <Text
         className={cn(
-          'text-sm',
-          isActive ? 'text-background font-medium' : 'text-muted-foreground'
-        )}
-      >
+          'text-sm font-medium',
+          isActive ? 'text-background' : 'text-muted-foreground'
+        )}>
         {label}
       </Text>
     </Pressable>
-  );
-});
+  )
+})
 
 // Project List Item - Wealthsimple style with separator
 interface ProjectListItemProps {
-  project: Project;
-  onPress: (project: Project) => void;
-  isLast?: boolean;
+  project: Project
+  onPress: (project: Project) => void
+  isLast?: boolean
 }
 
 const ProjectListItem = React.memo(function ProjectListItem({
@@ -107,68 +111,67 @@ const ProjectListItem = React.memo(function ProjectListItem({
     <>
       <Pressable
         onPress={() => onPress(project)}
-        className="flex-row items-center px-4 py-4 active:bg-muted/50"
-        style={{ minHeight: 64 }}
-      >
+        className="active:bg-muted/50 flex-row items-center px-4 py-4"
+        style={{ minHeight: 64 }}>
         <View className="flex-1">
-          <Text className="text-base font-medium text-foreground">
-            {project.name}
-          </Text>
+          <Text className="text-foreground text-base font-medium">{project.name}</Text>
           {project.address ? (
-            <View className="flex-row items-center mt-1">
-              <Icon as={MapPin} className="size-3 text-muted-foreground mr-1" />
-              <Text className="text-sm text-muted-foreground">
-                {project.address}
-              </Text>
+            <View className="mt-1 flex-row items-center">
+              <Icon as={MapPin} className="text-muted-foreground mr-1 size-3" />
+              <Text className="text-muted-foreground text-sm">{project.address}</Text>
             </View>
           ) : (
-            <Text className="text-sm text-muted-foreground mt-0.5">
+            <Text className="text-muted-foreground mt-0.5 text-sm">
               {project.sheetCount} sheets • {project.memberCount} members
             </Text>
           )}
         </View>
         <View className="flex-row items-center gap-2">
-          <Text className="text-xs text-muted-foreground">
-            {project.updatedAt}
-          </Text>
-          <Icon as={ChevronRight} className="size-5 text-muted-foreground" />
+          <Text className="text-muted-foreground text-xs">{project.updatedAt}</Text>
+          <Icon as={ChevronRight} className="text-muted-foreground size-5" />
         </View>
       </Pressable>
       {!isLast && <Separator className="ml-4" />}
     </>
-  );
-});
+  )
+})
 
 export default function ProjectsScreen() {
-  const router = useRouter();
-  const { setActiveProjectId } = useProject();
-  const [createModalVisible, setCreateModalVisible] = React.useState(false);
-  const [activeFilter, setActiveFilter] = React.useState('all');
+  const router = useRouter()
+  const { setActiveProjectId } = useProject()
+  const [createModalVisible, setCreateModalVisible] = React.useState(false)
+  const [activeFilter, setActiveFilter] = React.useState('all')
 
   const filteredProjects = React.useMemo(() => {
-    if (activeFilter === 'all') return MOCK_PROJECTS;
-    return MOCK_PROJECTS.filter((p) => p.status === activeFilter);
-  }, [activeFilter]);
+    if (activeFilter === 'all') return MOCK_PROJECTS
+    return MOCK_PROJECTS.filter((p) => p.status === activeFilter)
+  }, [activeFilter])
 
-  const filterCounts = React.useMemo(() => ({
-    all: MOCK_PROJECTS.length,
-    active: MOCK_PROJECTS.filter((p) => p.status === 'active').length,
-    completed: MOCK_PROJECTS.filter((p) => p.status === 'completed').length,
-    archived: MOCK_PROJECTS.filter((p) => p.status === 'archived').length,
-  }), []);
+  const filterCounts = React.useMemo(
+    () => ({
+      all: MOCK_PROJECTS.length,
+      active: MOCK_PROJECTS.filter((p) => p.status === 'active').length,
+      completed: MOCK_PROJECTS.filter((p) => p.status === 'completed').length,
+      archived: MOCK_PROJECTS.filter((p) => p.status === 'archived').length,
+    }),
+    []
+  )
 
-  const handleProjectPress = React.useCallback((project: Project) => {
-    setActiveProjectId(project.id);
-    router.push(`/project/${project.id}/` as any);
-  }, [setActiveProjectId, router]);
+  const handleProjectPress = React.useCallback(
+    (project: Project) => {
+      setActiveProjectId(project.id)
+      router.push(`/project/${project.id}/` as any)
+    },
+    [setActiveProjectId, router]
+  )
 
   const handleNotifications = React.useCallback(() => {
-    router.push('/notifications' as any);
-  }, [router]);
+    router.push('/notifications' as any)
+  }, [router])
 
   const handleProfile = React.useCallback(() => {
-    router.push('/settings' as any);
-  }, [router]);
+    router.push('/settings' as any)
+  }, [router])
 
   return (
     <>
@@ -180,31 +183,28 @@ export default function ProjectsScreen() {
           headerLeft: () => (
             <Pressable
               onPress={handleNotifications}
-              className="w-10 h-10 items-center justify-center ml-2"
-            >
-              <Icon as={Bell} className="size-6 text-foreground" />
+              className="ml-2 h-10 w-10 items-center justify-center">
+              <Icon as={Bell} className="text-foreground size-6" />
               {/* TODO: Add badge for unread count */}
             </Pressable>
           ),
           headerRight: () => (
             <Pressable
               onPress={handleProfile}
-              className="w-10 h-10 items-center justify-center mr-2"
-            >
-              <Icon as={User} className="size-6 text-foreground" />
+              className="mr-2 h-10 w-10 items-center justify-center">
+              <Icon as={User} className="text-foreground size-6" />
             </Pressable>
           ),
         }}
       />
-      
-      <View className="flex-1 bg-background">
+
+      <View className="bg-background flex-1">
         {/* Horizontal Filter Chips - Wealthsimple Pattern */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           className="flex-grow-0"
-          contentContainerClassName="px-4 py-2"
-        >
+          contentContainerClassName="px-4 py-3">
           <FilterChip
             label="All"
             count={filterCounts.all}
@@ -248,11 +248,12 @@ export default function ProjectsScreen() {
           <Empty>
             <EmptyHeader>
               <EmptyMedia variant="icon">
-                <Icon as={FolderOpen} className="size-8 text-muted-foreground" />
+                <Icon as={FolderOpen} className="text-muted-foreground size-8" />
               </EmptyMedia>
               <EmptyTitle>No Projects Found</EmptyTitle>
               <EmptyDescription>
-                No projects match the selected filter. Try a different filter or create a new project.
+                No projects match the selected filter. Try a different filter or create a new
+                project.
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
@@ -268,10 +269,10 @@ export default function ProjectsScreen() {
         isVisible={createModalVisible}
         onClose={() => setCreateModalVisible(false)}
         onSubmit={(data) => {
-          console.log('Create project:', data);
-          setCreateModalVisible(false);
+          console.log('Create project:', data)
+          setCreateModalVisible(false)
         }}
       />
     </>
-  );
+  )
 }

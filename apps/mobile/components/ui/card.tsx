@@ -1,10 +1,9 @@
 import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/utils';
-import type { TextRef, ViewRef } from '@rn-primitives/types';
 import * as React from 'react';
 import { View, type ViewProps } from 'react-native';
 
-const Card = React.forwardRef<ViewRef, ViewProps>(({ className, ...props }, ref) => (
+const Card = React.forwardRef<any, ViewProps>(({ className, ...props }, ref) => (
   <View
     ref={ref}
     className={cn(
@@ -16,7 +15,7 @@ const Card = React.forwardRef<ViewRef, ViewProps>(({ className, ...props }, ref)
 ));
 Card.displayName = 'Card';
 
-const CardHeader = React.forwardRef<ViewRef, ViewProps>(({ className, ...props }, ref) => (
+const CardHeader = React.forwardRef<any, ViewProps>(({ className, ...props }, ref) => (
   <View
     ref={ref}
     className={cn('flex flex-col space-y-1.5 p-6', className)}
@@ -25,7 +24,7 @@ const CardHeader = React.forwardRef<ViewRef, ViewProps>(({ className, ...props }
 ));
 CardHeader.displayName = 'CardHeader';
 
-const CardTitle = React.forwardRef<TextRef, React.ComponentPropsWithoutRef<typeof Text>>(
+const CardTitle = React.forwardRef<any, React.ComponentPropsWithoutRef<typeof Text>>(
   ({ className, ...props }, ref) => (
     <Text
       ref={ref}
@@ -36,7 +35,7 @@ const CardTitle = React.forwardRef<TextRef, React.ComponentPropsWithoutRef<typeo
 );
 CardTitle.displayName = 'CardTitle';
 
-const CardDescription = React.forwardRef<TextRef, React.ComponentPropsWithoutRef<typeof Text>>(
+const CardDescription = React.forwardRef<any, React.ComponentPropsWithoutRef<typeof Text>>(
   ({ className, ...props }, ref) => (
     <Text
       ref={ref}
@@ -47,12 +46,12 @@ const CardDescription = React.forwardRef<TextRef, React.ComponentPropsWithoutRef
 );
 CardDescription.displayName = 'CardDescription';
 
-const CardContent = React.forwardRef<ViewRef, ViewProps>(({ className, ...props }, ref) => (
+const CardContent = React.forwardRef<any, ViewProps>(({ className, ...props }, ref) => (
   <View ref={ref} className={cn('p-6 pt-0', className)} {...props} />
 ));
 CardContent.displayName = 'CardContent';
 
-const CardFooter = React.forwardRef<ViewRef, ViewProps>(({ className, ...props }, ref) => (
+const CardFooter = React.forwardRef<any, ViewProps>(({ className, ...props }, ref) => (
   <View
     ref={ref}
     className={cn('flex flex-row items-center p-6 pt-0', className)}

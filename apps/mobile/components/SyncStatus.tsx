@@ -65,12 +65,12 @@ export function SyncStatus({
         .replace(/\/$/, '') + '/health'
     }
 
-    let intervalId: NodeJS.Timeout | null = null
+    let intervalId: ReturnType<typeof setInterval> | null = null
 
     async function checkHealth() {
       try {
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
+        const timeoutId: ReturnType<typeof setTimeout> = setTimeout(() => controller.abort(), 5000) // 5 second timeout
 
         if (__DEV__) {
           console.log('[SyncStatus] Checking health at:', healthUrl)
