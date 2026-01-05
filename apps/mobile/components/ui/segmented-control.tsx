@@ -49,23 +49,26 @@ function SegmentedControl({
     }
   }, [selectedIndex, layouts, animatedValue, options.length])
 
-  // Calculate animated position and width
-  const animatedStyle = {
+  // Check if all layouts are measured
+  const allLayoutsMeasured = layouts.length === options.length && layouts.every(l => l !== undefined)
+
+  // Calculate animated position and width (only when layouts are ready)
+  const animatedStyle = allLayoutsMeasured ? {
     transform: [
       {
         translateX: animatedValue.interpolate({
           inputRange: options.map((_, i) => i),
-          outputRange: layouts.map((layout) => layout?.x ?? 0),
+          outputRange: layouts.map((layout) => layout.x),
           extrapolate: 'clamp',
         }),
       },
     ],
     width: animatedValue.interpolate({
       inputRange: options.map((_, i) => i),
-      outputRange: layouts.map((layout) => layout?.width ?? 0),
+      outputRange: layouts.map((layout) => layout.width),
       extrapolate: 'clamp',
     }),
-  }
+  } : {}
 
   return (
     <View
@@ -74,17 +77,19 @@ function SegmentedControl({
         className
       )}
       style={{ minHeight: 48 }}>
-      {/* Animated background pill */}
-      <Animated.View
-        className="bg-card shadow-black/10 absolute rounded-lg shadow-md"
-        style={[
-          {
-            height: 40,
-            top: 4,
-          },
-          animatedStyle,
-        ]}
-      />
+      {/* Animated background pill - only render when layouts are measured */}
+      {allLayoutsMeasured && (
+        <Animated.View
+          className="bg-card shadow-black/10 absolute rounded-lg shadow-md"
+          style={[
+            {
+              height: 40,
+              top: 4,
+            },
+            animatedStyle,
+          ]}
+        />
+      )}
 
       {/* Segment buttons */}
       {options.map((option, index) => {
