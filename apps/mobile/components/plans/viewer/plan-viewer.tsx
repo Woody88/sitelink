@@ -14,8 +14,9 @@ import Animated, {
 import * as Haptics from 'expo-haptics'
 
 import { usePlanViewer, MOCK_MARKERS, type CalloutMarker, type ViewerState } from '@/hooks/use-plan-viewer'
+import { fetchImageAsBase64 } from '@/lib/image-utils'
 import { ViewerControls } from './viewer-controls'
-import { SheetInfoBar, CompactSheetInfo } from './sheet-info-bar'
+import { SheetInfoBar } from './sheet-info-bar'
 import { MarkerDetailSheet } from './marker-detail-sheet'
 import OpenSeadragonViewer from './openseadragon-viewer'
 
@@ -72,12 +73,44 @@ export function PlanViewer({
   // UI state
   const [showMarkerSheet, setShowMarkerSheet] = React.useState(false)
   const [selectedMarker, setSelectedMarker] = React.useState<CalloutMarker | null>(null)
+  const [imageDataUrl, setImageDataUrl] = React.useState<string | null>(null)
+  const [retryCount, setRetryCount] = React.useState(0)
   const controlsOpacity = useSharedValue(1)
 
   // Load mock markers on mount
   React.useEffect(() => {
     setMarkers(MOCK_MARKERS)
   }, [setMarkers])
+
+  // Fetch image and convert to base64 to bypass WebView CORS restrictions
+  React.useEffect(() => {
+    let cancelled = false
+
+    async function loadImage() {
+      try {
+        setIsLoading(true)
+        setError(null)
+        console.log('[PlanViewer] Fetching image:', imageUrl)
+        const dataUrl = await fetchImageAsBase64(imageUrl)
+        if (!cancelled) {
+          console.log('[PlanViewer] Image converted to base64, length:', dataUrl.length)
+          setImageDataUrl(dataUrl)
+        }
+      } catch (err) {
+        if (!cancelled) {
+          const message = err instanceof Error ? err.message : 'Failed to load image'
+          console.error('[PlanViewer] Image fetch error:', message)
+          setError(message)
+          setIsLoading(false)
+        }
+      }
+    }
+
+    loadImage()
+    return () => {
+      cancelled = true
+    }
+  }, [imageUrl, retryCount, setIsLoading, setError])
 
   // Handle viewer ready - must be async for DOM bridge
   const handleViewerReady = React.useCallback(async () => {
@@ -144,11 +177,12 @@ export function PlanViewer({
     onClose()
   }, [onClose])
 
-  // Retry on error
+  // Retry on error - increment retry count to trigger new fetch
   const handleRetry = React.useCallback(() => {
     setError(null)
-    setIsLoading(true)
-  }, [setError, setIsLoading])
+    setImageDataUrl(null)
+    setRetryCount(c => c + 1)
+  }, [setError])
 
   const controlsAnimatedStyle = useAnimatedStyle(() => ({
     opacity: controlsOpacity.value,
@@ -159,17 +193,19 @@ export function PlanViewer({
     <View className="flex-1 bg-black">
       <StatusBar barStyle="light-content" backgroundColor="#000" />
 
-      {/* OpenSeadragon Viewer */}
+      {/* OpenSeadragon Viewer - only render when image is loaded */}
       <View className="flex-1">
-        <OpenSeadragonViewer
-          imageUrl={imageUrl}
-          markers={markers}
-          selectedMarkerId={selectedMarkerId}
-          onMarkerPress={handleMarkerPress}
-          onViewerStateChange={handleViewerStateChange}
-          onReady={handleViewerReady}
-          onError={handleViewerError}
-        />
+        {imageDataUrl && (
+          <OpenSeadragonViewer
+            imageUrl={imageDataUrl}
+            markers={markers}
+            selectedMarkerId={selectedMarkerId}
+            onMarkerPress={handleMarkerPress}
+            onViewerStateChange={handleViewerStateChange}
+            onReady={handleViewerReady}
+            onError={handleViewerError}
+          />
+        )}
       </View>
 
       {/* Loading overlay */}

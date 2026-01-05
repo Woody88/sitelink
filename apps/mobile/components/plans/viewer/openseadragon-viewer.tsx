@@ -72,7 +72,7 @@ export default function OpenSeadragonViewer({
       console.error('[OpenSeadragon] Init error:', err)
       onError?.('Initialization error')
     }
-  }, [imageUrl])
+  }, [imageUrl, onReady, onError])
 
   return (
     <>
