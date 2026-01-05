@@ -1,8 +1,7 @@
 // apps/mobile/components/SyncStatus.tsx
 import { useEffect, useState } from 'react'
-import { View } from 'react-native'
+import { View , ActivityIndicator } from 'react-native'
 import { Text } from '@/components/ui/text'
-import { ActivityIndicator } from 'react-native'
 
 type SyncStatus = 'checking' | 'connected' | 'disconnected' | 'no-sync'
 

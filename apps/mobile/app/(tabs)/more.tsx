@@ -1,6 +1,6 @@
 // apps/mobile/app/(tabs)/more.tsx
 import { Text } from "@/components/ui/text"
-import { View, ScrollView } from "react-native"
+import { View, ScrollView , Platform } from "react-native"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { useState, useCallback } from "react"
@@ -12,7 +12,6 @@ import {
 } from "@/lib/biometric"
 import { useAuth } from "@/hooks/useAuth"
 import { Button } from "@/components/ui/button"
-import { Platform } from "react-native"
 
 export default function MoreScreen() {
   const { user, signOut } = useAuth()

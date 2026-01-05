@@ -11,7 +11,8 @@ import {
   ChevronDown, 
   ChevronRight, 
   FileText,
-  Maximize2
+  Maximize2,
+  X
 } from 'lucide-react-native'
 import { cn } from '@/lib/utils'
 import {
@@ -19,16 +20,25 @@ import {
   CollapsibleTrigger,
   CollapsibleContent,
 } from '@/components/ui/collapsible'
-
 import { MOCK_FOLDERS } from '@/constants/mock-data'
-import { PlanSelector, Plan } from '@/components/plans/plan-selector'
-import { Modal } from 'react-native'
 
-export default function PlansScreen() {
+export interface Plan {
+  id: string
+  code: string
+  title: string
+  thumbnail: string
+}
+
+interface PlanSelectorProps {
+  onSelect: (plan: Plan) => void
+  onClose?: () => void
+  showCloseButton?: boolean
+}
+
+export function PlanSelector({ onSelect, onClose, showCloseButton = false }: PlanSelectorProps) {
   const [searchQuery, setSearchQuery] = React.useState('')
   const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('list')
   const [expandedFolders, setExpandedFolders] = React.useState<string[]>(['f1'])
-  const [isSelectorVisible, setIsSelectorVisible] = React.useState(false)
 
   const toggleFolder = (folderId: string) => {
     setExpandedFolders(prev => 
@@ -36,11 +46,6 @@ export default function PlansScreen() {
         ? prev.filter(id => id !== folderId) 
         : [...prev, folderId]
     )
-  }
-
-  const handleSelectPlan = (plan: Plan) => {
-    console.log('Selected plan in main screen:', plan.code)
-    setIsSelectorVisible(false)
   }
 
   const filteredFolders = MOCK_FOLDERS.map(folder => ({
@@ -56,8 +61,17 @@ export default function PlansScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      {/* Search and Toggle Header */}
-      <View className="px-4 py-3 gap-4">
+      {/* Header with Search and Close */}
+      <View className="px-4 py-3 gap-4 border-b border-border/10">
+        <View className="flex-row items-center justify-between mb-1">
+          <Text className="text-xl font-bold text-foreground">Select Plan</Text>
+          {showCloseButton && onClose && (
+            <Pressable onPress={onClose} className="p-2 rounded-full active:bg-muted/20">
+              <Icon as={X} className="size-6 text-foreground" />
+            </Pressable>
+          )}
+        </View>
+
         <View className="flex-row items-center gap-2">
           <View className="flex-1 relative">
             <View className="absolute left-3 top-2.5 z-10">
@@ -69,13 +83,6 @@ export default function PlansScreen() {
               onChangeText={setSearchQuery}
               className="pl-10 h-10 bg-muted/20 border-transparent rounded-xl"
             />
-            {/* Magnifying glass/QR scanner placeholder */}
-            <Pressable 
-              className="absolute right-3 top-2.5 z-10 p-0.5 active:bg-muted/20 rounded"
-              onPress={() => setIsSelectorVisible(true)}
-            >
-              <Icon as={Maximize2} className="size-4 text-muted-foreground" />
-            </Pressable>
           </View>
           
           <View className="flex-row bg-muted/20 rounded-xl p-1">
@@ -101,7 +108,7 @@ export default function PlansScreen() {
         </View>
       </View>
 
-      <ScrollView className="flex-1" contentContainerClassName="px-4 pb-8">
+      <ScrollView className="flex-1" contentContainerClassName="px-4 py-4 pb-8">
         {filteredFolders.map((folder) => (
           <Collapsible
             key={folder.id}
@@ -134,7 +141,11 @@ export default function PlansScreen() {
                 {viewMode === 'grid' ? (
                   <View className="flex-row flex-wrap gap-3">
                     {folder.plans.map(plan => (
-                      <Pressable key={plan.id} className="w-[48%] mb-4">
+                      <Pressable 
+                        key={plan.id} 
+                        className="w-[48%] mb-4 active:opacity-70"
+                        onPress={() => onSelect(plan)}
+                      >
                         <View className="aspect-[3/2] bg-muted/20 rounded-xl overflow-hidden border border-border/50">
                           <Image 
                             source={{ uri: plan.thumbnail }} 
@@ -155,8 +166,12 @@ export default function PlansScreen() {
                   </View>
                 ) : (
                   <View className="gap-1">
-                    {folder.plans.map((plan, index) => (
-                      <Pressable key={plan.id} className="flex-row items-center gap-4 py-3 px-2 active:bg-muted/10 rounded-lg">
+                    {folder.plans.map((plan) => (
+                      <Pressable 
+                        key={plan.id} 
+                        className="flex-row items-center gap-4 py-3 px-2 active:bg-muted/10 rounded-lg"
+                        onPress={() => onSelect(plan)}
+                      >
                         <View className="size-10 bg-muted/20 rounded-lg items-center justify-center">
                           <Icon as={FileText} className="size-5 text-muted-foreground" />
                         </View>
@@ -182,19 +197,7 @@ export default function PlansScreen() {
           </Collapsible>
         ))}
       </ScrollView>
-
-      <Modal
-        visible={isSelectorVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setIsSelectorVisible(false)}
-      >
-        <PlanSelector 
-          onSelect={handleSelectPlan} 
-          onClose={() => setIsSelectorVisible(false)} 
-          showCloseButton 
-        />
-      </Modal>
     </View>
   )
 }
+

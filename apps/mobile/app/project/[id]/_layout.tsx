@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { View } from 'react-native'
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { Stack, useLocalSearchParams, useRouter, useSegments, Slot } from 'expo-router'
 import { WorkspaceHeader } from '@/components/workspace/workspace-header'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { WorkspaceFAB } from '@/components/workspace/camera-fab'
@@ -15,7 +15,11 @@ export default function ProjectWorkspaceLayout() {
   const router = useRouter()
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const params = useLocalSearchParams<{ id: string }>()
+  const segments = useSegments()
   const [activeView, setActiveView] = useState<ActiveView>('plans')
+  
+  // Check if we're on the camera route
+  const isCameraRoute = segments[segments.length - 1] === 'camera'
 
   // Expose setActiveView to child components via context or prop drilling
   // For now, we'll handle it in the layout
@@ -34,10 +38,9 @@ export default function ProjectWorkspaceLayout() {
       // TODO: Open add plan modal
       console.log('Add plan tapped')
     } else {
-      // TODO: Navigate to camera screen
-      console.log('Camera tapped')
+      router.push(`/project/${params.id}/camera` as any)
     }
-  }, [activeView])
+  }, [activeView, router, params.id])
 
   const getFABIcon = () => {
     if (activeView === 'plans') return Plus
@@ -46,6 +49,11 @@ export default function ProjectWorkspaceLayout() {
 
   // TODO: Get project name and address from LiveStore query using params.id
   const projectName = 'Riverside Apartments'
+
+  // If we're on the camera route, let it render directly
+  if (isCameraRoute) {
+    return <Slot />
+  }
 
   return (
     <>

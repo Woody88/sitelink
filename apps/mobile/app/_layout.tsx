@@ -13,7 +13,7 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { makePersistedAdapter } from '@livestore/adapter-expo'
 import { LiveStoreProvider } from '@livestore/react'
 import { makeCfSync } from '@livestore/sync-cf'
-import { View, unstable_batchedUpdates as batchUpdates, ScrollView } from 'react-native'
+import { View, unstable_batchedUpdates as batchUpdates, ScrollView , Platform } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Text } from '@/components/ui/text'
 import { Button } from '@/components/ui/button'
@@ -28,7 +28,6 @@ import {
   setBiometricEnabled,
   isBiometricAvailable,
 } from '@/lib/biometric'
-import { Platform } from 'react-native'
 
 export { ErrorBoundary } from 'expo-router'
 
