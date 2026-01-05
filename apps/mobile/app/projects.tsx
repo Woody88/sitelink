@@ -64,26 +64,21 @@ const MOCK_PROJECTS: Project[] = [
 
 interface FilterChipProps {
   label: string
-  count: number
   isActive: boolean
   onPress: () => void
 }
 
-const FilterChip = React.memo(function FilterChip({
-  label,
-  count,
-  isActive,
-  onPress,
-}: FilterChipProps) {
+const FilterChip = React.memo(function FilterChip({ label, isActive, onPress }: FilterChipProps) {
   return (
     <Pressable
       onPress={onPress}
       className={cn(
-        'mr-2 rounded-full px-4 py-3',
-        isActive ? 'bg-foreground' : 'bg-transparent'
+        'mr-2 items-center justify-center rounded-full px-5',
+        isActive ? 'bg-foreground' : 'border-border border bg-transparent'
       )}
-      style={{ minHeight: 48, borderRadius: 24 }}
-    >
+      style={{ height: 48, borderRadius: 24 }}
+      accessibilityRole="button"
+      accessibilityLabel={`Filter by ${label}`}>
       <Text
         className={cn(
           'text-sm font-medium',
@@ -147,16 +142,6 @@ export default function ProjectsScreen() {
     return MOCK_PROJECTS.filter((p) => p.status === activeFilter)
   }, [activeFilter])
 
-  const filterCounts = React.useMemo(
-    () => ({
-      all: MOCK_PROJECTS.length,
-      active: MOCK_PROJECTS.filter((p) => p.status === 'active').length,
-      completed: MOCK_PROJECTS.filter((p) => p.status === 'completed').length,
-      archived: MOCK_PROJECTS.filter((p) => p.status === 'archived').length,
-    }),
-    []
-  )
-
   const handleProjectPress = React.useCallback(
     (project: Project) => {
       setActiveProjectId(project.id)
@@ -183,7 +168,9 @@ export default function ProjectsScreen() {
           headerLeft: () => (
             <Pressable
               onPress={handleNotifications}
-              className="ml-2 h-10 w-10 items-center justify-center">
+              className="ml-2 h-12 w-12 items-center justify-center"
+              accessibilityRole="button"
+              accessibilityLabel="Notifications">
               <Icon as={Bell} className="text-foreground size-6" />
               {/* TODO: Add badge for unread count */}
             </Pressable>
@@ -191,7 +178,9 @@ export default function ProjectsScreen() {
           headerRight: () => (
             <Pressable
               onPress={handleProfile}
-              className="mr-2 h-10 w-10 items-center justify-center">
+              className="mr-2 h-12 w-12 items-center justify-center"
+              accessibilityRole="button"
+              accessibilityLabel="Profile">
               <Icon as={User} className="text-foreground size-6" />
             </Pressable>
           ),
@@ -207,25 +196,21 @@ export default function ProjectsScreen() {
           contentContainerClassName="px-4 py-3">
           <FilterChip
             label="All"
-            count={filterCounts.all}
             isActive={activeFilter === 'all'}
             onPress={() => setActiveFilter('all')}
           />
           <FilterChip
             label="Active"
-            count={filterCounts.active}
             isActive={activeFilter === 'active'}
             onPress={() => setActiveFilter('active')}
           />
           <FilterChip
             label="Completed"
-            count={filterCounts.completed}
             isActive={activeFilter === 'completed'}
             onPress={() => setActiveFilter('completed')}
           />
           <FilterChip
             label="Archived"
-            count={filterCounts.archived}
             isActive={activeFilter === 'archived'}
             onPress={() => setActiveFilter('archived')}
           />

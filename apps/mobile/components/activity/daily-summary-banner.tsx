@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { View, Pressable, Share } from 'react-native'
-import { Share as ShareIcon, ChevronDown, ChevronUp, RefreshCcw } from 'lucide-react-native'
+import { ChevronDown, ChevronUp, RefreshCcw, Sparkles, ExternalLink } from 'lucide-react-native'
 import { Text } from '@/components/ui/text'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Icon } from '@/components/ui/icon'
@@ -39,7 +39,7 @@ export const DailySummaryBanner = React.memo(function DailySummaryBanner({
   }, [summary, onShare])
 
   return (
-    <View className={cn('border border-border bg-muted/20 rounded-lg overflow-hidden', className)}>
+    <View className={cn('border border-border bg-muted/20 rounded-none overflow-hidden', className)}>
       {/* Title Bar */}
       <Pressable
         onPress={() => summary && setIsCollapsed(!isCollapsed)}
@@ -47,11 +47,12 @@ export const DailySummaryBanner = React.memo(function DailySummaryBanner({
         disabled={!summary}
       >
         <View className="flex-row items-center gap-2 flex-1">
-          <Text className="text-base font-semibold text-foreground">Daily Summary</Text>
+          <Icon as={Sparkles} className="size-4 text-foreground" />
+          <Text className="text-base font-semibold text-foreground">Today&apos;s Summary</Text>
           {summary && (
             <Icon
               as={isCollapsed ? ChevronDown : ChevronUp}
-              className="size-4 text-muted-foreground"
+              className="size-4 text-muted-foreground ml-1"
             />
           )}
         </View>
@@ -59,10 +60,11 @@ export const DailySummaryBanner = React.memo(function DailySummaryBanner({
         {summary && !isCollapsed && (
           <Pressable
             onPress={handleShare}
-            className="p-2 -mr-2 active:opacity-70"
+            className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-foreground/5 active:opacity-70"
             hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
           >
-            <Icon as={ShareIcon} className="size-5 text-foreground" />
+            <Icon as={ExternalLink} className="size-4 text-foreground" />
+            <Text className="text-sm font-medium text-foreground">Share</Text>
           </Pressable>
         )}
       </Pressable>
@@ -70,6 +72,7 @@ export const DailySummaryBanner = React.memo(function DailySummaryBanner({
       {/* Content */}
       {!isCollapsed && (
         <View className="px-4 pb-4">
+          <View className="h-px bg-border mb-4 opacity-50" />
           {isLoading ? (
             <View className="gap-2">
               <Skeleton className="h-4 w-full" />
@@ -78,7 +81,7 @@ export const DailySummaryBanner = React.memo(function DailySummaryBanner({
               <Skeleton className="h-4 w-[60%]" />
             </View>
           ) : summary ? (
-            <View className="gap-2">
+            <View className="gap-3">
               <Text className="text-sm leading-relaxed text-foreground">
                 {summary.text}
               </Text>
@@ -101,23 +104,25 @@ export const DailySummaryBanner = React.memo(function DailySummaryBanner({
               </View>
             </View>
           ) : (
-            <View className="gap-3">
-              <Text className="text-sm text-muted-foreground">
+            <View className="gap-4">
+              <Text className="text-sm text-muted-foreground leading-relaxed">
                 Generate an AI summary of today&apos;s progress and photos.
               </Text>
-              <Pressable
-                onPress={onGenerate}
-                disabled={isLoading}
-                className="self-start flex-row items-center gap-2 px-3 py-2 bg-secondary rounded-md active:opacity-80"
-              >
-                <Icon
-                  as={RefreshCcw}
-                  className={cn('size-4 text-secondary-foreground', isLoading && 'animate-spin')}
-                />
-                <Text className="text-sm font-medium text-secondary-foreground">
-                  Generate Summary
-                </Text>
-              </Pressable>
+              <View className="flex-row justify-end">
+                <Pressable
+                  onPress={onGenerate}
+                  disabled={isLoading}
+                  className="flex-row items-center gap-2 px-4 py-2 bg-foreground rounded-full active:opacity-80"
+                >
+                  <Icon
+                    as={Sparkles}
+                    className={cn('size-4 text-background', isLoading && 'animate-spin')}
+                  />
+                  <Text className="text-sm font-semibold text-background">
+                    Generate Summary
+                  </Text>
+                </Pressable>
+              </View>
             </View>
           )}
         </View>

@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils'
 import * as React from 'react'
-import { Animated, LayoutChangeEvent, Pressable, View } from 'react-native'
+import { Animated, LayoutChangeEvent, Pressable, View, StyleSheet } from 'react-native'
 import { Text } from '@/components/ui/text'
 
 interface SegmentedControlProps {
@@ -22,7 +22,7 @@ function SegmentedControl({
   className,
 }: SegmentedControlProps) {
   const [layouts, setLayouts] = React.useState<SegmentLayout[]>([])
-  const animatedValue = React.useRef(new Animated.Value(0)).current
+  const animatedValue = React.useRef(new Animated.Value(selectedIndex)).current
 
   // Track segment layouts
   const handleLayout = React.useCallback(
@@ -47,7 +47,7 @@ function SegmentedControl({
         useNativeDriver: false,
       }).start()
     }
-  }, [selectedIndex, layouts, animatedValue, options.length])
+  }, [selectedIndex, layouts, options.length, animatedValue])
 
   // Check if all layouts are measured
   const allLayoutsMeasured = layouts.length === options.length && layouts.every(l => l !== undefined)
@@ -73,20 +73,21 @@ function SegmentedControl({
   return (
     <View
       className={cn(
-        'bg-muted/30 border-border dark:bg-muted/20 flex-row rounded-xl border p-1',
+        'bg-muted/50 dark:bg-muted/20 flex-row rounded-full p-1 self-center',
         className
       )}
-      style={{ minHeight: 48 }}>
+      style={{ height: 40 }}>
       {/* Animated background pill - only render when layouts are measured */}
       {allLayoutsMeasured && (
         <Animated.View
-          className="bg-card shadow-black/10 absolute rounded-lg shadow-md"
+          className="bg-background absolute rounded-full shadow-sm"
           style={[
             {
-              height: 40,
-              top: 4,
+              height: 32,
+              top: 3,
             },
             animatedStyle,
+            styles.pillShadow
           ]}
         />
       )}
@@ -100,14 +101,14 @@ function SegmentedControl({
             key={index}
             onPress={() => onIndexChange(index)}
             onLayout={handleLayout(index)}
-            className="flex-1 items-center justify-center"
-            style={{ minHeight: 40 }}
+            className="items-center justify-center px-5"
+            style={{ height: 32 }}
             accessibilityRole="tab"
             accessibilityState={{ selected: isSelected }}>
             <Text
               className={cn(
-                'text-sm font-medium transition-colors',
-                isSelected ? 'text-foreground' : 'text-muted-foreground'
+                'text-sm transition-colors',
+                isSelected ? 'text-foreground font-semibold' : 'text-muted-foreground font-medium'
               )}
               numberOfLines={1}>
               {option}
@@ -118,6 +119,16 @@ function SegmentedControl({
     </View>
   )
 }
+
+const styles = StyleSheet.create({
+  pillShadow: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  }
+})
 
 export { SegmentedControl }
 export type { SegmentedControlProps }

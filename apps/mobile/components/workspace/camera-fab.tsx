@@ -1,22 +1,28 @@
-import { cn } from '@/lib/utils';
-import { Camera } from 'lucide-react-native';
+import { Camera, Plus, type LucideIcon } from 'lucide-react-native';
+import { Icon } from '@/components/ui/icon';
 import * as React from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Pressable,
   type PressableProps,
   Platform,
   Animated,
   StyleSheet,
+  type ViewStyle,
+  type StyleProp,
 } from 'react-native';
 
-interface CameraFABProps extends Omit<PressableProps, 'children'> {
+interface WorkspaceFABProps extends Omit<PressableProps, 'children' | 'style'> {
   onPress: () => void;
+  icon?: LucideIcon;
   opacity?: number;
   className?: string;
+  style?: StyleProp<ViewStyle>;
 }
 
-export const CameraFAB = React.memo<CameraFABProps>(
-  ({ onPress, opacity = 1, className, ...props }) => {
+export const WorkspaceFAB = React.memo<WorkspaceFABProps>(
+  ({ onPress, icon: IconComponent = Camera, opacity = 1, className, style, ...props }) => {
+    const insets = useSafeAreaInsets();
     const scaleAnim = React.useRef(new Animated.Value(1)).current;
 
     const handlePressIn = () => {
@@ -37,31 +43,32 @@ export const CameraFAB = React.memo<CameraFABProps>(
 
     return (
       <Animated.View
+        className={className}
         style={[
           styles.container,
           {
             opacity,
             transform: [{ scale: scaleAnim }],
+            bottom: 16 + insets.bottom,
+            right: 16 + insets.right,
           },
+          style,
         ]}
       >
         <Pressable
           onPress={onPress}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
-          className={cn(
-            'bg-primary h-14 w-14 items-center justify-center rounded-full',
-            className
-          )}
+          className="bg-primary h-14 w-14 items-center justify-center rounded-full"
           style={styles.shadow}
           accessibilityRole="button"
-          accessibilityLabel="Open camera"
+          accessibilityLabel={IconComponent === Plus ? "Add plan" : "Open camera"}
           {...props}
         >
-          <Camera
-            size={24}
-            color="hsl(var(--primary-foreground))"
-            strokeWidth={2}
+          <Icon
+            as={IconComponent}
+            className="text-primary-foreground size-6"
+            strokeWidth={2.5}
           />
         </Pressable>
       </Animated.View>
@@ -69,12 +76,14 @@ export const CameraFAB = React.memo<CameraFABProps>(
   }
 );
 
-CameraFAB.displayName = 'CameraFAB';
+WorkspaceFAB.displayName = 'WorkspaceFAB';
 
 const styles = StyleSheet.create({
   container: {
+    position: 'absolute',
     width: 56,
     height: 56,
+    zIndex: 50,
   },
   shadow: {
     ...Platform.select({
@@ -94,5 +103,5 @@ const styles = StyleSheet.create({
         // Web shadow via NativeWind className
       },
     }),
-  },
+  } as ViewStyle,
 });

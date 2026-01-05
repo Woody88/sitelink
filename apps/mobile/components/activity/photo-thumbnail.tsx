@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { View, Image, Pressable } from 'react-native'
-import { AlertCircle, Mic } from 'lucide-react-native'
+import { Mic } from 'lucide-react-native'
 import { Text } from '@/components/ui/text'
 import { Icon } from '@/components/ui/icon'
 import { cn } from '@/lib/utils'
@@ -29,8 +29,8 @@ export const PhotoThumbnail = React.memo(function PhotoThumbnail({
   return (
     <Pressable 
       onPress={onPress}
-      className={cn('relative rounded-lg overflow-hidden bg-muted', className)}
-      style={{ width: 120, height: 120 }}
+      className={cn('relative rounded-xl overflow-hidden bg-muted', className)}
+      style={{ width: 160, height: 160 }}
     >
       <Image 
         source={{ uri: displayUri }} 
@@ -38,23 +38,30 @@ export const PhotoThumbnail = React.memo(function PhotoThumbnail({
         resizeMode="cover"
       />
       
-      {/* Badges */}
-      <View className="absolute top-1.5 left-1.5 flex-row gap-1">
-        {isIssue && (
-          <View className="bg-destructive rounded-full p-1 shadow-sm">
-            <Icon as={AlertCircle} className="size-3 text-destructive-foreground" />
-          </View>
-        )}
-        {hasVoiceNote && (
-          <View className="bg-primary rounded-full p-1 shadow-sm">
-            <Icon as={Mic} className="size-3 text-primary-foreground" />
-          </View>
-        )}
-      </View>
+      {/* Issue Badge (Top Right) */}
+      {isIssue && (
+        <View className="absolute top-2 right-2 bg-destructive rounded-full items-center justify-center shadow-md" style={{ width: 20, height: 20 }}>
+          <Text className="text-[12px] text-destructive-foreground font-bold">!</Text>
+        </View>
+      )}
 
-      {/* Timestamp */}
-      <View className="absolute bottom-0 left-0 right-0 bg-black/40 px-1.5 py-0.5">
-        <Text className="text-[10px] text-white font-medium">
+      {/* Voice Note Badge (Bottom Right) */}
+      {hasVoiceNote && (
+        <View className="absolute bottom-2 right-2 bg-blue-500 rounded-full items-center justify-center shadow-md" style={{ width: 20, height: 20 }}>
+          <Icon as={Mic} className="size-3 text-white" />
+        </View>
+      )}
+
+      {/* Timestamp (Bottom Left) */}
+      <View className="absolute bottom-2 left-2">
+        <Text 
+          className="text-[12px] text-white font-medium"
+          style={{ 
+            textShadowColor: 'rgba(0, 0, 0, 0.75)',
+            textShadowOffset: { width: 0, height: 1 },
+            textShadowRadius: 3
+          }}
+        >
           {format(new Date(capturedAt), 'h:mm a')}
         </Text>
       </View>
