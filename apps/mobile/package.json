@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@better-auth/expo": "^1.4.10",
+    "@expo/metro-runtime": "~6.1.2",
     "@expo/vector-icons": "expo/vector-icons",
     "@livestore/adapter-expo": "catalog:livestore",
     "@livestore/devtools-expo": "catalog:livestore",
@@ -67,6 +68,7 @@
     "expo-system-ui": "~6.0.9",
     "expo-updates": "~29.0.15",
     "lucide-react-native": "^0.545.0",
+    "openseadragon": "^5.0.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
@@ -77,6 +79,7 @@
     "react-native-screens": "~4.16.0",
     "react-native-svg": "15.12.1",
     "react-native-web": "^0.21.0",
+    "react-native-webview": "13.15.0",
     "react-native-worklets": "0.5.1",
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.17",
@@ -87,6 +90,7 @@
   "devDependencies": {
     "@babel/core": "^7.26.0",
     "@babel/plugin-syntax-import-attributes": "^7.27.1",
+    "@types/openseadragon": "^5.0.1",
     "@types/react": "~19.1.10",
     "babel-plugin-transform-vite-meta-env": "^1.0.3",
     "babel-preset-expo": "^54.0.9",

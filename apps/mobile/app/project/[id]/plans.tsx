@@ -1,15 +1,15 @@
 import * as React from 'react'
-import { View, ScrollView, Pressable, Image } from 'react-native'
+import { View, ScrollView, Pressable, Image, Modal } from 'react-native'
 import { Text } from '@/components/ui/text'
 import { Input } from '@/components/ui/input'
 import { Icon } from '@/components/ui/icon'
-import { 
-  Search, 
-  LayoutGrid, 
-  List, 
-  Folder, 
-  ChevronDown, 
-  ChevronRight, 
+import {
+  Search,
+  LayoutGrid,
+  List,
+  Folder,
+  ChevronDown,
+  ChevronRight,
   FileText,
   Maximize2
 } from 'lucide-react-native'
@@ -19,16 +19,19 @@ import {
   CollapsibleTrigger,
   CollapsibleContent,
 } from '@/components/ui/collapsible'
+import * as Haptics from 'expo-haptics'
 
 import { MOCK_FOLDERS } from '@/constants/mock-data'
 import { PlanSelector, Plan } from '@/components/plans/plan-selector'
-import { Modal } from 'react-native'
+import { PlanViewer } from '@/components/plans/viewer'
 
 export default function PlansScreen() {
   const [searchQuery, setSearchQuery] = React.useState('')
   const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('list')
   const [expandedFolders, setExpandedFolders] = React.useState<string[]>(['f1'])
   const [isSelectorVisible, setIsSelectorVisible] = React.useState(false)
+  const [selectedPlan, setSelectedPlan] = React.useState<Plan | null>(null)
+  const [isViewerVisible, setIsViewerVisible] = React.useState(false)
 
   const toggleFolder = (folderId: string) => {
     setExpandedFolders(prev => 
@@ -39,9 +42,31 @@ export default function PlansScreen() {
   }
 
   const handleSelectPlan = (plan: Plan) => {
-    console.log('Selected plan in main screen:', plan.code)
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    setSelectedPlan(plan)
     setIsSelectorVisible(false)
+    setIsViewerVisible(true)
   }
+
+  const handleOpenPlan = React.useCallback((plan: Plan) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    setSelectedPlan(plan)
+    setIsViewerVisible(true)
+  }, [])
+
+  const handleCloseViewer = React.useCallback(() => {
+    setIsViewerVisible(false)
+    setSelectedPlan(null)
+  }, [])
+
+  const handleSheetChange = React.useCallback((sheetRef: string) => {
+    // Find the plan by code
+    const allPlans = MOCK_FOLDERS.flatMap(f => f.plans)
+    const plan = allPlans.find(p => p.id === sheetRef || p.code === sheetRef)
+    if (plan) {
+      setSelectedPlan(plan)
+    }
+  }, [])
 
   const filteredFolders = MOCK_FOLDERS.map(folder => ({
     ...folder,
@@ -134,10 +159,14 @@ export default function PlansScreen() {
                 {viewMode === 'grid' ? (
                   <View className="flex-row flex-wrap gap-3">
                     {folder.plans.map(plan => (
-                      <Pressable key={plan.id} className="w-[48%] mb-4">
+                      <Pressable
+                        key={plan.id}
+                        className="w-[48%] mb-4 active:opacity-80"
+                        onPress={() => handleOpenPlan(plan)}
+                      >
                         <View className="aspect-[3/2] bg-muted/20 rounded-xl overflow-hidden border border-border/50">
-                          <Image 
-                            source={{ uri: plan.thumbnail }} 
+                          <Image
+                            source={{ uri: plan.thumbnail }}
                             className="w-full h-full"
                             resizeMode="cover"
                           />
@@ -155,8 +184,12 @@ export default function PlansScreen() {
                   </View>
                 ) : (
                   <View className="gap-1">
-                    {folder.plans.map((plan, index) => (
-                      <Pressable key={plan.id} className="flex-row items-center gap-4 py-3 px-2 active:bg-muted/10 rounded-lg">
+                    {folder.plans.map((plan) => (
+                      <Pressable
+                        key={plan.id}
+                        className="flex-row items-center gap-4 py-3 px-2 active:bg-muted/10 rounded-lg"
+                        onPress={() => handleOpenPlan(plan)}
+                      >
                         <View className="size-10 bg-muted/20 rounded-lg items-center justify-center">
                           <Icon as={FileText} className="size-5 text-muted-foreground" />
                         </View>
@@ -183,17 +216,38 @@ export default function PlansScreen() {
         ))}
       </ScrollView>
 
+      {/* Plan Selector Modal */}
       <Modal
         visible={isSelectorVisible}
         animationType="slide"
         presentationStyle="pageSheet"
         onRequestClose={() => setIsSelectorVisible(false)}
       >
-        <PlanSelector 
-          onSelect={handleSelectPlan} 
-          onClose={() => setIsSelectorVisible(false)} 
-          showCloseButton 
+        <PlanSelector
+          onSelect={handleSelectPlan}
+          onClose={() => setIsSelectorVisible(false)}
+          showCloseButton
         />
+      </Modal>
+
+      {/* Full-screen Plan Viewer */}
+      <Modal
+        visible={isViewerVisible}
+        animationType="fade"
+        presentationStyle="fullScreen"
+        onRequestClose={handleCloseViewer}
+        statusBarTranslucent
+      >
+        {selectedPlan && (
+          <PlanViewer
+            planId={selectedPlan.id}
+            planCode={selectedPlan.code}
+            planTitle={selectedPlan.title}
+            imageUrl="https://picsum.photos/2000/1500"
+            onClose={handleCloseViewer}
+            onSheetChange={handleSheetChange}
+          />
+        )}
       </Modal>
     </View>
   )
