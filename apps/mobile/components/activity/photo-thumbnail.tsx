@@ -54,16 +54,11 @@ export const PhotoThumbnail = React.memo(function PhotoThumbnail({
 
       {/* Timestamp (Bottom Left) */}
       <View className="absolute bottom-2 left-2">
-        <Text 
-          className="text-[12px] text-white font-medium"
-          style={{ 
-            textShadowColor: 'rgba(0, 0, 0, 0.75)',
-            textShadowOffset: { width: 0, height: 1 },
-            textShadowRadius: 3
-          }}
-        >
-          {format(new Date(capturedAt), 'h:mm a')}
-        </Text>
+        <View className="bg-black/40 rounded px-1.5 py-0.5">
+          <Text className="text-[11px] text-white font-medium">
+            {format(new Date(capturedAt), 'h:mm a')}
+          </Text>
+        </View>
       </View>
     </Pressable>
   )

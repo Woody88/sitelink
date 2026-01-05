@@ -7,14 +7,18 @@ import { WorkspaceFAB } from '@/components/workspace/camera-fab'
 import { Plus, Camera } from 'lucide-react-native'
 import PlansScreen from './plans'
 import ActivityScreen from './activity'
+import MediaScreen from './media'
 
-type ActiveView = 'plans' | 'activity'
+type ActiveView = 'plans' | 'media' | 'activity'
 
 export default function ProjectWorkspaceLayout() {
   const router = useRouter()
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const params = useLocalSearchParams<{ id: string }>()
   const [activeView, setActiveView] = useState<ActiveView>('plans')
+
+  // Expose setActiveView to child components via context or prop drilling
+  // For now, we'll handle it in the layout
 
   const handleBack = useCallback(() => {
     router.back()
@@ -35,6 +39,11 @@ export default function ProjectWorkspaceLayout() {
     }
   }, [activeView])
 
+  const getFABIcon = () => {
+    if (activeView === 'plans') return Plus
+    return Camera
+  }
+
   // TODO: Get project name and address from LiveStore query using params.id
   const projectName = 'Riverside Apartments'
 
@@ -49,17 +58,23 @@ export default function ProjectWorkspaceLayout() {
           address="123 Main St, Denver, CO"
         >
           <SegmentedControl
-            options={['Plans', 'Activity']}
-            selectedIndex={activeView === 'plans' ? 0 : 1}
-            onIndexChange={(index) => setActiveView(index === 0 ? 'plans' : 'activity')}
+            options={['Plans', 'Media', 'Activity']}
+            selectedIndex={activeView === 'plans' ? 0 : activeView === 'media' ? 1 : 2}
+            onIndexChange={(index) => {
+              if (index === 0) setActiveView('plans')
+              else if (index === 1) setActiveView('media')
+              else setActiveView('activity')
+            }}
           />
         </WorkspaceHeader>
 
-        {activeView === 'plans' ? <PlansScreen /> : <ActivityScreen />}
+        {activeView === 'plans' && <PlansScreen />}
+        {activeView === 'media' && <MediaScreen />}
+        {activeView === 'activity' && <ActivityScreen />}
 
         <WorkspaceFAB 
           onPress={handleFABPress} 
-          icon={activeView === 'plans' ? Plus : Camera}
+          icon={getFABIcon()}
         />
       </View>
     </>

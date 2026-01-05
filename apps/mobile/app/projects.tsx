@@ -12,9 +12,10 @@ import {
   EmptyDescription,
   EmptyContent,
 } from '@/components/ui/empty'
+import { WorkspaceFAB } from '@/components/workspace/camera-fab'
 import { useProject } from '@/context/project-context'
 import { Stack, useRouter } from 'expo-router'
-import { Bell, User, FolderOpen, ChevronRight, MapPin } from 'lucide-react-native'
+import { Bell, User, FolderOpen, MapPin, Plus } from 'lucide-react-native'
 import * as React from 'react'
 import { View, ScrollView, Pressable, FlatList } from 'react-native'
 import { cn } from '@/lib/utils'
@@ -73,15 +74,15 @@ const FilterChip = React.memo(function FilterChip({ label, isActive, onPress }: 
     <Pressable
       onPress={onPress}
       className={cn(
-        'mr-2 items-center justify-center rounded-full px-5',
-        isActive ? 'bg-foreground' : 'border-border border bg-transparent'
+        'mr-2 items-center justify-center rounded-full px-4',
+        isActive ? 'bg-foreground' : 'bg-muted/20'
       )}
-      style={{ height: 48, borderRadius: 24 }}
+      style={{ height: 32, borderRadius: 16 }}
       accessibilityRole="button"
       accessibilityLabel={`Filter by ${label}`}>
       <Text
         className={cn(
-          'text-sm font-medium',
+          'text-xs font-medium',
           isActive ? 'text-background' : 'text-muted-foreground'
         )}>
         {label}
@@ -102,29 +103,46 @@ const ProjectListItem = React.memo(function ProjectListItem({
   onPress,
   isLast = false,
 }: ProjectListItemProps) {
+  // Mock activity data - in real app, this would come from project stats
+  const todayActivity = project.id === '1' ? { photos: 12, issues: 1 } : null
+
   return (
     <>
       <Pressable
         onPress={() => onPress(project)}
-        className="active:bg-muted/50 flex-row items-center px-4 py-4"
-        style={{ minHeight: 64 }}>
-        <View className="flex-1">
-          <Text className="text-foreground text-base font-medium">{project.name}</Text>
-          {project.address ? (
-            <View className="mt-1 flex-row items-center">
-              <Icon as={MapPin} className="text-muted-foreground mr-1 size-3" />
-              <Text className="text-muted-foreground text-sm">{project.address}</Text>
-            </View>
-          ) : (
-            <Text className="text-muted-foreground mt-0.5 text-sm">
-              {project.sheetCount} sheets • {project.memberCount} members
+        className="active:bg-muted/50 px-4 py-5"
+        style={{ minHeight: 80 }}>
+        <View className="flex-row items-start justify-between">
+          <View className="flex-1 pr-4">
+            <Text className="text-foreground text-lg leading-tight font-semibold">
+              {project.name}
             </Text>
-          )}
-        </View>
-        <View className="flex-row items-center gap-2">
+            <Text className="text-muted-foreground mt-1 text-sm">
+              {project.sheetCount} sheets • {project.photoCount} photos • {project.memberCount}{' '}
+              members
+            </Text>
+            {project.address && (
+              <View className="mt-1 flex-row items-center">
+                <Icon as={MapPin} className="text-muted-foreground mr-1 size-3" />
+                <Text className="text-muted-foreground text-xs">{project.address}</Text>
+              </View>
+            )}
+          </View>
           <Text className="text-muted-foreground text-xs">{project.updatedAt}</Text>
-          <Icon as={ChevronRight} className="text-muted-foreground size-5" />
         </View>
+
+        {/* Activity Indicator */}
+        {todayActivity && (
+          <View className="border-border/50 mt-4 flex-row items-center border-t pt-4">
+            <View className="mr-2 size-2 rounded-full bg-blue-500" />
+            <Text className="text-foreground/80 text-xs font-medium">
+              Today: {todayActivity.photos} photos
+              {todayActivity.issues > 0
+                ? `, ${todayActivity.issues} issue${todayActivity.issues > 1 ? 's' : ''} flagged`
+                : ''}
+            </Text>
+          </View>
+        )}
       </Pressable>
       {!isLast && <Separator className="ml-4" />}
     </>
@@ -168,7 +186,8 @@ export default function ProjectsScreen() {
           headerLeft: () => (
             <Pressable
               onPress={handleNotifications}
-              className="ml-2 h-12 w-12 items-center justify-center"
+              className="items-center justify-center"
+              style={{ width: 48, height: 48 }}
               accessibilityRole="button"
               accessibilityLabel="Notifications">
               <Icon as={Bell} className="text-foreground size-6" />
@@ -178,7 +197,8 @@ export default function ProjectsScreen() {
           headerRight: () => (
             <Pressable
               onPress={handleProfile}
-              className="mr-2 h-12 w-12 items-center justify-center"
+              className="items-center justify-center"
+              style={{ width: 48, height: 48 }}
               accessibilityRole="button"
               accessibilityLabel="Profile">
               <Icon as={User} className="text-foreground size-6" />
@@ -188,35 +208,36 @@ export default function ProjectsScreen() {
       />
 
       <View className="bg-background flex-1">
-        {/* Horizontal Filter Chips - Wealthsimple Pattern */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          className="flex-grow-0"
-          contentContainerClassName="px-4 py-3">
-          <FilterChip
-            label="All"
-            isActive={activeFilter === 'all'}
-            onPress={() => setActiveFilter('all')}
-          />
-          <FilterChip
-            label="Active"
-            isActive={activeFilter === 'active'}
-            onPress={() => setActiveFilter('active')}
-          />
-          <FilterChip
-            label="Completed"
-            isActive={activeFilter === 'completed'}
-            onPress={() => setActiveFilter('completed')}
-          />
-          <FilterChip
-            label="Archived"
-            isActive={activeFilter === 'archived'}
-            onPress={() => setActiveFilter('archived')}
-          />
-        </ScrollView>
+        {/* Horizontal Filter Chips - Sleek Design */}
+        <View className="px-4 py-2">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerClassName="gap-2">
+            <FilterChip
+              label="All"
+              isActive={activeFilter === 'all'}
+              onPress={() => setActiveFilter('all')}
+            />
+            <FilterChip
+              label="Active"
+              isActive={activeFilter === 'active'}
+              onPress={() => setActiveFilter('active')}
+            />
+            <FilterChip
+              label="Completed"
+              isActive={activeFilter === 'completed'}
+              onPress={() => setActiveFilter('completed')}
+            />
+            <FilterChip
+              label="Archived"
+              isActive={activeFilter === 'archived'}
+              onPress={() => setActiveFilter('archived')}
+            />
+          </ScrollView>
+        </View>
 
-        {/* Project List - Wealthsimple style with separators */}
+        {/* Project List - Clean design matching other screens */}
         {filteredProjects.length > 0 ? (
           <FlatList
             data={filteredProjects}
@@ -258,6 +279,8 @@ export default function ProjectsScreen() {
           setCreateModalVisible(false)
         }}
       />
+
+      <WorkspaceFAB onPress={() => setCreateModalVisible(true)} icon={Plus} />
     </>
   )
 }
