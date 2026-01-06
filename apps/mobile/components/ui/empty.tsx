@@ -13,7 +13,7 @@ function Empty({ className, children, ...props }: ViewProps) {
   return (
     <View
       className={cn(
-        'flex-1 items-center justify-center gap-6 rounded-lg border border-dashed border-border p-6',
+        'flex-1 items-center justify-center gap-6 rounded-lg border border-dashed border-border/30 p-6',
         className
       )}
       {...props}

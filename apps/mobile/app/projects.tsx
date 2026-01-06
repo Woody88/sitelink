@@ -75,7 +75,7 @@ const FilterChip = React.memo(function FilterChip({ label, isActive, onPress }: 
       onPress={onPress}
       className={cn(
         'mr-2 items-center justify-center rounded-full px-4',
-        isActive ? 'bg-foreground' : 'bg-muted/20'
+        isActive ? 'bg-foreground' : 'bg-muted'
       )}
       style={{ height: 32, borderRadius: 16 }}
       accessibilityRole="button"
@@ -180,14 +180,18 @@ export default function ProjectsScreen() {
     <>
       <Stack.Screen
         options={{
-          title: 'Projects',
+          headerTitle: () => <Text className="text-foreground text-lg font-bold">Projects</Text>,
           headerShown: true,
+          headerShadowVisible: false,
+          headerStyle: {
+            backgroundColor: '#121212',
+          },
           headerTitleAlign: 'center',
           headerLeft: () => (
             <Pressable
               onPress={handleNotifications}
-              className="items-center justify-center"
-              style={{ width: 48, height: 48 }}
+              className="-ml-2 items-center justify-center"
+              style={{ width: 44, height: 44 }}
               accessibilityRole="button"
               accessibilityLabel="Notifications">
               <Icon as={Bell} className="text-foreground size-6" />
@@ -197,8 +201,8 @@ export default function ProjectsScreen() {
           headerRight: () => (
             <Pressable
               onPress={handleProfile}
-              className="items-center justify-center"
-              style={{ width: 48, height: 48 }}
+              className="-mr-2 items-center justify-center"
+              style={{ width: 44, height: 44 }}
               accessibilityRole="button"
               accessibilityLabel="Profile">
               <Icon as={User} className="text-foreground size-6" />
@@ -263,8 +267,8 @@ export default function ProjectsScreen() {
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
-              <Button onPress={() => setCreateModalVisible(true)}>
-                <Text className="text-primary-foreground font-medium">Create Project</Text>
+              <Button onPress={() => setCreateModalVisible(true)} className="h-12 rounded-xl px-8">
+                <Text className="text-primary-foreground text-base font-bold">Create Project</Text>
               </Button>
             </EmptyContent>
           </Empty>

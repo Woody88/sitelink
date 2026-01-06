@@ -24,16 +24,16 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
 
   return (
     <View
-      className="bg-background px-2"
+      className="bg-background"
       style={{ paddingTop: insets.top }}
     >
       {/* Row 1: Navigation & Info */}
-      <View className="flex-row items-start justify-between min-h-[56px] py-2">
+      <View className="flex-row items-center justify-between min-h-[56px] px-0.5">
         {/* Back Button - Icon Only */}
         <Pressable
           onPress={onBack}
-          className="items-center justify-center"
-          style={{ width: 48, height: 48 }}
+          className="items-center justify-center -ml-1"
+          style={{ width: 44, height: 44 }}
           role="button"
           accessibilityLabel="Back"
         >
@@ -41,12 +41,12 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
         </Pressable>
 
         {/* Center: Project Info (Wrapped & Centered) */}
-        <View className="flex-1 items-center justify-center px-2 pt-1">
-          <Text className="text-foreground text-base font-semibold text-center leading-tight">
+        <View className="flex-1 items-center justify-center px-2">
+          <Text className="text-foreground text-lg font-bold text-center leading-tight">
             {projectName}
           </Text>
           {address && (
-            <Text className="text-muted-foreground text-xs text-center mt-0.5 leading-snug">
+            <Text className="text-muted-foreground text-[11px] text-center mt-0.5 leading-snug">
               {address}
             </Text>
           )}
@@ -55,8 +55,8 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
         {/* Menu Button */}
         <Pressable
           onPress={onMenu}
-          className="items-center justify-center"
-          style={{ width: 48, height: 48 }}
+          className="items-center justify-center -mr-1"
+          style={{ width: 44, height: 44 }}
           role="button"
           accessibilityLabel="Menu"
         >

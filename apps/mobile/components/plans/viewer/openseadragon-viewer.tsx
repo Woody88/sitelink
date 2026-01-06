@@ -48,7 +48,12 @@ export default function OpenSeadragonViewer({
         visibilityRatio: 1.0,
         constrainDuringPan: true,
         autoResize: true,
-      })
+        // Centering and Zoom constraints
+        panHorizontal: true,
+        panVertical: true,
+        visibilityRatio: 1.0, // Image can't leave the viewer
+        constrainDuringPan: true,
+      } as any)
 
       viewerRef.current = viewer
 
@@ -84,7 +89,7 @@ export default function OpenSeadragonViewer({
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #000;
+            background-color: #121212;
             touch-action: none;
           }
           *:focus {
@@ -104,7 +109,7 @@ export default function OpenSeadragonViewer({
         style={{
           width: '100vw',
           height: '100vh',
-          backgroundColor: '#000',
+          backgroundColor: '#121212',
           outline: 'none',
           WebkitTapHighlightColor: 'transparent',
           WebkitUserSelect: 'none',

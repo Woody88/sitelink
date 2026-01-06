@@ -1,8 +1,10 @@
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { X } from 'lucide-react-native';
 import * as React from 'react';
-import { Modal, TextInput, View } from 'react-native';
+import { Modal, View } from 'react-native';
 
 interface CreateProjectModalProps {
   isVisible: boolean;
@@ -31,7 +33,7 @@ export function CreateProjectModal({ isVisible, onClose, onSubmit }: CreateProje
     >
       <View className="flex-1 bg-background">
         <View className="flex-row items-center justify-between px-6 py-4 border-b border-border">
-            <Text variant="h3">New Project</Text>
+            <Text className="text-lg font-bold">New Project</Text>
             <Button variant="ghost" size="icon" onPress={onClose}>
                 <X size={24} className="text-foreground" />
             </Button>
@@ -39,11 +41,11 @@ export function CreateProjectModal({ isVisible, onClose, onSubmit }: CreateProje
 
         <View className="p-6 gap-6">
             <View className="gap-2">
-                <Text className="font-medium">Project Name</Text>
-                <TextInput
-                    className="h-12 rounded-xl border border-input bg-background px-3 text-foreground"
+                <Label nativeID="projectName">Project Name</Label>
+                <Input
+                    nativeID="projectName"
+                    className="h-12 rounded-xl"
                     placeholder="e.g. Riverside Apartments"
-                    placeholderTextColor="hsl(var(--muted-foreground))"
                     value={name}
                     onChangeText={setName}
                     autoFocus
@@ -51,11 +53,11 @@ export function CreateProjectModal({ isVisible, onClose, onSubmit }: CreateProje
             </View>
 
             <View className="gap-2">
-                <Text className="font-medium">Address (Optional)</Text>
-                <TextInput
-                    className="h-12 rounded-xl border border-input bg-background px-3 text-foreground"
+                <Label nativeID="address">Address (Optional)</Label>
+                <Input
+                    nativeID="address"
+                    className="h-12 rounded-xl"
                     placeholder="e.g. 123 Main St, Denver, CO"
-                    placeholderTextColor="hsl(var(--muted-foreground))"
                     value={address}
                     onChangeText={setAddress}
                 />
@@ -65,9 +67,9 @@ export function CreateProjectModal({ isVisible, onClose, onSubmit }: CreateProje
                 <Button 
                     onPress={handleSubmit} 
                     disabled={!name.trim()}
-                    className="w-full"
+                    className="w-full h-12 rounded-xl"
                 >
-                    <Text>Create Project</Text>
+                    <Text className="text-base font-semibold">Create Project</Text>
                 </Button>
             </View>
         </View>

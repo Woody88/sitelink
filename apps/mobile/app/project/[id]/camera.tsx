@@ -160,7 +160,7 @@ export default function CameraScreen() {
   }
 
   return (
-    <View className="flex-1 bg-black" style={styles.container}>
+    <View className="flex-1 bg-background" style={styles.container}>
       {screenState === 'camera' && (
         <>
           <CameraViewfinder

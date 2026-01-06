@@ -73,21 +73,22 @@ function SegmentedControl({
   return (
     <View
       className={cn(
-        'bg-muted/50 dark:bg-muted/20 flex-row rounded-full p-1 self-center',
+        'bg-muted/80 dark:bg-muted/40 border border-border/10 flex-row rounded-full p-1 self-center',
         className
       )}
       style={{ height: 40 }}>
       {/* Animated background pill - only render when layouts are measured */}
       {allLayoutsMeasured && (
         <Animated.View
-          className="bg-background absolute rounded-full shadow-sm"
+          className="bg-muted-foreground/20 dark:bg-foreground/10 absolute rounded-full"
           style={[
             {
               height: 32,
               top: 3,
+              borderWidth: 1,
+              borderColor: 'rgba(255,255,255,0.05)',
             },
             animatedStyle,
-            styles.pillShadow
           ]}
         />
       )}

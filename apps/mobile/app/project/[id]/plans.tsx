@@ -92,7 +92,7 @@ export default function PlansScreen() {
               placeholder="Search plans"
               value={searchQuery}
               onChangeText={setSearchQuery}
-              className="pl-10 h-10 bg-muted/20 border-transparent rounded-xl"
+              className="pl-10 h-10 bg-muted/40 border-transparent rounded-xl"
             />
             {/* Magnifying glass/QR scanner placeholder */}
             <Pressable 

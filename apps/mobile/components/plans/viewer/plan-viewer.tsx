@@ -190,8 +190,8 @@ export function PlanViewer({
   }))
 
   return (
-    <View className="flex-1 bg-black">
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
+    <View className="flex-1 bg-background">
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       {/* OpenSeadragon Viewer - only render when image is loaded */}
       <View className="flex-1">
