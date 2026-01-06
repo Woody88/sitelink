@@ -122,14 +122,32 @@ pmtiles convert plan.mbtiles plan.pmtiles
 rm -rf tmp_tiles plan.mbtiles
 ```
 
-### Method 2: From PDF
+### Method 2: From PDF (One-Pass)
 
 ```bash
-# 1. Convert PDF to high-resolution image
-pdftoppm -jpeg -r 300 sample-plan.pdf plan
+# 1. Install VIPS (if not already installed)
+brew install vips  # macOS
+# OR
+apt-get install libvips-tools  # Ubuntu/Debian
 
-# 2. Follow steps 2-7 from Method 1 using plan-1.jpg
+# 2. Convert PDF to DZI tiles at 300 DPI (one pass)
+vips dzsave 'sample-plan.pdf[dpi=300]' tmp_tiles \
+  --layout google \
+  --suffix ".webp[Q=75]"
+
+# 3. Pack tiles into MBTiles (with ZYX scheme)
+../mbutil_zyx/mb-util-zyx tmp_tiles/ plan.mbtiles \
+  --scheme=zyx \
+  --image_format=webp
+
+# 4. Convert to PMTiles
+pmtiles convert plan.mbtiles plan.pmtiles
+
+# 5. Clean up intermediate files
+rm -rf tmp_tiles plan.mbtiles
 ```
+
+**Note:** The `[dpi=300]` syntax tells VIPS to render the PDF at 300 DPI during load. This is more efficient than creating an intermediate PNG file.
 
 ### Tile Format Options
 

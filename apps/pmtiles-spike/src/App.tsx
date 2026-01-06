@@ -75,20 +75,19 @@ export default function App() {
 
           <section className="instructions">
             <h3>How to Generate PMTiles</h3>
+            <p style={{ fontSize: "0.875rem", marginBottom: "1rem" }}>
+              <strong>From PDF (one-pass):</strong>
+            </p>
             <ol>
               <li>
                 Install VIPS:
                 <pre><code>brew install vips</code></pre>
               </li>
               <li>
-                Convert image to tiles:
-                <pre><code>{`vips dzsave sample-plan.jpg tmp_tiles \\
+                Convert PDF to tiles at 300 DPI:
+                <pre><code>{`vips dzsave 'plan.pdf[dpi=300]' tmp_tiles \\
   --layout google \\
   --suffix ".webp[Q=75]"`}</code></pre>
-              </li>
-              <li>
-                Install mbutil-zyx:
-                <pre><code>pip install mbutil-zyx</code></pre>
               </li>
               <li>
                 Pack to MBTiles:
@@ -97,14 +96,13 @@ export default function App() {
   --image_format=webp`}</code></pre>
               </li>
               <li>
-                Install pmtiles CLI:
-                <pre><code>npm install -g pmtiles</code></pre>
-              </li>
-              <li>
                 Convert to PMTiles:
                 <pre><code>pmtiles convert plan.mbtiles plan.pmtiles</code></pre>
               </li>
             </ol>
+            <p style={{ fontSize: "0.75rem", color: "#888", marginTop: "0.5rem" }}>
+              For images, replace step 2 with: <code style={{ fontSize: "0.75rem" }}>vips dzsave image.jpg tmp_tiles ...</code>
+            </p>
           </section>
 
           <section>
