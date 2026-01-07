@@ -19,9 +19,6 @@ export default function ProfileScreen() {
           headerTitle: () => <Text className="text-foreground text-lg font-bold">Profile</Text>,
           headerShown: true,
           headerShadowVisible: false,
-          headerStyle: {
-            backgroundColor: '#121212',
-          },
           headerTitleAlign: 'center',
         }} 
       />

@@ -15,10 +15,11 @@ import {
 import { WorkspaceFAB } from '@/components/workspace/camera-fab'
 import { useProject } from '@/context/project-context'
 import { Stack, useRouter } from 'expo-router'
-import { Bell, User, FolderOpen, MapPin, Plus } from 'lucide-react-native'
+import { Bell, User, FolderOpen, MapPin, Plus, Moon, Sun } from 'lucide-react-native'
 import * as React from 'react'
-import { View, ScrollView, Pressable, FlatList } from 'react-native'
+import { View, ScrollView, Pressable, FlatList, Appearance } from 'react-native'
 import { cn } from '@/lib/utils'
+import { useUniwind } from 'uniwind'
 
 // Mock data
 const MOCK_PROJECTS: Project[] = [
@@ -152,8 +153,13 @@ const ProjectListItem = React.memo(function ProjectListItem({
 export default function ProjectsScreen() {
   const router = useRouter()
   const { setActiveProjectId } = useProject()
+  const { theme } = useUniwind()
   const [createModalVisible, setCreateModalVisible] = React.useState(false)
   const [activeFilter, setActiveFilter] = React.useState('all')
+
+  const toggleTheme = React.useCallback(() => {
+    Appearance.setColorScheme(theme === 'dark' ? 'light' : 'dark')
+  }, [theme])
 
   const filteredProjects = React.useMemo(() => {
     if (activeFilter === 'all') return MOCK_PROJECTS
@@ -183,9 +189,6 @@ export default function ProjectsScreen() {
           headerTitle: () => <Text className="text-foreground text-lg font-bold">Projects</Text>,
           headerShown: true,
           headerShadowVisible: false,
-          headerStyle: {
-            backgroundColor: '#121212',
-          },
           headerTitleAlign: 'center',
           headerLeft: () => (
             <Pressable
@@ -199,14 +202,24 @@ export default function ProjectsScreen() {
             </Pressable>
           ),
           headerRight: () => (
-            <Pressable
-              onPress={handleProfile}
-              className="-mr-2 items-center justify-center"
-              style={{ width: 44, height: 44 }}
-              accessibilityRole="button"
-              accessibilityLabel="Profile">
-              <Icon as={User} className="text-foreground size-6" />
-            </Pressable>
+            <View className="flex-row items-center pr-1">
+              <Pressable
+                onPress={handleProfile}
+                className="items-center justify-center"
+                style={{ width: 44, height: 44 }}
+                accessibilityRole="button"
+                accessibilityLabel="Profile">
+                <Icon as={User} className="text-foreground size-6" />
+              </Pressable>
+              <Pressable
+                onPress={toggleTheme}
+                className="-mr-2 items-center justify-center"
+                style={{ width: 44, height: 44 }}
+                accessibilityRole="button"
+                accessibilityLabel="Toggle theme">
+                <Icon as={theme === 'dark' ? Sun : Moon} className="text-foreground size-6" />
+              </Pressable>
+            </View>
           ),
         }}
       />

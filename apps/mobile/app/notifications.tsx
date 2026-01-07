@@ -65,9 +65,6 @@ export default function NotificationsScreen() {
           headerTitle: () => <Text className="text-foreground text-lg font-bold">Notifications</Text>,
           headerShown: true,
           headerShadowVisible: false,
-          headerStyle: {
-            backgroundColor: '#121212',
-          },
           headerTitleAlign: 'center',
         }} 
       />
