@@ -5,22 +5,19 @@ import '@/global.css'
 import { NAV_THEME } from '@/lib/theme'
 import { ThemeProvider } from '@react-navigation/native'
 import { PortalHost } from '@rn-primitives/portal'
-import { Stack } from 'expo-router'
+import { Redirect, Stack, useSegments } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { useUniwind } from 'uniwind'
 import * as SplashScreen from 'expo-splash-screen'
 import React, { useEffect, useState, useCallback } from 'react'
-import { makePersistedAdapter } from '@livestore/adapter-expo'
-import { LiveStoreProvider } from '@livestore/react'
-import { makeCfSync } from '@livestore/sync-cf'
-import { View, unstable_batchedUpdates as batchUpdates, ScrollView , Platform } from 'react-native'
+import { StoreRegistryProvider } from '@livestore/react'
+import { View, Platform } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Text } from '@/components/ui/text'
 import { Button } from '@/components/ui/button'
-import { schema } from '@sitelink/domain'
-import { useAuth } from '@/hooks/useAuth'
-import { getCookie } from '@/lib/auth'
+import { authClient } from '@/lib/auth'
 import { ProjectProvider } from '@/context/project-context'
+import { getStoreRegistry } from '@/lib/store-config'
 import {
   isBiometricEnabled,
   authenticateWithBiometric,
@@ -32,9 +29,6 @@ import {
 export { ErrorBoundary } from 'expo-router'
 
 SplashScreen.preventAutoHideAsync()
-
-const storeId = process.env.EXPO_PUBLIC_LIVESTORE_STORE_ID
-const syncUrl = process.env.EXPO_PUBLIC_LIVESTORE_SYNC_URL
 
 /**
  * Auth flow states - the layout renders different content based on this
@@ -48,212 +42,45 @@ type AuthFlowState =
 
 export default function RootLayout() {
   const { theme } = useUniwind()
+  const { data, isPending } = authClient.useSession()
   const [, rerender] = React.useState({})
-  const { isAuthenticated, isLoading } = useAuth()
+  const segments = useSegments()
 
-  const [flowState, setFlowState] = useState<AuthFlowState>('loading')
-  const [syncPayload, setSyncPayload] = useState<{ authToken: string } | undefined>(undefined)
+  const inAuthGroup = segments[0] === '(auth)'
 
-  // Create adapter - only enable sync when fully authenticated
-  const adapter = React.useMemo(
-    () =>
-      makePersistedAdapter({
-        sync: {
-          backend:
-            syncUrl && flowState === 'authenticated' ? makeCfSync({ url: syncUrl }) : undefined,
-        },
-      }),
-    [flowState]
-  )
-
-  // Update sync payload when auth changes
-  useEffect(() => {
-    if (isAuthenticated) {
-      const cookie = getCookie()
-      if (cookie) {
-        const match = cookie.match(/better-auth\.session_token=([^;]+)/)
-        const token = match ? match[1] : null
-        setSyncPayload(token ? { authToken: token } : undefined)
-      }
-    } else {
-      setSyncPayload(undefined)
-    }
-  }, [isAuthenticated])
-
-  // Determine flow state based on auth status
-  useEffect(() => {
-    async function determineFlowState() {
-      console.log(
-        '[LAYOUT] determineFlowState - isLoading:',
-        isLoading,
-        'isAuthenticated:',
-        isAuthenticated
-      )
-
-      if (isLoading) {
-        return // Keep current state while loading
-      }
-
-      if (!isAuthenticated) {
-        console.log('[LAYOUT] → unauthenticated')
-        setFlowState('unauthenticated')
-        SplashScreen.hideAsync()
-        return
-      }
-
-      // User is authenticated - check biometric status
-      const setupComplete = await isBiometricSetupComplete()
-      console.log('[LAYOUT] setupComplete:', setupComplete)
-
-      if (!setupComplete) {
-        // New user - needs to complete biometric setup
-        console.log('[LAYOUT] → biometric-setup')
-        setFlowState('biometric-setup')
-        SplashScreen.hideAsync()
-        return
-      }
-
-      // Returning user - check if biometric is enabled
-      const enabled = await isBiometricEnabled()
-      console.log('[LAYOUT] biometric enabled:', enabled)
-
-      if (enabled) {
-        // Need to verify biometric
-        console.log('[LAYOUT] → biometric-prompt')
-        setFlowState('biometric-prompt')
-        SplashScreen.hideAsync()
-
-        const success = await authenticateWithBiometric()
-        if (success) {
-          console.log('[LAYOUT] Biometric success → authenticated')
-          setFlowState('authenticated')
-        } else {
-          // Failed biometric - force re-login
-          console.log('[LAYOUT] Biometric failed → unauthenticated')
-          setFlowState('unauthenticated')
-        }
-        return
-      }
-
-      // Biometric not enabled - go straight to app
-      console.log('[LAYOUT] → authenticated')
-      setFlowState('authenticated')
+  React.useEffect(() => {
+    if (!isPending) {
       SplashScreen.hideAsync()
     }
+  }, [isPending])
 
-    determineFlowState()
-  }, [isLoading, isAuthenticated])
-
-  // Callback for biometric setup completion
-  const handleBiometricSetupComplete = useCallback(() => {
-    console.log('[LAYOUT] Biometric setup complete → authenticated')
-    setFlowState('authenticated')
-  }, [])
-
-  // Render based on flow state
-  if (flowState === 'loading' || isLoading) {
-    return (
-      <ThemeProvider value={NAV_THEME[theme ?? 'light']}>
-        <View className="bg-background flex-1 items-center justify-center">
-          <Text>Loading...</Text>
-        </View>
-        <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
-      </ThemeProvider>
-    )
+  if (isPending && !data?.session) {
+    return <></>
   }
 
-  if (flowState === 'unauthenticated') {
+  if (!data?.session) {
+    if (!inAuthGroup) return <Redirect href={'/(auth)/login'} />
+
     return (
       <ThemeProvider value={NAV_THEME[theme ?? 'light']}>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(auth)" />
-        </Stack>
+        <Stack screenOptions={{ headerShown: false }} />
         <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
         <PortalHost />
       </ThemeProvider>
     )
   }
 
-  if (flowState === 'biometric-setup') {
-    return (
-      <ThemeProvider value={NAV_THEME[theme ?? 'light']}>
-        <BiometricSetupScreen onComplete={handleBiometricSetupComplete} />
-        <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
-        <PortalHost />
-      </ThemeProvider>
-    )
-  }
-
-  if (flowState === 'biometric-prompt') {
-    return (
-      <ThemeProvider value={NAV_THEME[theme ?? 'light']}>
-        <View className="bg-background flex-1 items-center justify-center">
-          <Text variant="h3">Verifying...</Text>
-          <Text variant="muted" className="mt-2">
-            Please authenticate to continue
-          </Text>
-        </View>
-        <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
-      </ThemeProvider>
-    )
-  }
-
-  // flowState === 'authenticated' - show main app with LiveStore
+  // User is authenticated - provide StoreRegistry for data access
   return (
-    <ThemeProvider value={NAV_THEME[theme ?? 'light']}>
-      <LiveStoreProvider
-        schema={schema}
-        adapter={adapter}
-        storeId={storeId}
-        syncPayload={syncPayload}
-        renderLoading={(_) => (
-          <SafeAreaView className="bg-background flex-1 items-center justify-center p-6">
-            <Text variant="h3" className="mb-2">
-              Loading LiveStore
-            </Text>
-            <Text variant="muted">{_.stage}</Text>
-          </SafeAreaView>
-        )}
-        renderError={(error: any) => (
-          <SafeAreaView className="bg-background flex-1 items-center justify-center p-6">
-            <ScrollView
-              contentContainerClassName="flex-1 items-center justify-center gap-4"
-              showsVerticalScrollIndicator={false}>
-              <Text variant="h2" className="text-destructive text-center">
-                LiveStore Error
-              </Text>
-              <Text variant="muted" className="text-center">
-                {error.toString()}
-              </Text>
-              <Button onPress={() => rerender({})} className="mt-4">
-                <Text>Reload App</Text>
-              </Button>
-            </ScrollView>
-          </SafeAreaView>
-        )}
-        renderShutdown={() => (
-          <SafeAreaView className="bg-background flex-1 items-center justify-center p-6">
-            <View className="items-center gap-4">
-              <Text variant="h2" className="text-center">
-                LiveStore Shutdown
-              </Text>
-              <Text variant="muted" className="text-center">
-                The data store has been shut down. Please reload the app.
-              </Text>
-              <Button onPress={() => rerender({})}>
-                <Text>Reload App</Text>
-              </Button>
-            </View>
-          </SafeAreaView>
-        )}
-        batchUpdates={batchUpdates}>
+    <StoreRegistryProvider storeRegistry={getStoreRegistry()}>
+      <ThemeProvider value={NAV_THEME[theme ?? 'light']}>
         <ProjectProvider>
           <Stack screenOptions={{ headerShown: false }} />
         </ProjectProvider>
-      </LiveStoreProvider>
-      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
-      <PortalHost />
-    </ThemeProvider>
+        <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+        <PortalHost />
+      </ThemeProvider>
+    </StoreRegistryProvider>
   )
 }
 

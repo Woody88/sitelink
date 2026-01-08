@@ -94,6 +94,7 @@
     "@types/react": "~19.1.10",
     "babel-plugin-transform-vite-meta-env": "^1.0.3",
     "babel-preset-expo": "^54.0.9",
+    "drizzle-kit": "^0.31.8",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~10.0.0",
     "eslint-plugin-react-compiler": "^19.1.0-rc.2",
