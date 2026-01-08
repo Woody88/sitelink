@@ -1,6 +1,5 @@
 // apps/mobile/hooks/useNetworkStatus.ts
 import { useEffect, useState } from 'react'
-import { useQuery } from '@livestore/react'
 
 /**
  * Hook to monitor LiveStore network connectivity status.

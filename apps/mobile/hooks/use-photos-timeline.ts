@@ -1,8 +1,10 @@
-import { useQuery } from '@livestore/react'
+import { useStore } from '@livestore/react'
 import { tables } from '@sitelink/domain'
 import { queryDb } from '@livestore/livestore'
 import { useMemo } from 'react'
 import { format, isToday, isYesterday } from 'date-fns'
+import { createAppStoreOptions } from '@/lib/store-config'
+import { authClient } from '@/lib/auth'
 
 export interface PhotoWithMarker {
   id: string
@@ -28,8 +30,20 @@ export interface CalloutGroup {
 }
 
 export function usePhotosTimeline(projectId: string) {
-  // Use queryDb to finalize the LiveQueryDef
-  const photos = useQuery(
+  // Get session token for store
+  const { data } = authClient.useSession()
+  const sessionToken = data?.session?.token
+
+  // Get or create store from registry
+  const storeOptions = useMemo(
+    () => sessionToken ? createAppStoreOptions(sessionToken) : null,
+    [sessionToken]
+  )
+
+  const store = useStore(storeOptions!)
+
+  // Use store.useQuery() to query with the store context
+  const photos = store.useQuery(
     queryDb(
       tables.photos
         .where({ projectId })
@@ -37,7 +51,7 @@ export function usePhotosTimeline(projectId: string) {
     )
   )
 
-  const markers = useQuery(queryDb(tables.markers))
+  const markers = store.useQuery(queryDb(tables.markers))
 
   return useMemo(() => {
     // Ensure we have an array to work with
