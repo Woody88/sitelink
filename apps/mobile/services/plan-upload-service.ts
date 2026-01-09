@@ -1,6 +1,6 @@
 import * as FileSystem from 'expo-file-system'
 import { State } from '@livestore/livestore'
-import { events } from '@sitelink/domain/events'
+import { events } from '@sitelink/domain'
 import type { ProcessedPage } from '@/components/pdf/types'
 import {
   ensurePlanUploadDirectoryExists,
