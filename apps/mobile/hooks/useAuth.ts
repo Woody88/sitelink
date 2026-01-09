@@ -20,8 +20,8 @@ export function useAuth() {
     }
   }
 
-  async function handleSignUp(email: string, password: string, name: string) {
-    const result = await signUp({ email, password, name })
+  async function handleSignUp(email: string, password: string, name: string, organizationName?: string) {
+    const result = await signUp({ email, password, name, organizationName })
 
     if (result.data?.user) {
       // Clear any existing biometric settings so new user gets the setup screen

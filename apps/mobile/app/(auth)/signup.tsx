@@ -15,11 +15,12 @@ export default function SignUpScreen() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [organizationName, setOrganizationName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   async function handleSignUp() {
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !organizationName) {
       setError('Please fill in all fields')
       return
     }
@@ -32,7 +33,7 @@ export default function SignUpScreen() {
     setError(null)
     setLoading(true)
 
-    const result = await signUp(email, password, name)
+    const result = await signUp(email, password, name, organizationName)
     console.log('[SIGNUP] Result:', JSON.stringify(result, null, 2))
 
     if (result.success) {
@@ -111,6 +112,22 @@ export default function SignUpScreen() {
               secureTextEntry
               autoCapitalize="none"
               autoComplete="password-new"
+              editable={!loading}
+            />
+          </View>
+
+          <View className="gap-2">
+            <Label nativeID="organization-label">
+              <Text>Organization Name</Text>
+            </Label>
+            <Input
+              testID="organization-input"
+              nativeID="organization-input"
+              placeholder="Organization Name"
+              value={organizationName}
+              onChangeText={setOrganizationName}
+              autoCapitalize="words"
+              autoComplete="organization"
               editable={!loading}
             />
           </View>

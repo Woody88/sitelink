@@ -17,12 +17,20 @@ export const authClient = createAuthClient({
 })
 
 // Export convenience methods that wrap authClient methods
-export async function signUp(data: { email: string; password: string; name: string }) {
-  return await authClient.signUp.email({
+export async function signUp(data: { email: string; password: string; name: string; organizationName?: string }) {
+  const result = await authClient.signUp.email({
     email: data.email,
     password: data.password,
     name: data.name,
   })
+  
+  // TODO: Create organization after user signup
+  // if (result.data?.user && data.organizationName) {
+  //   // Create organization with organizationName
+  //   // This will be implemented when backend is ready
+  // }
+  
+  return result
 }
 
 export async function signIn(data: { email: string; password: string }) {

@@ -1,7 +1,7 @@
 import { memo } from 'react'
 import { View, Pressable } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { ArrowLeft, MoreVertical } from 'lucide-react-native'
+import { ArrowLeft, Settings } from 'lucide-react-native'
 import { Icon } from '@/components/ui/icon'
 import { Text } from '@/components/ui/text'
 
@@ -52,15 +52,15 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
           )}
         </View>
 
-        {/* Menu Button */}
+        {/* Settings Button */}
         <Pressable
           onPress={onMenu}
           className="items-center justify-center -mr-1"
           style={{ width: 44, height: 44 }}
           role="button"
-          accessibilityLabel="Menu"
+          accessibilityLabel="Settings"
         >
-          <Icon as={MoreVertical} className="size-5 text-foreground" />
+          <Icon as={Settings} className="size-5 text-foreground" />
         </Pressable>
       </View>
 

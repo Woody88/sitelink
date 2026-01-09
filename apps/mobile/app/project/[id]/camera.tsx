@@ -1,7 +1,8 @@
 import * as React from 'react'
 import { View, StyleSheet, Pressable } from 'react-native'
-import { useRouter } from 'expo-router'
+import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import * as FileSystem from 'expo-file-system'
 import { Text } from '@/components/ui/text'
 import { useCameraState } from '@/hooks/use-camera-state'
 import { useAudioRecorder } from '@/hooks/use-audio-recorder'
@@ -15,6 +16,7 @@ import { PhotoPreviewLayer } from '@/components/camera/photo-preview-layer'
 import { RecordingLayer } from '@/components/camera/recording-layer'
 import { detectTextInPhoto } from '@/utils/ocr'
 import { PlanSelector, Plan } from '@/components/plans/plan-selector'
+import { ensureProjectDirectoriesExist, getMediaPath } from '@/utils/file-paths'
 import { Modal } from 'react-native'
 
 // Configure route options for Expo Router
@@ -27,6 +29,7 @@ type CameraScreenState = 'camera' | 'preview' | 'recording'
 
 export default function CameraScreen() {
   const router = useRouter()
+  const params = useLocalSearchParams<{ id: string }>()
   const insets = useSafeAreaInsets()
   const [screenState, setScreenState] = React.useState<CameraScreenState>('camera')
   const [capturedPhotoUri, setCapturedPhotoUri] = React.useState<string | null>(null)
@@ -90,13 +93,55 @@ export default function CameraScreen() {
     setScreenState('camera')
   }, [])
 
-  const handleDone = React.useCallback(() => {
-    // TODO: Save photo to LiveStore with markerLabel and issue flag
-    setCapturedPhotoUri(null)
-    setOcrText(null)
-    setIsOcrLoading(false)
-    setScreenState('camera')
-  }, [])
+  const handleDone = React.useCallback(async () => {
+    if (!capturedPhotoUri) return
+
+    try {
+      // TODO: Get organizationId from user context or project data
+      const organizationId = 'temp-org-id' // TODO: Replace with actual organizationId
+      const projectId = params.id
+
+      // Ensure media directory exists
+      await ensureProjectDirectoriesExist(organizationId, projectId)
+      const mediaPath = getMediaPath(organizationId, projectId)
+
+      // Generate unique filename
+      const timestamp = Date.now()
+      const fileName = `photo_${timestamp}.jpg`
+      const destinationPath = `${mediaPath}/${fileName}`
+
+      // Copy photo to structured directory
+      await FileSystem.copyAsync({
+        from: capturedPhotoUri,
+        to: destinationPath,
+      })
+
+      console.log('[CAMERA] Photo saved to:', destinationPath)
+
+      // TODO: Save metadata to SQLite
+      // await savePhotoMetadata({
+      //   id: `photo-${timestamp}`,
+      //   projectId,
+      //   markerId: markerLabel ? extractMarkerId(markerLabel) : null,
+      //   localPath: destinationPath,
+      //   isIssue: camera.state.isIssueMode,
+      //   capturedAt: timestamp,
+      //   capturedBy: userId,
+      // })
+
+      setCapturedPhotoUri(null)
+      setOcrText(null)
+      setIsOcrLoading(false)
+      setScreenState('camera')
+    } catch (error) {
+      console.error('[CAMERA] Error saving photo:', error)
+      // Still reset state even on error
+      setCapturedPhotoUri(null)
+      setOcrText(null)
+      setIsOcrLoading(false)
+      setScreenState('camera')
+    }
+  }, [capturedPhotoUri, params.id])
 
   const handleAddVoice = React.useCallback(async () => {
     setScreenState('recording')
@@ -113,10 +158,48 @@ export default function CameraScreen() {
     setScreenState('preview')
   }, [audio])
 
-  const handleRecordingDone = React.useCallback(() => {
+  const handleRecordingDone = React.useCallback(async () => {
+    const recordingUri = audio.state.uri
+    
+    if (recordingUri) {
+      try {
+        // TODO: Get organizationId from user context or project data
+        const organizationId = 'temp-org-id' // TODO: Replace with actual organizationId
+        const projectId = params.id
+
+        // Ensure media directory exists
+        await ensureProjectDirectoriesExist(organizationId, projectId)
+        const mediaPath = getMediaPath(organizationId, projectId)
+
+        // Generate unique filename
+        const timestamp = Date.now()
+        const fileName = `voice_${timestamp}.m4a`
+        const destinationPath = `${mediaPath}/${fileName}`
+
+        // Copy voice recording to structured directory
+        await FileSystem.copyAsync({
+          from: recordingUri,
+          to: destinationPath,
+        })
+
+        console.log('[CAMERA] Voice recording saved to:', destinationPath)
+
+        // TODO: Save metadata to SQLite
+        // await saveVoiceNoteMetadata({
+        //   id: `voice-${timestamp}`,
+        //   photoId: currentPhotoId, // Link to photo if available
+        //   localPath: destinationPath,
+        //   durationSeconds: Math.floor(audio.state.duration),
+        //   transcription: audio.state.transcript,
+        // })
+      } catch (error) {
+        console.error('[CAMERA] Error saving voice recording:', error)
+      }
+    }
+
     audio.deleteRecording()
     setScreenState('preview')
-  }, [audio])
+  }, [audio, params.id])
 
   const handleLinkToPlan = React.useCallback(() => {
     setIsPlanSelectorVisible(true)

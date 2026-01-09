@@ -45,8 +45,6 @@ export default function OpenSeadragonViewer({
         // Basic configuration
         showNavigationControl: false,
         drawer: 'canvas', // Fix deprecation warning
-        visibilityRatio: 1.0,
-        constrainDuringPan: true,
         autoResize: true,
         // Centering and Zoom constraints
         panHorizontal: true,

@@ -5,7 +5,6 @@ import { Icon } from '@/components/ui/icon';
 import { Badge } from '@/components/ui/badge';
 import { Smartphone, Cloud, Box, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { cn } from '@/lib/utils';
 
 interface UploadPlanSheetProps {
   isVisible: boolean;
