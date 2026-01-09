@@ -287,16 +287,41 @@ export default function ProjectsScreen() {
         isVisible={createModalVisible}
         onClose={() => setCreateModalVisible(false)}
         onSubmit={async (data) => {
-          if (!userId || !organizationId || !store) {
-            console.error('[PROJECTS] Cannot create project: missing user, org, or store')
+          if (!userId || !store) {
+            console.error('[PROJECTS] Cannot create project: missing user or store')
             return
+          }
+
+          let targetOrgId = organizationId
+
+          // Auto-create organization if user doesn't have one yet
+          if (!targetOrgId) {
+            const newOrgId = crypto.randomUUID()
+            const userName = sessionData?.user?.name || 'User'
+            await store.commit(
+              events.organizationCreated({
+                id: newOrgId,
+                name: `${userName}'s Organization`,
+                ownerId: userId,
+              })
+            )
+            await store.commit(
+              events.memberAdded({
+                organizationId: newOrgId,
+                userId,
+                role: 'owner',
+                addedBy: userId,
+              })
+            )
+            targetOrgId = newOrgId
+            console.log('[PROJECTS] Auto-created organization:', newOrgId)
           }
 
           const projectId = crypto.randomUUID()
           await store.commit(
             events.projectCreated({
               id: projectId,
-              organizationId,
+              organizationId: targetOrgId,
               name: data.name,
               address: data.address || undefined,
               createdBy: userId,
