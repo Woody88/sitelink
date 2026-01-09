@@ -38,11 +38,11 @@ export function useMarkers(sheetId: string | null) {
   const sessionToken = data?.session?.token
 
   const storeOptions = useMemo(
-    () => sessionToken ? createAppStoreOptions(sessionToken) : null,
+    () => createAppStoreOptions(sessionToken),
     [sessionToken]
   )
 
-  const store = useStore(storeOptions!)
+  const store = useStore(storeOptions)
 
   const markers = store.useQuery(
     sheetId

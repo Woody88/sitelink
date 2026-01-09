@@ -22,11 +22,11 @@ export function useProjects() {
   const sessionToken = data?.session?.token
 
   const storeOptions = useMemo(
-    () => sessionToken ? createAppStoreOptions(sessionToken) : null,
+    () => createAppStoreOptions(sessionToken),
     [sessionToken]
   )
 
-  const store = useStore(storeOptions!)
+  const store = useStore(storeOptions)
 
   const projects = store.useQuery(
     queryDb(

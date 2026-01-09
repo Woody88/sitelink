@@ -26,11 +26,11 @@ export function usePlanUpload({ projectId, organizationId, uploadedBy }: UsePlan
   const sessionToken = data?.session?.token
 
   const storeOptions = useMemo(
-    () => sessionToken ? createAppStoreOptions(sessionToken) : null,
+    () => createAppStoreOptions(sessionToken),
     [sessionToken]
   )
 
-  const store = useStore(storeOptions!)
+  const store = useStore(storeOptions)
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null)
 
   const pickAndUploadPlan = useCallback(async () => {

@@ -28,9 +28,14 @@ export function getStoreRegistry(): StoreRegistry {
 
 /**
  * Create store options for the main app store
- * Call this function with the current session token to get properly configured store options
+ *
+ * Works in two modes:
+ * - With sessionToken: Syncs with backend using authentication
+ * - Without sessionToken: Works in local-only mode (no sync)
+ *
+ * When user authenticates, pass the new token and sync starts automatically
  */
-export function createAppStoreOptions(sessionToken: string) {
+export function createAppStoreOptions(sessionToken?: string | null) {
   if (!storeId) {
     throw new Error('EXPO_PUBLIC_LIVESTORE_STORE_ID is not configured')
   }
@@ -40,10 +45,11 @@ export function createAppStoreOptions(sessionToken: string) {
     storeId,
     adapter: makePersistedAdapter({
       sync: {
-        backend: syncUrl ? makeWsSync({ url: syncUrl }) : undefined,
+        backend: syncUrl && sessionToken ? makeWsSync({ url: syncUrl }) : undefined,
       },
     }),
     // Pass session token as sync payload for backend authentication
-    syncPayload: { authToken: sessionToken },
+    // If no token, works in local-only mode
+    syncPayload: sessionToken ? { authToken: sessionToken } : undefined,
   })
 }

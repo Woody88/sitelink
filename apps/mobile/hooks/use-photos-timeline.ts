@@ -36,11 +36,11 @@ export function usePhotosTimeline(projectId: string) {
 
   // Get or create store from registry
   const storeOptions = useMemo(
-    () => sessionToken ? createAppStoreOptions(sessionToken) : null,
+    () => createAppStoreOptions(sessionToken),
     [sessionToken]
   )
 
-  const store = useStore(storeOptions!)
+  const store = useStore(storeOptions)
 
   // Use store.useQuery() to query with the store context
   const photos = store.useQuery(

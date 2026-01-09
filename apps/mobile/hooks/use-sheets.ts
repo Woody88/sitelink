@@ -29,11 +29,11 @@ export function useSheets(projectId: string) {
   const sessionToken = data?.session?.token
 
   const storeOptions = useMemo(
-    () => sessionToken ? createAppStoreOptions(sessionToken) : null,
+    () => createAppStoreOptions(sessionToken),
     [sessionToken]
   )
 
-  const store = useStore(storeOptions!)
+  const store = useStore(storeOptions)
 
   const sheets = store.useQuery(
     queryDb(
