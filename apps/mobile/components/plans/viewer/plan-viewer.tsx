@@ -1,8 +1,8 @@
 import * as React from 'react'
-import { View, Pressable, StatusBar, ActivityIndicator } from 'react-native'
+import { View, Pressable, StatusBar, ActivityIndicator, Alert } from 'react-native'
 import { Text } from '@/components/ui/text'
 import { Icon } from '@/components/ui/icon'
-import { X, AlertCircle, RefreshCw } from 'lucide-react-native'
+import { X, AlertCircle, RefreshCw, Plus } from 'lucide-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Animated, {
   useAnimatedStyle,
@@ -13,12 +13,17 @@ import Animated, {
 } from 'react-native-reanimated'
 import * as Haptics from 'expo-haptics'
 
-import { usePlanViewer, MOCK_MARKERS, type CalloutMarker, type ViewerState } from '@/hooks/use-plan-viewer'
+import { usePlanViewer, type CalloutMarker, type ViewerState } from '@/hooks/use-plan-viewer'
+import { useMarkers } from '@/hooks/use-markers'
 import { fetchImageAsBase64 } from '@/lib/image-utils'
 import { ViewerControls } from './viewer-controls'
 import { SheetInfoBar } from './sheet-info-bar'
 import { MarkerDetailSheet } from './marker-detail-sheet'
 import OpenSeadragonViewer from './openseadragon-viewer'
+import { useStore } from '@livestore/react'
+import { events } from '@sitelink/domain'
+import { authClient } from '@/lib/auth'
+import { createAppStoreOptions } from '@/lib/store-config'
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
@@ -57,8 +62,7 @@ export function PlanViewer({
     zoomIn,
     zoomOut,
     zoomToFit,
-    markers,
-    setMarkers,
+    markers: internalMarkers,
     selectedMarkerId,
     setSelectedMarkerId,
     isLoading,
@@ -70,6 +74,12 @@ export function PlanViewer({
     onNavigateToSheet: onSheetChange,
   })
 
+  // Query markers from LiveStore for the current sheet
+  const liveMarkers = useMarkers(planId)
+
+  // Use LiveStore markers, falling back to internal markers state
+  const markers = liveMarkers.length > 0 ? liveMarkers : internalMarkers
+
   // UI state
   const [showMarkerSheet, setShowMarkerSheet] = React.useState(false)
   const [selectedMarker, setSelectedMarker] = React.useState<CalloutMarker | null>(null)
@@ -77,10 +87,16 @@ export function PlanViewer({
   const [retryCount, setRetryCount] = React.useState(0)
   const controlsOpacity = useSharedValue(1)
 
-  // Load mock markers on mount
-  React.useEffect(() => {
-    setMarkers(MOCK_MARKERS)
-  }, [setMarkers])
+  const { data: sessionData } = authClient.useSession()
+  const sessionToken = sessionData?.session?.token
+  const userId = sessionData?.user?.id
+
+  const storeOptions = React.useMemo(
+    () => (sessionToken ? createAppStoreOptions(sessionToken) : null),
+    [sessionToken]
+  )
+
+  const store = useStore(storeOptions ?? undefined)
 
   // Fetch image and convert to base64 to bypass WebView CORS restrictions
   React.useEffect(() => {
@@ -183,6 +199,44 @@ export function PlanViewer({
     setImageDataUrl(null)
     setRetryCount(c => c + 1)
   }, [setError])
+
+  // Handle add marker button
+  const handleAddMarkerPress = React.useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    Alert.prompt(
+      'Add Marker',
+      'Enter a label for the marker:',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Add',
+          onPress: async (label) => {
+            if (!label?.trim() || !userId || !store) {
+              return
+            }
+
+            const markerId = crypto.randomUUID()
+            const centerX = 0.5
+            const centerY = 0.5
+
+            await store.commit(
+              events.markerCreated({
+                id: markerId,
+                sheetId: planId,
+                label: label.trim(),
+                x: centerX,
+                y: centerY,
+                createdBy: userId,
+              })
+            )
+            console.log('[PLAN_VIEWER] Marker created:', markerId)
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+          },
+        },
+      ],
+      'plain-text'
+    )
+  }, [userId, store, planId])
 
   const controlsAnimatedStyle = useAnimatedStyle(() => ({
     opacity: controlsOpacity.value,
@@ -299,6 +353,16 @@ export function PlanViewer({
             onZoomOut={handleZoomOut}
             onZoomToFit={handleZoomToFit}
           />
+
+          {/* Add marker button */}
+          <Pressable
+            onPress={handleAddMarkerPress}
+            className="mt-4 w-12 h-12 items-center justify-center bg-black/60 backdrop-blur-md rounded-full active:bg-black/70"
+            accessibilityLabel="Add marker"
+            accessibilityRole="button"
+          >
+            <Icon as={Plus} className="size-6 text-white" />
+          </Pressable>
         </View>
       </Animated.View>
 

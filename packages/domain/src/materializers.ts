@@ -146,7 +146,9 @@ export const materializers = State.SQLite.materializers(events, {
       fileName: event.fileName,
       fileSize: event.fileSize,
       mimeType: event.mimeType,
-      remotePath: event.remotePath,
+      localPath: event.localPath,
+      remotePath: event.remotePath ?? null,
+      processingProgress: null,
       status: 'uploaded',
       sheetCount: null,
       errorMessage: null,
@@ -158,11 +160,18 @@ export const materializers = State.SQLite.materializers(events, {
   'v1.PlanProcessingStarted': (event) =>
     tables.plans.update({
       status: 'processing',
+      processingProgress: 0,
+    }).where({ id: event.planId }),
+
+  'v1.PlanProcessingProgress': (event) =>
+    tables.plans.update({
+      processingProgress: event.progress,
     }).where({ id: event.planId }),
 
   'v1.PlanProcessingCompleted': (event) =>
     tables.plans.update({
       status: 'completed',
+      processingProgress: 100,
       sheetCount: event.sheetCount,
       processedAt: event.completedAt.getTime(),
     }).where({ id: event.planId }),
@@ -189,7 +198,9 @@ export const materializers = State.SQLite.materializers(events, {
         number: sheet.number,
         title: sheet.title,
         discipline: sheet.discipline,
-        imagePath: sheet.imagePath,
+        localImagePath: sheet.localImagePath,
+        localThumbnailPath: sheet.localThumbnailPath,
+        imagePath: sheet.imagePath ?? null,
         width: sheet.width,
         height: sheet.height,
         sortOrder: index,

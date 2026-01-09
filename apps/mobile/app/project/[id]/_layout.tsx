@@ -1,14 +1,18 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { View, Alert } from 'react-native'
 import { Stack, useLocalSearchParams, useRouter, useSegments, Slot } from 'expo-router'
-import * as DocumentPicker from 'expo-document-picker'
-import * as FileSystem from 'expo-file-system'
 import { WorkspaceHeader } from '@/components/workspace/workspace-header'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { WorkspaceFAB } from '@/components/workspace/camera-fab'
 import { Plus, Camera } from 'lucide-react-native'
 import { UploadPlanSheet } from '@/components/plans/upload-plan-sheet'
-import { ensurePlanUploadDirectoryExists } from '@/utils/file-paths'
+import { usePlanUpload } from '@/hooks/use-plan-upload'
+import { useAuth } from '@/hooks/useAuth'
+import { useStore } from '@livestore/react'
+import { queryDb } from '@livestore/livestore'
+import { tables } from '@sitelink/domain'
+import { createAppStoreOptions } from '@/lib/store-config'
+import { authClient } from '@/lib/auth'
 import PlansScreen from './plans'
 import ActivityScreen from './activity'
 import MediaScreen from './media'
@@ -21,12 +25,38 @@ export default function ProjectWorkspaceLayout() {
   const segments = useSegments()
   const [activeView, setActiveView] = useState<ActiveView>('plans')
   const [isUploadSheetVisible, setIsUploadSheetVisible] = useState(false)
-  
-  // Check if we're on the camera route
-  const isCameraRoute = segments[segments.length - 1] === 'camera'
 
-  // Expose setActiveView to child components via context or prop drilling
-  // For now, we'll handle it in the layout
+  const { user } = useAuth()
+  const { data: sessionData } = authClient.useSession()
+  const sessionToken = sessionData?.session?.token
+
+  const storeOptions = useMemo(() => {
+    if (!sessionToken) {
+      return createAppStoreOptions('')
+    }
+    return createAppStoreOptions(sessionToken)
+  }, [sessionToken])
+
+  const store = useStore(storeOptions)
+
+  const projectQuery = useMemo(
+    () => queryDb(tables.projects.where({ id: params.id })),
+    [params.id]
+  )
+
+  const project = store.useQuery(projectQuery)
+
+  const projectData = Array.isArray(project) ? project[0] : null
+  const organizationId = projectData?.organizationId || 'default-org'
+  const uploadedBy = user?.id || 'anonymous'
+
+  const { pickAndUploadPlan } = usePlanUpload({
+    projectId: params.id,
+    organizationId,
+    uploadedBy,
+  })
+
+  const isCameraRoute = segments[segments.length - 1] === 'camera'
 
   const handleBack = useCallback(() => {
     router.back()
@@ -46,71 +76,32 @@ export default function ProjectWorkspaceLayout() {
 
   const handleUploadFromDevice = useCallback(async () => {
     try {
-      // Open document picker
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ['application/pdf', 'image/*'],
-        copyToCacheDirectory: true,
-        multiple: false,
-      })
+      setIsUploadSheetVisible(false)
 
-      if (result.canceled) {
-        return
-      }
+      await pickAndUploadPlan()
 
-      const file = result.assets[0]
-      
-      // TODO: Get organizationId from user context or project data
-      // For now, using placeholder - this should come from LiveStore query
-      const organizationId = 'temp-org-id' // TODO: Replace with actual organizationId
-      const projectId = params.id
-      
-      // Generate upload ID
-      const uploadId = `upload-${Date.now()}-${Math.random().toString(36).substring(7)}`
-      
-      // Ensure directory exists
-      const uploadPath = await ensurePlanUploadDirectoryExists(organizationId, projectId, uploadId)
-      
-      // Get file extension
-      const fileExtension = file.name.split('.').pop() || ''
-      const fileName = `plan.${fileExtension}`
-      const destinationPath = `${uploadPath}/${fileName}`
-      
-      // Copy file to destination
-      await FileSystem.copyAsync({
-        from: file.uri,
-        to: destinationPath,
-      })
-
-      console.log('[UPLOAD] Plan saved to:', destinationPath)
-      
-      // TODO: Save metadata to SQLite
-      // await savePlanMetadata({
-      //   id: uploadId,
-      //   projectId,
-      //   organizationId,
-      //   fileName: file.name,
-      //   fileSize: file.size,
-      //   mimeType: file.mimeType || 'application/pdf',
-      //   remotePath: destinationPath,
-      //   status: 'uploaded',
-      //   uploadedBy: userId,
-      //   uploadedAt: Date.now(),
-      // })
-
-      Alert.alert('Success', 'Plan uploaded successfully')
+      Alert.alert(
+        'Success',
+        'Plan uploaded and processed successfully',
+        [{ text: 'OK' }]
+      )
     } catch (error) {
       console.error('[UPLOAD] Error uploading plan:', error)
-      Alert.alert('Error', 'Failed to upload plan. Please try again.')
+      Alert.alert(
+        'Error',
+        'Failed to upload and process plan. Please try again.',
+        [{ text: 'OK' }]
+      )
     }
-  }, [params.id])
+  }, [pickAndUploadPlan])
 
   const getFABIcon = () => {
     if (activeView === 'plans') return Plus
     return Camera
   }
 
-  // TODO: Get project name and address from LiveStore query using params.id
-  const projectName = 'Riverside Apartments'
+  const projectName = projectData?.name || 'Loading...'
+  const projectAddress = projectData?.address || undefined
 
   // If we're on the camera route, let it render directly
   if (isCameraRoute) {
@@ -121,11 +112,11 @@ export default function ProjectWorkspaceLayout() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-background">
-        <WorkspaceHeader 
-          onBack={handleBack} 
+        <WorkspaceHeader
+          onBack={handleBack}
           onMenu={handleMenu}
           projectName={projectName}
-          address="123 Main St, Denver, CO"
+          address={projectAddress}
         >
           <SegmentedControl
             options={['Plans', 'Media', 'Activity']}

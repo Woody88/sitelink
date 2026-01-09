@@ -1,17 +1,16 @@
 import * as React from 'react'
-import { View, ScrollView, Pressable, Image } from 'react-native'
+import { View, ScrollView, Pressable, Image, ActivityIndicator } from 'react-native'
 import { Text } from '@/components/ui/text'
 import { Input } from '@/components/ui/input'
 import { Icon } from '@/components/ui/icon'
-import { 
-  Search, 
-  LayoutGrid, 
-  List, 
-  Folder, 
-  ChevronDown, 
-  ChevronRight, 
+import {
+  Search,
+  LayoutGrid,
+  List,
+  Folder,
+  ChevronDown,
+  ChevronRight,
   FileText,
-  Maximize2,
   X
 } from 'lucide-react-native'
 import { cn } from '@/lib/utils'
@@ -20,7 +19,7 @@ import {
   CollapsibleTrigger,
   CollapsibleContent,
 } from '@/components/ui/collapsible'
-import { MOCK_FOLDERS } from '@/constants/mock-data'
+import { useSheets, Sheet } from '@/hooks/use-sheets'
 
 export interface Plan {
   id: string
@@ -30,15 +29,23 @@ export interface Plan {
 }
 
 interface PlanSelectorProps {
+  projectId: string
   onSelect: (plan: Plan) => void
   onClose?: () => void
   showCloseButton?: boolean
 }
 
-export function PlanSelector({ onSelect, onClose, showCloseButton = false }: PlanSelectorProps) {
+export function PlanSelector({ projectId, onSelect, onClose, showCloseButton = false }: PlanSelectorProps) {
+  const folders = useSheets(projectId)
   const [searchQuery, setSearchQuery] = React.useState('')
   const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('list')
-  const [expandedFolders, setExpandedFolders] = React.useState<string[]>(['f1'])
+  const [expandedFolders, setExpandedFolders] = React.useState<string[]>([])
+
+  React.useEffect(() => {
+    if (folders.length > 0 && expandedFolders.length === 0) {
+      setExpandedFolders([folders[0].id])
+    }
+  }, [folders, expandedFolders.length])
 
   const toggleFolder = (folderId: string) => {
     setExpandedFolders(prev => 
@@ -48,16 +55,25 @@ export function PlanSelector({ onSelect, onClose, showCloseButton = false }: Pla
     )
   }
 
-  const filteredFolders = MOCK_FOLDERS.map(folder => ({
+  const sheetToPlan = (sheet: Sheet): Plan => ({
+    id: sheet.id,
+    code: sheet.number,
+    title: sheet.title,
+    thumbnail: sheet.imagePath
+  })
+
+  const filteredFolders = folders.map(folder => ({
     ...folder,
-    plans: folder.plans.filter(plan => 
-      plan.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      plan.title.toLowerCase().includes(searchQuery.toLowerCase())
+    sheets: folder.sheets.filter(sheet =>
+      sheet.number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      sheet.title.toLowerCase().includes(searchQuery.toLowerCase())
     )
-  })).filter(folder => 
-    folder.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    folder.plans.length > 0
+  })).filter(folder =>
+    folder.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    folder.sheets.length > 0
   )
+
+  const isLoading = !projectId
 
   return (
     <View className="flex-1 bg-background">
@@ -109,7 +125,23 @@ export function PlanSelector({ onSelect, onClose, showCloseButton = false }: Pla
       </View>
 
       <ScrollView className="flex-1" contentContainerClassName="px-4 py-4 pb-8">
-        {filteredFolders.map((folder) => (
+        {isLoading && (
+          <View className="flex-1 items-center justify-center py-20">
+            <ActivityIndicator size="large" />
+          </View>
+        )}
+
+        {!isLoading && folders.length === 0 && (
+          <View className="flex-1 items-center justify-center py-20">
+            <Icon as={FileText} className="size-16 text-muted-foreground mb-4" />
+            <Text className="text-lg font-semibold text-foreground mb-2">No Plans Yet</Text>
+            <Text className="text-sm text-muted-foreground text-center px-8">
+              Plans and sheets will appear here once they're uploaded to this project
+            </Text>
+          </View>
+        )}
+
+        {!isLoading && filteredFolders.map((folder) => (
           <Collapsible
             key={folder.id}
             open={expandedFolders.includes(folder.id)}
@@ -125,7 +157,7 @@ export function PlanSelector({ onSelect, onClose, showCloseButton = false }: Pla
                       {folder.name}
                     </Text>
                     <Text className="text-xs text-muted-foreground">
-                      {folder.plans.length} plans
+                      {folder.sheets.length} plans
                     </Text>
                   </View>
                 </View>
@@ -140,54 +172,60 @@ export function PlanSelector({ onSelect, onClose, showCloseButton = false }: Pla
               <View className="pt-2">
                 {viewMode === 'grid' ? (
                   <View className="flex-row flex-wrap gap-3">
-                    {folder.plans.map(plan => (
-                      <Pressable 
-                        key={plan.id} 
-                        className="w-[48%] mb-4 active:opacity-70"
-                        onPress={() => onSelect(plan)}
-                      >
-                        <View className="aspect-[3/2] bg-muted/20 rounded-xl overflow-hidden border border-border/50">
-                          <Image 
-                            source={{ uri: plan.thumbnail }} 
-                            className="w-full h-full"
-                            resizeMode="cover"
-                          />
-                        </View>
-                        <View className="mt-2 items-center">
-                          <Text className="text-sm font-bold text-foreground text-center" numberOfLines={1}>
-                            {plan.code}
-                          </Text>
-                          <Text className="text-[10px] text-muted-foreground text-center" numberOfLines={1}>
-                            {plan.title}
-                          </Text>
-                        </View>
-                      </Pressable>
-                    ))}
+                    {folder.sheets.map(sheet => {
+                      const plan = sheetToPlan(sheet)
+                      return (
+                        <Pressable
+                          key={sheet.id}
+                          className="w-[48%] mb-4 active:opacity-70"
+                          onPress={() => onSelect(plan)}
+                        >
+                          <View className="aspect-[3/2] bg-muted/20 rounded-xl overflow-hidden border border-border/50">
+                            <Image
+                              source={{ uri: sheet.imagePath }}
+                              className="w-full h-full"
+                              resizeMode="cover"
+                            />
+                          </View>
+                          <View className="mt-2 items-center">
+                            <Text className="text-sm font-bold text-foreground text-center" numberOfLines={1}>
+                              {sheet.number}
+                            </Text>
+                            <Text className="text-[10px] text-muted-foreground text-center" numberOfLines={1}>
+                              {sheet.title}
+                            </Text>
+                          </View>
+                        </Pressable>
+                      )
+                    })}
                   </View>
                 ) : (
                   <View className="gap-1">
-                    {folder.plans.map((plan) => (
-                      <Pressable 
-                        key={plan.id} 
-                        className="flex-row items-center gap-4 py-3 px-2 active:bg-muted/10 rounded-lg"
-                        onPress={() => onSelect(plan)}
-                      >
-                        <View className="size-10 bg-muted/20 rounded-lg items-center justify-center">
-                          <Icon as={FileText} className="size-5 text-muted-foreground" />
-                        </View>
-                        <View className="flex-1">
-                          <Text className="text-base font-bold text-foreground">
-                            {plan.code}
-                          </Text>
-                          <Text className="text-sm text-muted-foreground">
-                            {plan.title}
-                          </Text>
-                        </View>
-                      </Pressable>
-                    ))}
+                    {folder.sheets.map((sheet) => {
+                      const plan = sheetToPlan(sheet)
+                      return (
+                        <Pressable
+                          key={sheet.id}
+                          className="flex-row items-center gap-4 py-3 px-2 active:bg-muted/10 rounded-lg"
+                          onPress={() => onSelect(plan)}
+                        >
+                          <View className="size-10 bg-muted/20 rounded-lg items-center justify-center">
+                            <Icon as={FileText} className="size-5 text-muted-foreground" />
+                          </View>
+                          <View className="flex-1">
+                            <Text className="text-base font-bold text-foreground">
+                              {sheet.number}
+                            </Text>
+                            <Text className="text-sm text-muted-foreground">
+                              {sheet.title}
+                            </Text>
+                          </View>
+                        </Pressable>
+                      )
+                    })}
                   </View>
                 )}
-                {folder.plans.length === 0 && (
+                {folder.sheets.length === 0 && (
                   <View className="py-8 items-center justify-center">
                     <Text className="text-sm text-muted-foreground italic">No plans in this folder</Text>
                   </View>

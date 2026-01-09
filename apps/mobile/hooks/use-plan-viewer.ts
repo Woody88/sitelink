@@ -1,15 +1,7 @@
 import { useCallback, useState, useRef } from 'react'
+import type { CalloutMarker } from './use-markers'
 
-// Types for callout markers
-export interface CalloutMarker {
-  id: string
-  x: number // Normalized 0-1
-  y: number // Normalized 0-1
-  label: string
-  targetSheetRef?: string
-  type: 'detail' | 'section' | 'elevation' | 'note'
-  discipline?: 'arch' | 'struct' | 'elec' | 'mech' | 'plumb'
-}
+export type { CalloutMarker }
 
 // Types for viewer state
 export interface ViewerState {
@@ -157,12 +149,3 @@ export function usePlanViewer(options: UsePlanViewerOptions = {}): UsePlanViewer
     setError,
   }
 }
-
-// Mock markers for development
-export const MOCK_MARKERS: CalloutMarker[] = [
-  { id: 'm1', x: 0.25, y: 0.30, label: '2/A5', targetSheetRef: 'p2', type: 'detail', discipline: 'arch' },
-  { id: 'm2', x: 0.65, y: 0.45, label: '3/A7', targetSheetRef: 'p3', type: 'section', discipline: 'arch' },
-  { id: 'm3', x: 0.40, y: 0.70, label: 'E1', targetSheetRef: 'p8', type: 'elevation', discipline: 'elec' },
-  { id: 'm4', x: 0.80, y: 0.25, label: '5/S2', targetSheetRef: 'p6', type: 'detail', discipline: 'struct' },
-  { id: 'm5', x: 0.15, y: 0.85, label: 'Note 1', type: 'note', discipline: 'arch' },
-]

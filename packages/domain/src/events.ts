@@ -169,7 +169,8 @@ export const events = {
       fileName: Schema.String,
       fileSize: Schema.Number,
       mimeType: Schema.String,
-      remotePath: Schema.String,
+      localPath: Schema.String,
+      remotePath: Schema.optional(Schema.String),
       uploadedBy: Schema.String,
       uploadedAt: Schema.Date,
     }),
@@ -180,6 +181,16 @@ export const events = {
     schema: Schema.Struct({
       planId: Schema.String,
       startedAt: Schema.Date,
+    }),
+  }),
+
+  planProcessingProgress: Events.synced({
+    name: 'v1.PlanProcessingProgress',
+    schema: Schema.Struct({
+      planId: Schema.String,
+      progress: Schema.Number,
+      currentPage: Schema.Number,
+      totalPages: Schema.Number,
     }),
   }),
 
@@ -219,7 +230,9 @@ export const events = {
         number: Schema.String,
         title: Schema.String,
         discipline: Schema.String,
-        imagePath: Schema.String,
+        localImagePath: Schema.String,
+        localThumbnailPath: Schema.String,
+        imagePath: Schema.optional(Schema.String),
         width: Schema.Number,
         height: Schema.Number,
       })),

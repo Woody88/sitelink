@@ -17,52 +17,15 @@ import { useProject } from '@/context/project-context'
 import { Stack, useRouter } from 'expo-router'
 import { Bell, User, FolderOpen, MapPin, Plus, Moon, Sun } from 'lucide-react-native'
 import * as React from 'react'
-import { View, ScrollView, Pressable, FlatList, Appearance } from 'react-native'
+import { View, ScrollView, Pressable, FlatList, Appearance, ActivityIndicator } from 'react-native'
 import { cn } from '@/lib/utils'
 import { useUniwind } from 'uniwind'
-
-// Mock data
-const MOCK_PROJECTS: Project[] = [
-  {
-    id: '1',
-    name: 'Riverside Apartments',
-    address: '123 Main St, Denver, CO',
-    sheetCount: 47,
-    photoCount: 84,
-    memberCount: 5,
-    updatedAt: '2h ago',
-    status: 'active',
-  },
-  {
-    id: '2',
-    name: 'Downtown Office Remodel',
-    address: '456 Market St, San Francisco, CA',
-    sheetCount: 23,
-    photoCount: 31,
-    memberCount: 3,
-    updatedAt: '1 day ago',
-    status: 'active',
-  },
-  {
-    id: '3',
-    name: 'Sunset Villa',
-    address: '789 Ocean Dr, Miami, FL',
-    sheetCount: 12,
-    photoCount: 156,
-    memberCount: 8,
-    updatedAt: '3 days ago',
-    status: 'completed',
-  },
-  {
-    id: '4',
-    name: 'Highland Park Demo',
-    sheetCount: 5,
-    photoCount: 10,
-    memberCount: 1,
-    updatedAt: '1 week ago',
-    status: 'archived',
-  },
-]
+import { useProjects } from '@/hooks/use-projects'
+import { useStore } from '@livestore/react'
+import { events, tables } from '@sitelink/domain'
+import { queryDb } from '@livestore/livestore'
+import { authClient } from '@/lib/auth'
+import { createAppStoreOptions } from '@/lib/store-config'
 
 interface FilterChipProps {
   label: string
@@ -157,14 +120,40 @@ export default function ProjectsScreen() {
   const [createModalVisible, setCreateModalVisible] = React.useState(false)
   const [activeFilter, setActiveFilter] = React.useState('all')
 
+  const projects = useProjects()
+  const isLoading = !Array.isArray(projects)
+
+  const { data: sessionData } = authClient.useSession()
+  const sessionToken = sessionData?.session?.token
+  const userId = sessionData?.user?.id
+
+  const storeOptions = React.useMemo(
+    () => (sessionToken ? createAppStoreOptions(sessionToken) : null),
+    [sessionToken]
+  )
+
+  const store = useStore(storeOptions ?? undefined)
+
+  const organizationMembershipsQuery = React.useMemo(
+    () => queryDb(tables.organizationMembers.where(userId ? { userId } : { userId: '__none__' })),
+    [userId]
+  )
+  const organizationMemberships = store.useQuery(organizationMembershipsQuery)
+
+  const organizationId = React.useMemo(() => {
+    const membershipsArray = Array.isArray(organizationMemberships) ? organizationMemberships : []
+    return membershipsArray[0]?.organizationId
+  }, [organizationMemberships])
+
   const toggleTheme = React.useCallback(() => {
     Appearance.setColorScheme(theme === 'dark' ? 'light' : 'dark')
   }, [theme])
 
   const filteredProjects = React.useMemo(() => {
-    if (activeFilter === 'all') return MOCK_PROJECTS
-    return MOCK_PROJECTS.filter((p) => p.status === activeFilter)
-  }, [activeFilter])
+    if (isLoading || !projects) return []
+    if (activeFilter === 'all') return projects
+    return projects.filter((p) => p.status === activeFilter)
+  }, [activeFilter, projects, isLoading])
 
   const handleProjectPress = React.useCallback(
     (project: Project) => {
@@ -255,7 +244,12 @@ export default function ProjectsScreen() {
         </View>
 
         {/* Project List - Clean design matching other screens */}
-        {filteredProjects.length > 0 ? (
+        {isLoading ? (
+          <View className="flex-1 items-center justify-center">
+            <ActivityIndicator size="large" />
+            <Text className="text-muted-foreground mt-4">Loading projects...</Text>
+          </View>
+        ) : filteredProjects.length > 0 ? (
           <FlatList
             data={filteredProjects}
             renderItem={({ item, index }) => (
@@ -275,8 +269,9 @@ export default function ProjectsScreen() {
               </EmptyMedia>
               <EmptyTitle>No Projects Found</EmptyTitle>
               <EmptyDescription>
-                No projects match the selected filter. Try a different filter or create a new
-                project.
+                {activeFilter === 'all'
+                  ? 'No projects yet. Create your first project to get started.'
+                  : `No ${activeFilter} projects. Try a different filter or create a new project.`}
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
@@ -291,8 +286,23 @@ export default function ProjectsScreen() {
       <CreateProjectModal
         isVisible={createModalVisible}
         onClose={() => setCreateModalVisible(false)}
-        onSubmit={(data) => {
-          console.log('Create project:', data)
+        onSubmit={async (data) => {
+          if (!userId || !organizationId || !store) {
+            console.error('[PROJECTS] Cannot create project: missing user, org, or store')
+            return
+          }
+
+          const projectId = crypto.randomUUID()
+          await store.commit(
+            events.projectCreated({
+              id: projectId,
+              organizationId,
+              name: data.name,
+              address: data.address || undefined,
+              createdBy: userId,
+            })
+          )
+          console.log('[PROJECTS] Project created:', projectId)
           setCreateModalVisible(false)
         }}
       />
