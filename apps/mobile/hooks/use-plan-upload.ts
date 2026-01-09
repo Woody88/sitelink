@@ -1,8 +1,10 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useStore } from '@livestore/react'
 import { nanoid } from '@livestore/livestore'
 import * as DocumentPicker from 'expo-document-picker'
 import { uploadAndProcessPlan } from '@/services/plan-upload-service'
+import { authClient } from '@/lib/auth'
+import { createAppStoreOptions } from '@/lib/store-config'
 
 export interface UsePlanUploadOptions {
   projectId: string
@@ -20,7 +22,15 @@ export interface UploadProgress {
 }
 
 export function usePlanUpload({ projectId, organizationId, uploadedBy }: UsePlanUploadOptions) {
-  const store = useStore()
+  const { data } = authClient.useSession()
+  const sessionToken = data?.session?.token
+
+  const storeOptions = useMemo(
+    () => sessionToken ? createAppStoreOptions(sessionToken) : null,
+    [sessionToken]
+  )
+
+  const store = useStore(storeOptions!)
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null)
 
   const pickAndUploadPlan = useCallback(async () => {
