@@ -1,4 +1,5 @@
 import { useStore } from "@livestore/react";
+import { nanoid } from "@livestore/livestore";
 import { events } from "@sitelink/domain";
 import * as FileSystem from "expo-file-system";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -113,7 +114,7 @@ export default function CameraScreen() {
 					to: destinationPath,
 				});
 
-				const photoId = `photo-${timestamp}`;
+				const photoId = nanoid();
 				setCurrentPhotoId(photoId);
 				setCapturedPhotoUri(destinationPath);
 				setScreenState("preview");
@@ -227,10 +228,12 @@ export default function CameraScreen() {
 
 			console.log("[CAMERA] Voice recording saved to:", destinationPath);
 
+			const voiceNoteId = nanoid();
+
 			if (store && storeOptions) {
 				await store.commit(
 					events.voiceNoteRecorded({
-						id: `voice-${timestamp}`,
+						id: voiceNoteId,
 						photoId: currentPhotoId,
 						localPath: destinationPath,
 						durationSeconds: Math.floor(audio.state.duration),
@@ -241,7 +244,7 @@ export default function CameraScreen() {
 				if (audio.state.transcript) {
 					await store.commit(
 						events.voiceNoteTranscribed({
-							voiceNoteId: `voice-${timestamp}`,
+							voiceNoteId,
 							transcription: audio.state.transcript,
 						}),
 					);

@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useStore } from '@livestore/react'
+import { nanoid } from '@livestore/livestore'
 import * as DocumentPicker from 'expo-document-picker'
 import { uploadAndProcessPlan } from '@/services/plan-upload-service'
 
@@ -35,7 +36,7 @@ export function usePlanUpload({ projectId, organizationId, uploadedBy }: UsePlan
       }
 
       const file = result.assets[0]
-      const planId = `plan_${Date.now()}_${Math.random().toString(36).substring(7)}`
+      const planId = nanoid()
 
       setUploadProgress({
         planId,
