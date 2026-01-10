@@ -46,7 +46,7 @@ USER ACTION                          SYSTEM RESPONSE
                                      Camera stays open for more
 
 3. Taps "Issue" toggle               Toggle highlights RED
-                                     Shutter turns RED  
+                                     Shutter turns RED
                                      Red banner appears in viewfinder
 
 4. Taps RED shutter                  Photo captured as ISSUE
@@ -67,25 +67,27 @@ async function capturePhoto(options: {
   isIssue: boolean
   uri: string
 }) {
-  const id = crypto.randomUUID()
+  const id = nanoid()
   const localPath = `${FileSystem.documentDirectory}photos/${id}.jpg`
-  
+
   // Save file locally first
   await FileSystem.copyAsync({ from: options.uri, to: localPath })
-  
+
   // Commit event - LiveStore handles:
   // 1. Persist to local SQLite
   // 2. Update reactive queries (UI updates)
   // 3. Queue for sync
-  store.commit(events.photoCaptured({
-    id,
-    projectId: options.projectId,
-    markerId: options.markerId,
-    localPath,
-    isIssue: options.isIssue,
-    capturedAt: new Date(),
-  }))
-  
+  store.commit(
+    events.photoCaptured({
+      id,
+      projectId: options.projectId,
+      markerId: options.markerId,
+      localPath,
+      isIssue: options.isIssue,
+      capturedAt: new Date(),
+    }),
+  )
+
   return id
 }
 
@@ -106,21 +108,23 @@ function linkToMarker(photoId: string, markerId: string) {
 
 ### The Honest Answer: They're NOT Auto-Determined
 
-| State | Can AI Detect? | How It's Actually Captured |
-|-------|----------------|---------------------------|
-| **Issue** | No | User explicitly toggles Issue mode |
-| **Start** | No | Inferred: First photo at this callout |
-| **In Progress** | No | Inferred: Middle photos (not first, not last) |
-| **Complete** | No | **Cannot be inferred** - user must signal |
+| State           | Can AI Detect? | How It's Actually Captured                    |
+| --------------- | -------------- | --------------------------------------------- |
+| **Issue**       | No             | User explicitly toggles Issue mode            |
+| **Start**       | No             | Inferred: First photo at this callout         |
+| **In Progress** | No             | Inferred: Middle photos (not first, not last) |
+| **Complete**    | No             | **Cannot be inferred** - user must signal     |
 
 ### Recommendation: Binary States Only (Normal + Issue)
 
 Everything else is derived from the timeline:
+
 - First photo = implicitly "started"
 - Issue photo = explicit problem
 - No "complete" - the timeline shows history
 
 **Why no "Complete" button?**
+
 - Workers often return to areas multiple times
 - "Complete" today might need rework tomorrow
 - If someone needs to know if work is done, they look at the latest photo
@@ -143,20 +147,20 @@ export function usePhotosForMarker(markerId: string) {
 // In component
 function PhotoTimeline({ markerId }: { markerId: string }) {
   const { data: photos } = usePhotosForMarker(markerId)
-  
+
   // Groups photos by date automatically
-  const groupedByDate = groupBy(photos, p => 
+  const groupedByDate = groupBy(photos, p =>
     format(p.capturedAt, 'yyyy-MM-dd')
   )
-  
+
   return (
     <ScrollView>
       {Object.entries(groupedByDate).map(([date, photos]) => (
         <View key={date}>
           <Text>{format(date, 'MMM d, yyyy')}</Text>
           {photos.map(photo => (
-            <PhotoThumbnail 
-              key={photo.id} 
+            <PhotoThumbnail
+              key={photo.id}
               photo={photo}
               showIssueBadge={photo.isIssue}
             />
@@ -219,17 +223,19 @@ STEP 3: Transcription complete (async)
 async function recordVoiceNote(photoId: string, uri: string, duration: number) {
   const id = crypto.randomUUID()
   const localPath = `${FileSystem.documentDirectory}audio/${id}.m4a`
-  
+
   await FileSystem.copyAsync({ from: uri, to: localPath })
-  
+
   // Commit event - queued for sync
-  store.commit(events.voiceNoteRecorded({
-    id,
-    photoId,
-    localPath,
-    durationSeconds: duration,
-  }))
-  
+  store.commit(
+    events.voiceNoteRecorded({
+      id,
+      photoId,
+      localPath,
+      durationSeconds: duration,
+    }),
+  )
+
   return id
 }
 
@@ -239,9 +245,7 @@ async function recordVoiceNote(photoId: string, uri: string, duration: number) {
 
 // Reactive query for voice notes
 function useVoiceNote(photoId: string) {
-  return useQuery(
-    tables.voiceNotes.where({ photoId }).first()
-  )
+  return useQuery(tables.voiceNotes.where({ photoId }).first())
 }
 ```
 
@@ -300,21 +304,24 @@ async function generateDailySummary(projectId: string, date: Date) {
   const photos = store.query(
     tables.photos
       .where({ projectId })
-      .where('capturedAt', '>=', startOfDay(date))
-      .where('capturedAt', '<', endOfDay(date))
+      .where("capturedAt", ">=", startOfDay(date))
+      .where("capturedAt", "<", endOfDay(date)),
   )
-  
+
   const voiceNotes = store.query(
-    tables.voiceNotes.whereIn('photoId', photos.map(p => p.id))
+    tables.voiceNotes.whereIn(
+      "photoId",
+      photos.map((p) => p.id),
+    ),
   )
-  
+
   // Call server API
   const response = await api.generateSummary({
     projectId,
     date: date.toISOString(),
     // Server fetches full context from its database
   })
-  
+
   return response.summary
 }
 ```
@@ -352,7 +359,7 @@ async function generateDailySummary(projectId: string, date: Date) {
 
 ```typescript
 // Already using Better-Auth, add Polar plugin
-import { polar, checkout, portal } from "@polar-sh/better-auth";
+import { polar, checkout, portal } from "@polar-sh/better-auth"
 
 const auth = betterAuth({
   plugins: [
@@ -363,7 +370,7 @@ const auth = betterAuth({
         checkout({
           products: [
             { productId: "pro_plan_id", slug: "pro" },
-            { productId: "team_plan_id", slug: "team" }
+            { productId: "team_plan_id", slug: "team" },
           ],
           successUrl: "/upgrade/success?checkout_id={CHECKOUT_ID}",
         }),
@@ -371,21 +378,21 @@ const auth = betterAuth({
       ],
     }),
   ],
-});
+})
 
 // In mobile app, trigger checkout:
-const handleUpgrade = async (plan: 'pro' | 'team') => {
+const handleUpgrade = async (plan: "pro" | "team") => {
   await authClient.checkout({
     slug: plan,
     referenceId: organizationId,
-  });
-};
+  })
+}
 
 // Check subscription status:
-const { data: customerState } = await authClient.customer.state();
+const { data: customerState } = await authClient.customer.state()
 const hasPro = customerState?.subscriptions?.some(
-  sub => sub.productId === "pro_plan_id" && sub.status === "active"
-);
+  (sub) => sub.productId === "pro_plan_id" && sub.status === "active",
+)
 ```
 
 ---
@@ -429,12 +436,12 @@ AFTER OAUTH SUCCESS:
 ### Implementation
 
 ```typescript
-import * as LocalAuthentication from 'expo-local-authentication'
-import * as SecureStore from 'expo-secure-store'
+import * as LocalAuthentication from "expo-local-authentication"
+import * as SecureStore from "expo-secure-store"
 
 // After successful OAuth
 async function enableOfflineAccess(session: Session) {
-  await SecureStore.setItemAsync('session', JSON.stringify(session), {
+  await SecureStore.setItemAsync("session", JSON.stringify(session), {
     requireAuthentication: true, // Requires biometric to read
   })
 }
@@ -443,14 +450,14 @@ async function enableOfflineAccess(session: Session) {
 async function attemptOfflineAuth(): Promise<Session | null> {
   const hasHardware = await LocalAuthentication.hasHardwareAsync()
   if (!hasHardware) return null
-  
+
   const result = await LocalAuthentication.authenticateAsync({
-    promptMessage: 'Unlock SiteLink',
-    fallbackLabel: 'Use passcode'
+    promptMessage: "Unlock SiteLink",
+    fallbackLabel: "Use passcode",
   })
-  
+
   if (result.success) {
-    const session = await SecureStore.getItemAsync('session')
+    const session = await SecureStore.getItemAsync("session")
     return session ? JSON.parse(session) : null
   }
   return null
@@ -533,34 +540,34 @@ USER TAPS SHARE
 
 ### Must Build (Phase 1: Weeks 1-4)
 
-| Feature | Effort | Why |
-|---------|--------|-----|
-| LiveStore + Expo integration | 3 days | Foundation |
-| LiveStore + CF sync backend | 2 days | Sync |
-| Camera with Issue toggle | 2 days | Core UX |
-| Photo timeline by callout | 2 days | Core value |
-| Voice note recording (audio only) | 1 day | Gloved hands |
-| View-only share links | 2 days | Subcontractor access |
-| Biometric offline auth | 1 day | Field reliability |
-| Polar payment integration | 2 days | Revenue |
+| Feature                           | Effort | Why                  |
+| --------------------------------- | ------ | -------------------- |
+| LiveStore + Expo integration      | 3 days | Foundation           |
+| LiveStore + CF sync backend       | 2 days | Sync                 |
+| Camera with Issue toggle          | 2 days | Core UX              |
+| Photo timeline by callout         | 2 days | Core value           |
+| Voice note recording (audio only) | 1 day  | Gloved hands         |
+| View-only share links             | 2 days | Subcontractor access |
+| Biometric offline auth            | 1 day  | Field reliability    |
+| Polar payment integration         | 2 days | Revenue              |
 
 ### High Value AI (Phase 2: Weeks 5-8)
 
-| Feature | Effort | Validated Value |
-|---------|--------|-----------------|
+| Feature                       | Effort | Validated Value  |
+| ----------------------------- | ------ | ---------------- |
 | Voice transcription (Whisper) | 2 days | Searchable notes |
-| Plan text search | 3 days | "Where is X?" |
-| Photo text extraction | 1 day | Capture labels |
-| Daily summary generation | 3 days | Saves 15-30 min |
+| Plan text search              | 3 days | "Where is X?"    |
+| Photo text extraction         | 1 day  | Capture labels   |
+| Daily summary generation      | 3 days | Saves 15-30 min  |
 
 ### Skip For Now
 
-| Feature | Why Skip |
-|---------|----------|
+| Feature                 | Why Skip                                    |
+| ----------------------- | ------------------------------------------- |
 | Work state AI detection | Can't reliably detect, Issue flag is enough |
-| Progress estimation | Wrong product (needs 360° + BIM) |
-| CLIP photo grouping | Callout + time grouping is sufficient |
-| Complex annotations | Keep it simple |
+| Progress estimation     | Wrong product (needs 360° + BIM)            |
+| CLIP photo grouping     | Callout + time grouping is sufficient       |
+| Complex annotations     | Keep it simple                              |
 
 ---
 
@@ -568,14 +575,15 @@ USER TAPS SHARE
 
 **Yes, but it's "AI as utility" not "AI as magic"**
 
-| AI Feature | What It Actually Is | Differentiation |
-|------------|---------------------|-----------------|
-| Marker detection | OCR + CV + LLM validation | ✅ Core (already built) |
-| Voice transcription | Whisper API | ✅ Useful |
-| Plan search | Full-text on OCR | ✅ Useful |
-| Daily summary | LLM summarization | ⚠️ Nice to have |
+| AI Feature          | What It Actually Is       | Differentiation         |
+| ------------------- | ------------------------- | ----------------------- |
+| Marker detection    | OCR + CV + LLM validation | ✅ Core (already built) |
+| Voice transcription | Whisper API               | ✅ Useful               |
+| Plan search         | Full-text on OCR          | ✅ Useful               |
+| Daily summary       | LLM summarization         | ⚠️ Nice to have         |
 
 **The honest pitch:**
+
 - Auto-linking that actually works (91.5% recall)
 - Voice notes that become searchable text
 - Search across all your plans

@@ -16,6 +16,22 @@ Fetch these docs before implementing LiveStore queries, mutations, or Expo-speci
 - No excessive JSDoc or documentation comments in code
 - Let the code be self-documenting through clear naming
 
+## UUID Generation
+
+**CRITICAL for Mobile/Expo**: MUST use `nanoid` from `@livestore/livestore` for generating unique IDs.
+
+```typescript
+import { nanoid } from '@livestore/livestore'
+
+const id = nanoid()  // Correct ✓
+```
+
+**DO NOT** use `crypto.randomUUID()` in mobile/Expo apps - it doesn't work in React Native/Expo environments.
+
+```typescript
+const id = crypto.randomUUID()  // Wrong ✗ - breaks on Expo
+```
+
 ## After Implementation
 
 MUST run these commands after any code changes:
