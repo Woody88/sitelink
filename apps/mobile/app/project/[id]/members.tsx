@@ -33,13 +33,13 @@ export default function MembersScreen() {
     [sessionToken]
   )
 
-  const store = useStore(storeOptions ?? undefined)
+  const { store } = useStore(storeOptions ?? undefined)
 
   const projectQuery = React.useMemo(
     () => queryDb(tables.projects.where({ id: projectId })),
     [projectId]
   )
-  const project = store.useQuery(projectQuery)
+  const project = store?.useQuery(projectQuery)
 
   const organizationId = React.useMemo(() => {
     const projectsArray = Array.isArray(project) ? project : []

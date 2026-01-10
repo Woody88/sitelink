@@ -16,7 +16,7 @@ import {
   Download,
 } from 'lucide-react-native'
 import { Icon } from '@/components/ui/icon'
-import * as FileSystem from 'expo-file-system'
+import * as FileSystem from 'expo-file-system/legacy'
 import { getMediaPath, getProjectPath } from '@/utils/file-paths'
 
 export default function ProjectSettingsScreen() {

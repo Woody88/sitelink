@@ -37,20 +37,20 @@ export default function ProjectWorkspaceLayout() {
     return createAppStoreOptions(sessionToken)
   }, [sessionToken])
 
-  const store = useStore(storeOptions)
+  const { store } = useStore(storeOptions)
 
   const projectQuery = useMemo(
     () => queryDb(tables.projects.where({ id: params.id })),
     [params.id]
   )
 
-  const project = store.useQuery(projectQuery)
+  const project = store?.useQuery(projectQuery)
 
   const projectData = Array.isArray(project) ? project[0] : null
   const organizationId = projectData?.organizationId || 'default-org'
   const uploadedBy = user?.id || 'anonymous'
 
-  const { pickAndUploadPlan } = usePlanUpload({
+  const { pickAndUploadPlan, renderProcessor } = usePlanUpload({
     projectId: params.id,
     organizationId,
     uploadedBy,
@@ -80,11 +80,7 @@ export default function ProjectWorkspaceLayout() {
 
       await pickAndUploadPlan()
 
-      Alert.alert(
-        'Success',
-        'Plan uploaded and processed successfully',
-        [{ text: 'OK' }]
-      )
+      // Success alert will be handled by progress UI or a timeout
     } catch (error) {
       console.error('[UPLOAD] Error uploading plan:', error)
       Alert.alert(
@@ -143,6 +139,7 @@ export default function ProjectWorkspaceLayout() {
           onClose={() => setIsUploadSheetVisible(false)}
           onUploadFromDevice={handleUploadFromDevice}
         />
+        {renderProcessor()}
       </View>
     </>
   )

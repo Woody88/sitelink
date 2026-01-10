@@ -9,7 +9,7 @@ import { Redirect, Stack, useSegments } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { useUniwind } from 'uniwind'
 import * as SplashScreen from 'expo-splash-screen'
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, Suspense } from 'react'
 import { StoreRegistryProvider } from '@livestore/react'
 import { View, Platform } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -72,15 +72,17 @@ export default function RootLayout() {
 
   // User is authenticated - provide StoreRegistry for data access
   return (
-    <StoreRegistryProvider storeRegistry={getStoreRegistry()}>
-      <ThemeProvider value={NAV_THEME[theme ?? 'light']}>
-        <ProjectProvider>
-          <Stack screenOptions={{ headerShown: false }} />
-        </ProjectProvider>
-        <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
-        <PortalHost />
-      </ThemeProvider>
-    </StoreRegistryProvider>
+    <Suspense fallback={<Text>Loading LiveStore...</Text>}>
+      <StoreRegistryProvider storeRegistry={getStoreRegistry()}>
+        <ThemeProvider value={NAV_THEME[theme ?? 'light']}>
+          <ProjectProvider>
+            <Stack screenOptions={{ headerShown: false }} />
+          </ProjectProvider>
+          <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+          <PortalHost />
+        </ThemeProvider>
+      </StoreRegistryProvider>
+    </Suspense>
   )
 }
 
