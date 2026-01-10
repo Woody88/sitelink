@@ -1,11 +1,11 @@
 'use dom'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useCallback } from 'react'
 import * as mupdf from 'mupdf-js'
 import type { ProcessedPage } from './types'
 
 interface PDFProcessorProps {
-  pdfData: ArrayBuffer
+  pdfDataBase64: string
   onProgress?: (current: number, total: number) => void
   onPageProcessed?: (page: ProcessedPage) => void
   onComplete?: (pages: ProcessedPage[]) => void
@@ -16,51 +16,72 @@ const FULL_DPI = 150
 const THUMBNAIL_DPI = 72
 
 export default function PDFProcessor({
-  pdfData,
+  pdfDataBase64,
   onProgress,
   onPageProcessed,
   onComplete,
   onError,
 }: PDFProcessorProps) {
-  const [status, setStatus] = useState<'idle' | 'processing' | 'complete' | 'error'>('idle')
-
   const processPDF = useCallback(async () => {
     try {
-      setStatus('processing')
-      const processedPages: ProcessedPage[] = []
+      if (!pdfDataBase64) return
 
       await mupdf.ready
 
-      const document = mupdf.Document.openDocument(pdfData, 'application/pdf')
-      const pageCount = document.countPages()
+      // 1. Load the source document
+      const binaryString = atob(pdfDataBase64)
+      const bytes = new Uint8Array(binaryString.length)
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i)
+      }
+      
+      const srcDoc = mupdf.Document.openDocument(bytes.buffer, 'application/pdf')
+      const pageCount = srcDoc.countPages()
+      const allProcessedPages: ProcessedPage[] = []
 
-      for (let pageNum = 0; pageNum < pageCount; pageNum++) {
-        const page = document.loadPage(pageNum)
+      for (let i = 0; i < pageCount; i++) {
+        const page = srcDoc.loadPage(i)
         const bounds = page.getBounds()
-
+        
+        // Render images for UI feedback/viewer fallback
         const fullImage = await renderPageToImage(page, bounds, FULL_DPI)
         const thumbnailImage = await renderPageToImage(page, bounds, THUMBNAIL_DPI)
 
+        // Split PDF: Create a brand new PDF document for each page
+        const newDoc = new mupdf.Document('application/pdf')
+        
+        // "Graft" (copy) the specific page from source to new doc
+        newDoc.graftPage(0, srcDoc, i)
+        
+        // Save the new 1-page document to a Buffer
+        const outBuffer = newDoc.saveToBuffer('incremental=false')
+        
+        // Convert Buffer to Base64 to send back to React Native
+        const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(outBuffer)))
+
         const processedPage: ProcessedPage = {
-          pageNumber: pageNum + 1,
+          pageNumber: i + 1,
           fullImageDataUrl: fullImage.dataUrl,
           thumbnailDataUrl: thumbnailImage.dataUrl,
+          pdfData: pdfBase64, // The actual 1-page PDF file
           width: fullImage.width,
           height: fullImage.height,
         }
 
-        processedPages.push(processedPage)
+        allProcessedPages.push(processedPage)
         onPageProcessed?.(processedPage)
-        onProgress?.(pageNum + 1, pageCount)
+        onProgress?.(i + 1, pageCount)
+
+        // Cleanup memory for the new single-page doc
+        newDoc.destroy()
       }
 
-      setStatus('complete')
-      onComplete?.(processedPages)
+      onComplete?.(allProcessedPages)
+      srcDoc.destroy()
     } catch (error) {
-      setStatus('error')
       onError?.(error instanceof Error ? error : new Error(String(error)))
     }
-  }, [pdfData, onProgress, onPageProcessed, onComplete, onError])
+  }, [pdfDataBase64, onProgress, onPageProcessed, onComplete, onError])
 
   useEffect(() => {
     processPDF()
@@ -98,9 +119,5 @@ export default function PDFProcessor({
     }
   }
 
-  return (
-    <div style={{ display: 'none' }}>
-      <span>PDF Processor: {status}</span>
-    </div>
-  )
+  return null // This component runs in a hidden DOM environment
 }

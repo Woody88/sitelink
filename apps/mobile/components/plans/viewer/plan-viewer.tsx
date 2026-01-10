@@ -24,6 +24,7 @@ import { useStore } from '@livestore/react'
 import { events } from '@sitelink/domain'
 import { authClient } from '@/lib/auth'
 import { createAppStoreOptions } from '@/lib/store-config'
+import { nanoid } from '@livestore/livestore'
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
@@ -96,7 +97,7 @@ export function PlanViewer({
     [sessionToken]
   )
 
-  const store = useStore(storeOptions ?? undefined)
+  const { store } = useStore(storeOptions ?? undefined)
 
   // Fetch image and convert to base64 to bypass WebView CORS restrictions
   React.useEffect(() => {
@@ -135,23 +136,32 @@ export function PlanViewer({
   }, [setIsLoading])
 
   // Handle viewer error - must be async for DOM bridge
-  const handleViewerError = React.useCallback(async (errorMessage: string) => {
-    setIsLoading(false)
-    setError(errorMessage)
-  }, [setIsLoading, setError])
+  const handleViewerError = React.useCallback(
+    async (errorMessage: string) => {
+      setIsLoading(false)
+      setError(errorMessage)
+    },
+    [setIsLoading, setError]
+  )
 
   // Handle viewer state change - must be async for DOM bridge
-  const handleViewerStateChange = React.useCallback(async (state: ViewerState) => {
-    setViewerState(state)
-  }, [setViewerState])
+  const handleViewerStateChange = React.useCallback(
+    async (state: ViewerState) => {
+      setViewerState(state)
+    },
+    [setViewerState]
+  )
 
   // Handle marker press - must be async for DOM bridge
-  const handleMarkerPress = React.useCallback(async (marker: CalloutMarker) => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-    setSelectedMarker(marker)
-    setSelectedMarkerId(marker.id)
-    setShowMarkerSheet(true)
-  }, [setSelectedMarkerId])
+  const handleMarkerPress = React.useCallback(
+    async (marker: CalloutMarker) => {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+      setSelectedMarker(marker)
+      setSelectedMarkerId(marker.id)
+      setShowMarkerSheet(true)
+    },
+    [setSelectedMarkerId]
+  )
 
   // Handle close marker sheet
   const handleCloseMarkerSheet = React.useCallback(() => {
@@ -160,16 +170,22 @@ export function PlanViewer({
   }, [setSelectedMarkerId])
 
   // Handle navigate to sheet
-  const handleNavigateToSheet = React.useCallback((sheetRef: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
-    onSheetChange?.(sheetRef)
-  }, [onSheetChange])
+  const handleNavigateToSheet = React.useCallback(
+    (sheetRef: string) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+      onSheetChange?.(sheetRef)
+    },
+    [onSheetChange]
+  )
 
   // Handle take photo
-  const handleTakePhoto = React.useCallback((marker: CalloutMarker) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
-    onTakePhoto?.(marker)
-  }, [onTakePhoto])
+  const handleTakePhoto = React.useCallback(
+    (marker: CalloutMarker) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+      onTakePhoto?.(marker)
+    },
+    [onTakePhoto]
+  )
 
   // Zoom controls
   const handleZoomIn = React.useCallback(() => {
@@ -197,7 +213,7 @@ export function PlanViewer({
   const handleRetry = React.useCallback(() => {
     setError(null)
     setImageDataUrl(null)
-    setRetryCount(c => c + 1)
+    setRetryCount((c) => c + 1)
   }, [setError])
 
   // Handle add marker button
@@ -215,7 +231,7 @@ export function PlanViewer({
               return
             }
 
-            const markerId = crypto.randomUUID()
+            const markerId = nanoid()
             const centerX = 0.5
             const centerY = 0.5
 
@@ -244,7 +260,7 @@ export function PlanViewer({
   }))
 
   return (
-    <View className="flex-1 bg-background">
+    <View className="bg-background flex-1">
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       {/* OpenSeadragon Viewer - only render when image is loaded */}
@@ -267,10 +283,9 @@ export function PlanViewer({
         <Animated.View
           entering={FadeIn}
           exiting={FadeOut}
-          className="absolute inset-0 items-center justify-center bg-black/80"
-        >
+          className="absolute inset-0 items-center justify-center bg-black/80">
           <ActivityIndicator size="large" color="#fff" />
-          <Text className="text-white mt-4">Loading plan...</Text>
+          <Text className="mt-4 text-white">Loading plan...</Text>
         </Animated.View>
       )}
 
@@ -278,21 +293,17 @@ export function PlanViewer({
       {error && (
         <Animated.View
           entering={FadeIn}
-          className="absolute inset-0 items-center justify-center bg-black/90 px-8"
-        >
-          <Icon as={AlertCircle} className="size-16 text-destructive mb-4" />
-          <Text className="text-white text-lg font-semibold text-center mb-2">
+          className="absolute inset-0 items-center justify-center bg-black/90 px-8">
+          <Icon as={AlertCircle} className="text-destructive mb-4 size-16" />
+          <Text className="mb-2 text-center text-lg font-semibold text-white">
             Failed to load plan
           </Text>
-          <Text className="text-white/60 text-sm text-center mb-6">
-            {error}
-          </Text>
+          <Text className="mb-6 text-center text-sm text-white/60">{error}</Text>
           <Pressable
             onPress={handleRetry}
-            className="flex-row items-center gap-2 bg-white/10 px-6 py-3 rounded-full active:bg-white/20"
-          >
+            className="flex-row items-center gap-2 rounded-full bg-white/10 px-6 py-3 active:bg-white/20">
             <Icon as={RefreshCw} className="size-5 text-white" />
-            <Text className="text-white font-semibold">Try Again</Text>
+            <Text className="font-semibold text-white">Try Again</Text>
           </Pressable>
         </Animated.View>
       )}
@@ -301,14 +312,12 @@ export function PlanViewer({
       <Animated.View
         style={[controlsAnimatedStyle]}
         className="absolute inset-0"
-        pointerEvents="box-none"
-      >
+        pointerEvents="box-none">
         {/* Top bar */}
         <View
-          className="absolute left-0 right-0"
+          className="absolute right-0 left-0"
           style={{ top: insets.top }}
-          pointerEvents="box-none"
-        >
+          pointerEvents="box-none">
           <View className="flex-row items-start justify-between px-4 py-2" pointerEvents="box-none">
             {/* Close button */}
             <CloseButton onPress={handleClose} />
@@ -320,10 +329,9 @@ export function PlanViewer({
 
         {/* Bottom info bar */}
         <View
-          className="absolute left-0 right-0"
+          className="absolute right-0 left-0"
           style={{ bottom: insets.bottom + 8 }}
-          pointerEvents="box-none"
-        >
+          pointerEvents="box-none">
           <SheetInfoBar
             sheetCode={planCode}
             sheetTitle={planTitle}
@@ -343,8 +351,7 @@ export function PlanViewer({
         <View
           className="absolute right-4"
           style={{ top: insets.top + 80 }}
-          pointerEvents="box-none"
-        >
+          pointerEvents="box-none">
           <ViewerControls
             zoom={viewerState.zoom}
             minZoom={viewerState.minZoom}
@@ -357,10 +364,9 @@ export function PlanViewer({
           {/* Add marker button */}
           <Pressable
             onPress={handleAddMarkerPress}
-            className="mt-4 w-12 h-12 items-center justify-center bg-black/60 backdrop-blur-md rounded-full active:bg-black/70"
+            className="mt-4 h-12 w-12 items-center justify-center rounded-full bg-black/60 backdrop-blur-md active:bg-black/70"
             accessibilityLabel="Add marker"
-            accessibilityRole="button"
-          >
+            accessibilityRole="button">
             <Icon as={Plus} className="size-6 text-white" />
           </Pressable>
         </View>
@@ -402,10 +408,9 @@ function CloseButton({ onPress }: { onPress: () => void }) {
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       style={animatedStyle}
-      className="w-12 h-12 items-center justify-center bg-black/60 backdrop-blur-md rounded-full active:bg-black/70"
+      className="h-12 w-12 items-center justify-center rounded-full bg-black/60 backdrop-blur-md active:bg-black/70"
       accessibilityLabel="Close plan viewer"
-      accessibilityRole="button"
-    >
+      accessibilityRole="button">
       <Icon as={X} className="size-6 text-white" />
     </AnimatedPressable>
   )

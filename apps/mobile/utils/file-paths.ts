@@ -1,5 +1,5 @@
 // apps/mobile/utils/file-paths.ts
-import * as FileSystem from 'expo-file-system'
+import * as FileSystem from 'expo-file-system/legacy'
 
 const BASE_STORAGE_PATH = `${FileSystem.documentDirectory}storage/sitelink`
 
