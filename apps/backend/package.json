@@ -18,7 +18,8 @@
     "db:tables:local": "wrangler d1 execute sitelink-db --local --command \"SELECT name FROM sqlite_master WHERE type='table'\"",
     "db:tables:remote": "wrangler d1 execute sitelink-db --remote --command \"SELECT name FROM sqlite_master WHERE type='table'\"",
     "db:delete-test-user": "wrangler d1 execute sitelink-db --local --command \"DELETE FROM user WHERE email = 'test2@example.com'\"",
-    "logs": "wrangler tail"
+    "logs": "wrangler tail",
+    "lint": "bun oxlint"
   },
   "dependencies": {
     "@better-auth/expo": "^1.4.10",
