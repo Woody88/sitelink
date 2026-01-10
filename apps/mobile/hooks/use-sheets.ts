@@ -35,7 +35,7 @@ export function useSheets(projectId: string) {
 
   const store = useStore(storeOptions)
 
-  const sheets = store.useQuery(
+  const sheets = store?.useQuery(
     queryDb(
       tables.sheets
         .where({ projectId })

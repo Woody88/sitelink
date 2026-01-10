@@ -23,7 +23,7 @@ import { useUniwind } from 'uniwind'
 import { useProjects } from '@/hooks/use-projects'
 import { useStore } from '@livestore/react'
 import { events, tables } from '@sitelink/domain'
-import { queryDb } from '@livestore/livestore'
+import { nanoid, queryDb } from '@livestore/livestore'
 import { authClient } from '@/lib/auth'
 import { createAppStoreOptions } from '@/lib/store-config'
 
@@ -123,22 +123,34 @@ export default function ProjectsScreen() {
   const projects = useProjects()
   const isLoading = !Array.isArray(projects)
 
+  if (projects) {
+    console.log(`[ProjectsScreen] Rendered with ${projects.length} projects`)
+  }
+
   const { data: sessionData } = authClient.useSession()
   const sessionToken = sessionData?.session?.token
   const userId = sessionData?.user?.id
 
   const storeOptions = React.useMemo(
-    () => (sessionToken ? createAppStoreOptions(sessionToken) : null),
+    () => createAppStoreOptions(sessionToken ?? ''),
     [sessionToken]
   )
 
-  const store = useStore(storeOptions ?? undefined)
+  const { store } = useStore(storeOptions)
+
+  React.useEffect(() => {
+    if (store) {
+      console.log(
+        `[ProjectsScreen] Store initialized, sessionToken: ${sessionToken ? 'present' : 'missing'}`
+      )
+    }
+  }, [store, sessionToken])
 
   const organizationMembershipsQuery = React.useMemo(
     () => queryDb(tables.organizationMembers.where(userId ? { userId } : { userId: '__none__' })),
     [userId]
   )
-  const organizationMemberships = store.useQuery(organizationMembershipsQuery)
+  const organizationMemberships = store?.useQuery(organizationMembershipsQuery)
 
   const organizationId = React.useMemo(() => {
     const membershipsArray = Array.isArray(organizationMemberships) ? organizationMemberships : []
@@ -296,7 +308,7 @@ export default function ProjectsScreen() {
 
           // Auto-create organization if user doesn't have one yet
           if (!targetOrgId) {
-            const newOrgId = crypto.randomUUID()
+            const newOrgId = nanoid()
             const userName = sessionData?.user?.name || 'User'
             await store.commit(
               events.organizationCreated({
@@ -317,7 +329,7 @@ export default function ProjectsScreen() {
             console.log('[PROJECTS] Auto-created organization:', newOrgId)
           }
 
-          const projectId = crypto.randomUUID()
+          const projectId = nanoid()
           await store.commit(
             events.projectCreated({
               id: projectId,

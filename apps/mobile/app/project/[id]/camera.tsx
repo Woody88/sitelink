@@ -1,7 +1,7 @@
 import { useStore } from "@livestore/react";
 import { nanoid } from "@livestore/livestore";
 import { events } from "@sitelink/domain";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as React from "react";
 import { Modal, Pressable, StyleSheet, View } from "react-native";
@@ -66,7 +66,7 @@ export default function CameraScreen() {
 		[sessionToken],
 	);
 
-	const store = useStore(storeOptions ?? undefined);
+	const { store } = useStore(storeOptions ?? undefined);
 
 	// Request permissions on mount
 	const { requestPermissions } = camera;

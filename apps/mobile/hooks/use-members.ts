@@ -25,7 +25,7 @@ export function useMembers(projectId: string) {
 
   const store = useStore(storeOptions)
 
-  const project = store.useQuery(queryDb(tables.projects.where({ id: projectId })))
+  const project = store?.useQuery(queryDb(tables.projects.where({ id: projectId })))
 
   const organizationId = useMemo(() => {
     const projectsArray = Array.isArray(project) ? project : []

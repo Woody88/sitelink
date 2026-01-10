@@ -22,25 +22,31 @@ export function useProjects() {
   const sessionToken = data?.session?.token
 
   const storeOptions = useMemo(
-    () => createAppStoreOptions(sessionToken),
+    () => createAppStoreOptions(sessionToken ?? ''),
     [sessionToken]
   )
 
   const store = useStore(storeOptions)
 
-  const projects = store.useQuery(
+  const projects = store?.useQuery(
     queryDb(
       tables.projects
         .orderBy('updatedAt', 'desc')
     )
   )
 
-  const sheets = store.useQuery(queryDb(tables.sheets))
-  const photos = store.useQuery(queryDb(tables.photos))
-  const organizationMembers = store.useQuery(queryDb(tables.organizationMembers))
+  const sheets = store?.useQuery(queryDb(tables.sheets))
+  const photos = store?.useQuery(queryDb(tables.photos))
+  const organizationMembers = store?.useQuery(queryDb(tables.organizationMembers))
+
+  if (projects) {
+    console.log(`[useProjects] Found ${projects.length} projects:`, projects.map(p => p.name).join(', '));
+  }
 
   return useMemo(() => {
-    const projectsArray = Array.isArray(projects) ? projects : []
+    if (!projects) return undefined
+
+    const projectsArray = projects
     const sheetsArray = Array.isArray(sheets) ? sheets : []
     const photosArray = Array.isArray(photos) ? photos : []
     const membersArray = Array.isArray(organizationMembers) ? organizationMembers : []

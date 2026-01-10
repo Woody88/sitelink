@@ -44,7 +44,7 @@ export function useMarkers(sheetId: string | null) {
 
   const store = useStore(storeOptions)
 
-  const markers = store.useQuery(
+  const markers = store?.useQuery(
     sheetId
       ? queryDb(tables.markers.where({ sheetId }))
       : queryDb(tables.markers.where({ sheetId: '' }))
