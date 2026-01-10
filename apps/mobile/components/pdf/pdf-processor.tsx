@@ -1,7 +1,8 @@
 'use dom'
 
 import { useEffect, useCallback } from 'react'
-import * as mupdf from 'mupdf-js'
+import * as pdfjsLib from 'pdfjs-dist'
+import { PDFDocument } from 'pdf-lib'
 import type { ProcessedPage } from './types'
 
 interface PDFProcessorProps {
@@ -12,8 +13,13 @@ interface PDFProcessorProps {
   onError?: (error: Error) => void
 }
 
-const FULL_DPI = 150
-const THUMBNAIL_DPI = 72
+const FULL_SCALE = 2 // 2x for retina displays
+const THUMBNAIL_SCALE = 0.5 // Smaller for thumbnails
+
+// Configure PDF.js worker
+if (typeof window !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
+}
 
 export default function PDFProcessor({
   pdfDataBase64,
@@ -26,59 +32,59 @@ export default function PDFProcessor({
     try {
       if (!pdfDataBase64) return
 
-      await mupdf.ready
-
-      // 1. Load the source document
+      // Convert base64 to Uint8Array
       const binaryString = atob(pdfDataBase64)
       const bytes = new Uint8Array(binaryString.length)
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i)
       }
-      
-      const srcDoc = mupdf.Document.openDocument(bytes.buffer, 'application/pdf')
-      const pageCount = srcDoc.countPages()
+
+      // Load PDF with pdf.js for rendering
+      const loadingTask = pdfjsLib.getDocument({ data: bytes })
+      const pdfDoc = await loadingTask.promise
+      const pageCount = pdfDoc.numPages
+
+      // Load PDF with pdf-lib for splitting
+      const pdfLibDoc = await PDFDocument.load(bytes)
+
       const allProcessedPages: ProcessedPage[] = []
 
-      for (let i = 0; i < pageCount; i++) {
-        const page = srcDoc.loadPage(i)
-        const bounds = page.getBounds()
-        
-        // Render images for UI feedback/viewer fallback
-        const fullImage = await renderPageToImage(page, bounds, FULL_DPI)
-        const thumbnailImage = await renderPageToImage(page, bounds, THUMBNAIL_DPI)
+      for (let pageNum = 1; pageNum <= pageCount; pageNum++) {
+        // Get page from pdf.js for rendering
+        const page = await pdfDoc.getPage(pageNum)
+        const viewport = page.getViewport({ scale: 1 })
 
-        // Split PDF: Create a brand new PDF document for each page
-        const newDoc = new mupdf.Document('application/pdf')
-        
-        // "Graft" (copy) the specific page from source to new doc
-        newDoc.graftPage(0, srcDoc, i)
-        
-        // Save the new 1-page document to a Buffer
-        const outBuffer = newDoc.saveToBuffer('incremental=false')
-        
-        // Convert Buffer to Base64 to send back to React Native
-        const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(outBuffer)))
+        // Render full resolution image
+        const fullImage = await renderPageToImage(page, viewport, FULL_SCALE)
+
+        // Render thumbnail
+        const thumbnailImage = await renderPageToImage(page, viewport, THUMBNAIL_SCALE)
+
+        // Extract single page PDF using pdf-lib
+        const singlePageDoc = await PDFDocument.create()
+        const [copiedPage] = await singlePageDoc.copyPages(pdfLibDoc, [pageNum - 1])
+        singlePageDoc.addPage(copiedPage)
+
+        const pdfBytes = await singlePageDoc.save()
+        const pdfBase64 = btoa(String.fromCharCode(...pdfBytes))
 
         const processedPage: ProcessedPage = {
-          pageNumber: i + 1,
+          pageNumber: pageNum,
           fullImageDataUrl: fullImage.dataUrl,
           thumbnailDataUrl: thumbnailImage.dataUrl,
-          pdfData: pdfBase64, // The actual 1-page PDF file
+          pdfData: pdfBase64,
           width: fullImage.width,
           height: fullImage.height,
         }
 
         allProcessedPages.push(processedPage)
         onPageProcessed?.(processedPage)
-        onProgress?.(i + 1, pageCount)
-
-        // Cleanup memory for the new single-page doc
-        newDoc.destroy()
+        onProgress?.(pageNum, pageCount)
       }
 
       onComplete?.(allProcessedPages)
-      srcDoc.destroy()
     } catch (error) {
+      console.error('[PDFProcessor] Error:', error)
       onError?.(error instanceof Error ? error : new Error(String(error)))
     }
   }, [pdfDataBase64, onProgress, onPageProcessed, onComplete, onError])
@@ -89,26 +95,24 @@ export default function PDFProcessor({
 
   async function renderPageToImage(
     page: any,
-    bounds: number[],
-    dpi: number
+    viewport: any,
+    scale: number
   ): Promise<{ dataUrl: string; width: number; height: number }> {
-    const zoom = dpi / 72
-    const matrix = mupdf.Matrix.scale(zoom, zoom)
-    const pixmap = page.toPixmap(matrix, mupdf.ColorSpace.DeviceRGB, false)
+    const scaledViewport = page.getViewport({ scale })
 
     const canvas = document.createElement('canvas')
-    canvas.width = pixmap.getWidth()
-    canvas.height = pixmap.getHeight()
+    canvas.width = scaledViewport.width
+    canvas.height = scaledViewport.height
 
-    const ctx = canvas.getContext('2d')
-    if (!ctx) {
+    const context = canvas.getContext('2d')
+    if (!context) {
       throw new Error('Failed to get canvas context')
     }
 
-    const imageData = ctx.createImageData(canvas.width, canvas.height)
-    const samples = pixmap.getSamples()
-    imageData.data.set(samples)
-    ctx.putImageData(imageData, 0, 0)
+    await page.render({
+      canvasContext: context,
+      viewport: scaledViewport,
+    }).promise
 
     const dataUrl = canvas.toDataURL('image/png')
 

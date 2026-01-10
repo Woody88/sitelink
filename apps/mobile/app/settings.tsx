@@ -3,14 +3,54 @@ import { Text } from '@/components/ui/text';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Camera } from 'lucide-react-native';
+import { Camera, Database } from 'lucide-react-native';
 import * as React from 'react';
-import { ScrollView, View, Pressable } from 'react-native';
+import { ScrollView, View, Pressable, Alert } from 'react-native';
 import { Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { clearLiveStoreDatabase } from '@/lib/clear-database';
+import * as Updates from 'expo-updates';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const [isClearing, setIsClearing] = React.useState(false);
+
+  const handleClearDatabase = React.useCallback(async () => {
+    Alert.alert(
+      'Clear Database',
+      'This will delete all local data and restart the app. The app will resync from the server on next launch.\n\nAre you sure?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear & Restart',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsClearing(true);
+              const success = await clearLiveStoreDatabase();
+              if (success) {
+                // Reload the app
+                if (__DEV__) {
+                  // In development, just reload
+                  await Updates.reloadAsync();
+                } else {
+                  // In production, restart
+                  await Updates.reloadAsync();
+                }
+              } else {
+                Alert.alert('Error', 'Failed to clear database');
+                setIsClearing(false);
+              }
+            } catch (error) {
+              console.error('Error clearing database:', error);
+              Alert.alert('Error', 'Failed to clear database');
+              setIsClearing(false);
+            }
+          },
+        },
+      ]
+    );
+  }, []);
 
   return (
     <View className="flex-1 bg-background">
@@ -88,6 +128,32 @@ export default function ProfileScreen() {
                 </Button>
               </View>
           </View>
+
+          {/* Developer Section - Only show in development */}
+          {__DEV__ && (
+            <View className="mt-12 pt-8 border-t border-border">
+              <Text className="text-lg font-bold text-foreground mb-4">Developer Tools</Text>
+
+              <View className="gap-3">
+                <View className="gap-2">
+                  <Text className="text-sm text-muted-foreground px-1">
+                    Clear local database if you encounter schema mismatch errors (MaterializerHashMismatchError).
+                  </Text>
+                  <Button
+                    variant="destructive"
+                    className="h-12 rounded-xl flex-row items-center gap-2"
+                    onPress={handleClearDatabase}
+                    disabled={isClearing}
+                  >
+                    <Icon as={Database} className="size-5 text-destructive-foreground" />
+                    <Text className="text-base font-semibold text-destructive-foreground">
+                      {isClearing ? 'Clearing...' : 'Clear Database & Restart'}
+                    </Text>
+                  </Button>
+                </View>
+              </View>
+            </View>
+          )}
       </ScrollView>
     </View>
   );
