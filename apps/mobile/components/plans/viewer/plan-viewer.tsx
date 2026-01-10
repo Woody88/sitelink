@@ -93,11 +93,11 @@ export function PlanViewer({
   const userId = sessionData?.user?.id
 
   const storeOptions = React.useMemo(
-    () => (sessionToken ? createAppStoreOptions(sessionToken) : null),
+    () => createAppStoreOptions(sessionToken),
     [sessionToken]
   )
 
-  const { store } = useStore(storeOptions ?? undefined)
+  const store = useStore(storeOptions)
 
   // Fetch image and convert to base64 to bypass WebView CORS restrictions
   React.useEffect(() => {

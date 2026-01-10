@@ -132,11 +132,11 @@ export default function ProjectsScreen() {
   const userId = sessionData?.user?.id
 
   const storeOptions = React.useMemo(
-    () => createAppStoreOptions(sessionToken ?? ''),
+    () => createAppStoreOptions(sessionToken),
     [sessionToken]
   )
 
-  const { store } = useStore(storeOptions)
+  const store = useStore(storeOptions)
 
   React.useEffect(() => {
     if (store) {

@@ -29,11 +29,11 @@ export default function MembersScreen() {
   const userId = sessionData?.user?.id
 
   const storeOptions = React.useMemo(
-    () => (sessionToken ? createAppStoreOptions(sessionToken) : null),
+    () => createAppStoreOptions(sessionToken),
     [sessionToken]
   )
 
-  const { store } = useStore(storeOptions ?? undefined)
+  const store = useStore(storeOptions)
 
   const projectQuery = React.useMemo(
     () => queryDb(tables.projects.where({ id: projectId })),

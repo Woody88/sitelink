@@ -30,14 +30,12 @@ export default function ProjectWorkspaceLayout() {
   const { data: sessionData } = authClient.useSession()
   const sessionToken = sessionData?.session?.token
 
-  const storeOptions = useMemo(() => {
-    if (!sessionToken) {
-      return createAppStoreOptions('')
-    }
-    return createAppStoreOptions(sessionToken)
-  }, [sessionToken])
+  const storeOptions = useMemo(
+    () => createAppStoreOptions(sessionToken),
+    [sessionToken]
+  )
 
-  const { store } = useStore(storeOptions)
+  const store = useStore(storeOptions)
 
   const projectQuery = useMemo(
     () => queryDb(tables.projects.where({ id: params.id })),

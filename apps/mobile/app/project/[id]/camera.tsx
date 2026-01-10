@@ -62,11 +62,11 @@ export default function CameraScreen() {
 	const userId = sessionData?.user?.id;
 
 	const storeOptions = React.useMemo(
-		() => (sessionToken ? createAppStoreOptions(sessionToken) : null),
+		() => createAppStoreOptions(sessionToken),
 		[sessionToken],
 	);
 
-	const { store } = useStore(storeOptions ?? undefined);
+	const store = useStore(storeOptions);
 
 	// Request permissions on mount
 	const { requestPermissions } = camera;
