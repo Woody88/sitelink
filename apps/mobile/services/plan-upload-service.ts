@@ -1,4 +1,5 @@
 import * as FileSystem from 'expo-file-system/legacy'
+import { File } from 'expo-file-system'
 import { State } from '@livestore/livestore'
 import { events } from '@sitelink/domain'
 import type { ProcessedPage } from '@/components/pdf/types'
@@ -8,6 +9,7 @@ import {
   getPlanSourcePath,
   getSheetFullImagePath,
   getSheetThumbnailPath,
+  getSheetPdfPath,
 } from '@/utils/file-paths'
 
 export interface PlanUploadOptions {
@@ -25,10 +27,11 @@ export interface PlanUploadOptions {
  * Handle initial plan upload and local storage
  */
 export async function uploadPlan(
-  store: State.Store<typeof events>,
+  store: any,
   options: PlanUploadOptions
-): Promise<{ destinationPath: string; pdfDataBase64: string }> {
-  const { planId, projectId, organizationId, fileName, fileSize, mimeType, sourceUri, uploadedBy } = options
+): Promise<{ destinationPath: string }> {
+  const { planId, projectId, organizationId, fileName, fileSize, mimeType, sourceUri, uploadedBy } =
+    options
 
   await ensurePlanUploadDirectoryExists(organizationId, projectId, planId)
   const destinationPath = getPlanSourcePath(organizationId, projectId, planId)
@@ -59,17 +62,58 @@ export async function uploadPlan(
     })
   )
 
-  const pdfDataBase64 = await FileSystem.readAsStringAsync(destinationPath, {
-    encoding: FileSystem.EncodingType.Base64,
-  })
-
-  return { destinationPath, pdfDataBase64 }
+  return { destinationPath }
 }
 
 /**
- * Save a single processed sheet and its images to the local filesystem
+ * Save a single processed sheet (single-page PDF) to the local filesystem
+ * Writes bytes directly (no base64!) - same pattern as backend writing to R2
  */
 export async function saveProcessedSheet(
+  organizationId: string,
+  projectId: string,
+  planId: string,
+  sheet: { pageNumber: number; pdfBytes: Uint8Array; width: number; height: number }
+): Promise<{
+  id: string
+  number: string
+  title: string
+  discipline: string
+  localImagePath: string
+  localThumbnailPath: string
+  imagePath: undefined
+  width: number
+  height: number
+}> {
+  await ensureSheetDirectoryExists(organizationId, projectId, planId, sheet.pageNumber)
+
+  const pdfPath = getSheetPdfPath(organizationId, projectId, planId, sheet.pageNumber)
+
+  // Write bytes directly using File API (no base64 conversion!)
+  const file = new File(pdfPath)
+  file.create()
+  file.write(sheet.pdfBytes)
+
+  const sheetId = `${planId}_sheet_${sheet.pageNumber}`
+
+  return {
+    id: sheetId,
+    number: String(sheet.pageNumber),
+    title: `Sheet ${sheet.pageNumber}`,
+    discipline: 'GENERAL',
+    localImagePath: pdfPath,
+    localThumbnailPath: pdfPath,
+    imagePath: undefined,
+    width: sheet.width,
+    height: sheet.height,
+  }
+}
+
+/**
+ * Legacy function - Save a single processed sheet with images
+ * @deprecated Use saveProcessedSheet with ProcessedSheet instead
+ */
+export async function saveProcessedSheetLegacy(
   organizationId: string,
   projectId: string,
   planId: string,

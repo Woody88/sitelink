@@ -1,12 +1,11 @@
-import { useState, useCallback, useMemo, createElement } from 'react'
-import { useStore } from '@livestore/react'
+import { useState, useCallback } from 'react'
 import { nanoid } from '@livestore/livestore'
 import * as DocumentPicker from 'expo-document-picker'
 import { uploadPlan, saveProcessedSheet } from '@/services/plan-upload-service'
-import { authClient } from '@/lib/auth'
-import { createAppStoreOptions } from '@/lib/store-config'
+import { useSessionContext } from '@/lib/session-context'
+import { useAppStore } from '@/livestore/store'
 import { events } from '@sitelink/domain'
-import PDFProcessor from '@/components/pdf/pdf-processor'
+import { processPDF } from '@/services/pdf-processor'
 
 export interface UsePlanUploadOptions {
   projectId: string
@@ -24,20 +23,13 @@ export interface UploadProgress {
 }
 
 export function usePlanUpload({ projectId, organizationId, uploadedBy }: UsePlanUploadOptions) {
-  const { data } = authClient.useSession()
-  const sessionToken = data?.session?.token
-
-  const storeOptions = useMemo(
-    () => createAppStoreOptions(sessionToken),
-    [sessionToken]
-  )
-
-  const store = useStore(storeOptions)
+  const { sessionToken, sessionId } = useSessionContext()
+  const store = useAppStore(organizationId, sessionToken, sessionId)
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null)
-  const [pdfToProcess, setPdfToProcess] = useState<{ planId: string; data: string } | null>(null)
 
   const pickAndUploadPlan = useCallback(async () => {
     try {
+      console.log('[UPLOAD] Opening document picker...')
       const result = await DocumentPicker.getDocumentAsync({
         type: ['application/pdf'],
         copyToCacheDirectory: true,
@@ -45,11 +37,13 @@ export function usePlanUpload({ projectId, organizationId, uploadedBy }: UsePlan
       })
 
       if (result.canceled) {
+        console.log('[UPLOAD] User canceled file selection')
         return null
       }
 
       const file = result.assets[0]
       const planId = nanoid()
+      console.log('[UPLOAD] File selected:', { fileName: file.name, size: file.size, planId })
 
       setUploadProgress({
         planId,
@@ -59,7 +53,8 @@ export function usePlanUpload({ projectId, organizationId, uploadedBy }: UsePlan
         status: 'uploading',
       })
 
-      const { pdfDataBase64 } = await uploadPlan(store, {
+      console.log('[UPLOAD] Uploading plan to local storage...')
+      const { destinationPath } = await uploadPlan(store, {
         planId,
         projectId,
         organizationId,
@@ -70,16 +65,81 @@ export function usePlanUpload({ projectId, organizationId, uploadedBy }: UsePlan
         uploadedBy,
       })
 
-      setPdfToProcess({ planId, data: pdfDataBase64 })
-      
-      setUploadProgress(prev => prev ? {
-        ...prev,
-        status: 'processing',
-      } : null)
+      console.log('[UPLOAD] Starting PDF processing...')
+      setUploadProgress((prev) => (prev ? { ...prev, status: 'processing' } : null))
+
+      // Process PDF directly - no base64 conversion!
+      const sheets = await processPDF(destinationPath, (current, total) => {
+        const progress = Math.round((current / total) * 100)
+        console.log('[UPLOAD] Progress:', `${current}/${total}`, `(${progress}%)`)
+
+        setUploadProgress((prev) =>
+          prev
+            ? {
+                ...prev,
+                progress,
+                currentPage: current,
+                totalPages: total,
+                status: 'processing',
+              }
+            : null
+        )
+
+        store.commit(
+          events.planProcessingProgress({
+            planId,
+            progress,
+            currentPage: current,
+            totalPages: total,
+          })
+        )
+      })
+
+      console.log('[UPLOAD] PDF processing complete, saving sheets...')
+
+      // Save each sheet
+      for (const sheet of sheets) {
+        console.log('[UPLOAD] Saving sheet:', sheet.pageNumber)
+        const savedSheet = await saveProcessedSheet(organizationId, projectId, planId, sheet)
+
+        console.log('[UPLOAD] Committing sheet to store:', savedSheet.id)
+        store.commit(
+          events.sheetsReceived({
+            projectId,
+            planId,
+            sheets: [savedSheet],
+          })
+        )
+      }
+
+      // Complete
+      console.log('[UPLOAD] All sheets saved, completing plan')
+      store.commit(
+        events.planProcessingCompleted({
+          planId,
+          sheetCount: sheets.length,
+          completedAt: new Date(),
+        })
+      )
+
+      setUploadProgress((prev) =>
+        prev
+          ? {
+              ...prev,
+              progress: 100,
+              status: 'complete',
+            }
+          : null
+      )
+
+      console.log('[UPLOAD] Plan processing complete!')
+      setTimeout(() => {
+        setUploadProgress(null)
+      }, 2000)
 
       return planId
     } catch (error) {
-      console.error('Error picking/uploading plan:', error)
+      console.error('[UPLOAD] Error processing plan:', error)
       const err = error instanceof Error ? error : new Error(String(error))
       setUploadProgress({
         planId: '',
@@ -93,110 +153,14 @@ export function usePlanUpload({ projectId, organizationId, uploadedBy }: UsePlan
     }
   }, [store, projectId, organizationId, uploadedBy])
 
-  const handlePageProcessed = useCallback(async (page: any) => {
-    if (!pdfToProcess) return
-
-    try {
-      const sheet = await saveProcessedSheet(
-        organizationId,
-        projectId,
-        pdfToProcess.planId,
-        page
-      )
-
-      // Use store.commit directly here
-      await store.commit(
-        events.sheetsReceived({
-          projectId,
-          planId: pdfToProcess.planId,
-          sheets: [sheet],
-        })
-      )
-    } catch (error) {
-      console.error('[UPLOAD] Error saving sheet:', error)
-    }
-  }, [pdfToProcess, organizationId, projectId, store])
-
-  const handleComplete = useCallback(async (pages: any[]) => {
-    if (!pdfToProcess) return
-
-    try {
-      await store.commit(
-        events.planProcessingCompleted({
-          planId: pdfToProcess.planId,
-          sheetCount: pages.length,
-          completedAt: new Date(),
-        })
-      )
-
-      setUploadProgress(prev => prev ? {
-        ...prev,
-        progress: 100,
-        status: 'complete',
-      } : null)
-
-      setTimeout(() => {
-        setUploadProgress(null)
-        setPdfToProcess(null)
-      }, 2000)
-    } catch (error) {
-      console.error('[UPLOAD] Error completing plan:', error)
-    }
-  }, [pdfToProcess, store])
-
-  const handleError = useCallback((error: Error) => {
-    setUploadProgress(prev => prev ? {
-      ...prev,
-      status: 'error',
-      error,
-    } : null)
-    setPdfToProcess(null)
-  }, [])
-
-  const handleProgress = useCallback((current: number, total: number) => {
-    const progress = Math.round((current / total) * 100)
-    setUploadProgress(prev => prev ? {
-      ...prev,
-      progress,
-      currentPage: current,
-      totalPages: total,
-    } : null)
-
-    if (pdfToProcess) {
-      store.commit(
-        events.planProcessingProgress({
-          planId: pdfToProcess.planId,
-          progress,
-          currentPage: current,
-          totalPages: total,
-        })
-      )
-    }
-  }, [pdfToProcess, store])
-
-  // Component to be rendered in the React tree to trigger the DOM processing
-  const renderProcessor = useCallback(() => {
-    if (!pdfToProcess) return null
-    
-    return createElement(PDFProcessor, {
-      pdfDataBase64: pdfToProcess.data,
-      onProgress: handleProgress,
-      onPageProcessed: handlePageProcessed,
-      onComplete: handleComplete,
-      onError: handleError,
-    })
-  }, [pdfToProcess, handleProgress, handlePageProcessed, handleComplete, handleError])
-
   const resetProgress = useCallback(() => {
     setUploadProgress(null)
-    setPdfToProcess(null)
   }, [])
 
   return {
     pickAndUploadPlan,
     uploadProgress,
     resetProgress,
-    renderProcessor,
     isUploading: uploadProgress?.status === 'uploading' || uploadProgress?.status === 'processing',
   }
 }

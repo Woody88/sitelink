@@ -1,3 +1,11 @@
+export interface ProcessedSheet {
+  pageNumber: number
+  pdfBytes: Uint8Array
+  width: number
+  height: number
+}
+
+// Legacy interface - kept for backward compatibility
 export interface ProcessedPage {
   pageNumber: number
   fullImageDataUrl: string

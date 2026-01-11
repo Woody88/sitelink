@@ -28,14 +28,22 @@ export function getProjectPath(organizationId: string, projectId: string): strin
  * Get the storage path for plan uploads
  * Structure: storage/sitelink/{organizationId}/{projectId}/plans/{planId}/
  */
-export function getPlanUploadPath(organizationId: string, projectId: string, planId: string): string {
+export function getPlanUploadPath(
+  organizationId: string,
+  projectId: string,
+  planId: string
+): string {
   return `${BASE_STORAGE_PATH}/${organizationId}/${projectId}/plans/${planId}`
 }
 
 /**
  * Get the path for the plan source PDF
  */
-export function getPlanSourcePath(organizationId: string, projectId: string, planId: string): string {
+export function getPlanSourcePath(
+  organizationId: string,
+  projectId: string,
+  planId: string
+): string {
   return `${getPlanUploadPath(organizationId, projectId, planId)}/source.pdf`
 }
 
@@ -43,14 +51,23 @@ export function getPlanSourcePath(organizationId: string, projectId: string, pla
  * Get the storage path for sheets extracted from a plan
  * Structure: storage/sitelink/{organizationId}/{projectId}/plans/{planId}/sheets/
  */
-export function getPlanSheetsPath(organizationId: string, projectId: string, planId: string): string {
+export function getPlanSheetsPath(
+  organizationId: string,
+  projectId: string,
+  planId: string
+): string {
   return `${getPlanUploadPath(organizationId, projectId, planId)}/sheets`
 }
 
 /**
  * Get the path for a specific sheet directory
  */
-export function getSheetPath(organizationId: string, projectId: string, planId: string, pageNumber: number): string {
+export function getSheetPath(
+  organizationId: string,
+  projectId: string,
+  planId: string,
+  pageNumber: number
+): string {
   const paddedNumber = String(pageNumber).padStart(3, '0')
   return `${getPlanSheetsPath(organizationId, projectId, planId)}/${paddedNumber}`
 }
@@ -58,15 +75,37 @@ export function getSheetPath(organizationId: string, projectId: string, planId: 
 /**
  * Get the full resolution image path for a sheet
  */
-export function getSheetFullImagePath(organizationId: string, projectId: string, planId: string, pageNumber: number): string {
+export function getSheetFullImagePath(
+  organizationId: string,
+  projectId: string,
+  planId: string,
+  pageNumber: number
+): string {
   return `${getSheetPath(organizationId, projectId, planId, pageNumber)}/full.png`
 }
 
 /**
  * Get the thumbnail image path for a sheet
  */
-export function getSheetThumbnailPath(organizationId: string, projectId: string, planId: string, pageNumber: number): string {
+export function getSheetThumbnailPath(
+  organizationId: string,
+  projectId: string,
+  planId: string,
+  pageNumber: number
+): string {
   return `${getSheetPath(organizationId, projectId, planId, pageNumber)}/thumb.png`
+}
+
+/**
+ * Get the single-page PDF path for a sheet
+ */
+export function getSheetPdfPath(
+  organizationId: string,
+  projectId: string,
+  planId: string,
+  pageNumber: number
+): string {
+  return `${getSheetPath(organizationId, projectId, planId, pageNumber)}/source.pdf`
 }
 
 /**
@@ -132,4 +171,3 @@ export async function ensureSheetDirectoryExists(
   await ensureDirectoryExists(sheetPath)
   return sheetPath
 }
-
