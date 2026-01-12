@@ -1,12 +1,12 @@
 // packages/domain/src/tables.ts
-import { State } from '@livestore/livestore'
+import { State } from "@livestore/livestore"
 
 export const tables = {
   // ===================
   // Users
   // ===================
   users: State.SQLite.table({
-    name: 'users',
+    name: "users",
     columns: {
       id: State.SQLite.text({ primaryKey: true }),
       email: State.SQLite.text(),
@@ -17,14 +17,14 @@ export const tables = {
       createdAt: State.SQLite.integer(),
       updatedAt: State.SQLite.integer(),
     },
-    indexes: [{ name: 'users_email', columns: ['email'] }],
+    indexes: [{ name: "users_email", columns: ["email"] }],
   }),
 
   // ===================
   // Organizations
   // ===================
   organizations: State.SQLite.table({
-    name: 'organizations',
+    name: "organizations",
     columns: {
       id: State.SQLite.text({ primaryKey: true }),
       name: State.SQLite.text(),
@@ -35,7 +35,7 @@ export const tables = {
   }),
 
   organizationMembers: State.SQLite.table({
-    name: 'organization_members',
+    name: "organization_members",
     columns: {
       id: State.SQLite.text({ primaryKey: true }), // organizationId_userId
       organizationId: State.SQLite.text(),
@@ -44,8 +44,8 @@ export const tables = {
       addedAt: State.SQLite.integer(),
     },
     indexes: [
-      { name: 'orgMembers_orgId', columns: ['organizationId'] },
-      { name: 'orgMembers_userId', columns: ['userId'] },
+      { name: "orgMembers_orgId", columns: ["organizationId"] },
+      { name: "orgMembers_userId", columns: ["userId"] },
     ],
   }),
 
@@ -53,7 +53,7 @@ export const tables = {
   // Projects
   // ===================
   projects: State.SQLite.table({
-    name: 'projects',
+    name: "projects",
     columns: {
       id: State.SQLite.text({ primaryKey: true }),
       organizationId: State.SQLite.text(),
@@ -64,11 +64,11 @@ export const tables = {
       createdAt: State.SQLite.integer(),
       updatedAt: State.SQLite.integer(),
     },
-    indexes: [{ name: 'projects_organizationId', columns: ['organizationId'] }],
+    indexes: [{ name: "projects_organizationId", columns: ["organizationId"] }],
   }),
 
   projectShares: State.SQLite.table({
-    name: 'project_shares',
+    name: "project_shares",
     columns: {
       id: State.SQLite.text({ primaryKey: true }), // projectId_email
       projectId: State.SQLite.text(),
@@ -80,9 +80,9 @@ export const tables = {
       sharedAt: State.SQLite.integer(),
     },
     indexes: [
-      { name: 'projectShares_projectId', columns: ['projectId'] },
-      { name: 'projectShares_userId', columns: ['sharedWithUserId'] },
-      { name: 'projectShares_projectId_email', columns: ['projectId', 'sharedWithEmail'] },
+      { name: "projectShares_projectId", columns: ["projectId"] },
+      { name: "projectShares_userId", columns: ["sharedWithUserId"] },
+      { name: "projectShares_projectId_email", columns: ["projectId", "sharedWithEmail"] },
     ],
   }),
 
@@ -90,7 +90,7 @@ export const tables = {
   // Plans (uploaded PDFs)
   // ===================
   plans: State.SQLite.table({
-    name: 'plans',
+    name: "plans",
     columns: {
       id: State.SQLite.text({ primaryKey: true }),
       projectId: State.SQLite.text(),
@@ -108,8 +108,8 @@ export const tables = {
       processedAt: State.SQLite.integer({ nullable: true }),
     },
     indexes: [
-      { name: 'plans_projectId', columns: ['projectId'] },
-      { name: 'plans_status', columns: ['status'] },
+      { name: "plans_projectId", columns: ["projectId"] },
+      { name: "plans_status", columns: ["status"] },
     ],
   }),
 
@@ -117,7 +117,7 @@ export const tables = {
   // Sheets (extracted from plans)
   // ===================
   sheets: State.SQLite.table({
-    name: 'sheets',
+    name: "sheets",
     columns: {
       id: State.SQLite.text({ primaryKey: true }),
       projectId: State.SQLite.text(),
@@ -131,11 +131,16 @@ export const tables = {
       width: State.SQLite.integer(),
       height: State.SQLite.integer(),
       sortOrder: State.SQLite.integer(),
+      processingStage: State.SQLite.text({ nullable: true }),
+      localPmtilesPath: State.SQLite.text({ nullable: true }),
+      remotePmtilesPath: State.SQLite.text({ nullable: true }),
+      minZoom: State.SQLite.integer({ nullable: true }),
+      maxZoom: State.SQLite.integer({ nullable: true }),
     },
     indexes: [
-      { name: 'sheets_projectId', columns: ['projectId'] },
-      { name: 'sheets_planId', columns: ['planId'] },
-      { name: 'sheets_projectId_discipline', columns: ['projectId', 'discipline'] },
+      { name: "sheets_projectId", columns: ["projectId"] },
+      { name: "sheets_planId", columns: ["planId"] },
+      { name: "sheets_projectId_discipline", columns: ["projectId", "discipline"] },
     ],
   }),
 
@@ -143,7 +148,7 @@ export const tables = {
   // Markers (callouts on sheets)
   // ===================
   markers: State.SQLite.table({
-    name: 'markers',
+    name: "markers",
     columns: {
       id: State.SQLite.text({ primaryKey: true }),
       sheetId: State.SQLite.text(),
@@ -155,14 +160,14 @@ export const tables = {
       createdBy: State.SQLite.text({ nullable: true }), // null for AI-detected markers
       createdAt: State.SQLite.integer({ nullable: true }),
     },
-    indexes: [{ name: 'markers_sheetId', columns: ['sheetId'] }],
+    indexes: [{ name: "markers_sheetId", columns: ["sheetId"] }],
   }),
 
   // ===================
   // Photos
   // ===================
   photos: State.SQLite.table({
-    name: 'photos',
+    name: "photos",
     columns: {
       id: State.SQLite.text({ primaryKey: true }),
       projectId: State.SQLite.text(),
@@ -174,9 +179,9 @@ export const tables = {
       capturedBy: State.SQLite.text(),
     },
     indexes: [
-      { name: 'photos_projectId', columns: ['projectId'] },
-      { name: 'photos_markerId', columns: ['markerId'] },
-      { name: 'photos_capturedAt', columns: ['capturedAt'] },
+      { name: "photos_projectId", columns: ["projectId"] },
+      { name: "photos_markerId", columns: ["markerId"] },
+      { name: "photos_capturedAt", columns: ["capturedAt"] },
     ],
   }),
 
@@ -184,7 +189,7 @@ export const tables = {
   // Voice Notes
   // ===================
   voiceNotes: State.SQLite.table({
-    name: 'voice_notes',
+    name: "voice_notes",
     columns: {
       id: State.SQLite.text({ primaryKey: true }),
       photoId: State.SQLite.text(),
@@ -193,6 +198,6 @@ export const tables = {
       durationSeconds: State.SQLite.integer(),
       transcription: State.SQLite.text({ nullable: true }),
     },
-    indexes: [{ name: 'voiceNotes_photoId', columns: ['photoId'] }],
+    indexes: [{ name: "voiceNotes_photoId", columns: ["photoId"] }],
   }),
 }

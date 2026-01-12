@@ -20,9 +20,10 @@ import { ViewerControls } from './viewer-controls'
 import { SheetInfoBar } from './sheet-info-bar'
 import { MarkerDetailSheet } from './marker-detail-sheet'
 import OpenSeadragonViewer from './openseadragon-viewer'
+import PMTilesViewer from './pmtiles-viewer'
 import { useStore } from '@livestore/react'
 import { events } from '@sitelink/domain'
-import { authClient } from '@/lib/auth'
+import { useSessionContext } from '@/lib/session-context'
 import { createAppStoreOptions } from '@/lib/store-config'
 import { nanoid } from '@livestore/livestore'
 
@@ -36,6 +37,9 @@ interface PlanViewerProps {
   onClose: () => void
   onSheetChange?: (sheetRef: string) => void
   onTakePhoto?: (marker: CalloutMarker) => void
+  processingStage?: string | null
+  localPmtilesPath?: string | null
+  remotePmtilesPath?: string | null
 }
 
 /**
@@ -55,6 +59,9 @@ export function PlanViewer({
   onClose,
   onSheetChange,
   onTakePhoto,
+  processingStage,
+  localPmtilesPath,
+  remotePmtilesPath,
 }: PlanViewerProps) {
   const insets = useSafeAreaInsets()
   const {
@@ -88,19 +95,22 @@ export function PlanViewer({
   const [retryCount, setRetryCount] = React.useState(0)
   const controlsOpacity = useSharedValue(1)
 
-  const { data: sessionData } = authClient.useSession()
-  const sessionToken = sessionData?.session?.token
-  const userId = sessionData?.user?.id
+  const { sessionToken, userId } = useSessionContext()
 
-  const storeOptions = React.useMemo(
-    () => createAppStoreOptions(sessionToken),
-    [sessionToken]
-  )
+  const storeOptions = React.useMemo(() => createAppStoreOptions(sessionToken), [sessionToken])
 
   const store = useStore(storeOptions)
 
-  // Fetch image and convert to base64 to bypass WebView CORS restrictions
+  const usePMTiles = processingStage === 'tiles_generated' && (localPmtilesPath || remotePmtilesPath)
+  const pmtilesUrl = usePMTiles ? (remotePmtilesPath || localPmtilesPath) : null
+
+  // Fetch image and convert to base64 to bypass WebView CORS restrictions (only for non-PMTiles)
   React.useEffect(() => {
+    if (usePMTiles) {
+      setImageDataUrl(null)
+      return
+    }
+
     let cancelled = false
 
     async function loadImage() {
@@ -127,7 +137,7 @@ export function PlanViewer({
     return () => {
       cancelled = true
     }
-  }, [imageUrl, retryCount, setIsLoading, setError])
+  }, [imageUrl, retryCount, usePMTiles, setIsLoading, setError])
 
   // Handle viewer ready - must be async for DOM bridge
   const handleViewerReady = React.useCallback(async () => {
@@ -226,7 +236,7 @@ export function PlanViewer({
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Add',
-          onPress: async (label) => {
+          onPress: async (label: string | undefined) => {
             if (!label?.trim() || !userId || !store) {
               return
             }
@@ -243,6 +253,7 @@ export function PlanViewer({
                 x: centerX,
                 y: centerY,
                 createdBy: userId,
+                createdAt: Date.now(),
               })
             )
             console.log('[PLAN_VIEWER] Marker created:', markerId)
@@ -263,11 +274,11 @@ export function PlanViewer({
     <View className="bg-background flex-1">
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      {/* OpenSeadragon Viewer - only render when image is loaded */}
+      {/* Viewer - PMTiles or OpenSeadragon based on processing stage */}
       <View className="flex-1">
-        {imageDataUrl && (
-          <OpenSeadragonViewer
-            imageUrl={imageDataUrl}
+        {usePMTiles && pmtilesUrl ? (
+          <PMTilesViewer
+            pmtilesUrl={pmtilesUrl}
             markers={markers}
             selectedMarkerId={selectedMarkerId}
             onMarkerPress={handleMarkerPress}
@@ -275,6 +286,18 @@ export function PlanViewer({
             onReady={handleViewerReady}
             onError={handleViewerError}
           />
+        ) : (
+          imageDataUrl && (
+            <OpenSeadragonViewer
+              imageUrl={imageDataUrl}
+              markers={markers}
+              selectedMarkerId={selectedMarkerId}
+              onMarkerPress={handleMarkerPress}
+              onViewerStateChange={handleViewerStateChange}
+              onReady={handleViewerReady}
+              onError={handleViewerError}
+            />
+          )
         )}
       </View>
 
