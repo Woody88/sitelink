@@ -64,7 +64,7 @@ export class PlanCoordinator extends DurableObject<Env> {
 
   async getState(): Promise<PlanCoordinatorState | null> {
     if (!this.state) {
-      this.state = await this.ctx.storage.get<PlanCoordinatorState>("state")
+      this.state = (await this.ctx.storage.get<PlanCoordinatorState>("state")) ?? null
     }
     return this.state
   }
@@ -158,7 +158,7 @@ export class PlanCoordinator extends DurableObject<Env> {
 
   private async ensureState(): Promise<PlanCoordinatorState> {
     if (!this.state) {
-      this.state = await this.ctx.storage.get<PlanCoordinatorState>("state")
+      this.state = (await this.ctx.storage.get<PlanCoordinatorState>("state")) ?? null
       if (!this.state) {
         throw new Error("PlanCoordinator not initialized")
       }
@@ -250,11 +250,71 @@ export class PlanCoordinator extends DurableObject<Env> {
     })
   }
 
-  async alarm() {
+  override async alarm() {
     const state = await this.getState()
     if (state && state.status !== "complete" && state.status !== "failed") {
       console.log(`[PlanCoordinator] Timeout reached for plan ${state.planId}. Marking as failed.`)
       await this.markFailed("Processing timeout exceeded")
+    }
+  }
+
+  async fetch(request: Request): Promise<Response> {
+    const url = new URL(request.url)
+    const path = url.pathname
+
+    try {
+      if (path === "/initialize" && request.method === "POST") {
+        const body = await request.json()
+        const result = await this.initialize(body)
+        return Response.json(result)
+      }
+
+      if (path === "/getState" && request.method === "GET") {
+        const state = await this.getState()
+        return Response.json(state)
+      }
+
+      if (path === "/sheetImageGenerated" && request.method === "POST") {
+        const { sheetId } = await request.json()
+        const result = await this.sheetImageGenerated(sheetId)
+        return Response.json(result)
+      }
+
+      if (path === "/sheetMetadataExtracted" && request.method === "POST") {
+        const { sheetId, isValid } = await request.json()
+        const result = await this.sheetMetadataExtracted(sheetId, isValid)
+        return Response.json(result)
+      }
+
+      if (path === "/sheetCalloutsDetected" && request.method === "POST") {
+        const { sheetId } = await request.json()
+        const result = await this.sheetCalloutsDetected(sheetId)
+        return Response.json(result)
+      }
+
+      if (path === "/sheetTilesGenerated" && request.method === "POST") {
+        const { sheetId } = await request.json()
+        const result = await this.sheetTilesGenerated(sheetId)
+        return Response.json(result)
+      }
+
+      if (path === "/markFailed" && request.method === "POST") {
+        const { error } = await request.json()
+        const result = await this.markFailed(error)
+        return Response.json(result)
+      }
+
+      if (path === "/alarm" && request.method === "POST") {
+        await this.alarm()
+        return Response.json({ success: true })
+      }
+
+      return Response.json({ error: "Method not found" }, { status: 404 })
+    } catch (error) {
+      return Response.json(
+        { error: error instanceof Error ? error.message : String(error) },
+        { status: 500 },
+      )
     }
   }
 }

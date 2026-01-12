@@ -3,15 +3,9 @@ import { join } from "path";
 import { mkdir, rm, readdir, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { pack } from "tar-stream";
-import { Readable, Writable } from "node:stream";
+import { Writable } from "node:stream";
 
 const PORT = parseInt(process.env.PORT || "3001");
-
-interface ProcessingResult {
-  success: boolean;
-  error?: string;
-  data?: unknown;
-}
 
 interface ImageGenerationResult {
   success: boolean;
