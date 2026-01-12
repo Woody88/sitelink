@@ -9,6 +9,7 @@ import {
   handleMetadataExtractionQueue,
   handleCalloutDetectionQueue,
   handleTileGenerationQueue,
+  uploadPdfAndTriggerPipeline,
 } from "./processing"
 import type { Env } from "./types/env"
 
@@ -109,12 +110,15 @@ export default {
         const { nanoid } = await import("@livestore/livestore")
         const planId = nanoid()
         const pdfPath = `organizations/${organizationId}/projects/${projectId}/plans/${planId}/source.pdf`
-
-        await env.R2_BUCKET.put(pdfPath, await file.arrayBuffer(), {
-          httpMetadata: { contentType: "application/pdf" },
-        })
-
         const totalPages = 1
+
+        // Upload PDF and automatically trigger pipeline (works in local dev and production)
+        await uploadPdfAndTriggerPipeline(env, pdfPath, await file.arrayBuffer(), {
+          planId,
+          projectId,
+          organizationId,
+          totalPages,
+        })
 
         await liveStoreClient.commit(
           "planUploaded",
@@ -151,6 +155,103 @@ export default {
           { error: error instanceof Error ? error.message : "Upload failed" },
           { status: 500 },
         )
+      }
+    }
+
+    // ============================================
+    // LOCAL DEV TEST ENDPOINTS (no auth required)
+    // ============================================
+
+    // Test endpoint to manually trigger pipeline (bypasses R2 event notifications)
+    if (url.pathname === "/api/test/trigger-pipeline" && request.method === "POST") {
+      try {
+        const body = await request.json() as {
+          planId?: string
+          projectId: string
+          organizationId: string
+          totalPages?: number
+        }
+
+        const { nanoid } = await import("@livestore/livestore")
+        const planId = body.planId || nanoid()
+        const totalPages = body.totalPages || 3
+
+        // Create a test PDF path (you'd upload a real PDF separately)
+        const pdfPath = `organizations/${body.organizationId}/projects/${body.projectId}/plans/${planId}/source.pdf`
+
+        console.log(`[TEST] Triggering pipeline for plan ${planId}`)
+
+        // Queue the image generation job
+        await env.IMAGE_GENERATION_QUEUE.send({
+          planId,
+          projectId: body.projectId,
+          organizationId: body.organizationId,
+          pdfPath,
+          totalPages,
+        })
+
+        return Response.json({
+          success: true,
+          planId,
+          pdfPath,
+          totalPages,
+          message: "Pipeline triggered - check wrangler logs for processing",
+        })
+      } catch (error) {
+        console.error("[TEST] Trigger error:", error)
+        return Response.json({ error: String(error) }, { status: 500 })
+      }
+    }
+
+    // Test endpoint to check PlanCoordinator state
+    if (url.pathname.startsWith("/api/test/coordinator/") && request.method === "GET") {
+      const planId = url.pathname.split("/").pop()
+      if (!planId) {
+        return Response.json({ error: "Missing planId" }, { status: 400 })
+      }
+
+      const coordinatorId = env.PLAN_COORDINATOR_DO.idFromName(planId)
+      const coordinator = env.PLAN_COORDINATOR_DO.get(coordinatorId)
+      const state = await coordinator.getState()
+
+      return Response.json({ planId, state })
+    }
+
+    // Test endpoint to upload PDF and auto-trigger pipeline (no auth, for local dev)
+    if (url.pathname === "/api/test/upload-pdf" && request.method === "POST") {
+      try {
+        const formData = await request.formData()
+        const file = formData.get("file") as File
+        const projectId = formData.get("projectId") as string || "test-project"
+        const organizationId = formData.get("organizationId") as string || "test-org"
+        const totalPages = parseInt(formData.get("totalPages") as string) || 1
+
+        if (!file) {
+          return Response.json({ error: "No file provided" }, { status: 400 })
+        }
+
+        const { nanoid } = await import("@livestore/livestore")
+        const planId = nanoid()
+        const pdfPath = `organizations/${organizationId}/projects/${projectId}/plans/${planId}/source.pdf`
+
+        // Upload and automatically trigger pipeline (simulates R2 event notification)
+        await uploadPdfAndTriggerPipeline(env, pdfPath, await file.arrayBuffer(), {
+          planId,
+          projectId,
+          organizationId,
+          totalPages,
+        })
+
+        return Response.json({
+          success: true,
+          planId,
+          pdfPath,
+          fileSize: file.size,
+          totalPages,
+          message: "PDF uploaded and pipeline triggered automatically!",
+        })
+      } catch (error) {
+        return Response.json({ error: String(error) }, { status: 500 })
       }
     }
 

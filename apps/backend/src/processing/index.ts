@@ -13,3 +13,4 @@ export {
   handleCalloutDetectionQueue,
   handleTileGenerationQueue,
 } from "./queue-consumer"
+export { uploadPdfAndTriggerPipeline, parseR2EventPath } from "./r2-with-notifications"
