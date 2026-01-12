@@ -1,0 +1,8 @@
+node_modules
+*.log
+*.md
+.git
+.gitignore
+server.ts
+package.json
+bun.lock

@@ -21,16 +21,61 @@
       "database_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
     }
   ],
+  "r2_buckets": [
+    {
+      "binding": "R2_BUCKET",
+      "bucket_name": "sitelink-files"
+    }
+  ],
+  "queues": {
+    "producers": [
+      { "binding": "IMAGE_GENERATION_QUEUE", "queue": "sitelink-image-generation" },
+      { "binding": "METADATA_EXTRACTION_QUEUE", "queue": "sitelink-metadata-extraction" },
+      { "binding": "CALLOUT_DETECTION_QUEUE", "queue": "sitelink-callout-detection" },
+      { "binding": "TILE_GENERATION_QUEUE", "queue": "sitelink-tile-generation" }
+    ],
+    "consumers": [
+      {
+        "queue": "sitelink-image-generation",
+        "max_batch_size": 1,
+        "max_retries": 3,
+        "dead_letter_queue": "sitelink-processing-dlq"
+      },
+      {
+        "queue": "sitelink-metadata-extraction",
+        "max_batch_size": 5,
+        "max_retries": 3,
+        "dead_letter_queue": "sitelink-processing-dlq"
+      },
+      {
+        "queue": "sitelink-callout-detection",
+        "max_batch_size": 1,
+        "max_retries": 3,
+        "dead_letter_queue": "sitelink-processing-dlq"
+      },
+      {
+        "queue": "sitelink-tile-generation",
+        "max_batch_size": 1,
+        "max_retries": 3,
+        "dead_letter_queue": "sitelink-processing-dlq"
+      }
+    ]
+  },
   "durable_objects": {
     "bindings": [
       {
         "name": "SYNC_BACKEND_DO",
-        "class_name": "WebSocketServer",
+        "class_name": "SyncBackendDO",
         "script_name": "sitelink-backend"
       },
       {
         "name": "LIVESTORE_CLIENT_DO",
         "class_name": "LiveStoreClientDO",
+        "script_name": "sitelink-backend"
+      },
+      {
+        "name": "PLAN_COORDINATOR_DO",
+        "class_name": "PlanCoordinator",
         "script_name": "sitelink-backend"
       }
     ]
@@ -38,9 +83,17 @@
   "migrations": [
     {
       "tag": "v1",
-      "new_sqlite_classes": ["WebSocketServer", "LiveStoreClientDO"]
+      "new_sqlite_classes": ["SyncBackendDO", "LiveStoreClientDO"]
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["PlanCoordinator"]
     }
   ],
+  "containers": {
+    "binding": "PDF_PROCESSOR_CONTAINER",
+    "image": "./container"
+  },
   "observability": {
     "enabled": true
   }

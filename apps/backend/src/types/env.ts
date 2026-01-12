@@ -9,6 +9,8 @@
  * This file extends those types with additional custom properties
  */
 
+import type { PlanCoordinator } from "../processing/plan-coordinator"
+
 export interface Env extends Cloudflare.Env {
   // Environment variables (set via wrangler.toml or secrets)
   SESSION_SECRET?: string
@@ -16,6 +18,22 @@ export interface Env extends Cloudflare.Env {
   GOOGLE_CLIENT_SECRET?: string
   GITHUB_CLIENT_ID?: string
   GITHUB_CLIENT_SECRET?: string
+
+  // Durable Objects for PDF processing
+  PLAN_COORDINATOR_DO: DurableObjectNamespace<PlanCoordinator>
+  LIVESTORE_CLIENT_DO: DurableObjectNamespace
+
+  // R2 Storage
+  R2_BUCKET: R2Bucket
+
+  // Queues for PDF processing pipeline
+  IMAGE_GENERATION_QUEUE: Queue
+  METADATA_EXTRACTION_QUEUE: Queue
+  CALLOUT_DETECTION_QUEUE: Queue
+  TILE_GENERATION_QUEUE: Queue
+
+  // Cloudflare Container for VIPS/Python processing
+  PDF_PROCESSOR_CONTAINER: Fetcher
 }
 
 /**

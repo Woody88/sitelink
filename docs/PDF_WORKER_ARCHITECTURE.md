@@ -4,7 +4,7 @@
 
 This document defines the backend worker architecture for the 4-stage PDF processing pipeline. The system processes construction plan PDFs uploaded from the mobile app, extracting sheet metadata, detecting callouts, and generating tiles for interactive viewing.
 
-The architecture uses Cloudflare Workers with Durable Objects for queue management, LiveStore for event sourcing, and a mix of VIPS (image processing) and Python dependencies (OpenCV, LLM) for the actual processing work.
+The architecture uses Cloudflare Workers for orchestration, Cloudflare Containers for VIPS/Python processing, Cloudflare Queues for job distribution, Durable Objects for coordination, and R2 for storage.
 
 ## Context
 
@@ -55,218 +55,220 @@ Tiles enable interactive zooming in the mobile app's plan viewer.
 
 ## Worker Types
 
-### 1. Image Generation Worker
+### Cloudflare Worker (Orchestration)
 
-**Responsibilities**:
-- Listen for plan upload events from LiveStore sync
-- Download original PDF from R2
-- Use VIPS to render each page at 300 DPI PNG
-- Upload source images to R2
-- Emit `sheetImageGenerated` events
+The main Cloudflare Worker handles:
+- Receiving events from LiveStore sync
+- Enqueueing jobs to Cloudflare Queues
+- Routing requests to the PDF Processor Container
+- Committing events back to LiveStore
 
-**Input Event**: `v1.PlanUploaded`
-**Output Events**: `v1.SheetImageGenerated` (one per sheet)
+### PDF Processor Container
 
-**Dependencies**:
-- VIPS CLI (via Cloudflare Workers subprocess or external service)
-- R2 storage bindings
-- LiveStore client
+A Cloudflare Container running VIPS and Python dependencies. Exposes REST endpoints for processing tasks.
 
-**Implementation Notes**:
-- VIPS is not available in Cloudflare Workers directly
-- Options:
-  1. Run on external compute (AWS Lambda, Fly.io) triggered by queue
-  2. Use Cloudflare Workers for orchestration + external VIPS service
-  3. Use Cloudflare Images API for PDF rendering
-
-**Recommended**: Use AWS Lambda with VIPS layer, triggered by SQS queue from Cloudflare Worker.
-
-### 2. Metadata Extraction Worker
-
-**Responsibilities**:
-- Listen for `sheetImageGenerated` events
-- Track completion of all sheets for a plan
-- Run OCR on title block regions to extract sheet metadata
-- Emit `sheetMetadataExtracted` events
-- When all sheets complete, emit `planMetadataCompleted` with `validSheets` list
-
-**Input Event**: `v1.SheetImageGenerated`
-**Output Events**:
-- `v1.SheetMetadataExtracted` (one per sheet)
-- `v1.PlanMetadataCompleted` (once all sheets processed)
-
-**Dependencies**:
-- OCR service (Tesseract.js or cloud OCR API)
-- LiveStore client for event commits
-- Durable Object for plan completion tracking
-
-**State Tracking**:
-Uses a Durable Object keyed by `planId` to track:
-```typescript
-interface PlanMetadataState {
-  planId: string
-  totalSheets: number
-  processedSheets: Set<string>
-  validSheets: string[]  // Sheet IDs with valid metadata
-  failedSheets: string[]  // Sheet IDs that failed extraction
+**Container Binding** (wrangler.json):
+```json
+"containers": {
+  "binding": "PDF_PROCESSOR_CONTAINER",
+  "image": "./container"
 }
 ```
 
-When `processedSheets.size === totalSheets`, emit `planMetadataCompleted`.
+**Endpoints**:
 
-**Implementation Notes**:
-- Title block detection can use simple heuristics (bottom-right corner)
-- OCR can run in Cloudflare Workers via Tesseract.js WASM
-- Fallback: Use generic titles "Sheet 1", "Sheet 2" if OCR fails
+#### POST /generate-images
+Converts PDF pages to 300 DPI PNG images using VIPS.
 
-### 3. Callout Detection Worker
-
-**Responsibilities**:
-- Listen for `planMetadataCompleted` events
-- For each sheet in the plan, run OpenCV + LLM detection pipeline
-- Use `validSheets` list to validate callout targets
-- Emit `sheetCalloutsDetected` events with markers and `needsReview` flags
-
-**Input Event**: `v1.PlanMetadataCompleted`
-**Output Events**: `v1.SheetCalloutsDetected` (one per sheet)
-
-**Dependencies**:
-- Python runtime with OpenCV (cv2), numpy
-- OpenRouter API for LLM validation
-- 300 DPI source images from R2
-- LiveStore client
-
-**Processing Flow**:
-```
-1. Receive planMetadataCompleted(planId, validSheets)
-2. For each sheet in plan:
-   a. Download 300 DPI PNG from R2
-   b. Run enhancedShapeDetection.py (OpenCV)
-   c. Crop detected shapes
-   d. Batch validate with LLM (batchValidation.ts)
-   e. Deduplicate nearby detections
-   f. Verify targets against validSheets
-   g. Emit sheetCalloutsDetected event
-```
-
-**Implementation Notes**:
-- Reuse callout-processor code from backend-dev branch
-- Python execution requires external runtime (not available in CF Workers)
-- Options:
-  1. AWS Lambda with Python + OpenCV layers
-  2. Dedicated Python service (FastAPI) on Fly.io/Railway
-  3. Cloudflare Workers + external Python API
-
-**Recommended**: AWS Lambda with Python 3.11 + OpenCV layer, triggered via SQS.
-
-**Error Handling**:
-- If detection fails for a sheet, emit event with empty markers array
-- Set `unmatchedCount` for callouts that don't match `validSheets`
-- Flag markers as `needsReview: true` if confidence < 0.8
-
-### 4. PMTiles Generation Worker
-
-**Responsibilities**:
-- Listen for `sheetCalloutsDetected` events
-- Download 300 DPI source image from R2
-- Use VIPS to generate Deep Zoom tiles
-- Package as PMTiles format
-- Upload to R2
-- Emit `sheetTilesGenerated` events
-
-**Input Event**: `v1.SheetCalloutsDetected`
-**Output Events**: `v1.SheetTilesGenerated`
-
-**Dependencies**:
-- VIPS CLI for tiling
-- PMTiles CLI for packaging
-- R2 storage bindings
-- LiveStore client
-
-**Tile Generation**:
-```bash
-# VIPS generates Deep Zoom tiles (JPEG)
-vips dzsave source.png tiles/ --suffix .jpg[Q=85] --tile-size=256
-
-# PMTiles packages tiles for efficient serving
-pmtiles convert tiles/ output.pmtiles
-```
-
-**Implementation Notes**:
-- Same challenge as Stage 1: VIPS not available in CF Workers
-- Can reuse the same external compute setup
-- PMTiles is a single file, easy to store in R2
-
-**Recommended**: AWS Lambda with VIPS + PMTiles layers, triggered via SQS.
-
-## Queue System
-
-### Queue Architecture
-
-Use Cloudflare Durable Objects as queue managers, with external compute workers polling for jobs.
-
+**Request**:
 ```typescript
-// Queue Durable Object
-class ProcessingQueue extends DurableObject {
-  async enqueue(job: Job): Promise<void>
-  async dequeue(): Promise<Job | null>
-  async retry(jobId: string): Promise<void>
-  async markComplete(jobId: string): Promise<void>
-  async markFailed(jobId: string, error: string): Promise<void>
-}
-```
-
-### Queue Types
-
-#### Image Generation Queue
-```typescript
-interface ImageGenJob {
-  uploadId: string
+{
+  pdfPath: string     // R2 key to original PDF
   planId: string
   projectId: string
   organizationId: string
-  pdfPath: string  // R2 key
   totalPages: number
-  priority: number  // 1-10 (10 = highest)
 }
 ```
 
-#### Metadata Extraction Queue
+**Response**:
 ```typescript
-interface MetadataExtractionJob {
-  uploadId: string
-  planId: string
-  sheetId: string
-  sheetNumber: number
-  imagePath: string  // R2 key to 300 DPI PNG
-}
-```
-
-#### Callout Detection Queue
-```typescript
-interface CalloutDetectionJob {
-  uploadId: string
-  planId: string
-  organizationId: string
-  projectId: string
-  validSheets: string[]  // From planMetadataCompleted
-  // Processed per-sheet
+{
   sheets: Array<{
-    sheetId: string
-    sheetNumber: number
-    imagePath: string  // R2 key to 300 DPI PNG
+    pageNumber: number
+    r2Key: string       // Path to generated PNG
+    width: number
+    height: number
   }>
 }
 ```
 
-#### PMTiles Generation Queue
+#### POST /extract-metadata
+Runs OCR on sheet title blocks to extract metadata.
+
+**Request**:
 ```typescript
-interface TilesGenJob {
+{
+  imagePath: string   // R2 key to 300 DPI PNG
+  sheetId: string
+  sheetNumber: number
+}
+```
+
+**Response**:
+```typescript
+{
+  sheetNumber: string
+  title: string
+  discipline: string | null
+  confidence: number
+}
+```
+
+#### POST /detect-callouts
+Runs OpenCV shape detection + LLM validation for callout markers.
+
+**Request**:
+```typescript
+{
+  imagePath: string         // R2 key to 300 DPI PNG
+  sheetId: string
+  sheetNumber: number
+  validSheets: string[]     // For target validation
+}
+```
+
+**Response**:
+```typescript
+{
+  markers: Array<{
+    id: string
+    type: "section" | "detail" | "elevation"
+    label: string
+    targetSheet: string | null
+    boundingBox: { x: number, y: number, width: number, height: number }
+    confidence: number
+    needsReview: boolean
+  }>
+  unmatchedCount: number
+}
+```
+
+#### POST /generate-tiles
+Generates Deep Zoom tiles and packages as PMTiles.
+
+**Request**:
+```typescript
+{
+  imagePath: string   // R2 key to 300 DPI PNG
+  outputPath: string  // R2 key for output PMTiles
+  sheetId: string
+}
+```
+
+**Response**:
+```typescript
+{
+  tilesPath: string   // R2 key to generated PMTiles
+  tileCount: number
+  zoomLevels: number
+}
+```
+
+### PlanCoordinator Durable Object
+
+Tracks sheet completion state for each plan.
+
+```typescript
+class PlanCoordinator extends DurableObject {
+  state: {
+    planId: string
+    totalSheets: number
+    processedSheets: Set<string>
+    validSheets: string[]
+    failedSheets: string[]
+  }
+
+  async recordSheetComplete(sheetId: string, success: boolean): Promise<void>
+  async isAllSheetsComplete(): Promise<boolean>
+  async getValidSheets(): Promise<string[]>
+}
+```
+
+When `processedSheets.size === totalSheets`, triggers `planMetadataCompleted` event.
+
+## Queue System
+
+### Cloudflare Queues
+
+Jobs are distributed via Cloudflare Queues, with the Worker consuming messages and routing to the Container.
+
+```typescript
+// wrangler.json
+"queues": {
+  "producers": [
+    { "queue": "pdf-processing", "binding": "PDF_QUEUE" }
+  ],
+  "consumers": [
+    { "queue": "pdf-processing", "max_batch_size": 1, "max_retries": 3 }
+  ]
+}
+```
+
+### Job Types
+
+#### Image Generation Job
+```typescript
+interface ImageGenJob {
+  type: "image-gen"
+  uploadId: string
+  planId: string
+  projectId: string
+  organizationId: string
+  pdfPath: string
+  totalPages: number
+  priority: number
+}
+```
+
+#### Metadata Extraction Job
+```typescript
+interface MetadataExtractionJob {
+  type: "metadata-extraction"
   uploadId: string
   planId: string
   sheetId: string
   sheetNumber: number
-  imagePath: string  // R2 key to 300 DPI PNG
+  imagePath: string
+}
+```
+
+#### Callout Detection Job
+```typescript
+interface CalloutDetectionJob {
+  type: "callout-detection"
+  uploadId: string
+  planId: string
+  organizationId: string
+  projectId: string
+  validSheets: string[]
+  sheets: Array<{
+    sheetId: string
+    sheetNumber: number
+    imagePath: string
+  }>
+}
+```
+
+#### PMTiles Generation Job
+```typescript
+interface TilesGenJob {
+  type: "tiles-gen"
+  uploadId: string
+  planId: string
+  sheetId: string
+  sheetNumber: number
+  imagePath: string
 }
 ```
 
@@ -282,24 +284,11 @@ interface TilesGenJob {
 - Backoff: Exponential (1min, 5min, 15min)
 - Failure action: Emit `planProcessingFailed` event
 
-**Concurrency Limits**:
+**Concurrency Limits** (managed via queue consumer settings):
 - Image Generation: 2 concurrent (VIPS is CPU-intensive)
 - Metadata Extraction: 10 concurrent (lightweight OCR)
 - Callout Detection: 1 concurrent (expensive LLM calls)
 - PMTiles Generation: 2 concurrent (VIPS is CPU-intensive)
-
-### Queue Monitoring
-
-Expose metrics via Durable Object:
-```typescript
-interface QueueMetrics {
-  pending: number
-  inProgress: number
-  completed: number
-  failed: number
-  avgProcessingTime: number
-}
-```
 
 ## LiveStore Integration
 
@@ -311,14 +300,12 @@ All workers use the same LiveStore client pattern:
 import { LiveStoreClient } from "@livestore/sync-cf/cf-worker"
 import { schema } from "@sitelink/domain"
 
-// Initialize with organizationId as storeId
 const client = new LiveStoreClient({
   schema,
   storeId: organizationId,
   syncBackend: env.SYNC_BACKEND_DO,
 })
 
-// Commit events
 await client.commit(
   events.sheetImageGenerated({
     sheetId,
@@ -382,7 +369,7 @@ await client.commit(
 
 #### 4. VIPS Crash
 **Stage**: Image Gen or PMTiles Gen
-**Handling**: Retry job (different worker may succeed)
+**Handling**: Retry job (different container instance may succeed)
 **Recovery**: After 3 retries, emit `planProcessingFailed`
 
 ### Partial Failures
@@ -419,12 +406,12 @@ organizations/{orgId}/projects/{projectId}/plans/{planId}/
             └── callouts_annotated.png
 ```
 
-### Local vs R2
+### Container Storage
 
-**Local Storage** (temporary):
+**Container Local Storage** (temporary):
 - Used during processing for intermediate files
 - Cleaned up after job completes
-- Not persistent across worker invocations
+- Not persistent across container restarts
 
 **R2 Storage** (permanent):
 - All final outputs (source.png, tiles.pmtiles)
@@ -448,57 +435,96 @@ organizations/{orgId}/projects/{projectId}/plans/{planId}/
 
 ## Deployment
 
-### Environment Setup
+### Cloudflare Configuration
 
-**Cloudflare Workers**:
-```toml
-# wrangler.toml
-[env.production]
-name = "sitelink-backend"
-main = "src/index.ts"
-compatibility_date = "2024-12-01"
+**wrangler.json**:
+```json
+{
+  "name": "sitelink-backend",
+  "main": "src/index.ts",
+  "compatibility_date": "2024-12-01",
 
-[[durable_objects.bindings]]
-name = "PROCESSING_QUEUE_DO"
-class_name = "ProcessingQueueDO"
-script_name = "sitelink-backend"
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "PLAN_COORDINATOR_DO",
+        "class_name": "PlanCoordinator"
+      },
+      {
+        "name": "SYNC_BACKEND_DO",
+        "class_name": "SyncBackend"
+      }
+    ]
+  },
 
-[[r2_buckets]]
-binding = "R2_BUCKET"
-bucket_name = "sitelink-storage"
+  "r2_buckets": [
+    {
+      "binding": "R2_BUCKET",
+      "bucket_name": "sitelink-storage"
+    }
+  ],
 
-[vars]
-OPENROUTER_API_KEY = "sk-..."
-WORKER_SERVICE_URL = "https://pdf-workers.sitelink.app"
+  "queues": {
+    "producers": [
+      { "queue": "pdf-processing", "binding": "PDF_QUEUE" }
+    ],
+    "consumers": [
+      {
+        "queue": "pdf-processing",
+        "max_batch_size": 1,
+        "max_retries": 3,
+        "dead_letter_queue": "pdf-processing-dlq"
+      }
+    ]
+  },
+
+  "containers": {
+    "PDF_PROCESSOR_CONTAINER": {
+      "image": "./container"
+    }
+  },
+
+  "vars": {
+    "OPENROUTER_API_KEY": "sk-..."
+  }
+}
 ```
 
-**AWS Lambda** (for VIPS + Python workers):
-```yaml
-# serverless.yml
-functions:
-  imageGen:
-    handler: workers/imageGen.handler
-    runtime: nodejs18.x
-    layers:
-      - arn:aws:lambda:us-east-1:123456789012:layer:vips:1
-    events:
-      - sqs:
-          arn: !GetAtt ImageGenQueue.Arn
-          batchSize: 1
-    timeout: 300
-    memorySize: 3008
+### Container Dockerfile
 
-  calloutDetection:
-    handler: workers/calloutDetection.handler
-    runtime: python3.11
-    layers:
-      - arn:aws:lambda:us-east-1:123456789012:layer:opencv:1
-    events:
-      - sqs:
-          arn: !GetAtt CalloutQueue.Arn
-          batchSize: 1
-    timeout: 900
-    memorySize: 10240
+```dockerfile
+# container/Dockerfile
+FROM python:3.11-slim
+
+# Install VIPS and dependencies
+RUN apt-get update && apt-get install -y \
+    libvips-dev \
+    libvips-tools \
+    tesseract-ocr \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . /app
+WORKDIR /app
+
+EXPOSE 8080
+CMD ["python", "server.py"]
+```
+
+**requirements.txt**:
+```
+opencv-python-headless==4.9.0.80
+numpy==1.26.4
+pillow==10.2.0
+pyvips==2.2.2
+pmtiles==3.3.0
+flask==3.0.0
+pytesseract==0.3.10
+requests==2.31.0
 ```
 
 ### Dependencies
@@ -508,47 +534,58 @@ functions:
 - `@sitelink/domain` - Shared events/schema
 - `@cloudflare/workers-types` - TypeScript types
 
-**AWS Lambda (Node.js)**:
-- VIPS layer (libvips + sharp)
-- PMTiles CLI
-- AWS SDK (S3/R2 access)
-
-**AWS Lambda (Python)**:
+**Container (Python)**:
+- VIPS (libvips + pyvips)
 - OpenCV (cv2)
 - NumPy
 - Pillow
-- Requests (for OpenRouter API)
+- Tesseract OCR
+- PMTiles CLI
+- Flask (HTTP server)
 
 ### Deployment Process
 
-1. **Build Cloudflare Worker**:
+1. **Build and Deploy Container**:
+   ```bash
+   cd apps/backend/container
+   docker build -t pdf-processor .
+   # Container is deployed with wrangler
+   ```
+
+2. **Deploy Cloudflare Worker**:
    ```bash
    cd apps/backend
    bun run build
    bunx wrangler deploy
    ```
 
-2. **Deploy AWS Lambdas**:
+3. **Create Queues**:
    ```bash
-   cd workers
-   serverless deploy --stage production
+   bunx wrangler queues create pdf-processing
+   bunx wrangler queues create pdf-processing-dlq
    ```
-
-3. **Configure Queue URLs**:
-   - Update Cloudflare Worker env vars with SQS queue URLs
-   - Update Lambda env vars with Cloudflare Worker callback URLs
 
 4. **Test Pipeline**:
    - Upload test PDF via mobile app
    - Monitor queue depths in Cloudflare dashboard
-   - Check Lambda CloudWatch logs for processing
+   - Check Worker logs for processing
    - Verify events in LiveStore
 
 ## Key Design Decisions
 
-### 1. Coordination for "Wait for All Sheets"
+### 1. Cloudflare Containers for Heavy Processing
 
-**Decision**: Use a Durable Object keyed by `planId` to track sheet completion.
+**Decision**: Use Cloudflare Containers for VIPS and Python workloads.
+
+**Rationale**:
+- Single cloud provider (Cloudflare-only infrastructure)
+- Containers have access to R2 bindings
+- No cross-cloud networking complexity
+- Simplified deployment and monitoring
+
+### 2. Coordination with Durable Objects
+
+**Decision**: Use PlanCoordinator Durable Object to track sheet completion.
 
 **Rationale**:
 - Durable Objects provide strong consistency
@@ -556,47 +593,25 @@ functions:
 - Atomic updates prevent race conditions
 - Natural fit for aggregation logic
 
-**Alternative Considered**: Query LiveStore for all `sheetMetadataExtracted` events.
-**Rejected**: Would require polling or complex event counting logic.
+### 3. Cloudflare Queues for Job Distribution
 
-### 2. Python Dependencies (OpenCV)
-
-**Decision**: Run OpenCV workload on AWS Lambda with Python runtime.
+**Decision**: Use Cloudflare Queues instead of external queue services.
 
 **Rationale**:
-- OpenCV requires native Python bindings (cv2)
-- Cloudflare Workers don't support Python
-- AWS Lambda has pre-built OpenCV layers
-- SQS provides reliable queue integration
+- Native integration with Workers
+- Built-in retry and dead-letter support
+- No external dependencies
+- Consistent with Cloudflare-only architecture
 
-**Alternative Considered**: Rewrite OpenCV logic in JavaScript (opencv.js).
-**Rejected**: Performance concerns and incomplete API coverage.
+### 4. Container Storage vs R2
 
-### 3. Local File Storage vs R2
-
-**Decision**: Store only final outputs in R2, use local temp storage during processing.
+**Decision**: Store only final outputs in R2, use container local temp storage during processing.
 
 **Rationale**:
 - R2 is permanent and accessible by mobile
 - Local storage is faster for intermediate files
 - Reduces R2 storage costs
 - Simplifies cleanup after processing
-
-**Alternative Considered**: Store all intermediate files in R2.
-**Rejected**: Unnecessary storage costs and slower processing.
-
-### 4. Queue Priority and Concurrency
-
-**Decision**: Prioritize user-initiated uploads (priority 10), limit callout detection to 1 concurrent job.
-
-**Rationale**:
-- User uploads need fast feedback
-- LLM calls are expensive and rate-limited
-- VIPS is CPU-intensive, limit to 2 concurrent
-- OCR is lightweight, can run 10 concurrent
-
-**Alternative Considered**: FIFO queue with no prioritization.
-**Rejected**: Poor UX for interactive uploads.
 
 ### 5. Handling Partial Failures
 
@@ -607,9 +622,6 @@ functions:
 - Users can see partial results immediately
 - Failed sheets can be retried independently
 - Graceful degradation principle
-
-**Alternative Considered**: Fail entire plan if any sheet fails.
-**Rejected**: Wasteful re-processing of successful sheets.
 
 ## Future Enhancements
 
@@ -622,8 +634,8 @@ Cache 300 DPI source images in R2 to avoid re-generation when re-running callout
 ### 3. Progressive Results
 Stream `sheetCalloutsDetected` events as each sheet completes, don't wait for all sheets.
 
-### 4. GPU Acceleration
-Use GPU-enabled Lambda instances for faster OpenCV processing.
+### 4. Container Autoscaling
+Configure container autoscaling based on queue depth for high-volume processing.
 
 ### 5. Adaptive Quality
 Adjust JPEG quality based on sheet complexity (e.g., 90% for detailed plans, 75% for simple diagrams).
@@ -636,11 +648,12 @@ Only process sheets that changed in a PDF update, skip unchanged sheets.
 - LiveStore Docs: https://next.livestore.dev/#docs-for-llms
 - Cloudflare Workers Docs: https://developers.cloudflare.com/workers/
 - Cloudflare Durable Objects: https://developers.cloudflare.com/durable-objects/
+- Cloudflare Queues: https://developers.cloudflare.com/queues/
+- Cloudflare Containers: https://developers.cloudflare.com/workers/platform/containers/
 - VIPS Documentation: https://www.libvips.org/
 - PMTiles Spec: https://github.com/protomaps/PMTiles
 - OpenCV Python: https://docs.opencv.org/4.x/d6/d00/tutorial_py_root.html
 - Callout Processor (backend-dev): `packages/callout-processor/`
-- Backend Queues (backend-dev): `packages/backend/src/core/queues/`
 
 ## Related Documents
 
