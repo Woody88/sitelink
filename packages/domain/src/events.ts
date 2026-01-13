@@ -257,7 +257,8 @@ export const events = {
     name: "v1.PlanMetadataCompleted",
     schema: Schema.Struct({
       planId: Schema.String,
-      validSheets: Schema.Array(Schema.String),
+      validSheets: Schema.Array(Schema.String), // Sheet IDs for materializer deletion
+      sheetNumberMap: Schema.Record({ key: Schema.String, value: Schema.String }), // Map of sheetId -> sheetNumber (e.g., "sheet-0" -> "A1")
       completedAt: Schema.Number,
     }),
   }),
@@ -308,7 +309,8 @@ export const events = {
     schema: Schema.Struct({
       planId: Schema.String,
       sheetCount: Schema.Number,
-      completedAt: Schema.Date,
+      // Use Number for timestamps sent via HTTP/JSON (Date objects don't survive JSON serialization)
+      completedAt: Schema.Number,
     }),
   }),
 
@@ -317,7 +319,8 @@ export const events = {
     schema: Schema.Struct({
       planId: Schema.String,
       error: Schema.String,
-      failedAt: Schema.Date,
+      // Use Number for timestamps sent via HTTP/JSON (Date objects don't survive JSON serialization)
+      failedAt: Schema.Number,
     }),
   }),
 
