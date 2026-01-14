@@ -13,18 +13,18 @@ bun run dev
 
 ## Scripts
 
-| Command | Description |
-|---------|-------------|
-| `dev` | Start local dev server |
-| `deploy` | Deploy to Cloudflare |
-| `cf-typegen` | Generate TypeScript types |
-| `db:generate` | Generate Better Auth migrations |
-| `db:migrate:local` | Apply migrations locally |
-| `db:migrate:remote` | Apply migrations to production |
-| `db:query:local "SQL"` | Query local D1 |
-| `db:query:remote "SQL"` | Query remote D1 |
-| `db:tables:local` | List local tables |
-| `db:tables:remote` | List remote tables |
+| Command                 | Description                     |
+| ----------------------- | ------------------------------- |
+| `dev`                   | Start local dev server          |
+| `deploy`                | Deploy to Cloudflare            |
+| `cf-typegen`            | Generate TypeScript types       |
+| `db:generate`           | Generate Better Auth migrations |
+| `db:migrate:local`      | Apply migrations locally        |
+| `db:migrate:remote`     | Apply migrations to production  |
+| `db:query:local "SQL"`  | Query local D1                  |
+| `db:query:remote "SQL"` | Query remote D1                 |
+| `db:tables:local`       | List local tables               |
+| `db:tables:remote`      | List remote tables              |
 
 ## Architecture
 

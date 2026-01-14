@@ -1,9 +1,9 @@
 // apps/backend/src/db/config.ts
-import { drizzle } from "drizzle-orm/d1"
-import type { Env } from "../types/env"
+import { drizzle } from "drizzle-orm/d1";
+import type { Env } from "../types/env";
 
 export function createDb(db: Env["DB"]) {
-  return drizzle(db)
+	return drizzle(db);
 }
 
-export type DbClient = ReturnType<typeof createDb>
+export type DbClient = ReturnType<typeof createDb>;

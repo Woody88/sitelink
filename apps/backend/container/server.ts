@@ -1,93 +1,93 @@
+import { existsSync } from "node:fs";
+import { mkdir, readdir, rm, stat } from "node:fs/promises";
+import { Writable } from "node:stream";
 import { $ } from "bun";
 import { join } from "path";
-import { mkdir, rm, readdir, stat } from "node:fs/promises";
-import { existsSync } from "node:fs";
 import { pack } from "tar-stream";
-import { Writable } from "node:stream";
 
 const PORT = parseInt(process.env.PORT || "3001");
 
 interface ImageGenerationResult {
-  success: boolean;
-  pages: number;
-  outputDir: string;
-  images: string[];
+	success: boolean;
+	pages: number;
+	outputDir: string;
+	images: string[];
 }
 
 interface MetadataResult {
-  sheetNumber: string | null;
-  sheetTitle: string | null;
-  scale: string | null;
-  rawText: string;
+	sheetNumber: string | null;
+	sheetTitle: string | null;
+	scale: string | null;
+	rawText: string;
 }
 
 interface CalloutDetectionResult {
-  shapes: DetectedShape[];
-  imageWidth: number;
-  imageHeight: number;
-  totalDetections: number;
+	shapes: DetectedShape[];
+	imageWidth: number;
+	imageHeight: number;
+	totalDetections: number;
 }
 
 interface DetectedShape {
-  type: string;
-  method: string;
-  centerX: number;
-  centerY: number;
-  bbox: { x1: number; y1: number; x2: number; y2: number };
-  confidence: number;
+	type: string;
+	method: string;
+	centerX: number;
+	centerY: number;
+	bbox: { x1: number; y1: number; x2: number; y2: number };
+	confidence: number;
 }
 
 async function ensureDir(dir: string): Promise<void> {
-  if (!existsSync(dir)) {
-    await mkdir(dir, { recursive: true });
-  }
+	if (!existsSync(dir)) {
+		await mkdir(dir, { recursive: true });
+	}
 }
 
 async function cleanupDir(dir: string): Promise<void> {
-  if (existsSync(dir)) {
-    await rm(dir, { recursive: true, force: true });
-  }
+	if (existsSync(dir)) {
+		await rm(dir, { recursive: true, force: true });
+	}
 }
 
 async function generateImages(
-  pdfPath: string,
-  outputDir: string,
-  dpi: number = 300
+	pdfPath: string,
+	outputDir: string,
+	dpi: number = 300,
 ): Promise<ImageGenerationResult> {
-  await ensureDir(outputDir);
+	await ensureDir(outputDir);
 
-  const pageCountResult =
-    await $`vips pdfload ${pdfPath} x --dpi=72 2>&1 | grep -oP 'n-pages: \\K\\d+' || pdftk ${pdfPath} dump_data | grep NumberOfPages | awk '{print $2}'`.quiet();
-  let pageCount = 1;
-  try {
-    const countStr = pageCountResult.stdout.toString().trim();
-    if (countStr) {
-      pageCount = parseInt(countStr) || 1;
-    }
-  } catch {
-    const pdfInfoResult =
-      await $`pdfinfo ${pdfPath} 2>/dev/null | grep Pages | awk '{print $2}'`.quiet();
-    pageCount = parseInt(pdfInfoResult.stdout.toString().trim()) || 1;
-  }
+	const pageCountResult =
+		await $`vips pdfload ${pdfPath} x --dpi=72 2>&1 | grep -oP 'n-pages: \\K\\d+' || pdftk ${pdfPath} dump_data | grep NumberOfPages | awk '{print $2}'`.quiet();
+	let pageCount = 1;
+	try {
+		const countStr = pageCountResult.stdout.toString().trim();
+		if (countStr) {
+			pageCount = parseInt(countStr) || 1;
+		}
+	} catch {
+		const pdfInfoResult =
+			await $`pdfinfo ${pdfPath} 2>/dev/null | grep Pages | awk '{print $2}'`.quiet();
+		pageCount = parseInt(pdfInfoResult.stdout.toString().trim()) || 1;
+	}
 
-  const images: string[] = [];
+	const images: string[] = [];
 
-  for (let page = 0; page < pageCount; page++) {
-    const outputPath = join(outputDir, `page-${page + 1}.png`);
-    await $`vips pdfload ${pdfPath} ${outputPath} --dpi=${dpi} --page=${page}`.quiet();
-    images.push(outputPath);
-  }
+	for (let page = 0; page < pageCount; page++) {
+		const outputPath = join(outputDir, `page-${page + 1}.png`);
+		await $`vips pdfload ${pdfPath} ${outputPath} --dpi=${dpi} --page=${page}`.quiet();
+		images.push(outputPath);
+	}
 
-  return {
-    success: true,
-    pages: pageCount,
-    outputDir,
-    images,
-  };
+	return {
+		success: true,
+		pages: pageCount,
+		outputDir,
+		images,
+	};
 }
 
 async function extractMetadata(imagePath: string): Promise<MetadataResult> {
-  const pythonScript = `
+	const pythonScript = `
 import sys
 import json
 import pytesseract
@@ -157,26 +157,25 @@ result = {
 print(json.dumps(result))
 `;
 
-  const tempScript = `/tmp/extract_metadata_${Date.now()}.py`;
-  await Bun.write(tempScript, pythonScript);
+	const tempScript = `/tmp/extract_metadata_${Date.now()}.py`;
+	await Bun.write(tempScript, pythonScript);
 
-  try {
-    const result =
-      await $`python3 ${tempScript} ${imagePath}`.quiet();
-    return JSON.parse(result.stdout.toString());
-  } finally {
-    await rm(tempScript, { force: true });
-  }
+	try {
+		const result = await $`python3 ${tempScript} ${imagePath}`.quiet();
+		return JSON.parse(result.stdout.toString());
+	} finally {
+		await rm(tempScript, { force: true });
+	}
 }
 
 async function detectCallouts(
-  imagePath: string,
-  dpi: number = 300,
-  outputDir: string = "/tmp/debug"
+	imagePath: string,
+	dpi: number = 300,
+	outputDir: string = "/tmp/debug",
 ): Promise<CalloutDetectionResult> {
-  await ensureDir(outputDir);
+	await ensureDir(outputDir);
 
-  const pythonScript = `
+	const pythonScript = `
 import sys
 import json
 import cv2
@@ -285,289 +284,289 @@ result = {
 print(json.dumps(result))
 `;
 
-  const tempScript = `/tmp/detect_callouts_${Date.now()}.py`;
-  await Bun.write(tempScript, pythonScript);
+	const tempScript = `/tmp/detect_callouts_${Date.now()}.py`;
+	await Bun.write(tempScript, pythonScript);
 
-  try {
-    const result =
-      await $`python3 ${tempScript} ${imagePath} ${dpi} ${outputDir}`.quiet();
-    return JSON.parse(result.stdout.toString());
-  } finally {
-    await rm(tempScript, { force: true });
-  }
+	try {
+		const result =
+			await $`python3 ${tempScript} ${imagePath} ${dpi} ${outputDir}`.quiet();
+		return JSON.parse(result.stdout.toString());
+	} finally {
+		await rm(tempScript, { force: true });
+	}
 }
 
 async function generateTiles(
-  imagePath: string,
-  outputDir: string,
-  tileSize: number = 254
+	imagePath: string,
+	outputDir: string,
+	tileSize: number = 254,
 ): Promise<ReadableStream<Uint8Array>> {
-  await ensureDir(outputDir);
+	await ensureDir(outputDir);
 
-  const baseName = "tiles";
-  const dziPath = join(outputDir, baseName);
+	const baseName = "tiles";
+	const dziPath = join(outputDir, baseName);
 
-  await $`vips dzsave ${imagePath} ${dziPath} --tile-size ${tileSize} --overlap 1 --depth onetile --suffix .jpg[Q=85]`.quiet();
+	await $`vips dzsave ${imagePath} ${dziPath} --tile-size ${tileSize} --overlap 1 --depth onetile --suffix .jpg[Q=85]`.quiet();
 
-  const tarPack = pack();
+	const tarPack = pack();
 
-  const collectBuffers: Uint8Array[] = [];
-  const writable = new Writable({
-    write(chunk, _encoding, callback) {
-      collectBuffers.push(chunk);
-      callback();
-    },
-  });
+	const collectBuffers: Uint8Array[] = [];
+	const writable = new Writable({
+		write(chunk, _encoding, callback) {
+			collectBuffers.push(chunk);
+			callback();
+		},
+	});
 
-  tarPack.pipe(writable);
+	tarPack.pipe(writable);
 
-  async function addDirToTar(dirPath: string, tarBasePath: string) {
-    const entries = await readdir(dirPath, { withFileTypes: true });
+	async function addDirToTar(dirPath: string, tarBasePath: string) {
+		const entries = await readdir(dirPath, { withFileTypes: true });
 
-    for (const entry of entries) {
-      const fullPath = join(dirPath, entry.name);
-      const tarPath = join(tarBasePath, entry.name);
+		for (const entry of entries) {
+			const fullPath = join(dirPath, entry.name);
+			const tarPath = join(tarBasePath, entry.name);
 
-      if (entry.isDirectory()) {
-        await addDirToTar(fullPath, tarPath);
-      } else {
-        const fileContent = await Bun.file(fullPath).arrayBuffer();
-        const stats = await stat(fullPath);
+			if (entry.isDirectory()) {
+				await addDirToTar(fullPath, tarPath);
+			} else {
+				const fileContent = await Bun.file(fullPath).arrayBuffer();
+				const stats = await stat(fullPath);
 
-        tarPack.entry(
-          {
-            name: tarPath,
-            size: stats.size,
-          },
-          Buffer.from(fileContent)
-        );
-      }
-    }
-  }
+				tarPack.entry(
+					{
+						name: tarPath,
+						size: stats.size,
+					},
+					Buffer.from(fileContent),
+				);
+			}
+		}
+	}
 
-  const dziFile = `${dziPath}.dzi`;
-  if (existsSync(dziFile)) {
-    const dziContent = await Bun.file(dziFile).arrayBuffer();
-    const dziStats = await stat(dziFile);
-    tarPack.entry(
-      {
-        name: `${baseName}.dzi`,
-        size: dziStats.size,
-      },
-      Buffer.from(dziContent)
-    );
-  }
+	const dziFile = `${dziPath}.dzi`;
+	if (existsSync(dziFile)) {
+		const dziContent = await Bun.file(dziFile).arrayBuffer();
+		const dziStats = await stat(dziFile);
+		tarPack.entry(
+			{
+				name: `${baseName}.dzi`,
+				size: dziStats.size,
+			},
+			Buffer.from(dziContent),
+		);
+	}
 
-  const tilesDir = `${dziPath}_files`;
-  if (existsSync(tilesDir)) {
-    await addDirToTar(tilesDir, `${baseName}_files`);
-  }
+	const tilesDir = `${dziPath}_files`;
+	if (existsSync(tilesDir)) {
+		await addDirToTar(tilesDir, `${baseName}_files`);
+	}
 
-  tarPack.finalize();
+	tarPack.finalize();
 
-  await new Promise((resolve) => writable.on("finish", resolve));
+	await new Promise((resolve) => writable.on("finish", resolve));
 
-  const combinedBuffer = Buffer.concat(collectBuffers);
+	const combinedBuffer = Buffer.concat(collectBuffers);
 
-  return new ReadableStream({
-    start(controller) {
-      controller.enqueue(new Uint8Array(combinedBuffer));
-      controller.close();
-    },
-  });
+	return new ReadableStream({
+		start(controller) {
+			controller.enqueue(new Uint8Array(combinedBuffer));
+			controller.close();
+		},
+	});
 }
 
 console.log(`Starting PDF processor container on port ${PORT}...`);
 
 const server = Bun.serve({
-  port: PORT,
-  routes: {
-    "/health": () => {
-      return Response.json({
-        status: "healthy",
-        timestamp: new Date().toISOString(),
-        version: "1.0.0",
-      });
-    },
+	port: PORT,
+	routes: {
+		"/health": () => {
+			return Response.json({
+				status: "healthy",
+				timestamp: new Date().toISOString(),
+				version: "1.0.0",
+			});
+		},
 
-    "/generate-images": {
-      POST: async (req) => {
-        const jobId = `job-${Date.now()}`;
-        const workDir = `/tmp/processing/${jobId}`;
+		"/generate-images": {
+			POST: async (req) => {
+				const jobId = `job-${Date.now()}`;
+				const workDir = `/tmp/processing/${jobId}`;
 
-        try {
-          const dpi = parseInt(req.headers.get("X-DPI") || "300");
-          const pdfPath = join(workDir, "input.pdf");
+				try {
+					const dpi = parseInt(req.headers.get("X-DPI") || "300");
+					const pdfPath = join(workDir, "input.pdf");
 
-          await ensureDir(workDir);
+					await ensureDir(workDir);
 
-          if (!req.body) {
-            throw new Error("Request body is empty");
-          }
+					if (!req.body) {
+						throw new Error("Request body is empty");
+					}
 
-          const pdfData = await req.arrayBuffer();
-          await Bun.write(pdfPath, pdfData);
+					const pdfData = await req.arrayBuffer();
+					await Bun.write(pdfPath, pdfData);
 
-          const outputDir = join(workDir, "images");
-          const result = await generateImages(pdfPath, outputDir, dpi);
+					const outputDir = join(workDir, "images");
+					const result = await generateImages(pdfPath, outputDir, dpi);
 
-          const imageBuffers: { page: number; data: string }[] = [];
-          for (let i = 0; i < result.images.length; i++) {
-            const imgData = await Bun.file(result.images[i]).arrayBuffer();
-            imageBuffers.push({
-              page: i + 1,
-              data: Buffer.from(imgData).toString("base64"),
-            });
-          }
+					const imageBuffers: { page: number; data: string }[] = [];
+					for (let i = 0; i < result.images.length; i++) {
+						const imgData = await Bun.file(result.images[i]).arrayBuffer();
+						imageBuffers.push({
+							page: i + 1,
+							data: Buffer.from(imgData).toString("base64"),
+						});
+					}
 
-          return Response.json({
-            success: true,
-            pages: result.pages,
-            images: imageBuffers,
-          });
-        } catch (error) {
-          console.error("Error in /generate-images:", error);
-          return Response.json(
-            {
-              success: false,
-              error: error instanceof Error ? error.message : String(error),
-            },
-            { status: 500 }
-          );
-        } finally {
-          await cleanupDir(workDir);
-        }
-      },
-    },
+					return Response.json({
+						success: true,
+						pages: result.pages,
+						images: imageBuffers,
+					});
+				} catch (error) {
+					console.error("Error in /generate-images:", error);
+					return Response.json(
+						{
+							success: false,
+							error: error instanceof Error ? error.message : String(error),
+						},
+						{ status: 500 },
+					);
+				} finally {
+					await cleanupDir(workDir);
+				}
+			},
+		},
 
-    "/extract-metadata": {
-      POST: async (req) => {
-        const jobId = `job-${Date.now()}`;
-        const workDir = `/tmp/processing/${jobId}`;
+		"/extract-metadata": {
+			POST: async (req) => {
+				const jobId = `job-${Date.now()}`;
+				const workDir = `/tmp/processing/${jobId}`;
 
-        try {
-          await ensureDir(workDir);
+				try {
+					await ensureDir(workDir);
 
-          if (!req.body) {
-            throw new Error("Request body is empty");
-          }
+					if (!req.body) {
+						throw new Error("Request body is empty");
+					}
 
-          const imageData = await req.arrayBuffer();
-          const imagePath = join(workDir, "input.png");
-          await Bun.write(imagePath, imageData);
+					const imageData = await req.arrayBuffer();
+					const imagePath = join(workDir, "input.png");
+					await Bun.write(imagePath, imageData);
 
-          const metadata = await extractMetadata(imagePath);
+					const metadata = await extractMetadata(imagePath);
 
-          return Response.json({
-            success: true,
-            metadata,
-          });
-        } catch (error) {
-          console.error("Error in /extract-metadata:", error);
-          return Response.json(
-            {
-              success: false,
-              error: error instanceof Error ? error.message : String(error),
-            },
-            { status: 500 }
-          );
-        } finally {
-          await cleanupDir(workDir);
-        }
-      },
-    },
+					return Response.json({
+						success: true,
+						metadata,
+					});
+				} catch (error) {
+					console.error("Error in /extract-metadata:", error);
+					return Response.json(
+						{
+							success: false,
+							error: error instanceof Error ? error.message : String(error),
+						},
+						{ status: 500 },
+					);
+				} finally {
+					await cleanupDir(workDir);
+				}
+			},
+		},
 
-    "/detect-callouts": {
-      POST: async (req) => {
-        const jobId = `job-${Date.now()}`;
-        const workDir = `/tmp/processing/${jobId}`;
-        const debugDir = join(workDir, "debug");
+		"/detect-callouts": {
+			POST: async (req) => {
+				const jobId = `job-${Date.now()}`;
+				const workDir = `/tmp/processing/${jobId}`;
+				const debugDir = join(workDir, "debug");
 
-        try {
-          const dpi = parseInt(req.headers.get("X-DPI") || "300");
+				try {
+					const dpi = parseInt(req.headers.get("X-DPI") || "300");
 
-          await ensureDir(workDir);
-          await ensureDir(debugDir);
+					await ensureDir(workDir);
+					await ensureDir(debugDir);
 
-          if (!req.body) {
-            throw new Error("Request body is empty");
-          }
+					if (!req.body) {
+						throw new Error("Request body is empty");
+					}
 
-          const imageData = await req.arrayBuffer();
-          const imagePath = join(workDir, "input.png");
-          await Bun.write(imagePath, imageData);
+					const imageData = await req.arrayBuffer();
+					const imagePath = join(workDir, "input.png");
+					await Bun.write(imagePath, imageData);
 
-          const result = await detectCallouts(imagePath, dpi, debugDir);
+					const result = await detectCallouts(imagePath, dpi, debugDir);
 
-          let debugImage: string | null = null;
-          const debugPath = join(debugDir, "detection_debug.png");
-          if (existsSync(debugPath)) {
-            const debugData = await Bun.file(debugPath).arrayBuffer();
-            debugImage = Buffer.from(debugData).toString("base64");
-          }
+					let debugImage: string | null = null;
+					const debugPath = join(debugDir, "detection_debug.png");
+					if (existsSync(debugPath)) {
+						const debugData = await Bun.file(debugPath).arrayBuffer();
+						debugImage = Buffer.from(debugData).toString("base64");
+					}
 
-          return Response.json({
-            success: true,
-            ...result,
-            debugImage,
-          });
-        } catch (error) {
-          console.error("Error in /detect-callouts:", error);
-          return Response.json(
-            {
-              success: false,
-              error: error instanceof Error ? error.message : String(error),
-            },
-            { status: 500 }
-          );
-        } finally {
-          await cleanupDir(workDir);
-        }
-      },
-    },
+					return Response.json({
+						success: true,
+						...result,
+						debugImage,
+					});
+				} catch (error) {
+					console.error("Error in /detect-callouts:", error);
+					return Response.json(
+						{
+							success: false,
+							error: error instanceof Error ? error.message : String(error),
+						},
+						{ status: 500 },
+					);
+				} finally {
+					await cleanupDir(workDir);
+				}
+			},
+		},
 
-    "/generate-tiles": {
-      POST: async (req) => {
-        const jobId = `job-${Date.now()}`;
-        const workDir = `/tmp/tiles/${jobId}`;
+		"/generate-tiles": {
+			POST: async (req) => {
+				const jobId = `job-${Date.now()}`;
+				const workDir = `/tmp/tiles/${jobId}`;
 
-        try {
-          const tileSize = parseInt(req.headers.get("X-Tile-Size") || "254");
-          const sheetId = req.headers.get("X-Sheet-Id") || "sheet";
+				try {
+					const tileSize = parseInt(req.headers.get("X-Tile-Size") || "254");
+					const sheetId = req.headers.get("X-Sheet-Id") || "sheet";
 
-          await ensureDir(workDir);
+					await ensureDir(workDir);
 
-          if (!req.body) {
-            throw new Error("Request body is empty");
-          }
+					if (!req.body) {
+						throw new Error("Request body is empty");
+					}
 
-          const imageData = await req.arrayBuffer();
-          const imagePath = join(workDir, "input.png");
-          await Bun.write(imagePath, imageData);
+					const imageData = await req.arrayBuffer();
+					const imagePath = join(workDir, "input.png");
+					await Bun.write(imagePath, imageData);
 
-          const outputDir = join(workDir, "output");
-          const tarStream = await generateTiles(imagePath, outputDir, tileSize);
+					const outputDir = join(workDir, "output");
+					const tarStream = await generateTiles(imagePath, outputDir, tileSize);
 
-          return new Response(tarStream, {
-            headers: {
-              "Content-Type": "application/x-tar",
-              "Content-Disposition": `attachment; filename="${sheetId}-tiles.tar"`,
-            },
-          });
-        } catch (error) {
-          console.error("Error in /generate-tiles:", error);
-          await cleanupDir(workDir);
-          return Response.json(
-            {
-              success: false,
-              error: error instanceof Error ? error.message : String(error),
-            },
-            { status: 500 }
-          );
-        }
-      },
-    },
-  },
+					return new Response(tarStream, {
+						headers: {
+							"Content-Type": "application/x-tar",
+							"Content-Disposition": `attachment; filename="${sheetId}-tiles.tar"`,
+						},
+					});
+				} catch (error) {
+					console.error("Error in /generate-tiles:", error);
+					await cleanupDir(workDir);
+					return Response.json(
+						{
+							success: false,
+							error: error instanceof Error ? error.message : String(error),
+						},
+						{ status: 500 },
+					);
+				}
+			},
+		},
+	},
 });
 
 console.log(`PDF processor container running at ${server.url}`);

@@ -22,3 +22,6 @@ auth.db
 # but should be committed to version control for type checking
 # Note: migrations/ contains D1 migrations and SHOULD be committed
 
+
+# Localflare generated files
+.localflare/
