@@ -1,5 +1,3 @@
-import { File } from "expo-file-system";
-
 const BACKEND_URL = process.env.EXPO_PUBLIC_BETTER_AUTH_URL;
 
 if (!BACKEND_URL) {
@@ -26,12 +24,12 @@ export async function uploadPlanToBackend(
 	const { fileUri, fileName, projectId, organizationId, sessionToken } =
 		options;
 
-	const file = new File(fileUri);
-	const arrayBuffer = await file.arrayBuffer();
-	const blob = new Blob([arrayBuffer], { type: "application/pdf" });
-
 	const formData = new FormData();
-	formData.append("file", blob, fileName);
+	formData.append("file", {
+		uri: fileUri,
+		type: "application/pdf",
+		name: fileName,
+	} as any);
 	formData.append("projectId", projectId);
 	formData.append("organizationId", organizationId);
 
