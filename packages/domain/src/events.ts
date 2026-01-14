@@ -190,7 +190,7 @@ export const events = {
 			localPath: Schema.String,
 			remotePath: Schema.optional(Schema.String),
 			uploadedBy: Schema.String,
-			uploadedAt: Schema.Date,
+			uploadedAt: Schema.Number,
 		}),
 	}),
 
@@ -198,7 +198,7 @@ export const events = {
 		name: "v1.PlanProcessingStarted",
 		schema: Schema.Struct({
 			planId: Schema.String,
-			startedAt: Schema.Date,
+			startedAt: Schema.Number,
 		}),
 	}),
 
@@ -424,7 +424,7 @@ export const events = {
 			markerId: Schema.optional(Schema.String),
 			localPath: Schema.String,
 			isIssue: Schema.Boolean,
-			capturedAt: Schema.Date,
+			capturedAt: Schema.Number,
 			capturedBy: Schema.String,
 		}),
 	}),

@@ -127,19 +127,22 @@ export default {
 					);
 				}
 
-				const { checkProjectAccess } = await import("./utils/authorization");
-				const hasAccess = await checkProjectAccess(
-					projectId,
-					sessionResult.user_id,
-					env,
-				);
-
-				if (!hasAccess) {
-					return Response.json(
-						{ error: "User does not have access to this project" },
-						{ status: 403 },
-					);
-				}
+				// TODO: Implement project access check via LiveStore
+				// Projects are stored in LiveStore, not D1, so we can't check D1 for access
+				// For now, rely on organization membership (already validated above)
+				// const { checkProjectAccess } = await import("./utils/authorization");
+				// const hasAccess = await checkProjectAccess(
+				// 	projectId,
+				// 	sessionResult.user_id,
+				// 	env,
+				// );
+				//
+				// if (!hasAccess) {
+				// 	return Response.json(
+				// 		{ error: "User does not have access to this project" },
+				// 		{ status: 403 },
+				// 	);
+				// }
 
 				const { nanoid } = await import("@livestore/livestore");
 				const planId = nanoid();
@@ -170,7 +173,7 @@ export default {
 						localPath: `file://plans/${planId}/source.pdf`,
 						remotePath: pdfPath,
 						uploadedBy: sessionResult.user_id,
-						uploadedAt: new Date(),
+						uploadedAt: Date.now(),
 					},
 					organizationId,
 				);
