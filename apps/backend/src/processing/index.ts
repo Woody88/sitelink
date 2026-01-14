@@ -1,16 +1,20 @@
-export { PlanCoordinator } from "./plan-coordinator"
-export type {
-  ImageGenerationJob,
-  MetadataExtractionJob,
-  CalloutDetectionJob,
-  TileGenerationJob,
-  ProcessingJob,
-} from "./types"
-export { getR2Path } from "./types"
+export { PdfProcessor } from "./pdf-processor-container";
+export { PlanCoordinator } from "./plan-coordinator";
 export {
-  handleImageGenerationQueue,
-  handleMetadataExtractionQueue,
-  handleCalloutDetectionQueue,
-  handleTileGenerationQueue,
-} from "./queue-consumer"
-export { uploadPdfAndTriggerPipeline, parseR2EventPath } from "./r2-with-notifications"
+	handleCalloutDetectionQueue,
+	handleImageGenerationQueue,
+	handleMetadataExtractionQueue,
+	handleTileGenerationQueue,
+} from "./queue-consumer";
+export {
+	parseR2EventPath,
+	uploadPdfAndTriggerPipeline,
+} from "./r2-with-notifications";
+export type {
+	CalloutDetectionJob,
+	ImageGenerationJob,
+	MetadataExtractionJob,
+	ProcessingJob,
+	TileGenerationJob,
+} from "./types";
+export { getR2Path } from "./types";
