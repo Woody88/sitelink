@@ -1,30 +1,19 @@
 // apps/mobile/hooks/useAuthSession.ts
-import React from 'react'
-import { authClient } from '@/lib/auth'
-import { getCookie } from '@/lib/auth'
+import { useSessionContext } from "@/lib/session-context";
 
 /**
  * Hook for retrieving session token for sync purposes only.
  * This does NOT gate access to the app - biometric is the access gate.
  * Session token is only used for LiveStore sync authorization.
+ *
+ * NOTE: This hook now simply wraps useSessionContext for backwards compatibility.
+ * Consider using useSessionContext() directly in new code.
  */
 export function useAuthSession() {
-  const { data: session, isPending } = authClient.useSession()
+	const { sessionToken, isPending } = useSessionContext();
 
-  // Extract token from cookie for sync payload
-  const sessionToken = React.useMemo(() => {
-    if (!session) return undefined
-    const cookie = getCookie()
-    if (cookie) {
-      const match = cookie.match(/better-auth\.session_token=([^;]+)/)
-      return match ? match[1] : undefined
-    }
-    return undefined
-  }, [session])
-
-  return {
-    sessionToken,
-    isLoading: isPending,
-  }
+	return {
+		sessionToken,
+		isLoading: isPending,
+	};
 }
-

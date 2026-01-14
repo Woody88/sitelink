@@ -1,5 +1,5 @@
 // apps/mobile/hooks/useNetworkStatus.ts
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from "react";
 
 /**
  * Hook to monitor LiveStore network connectivity status.
@@ -10,22 +10,22 @@ import { useEffect, useState } from 'react'
  * stream from the store's leader thread context.
  */
 export function useNetworkStatus() {
-  const [isMonitoring, setIsMonitoring] = useState(true)
+	const [isMonitoring, setIsMonitoring] = useState(true);
 
-  useEffect(() => {
-    if (!isMonitoring) return
+	useEffect(() => {
+		if (!isMonitoring) return;
 
-    console.log('[NETWORK_STATUS] Connectivity monitoring enabled')
+		console.log("[NETWORK_STATUS] Connectivity monitoring enabled");
 
-    // For now, we'll just log that monitoring is active
-    // The actual networkStatus subscription would require access to the
-    // store's internal leader thread context, which isn't exposed through
-    // the current LiveStore React API
+		// For now, we'll just log that monitoring is active
+		// The actual networkStatus subscription would require access to the
+		// store's internal leader thread context, which isn't exposed through
+		// the current LiveStore React API
 
-    return () => {
-      console.log('[NETWORK_STATUS] Connectivity monitoring disabled')
-    }
-  }, [isMonitoring])
+		return () => {
+			console.log("[NETWORK_STATUS] Connectivity monitoring disabled");
+		};
+	}, [isMonitoring]);
 
-  return { isMonitoring }
+	return { isMonitoring };
 }

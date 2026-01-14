@@ -1,6 +1,6 @@
+import { nanoid, queryDb } from "@livestore/livestore";
 import { useStore } from "@livestore/react";
-import { nanoid } from "@livestore/livestore";
-import { events } from "@sitelink/domain";
+import { events, tables } from "@sitelink/domain";
 import * as FileSystem from "expo-file-system/legacy";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as React from "react";
@@ -19,7 +19,7 @@ import { PlanSelector } from "@/components/plans/plan-selector";
 import { Text } from "@/components/ui/text";
 import { useAudioRecorder } from "@/hooks/use-audio-recorder";
 import { useCameraState } from "@/hooks/use-camera-state";
-import { authClient } from "@/lib/auth";
+import { useSessionContext } from "@/lib/session-context";
 import { createAppStoreOptions } from "@/lib/store-config";
 import {
 	ensureProjectDirectoriesExist,
@@ -57,9 +57,7 @@ export default function CameraScreen() {
 	const camera = useCameraState();
 	const audio = useAudioRecorder();
 
-	const { data: sessionData } = authClient.useSession();
-	const sessionToken = sessionData?.session?.token;
-	const userId = sessionData?.user?.id;
+	const { sessionToken, userId } = useSessionContext();
 
 	const storeOptions = React.useMemo(
 		() => createAppStoreOptions(sessionToken),
@@ -67,6 +65,13 @@ export default function CameraScreen() {
 	);
 
 	const store = useStore(storeOptions);
+
+	const projectQuery = React.useMemo(
+		() => queryDb(tables.projects.where({ id: params.id })),
+		[params.id],
+	);
+	const projectData = store.useQuery(projectQuery)?.[0];
+	const organizationId = projectData?.organizationId;
 
 	// Request permissions on mount
 	const { requestPermissions } = camera;
@@ -91,15 +96,16 @@ export default function CameraScreen() {
 	}, [audio.state.isRecording]);
 
 	const handleCapturePhoto = React.useCallback(async () => {
-		if (!userId) {
-			console.error("[CAMERA] Cannot capture photo: user not authenticated");
+		if (!userId || !organizationId) {
+			console.error(
+				"[CAMERA] Cannot capture photo: user not authenticated or organizationId missing",
+			);
 			return;
 		}
 
 		const uri = await camera.capturePhoto();
 		if (uri) {
 			try {
-				const organizationId = "temp-org-id";
 				const projectId = params.id;
 
 				await ensureProjectDirectoriesExist(organizationId, projectId);
@@ -211,8 +217,11 @@ export default function CameraScreen() {
 		}
 
 		try {
-			const organizationId = "temp-org-id";
 			const projectId = params.id;
+
+			if (!organizationId) {
+				throw new Error("organizationId is missing");
+			}
 
 			await ensureProjectDirectoriesExist(organizationId, projectId);
 			const mediaPath = getMediaPath(organizationId, projectId);
@@ -275,11 +284,11 @@ export default function CameraScreen() {
 	// Don't render camera if no permission
 	if (camera.state.hasPermission === false) {
 		return (
-			<View className="flex-1 items-center justify-center bg-background p-4">
-				<Text className="text-foreground text-lg font-semibold mb-2 text-center">
+			<View className="bg-background flex-1 items-center justify-center p-4">
+				<Text className="text-foreground mb-2 text-center text-lg font-semibold">
 					Camera Permission Required
 				</Text>
-				<Text className="text-muted-foreground text-center mb-4">
+				<Text className="text-muted-foreground mb-4 text-center">
 					Please enable camera access in your device settings.
 				</Text>
 				<Pressable
@@ -296,7 +305,7 @@ export default function CameraScreen() {
 
 	if (camera.state.hasPermission === null) {
 		return (
-			<View className="flex-1 items-center justify-center bg-background">
+			<View className="bg-background flex-1 items-center justify-center">
 				<Text className="text-muted-foreground">
 					Requesting camera permission...
 				</Text>
@@ -305,7 +314,7 @@ export default function CameraScreen() {
 	}
 
 	return (
-		<View className="flex-1 bg-background" style={styles.container}>
+		<View className="bg-background flex-1" style={styles.container}>
 			{screenState === "camera" && (
 				<>
 					<CameraViewfinder
@@ -329,7 +338,7 @@ export default function CameraScreen() {
 					/>
 
 					<View
-						className="absolute bottom-0 left-0 right-0"
+						className="absolute right-0 bottom-0 left-0"
 						style={{ paddingBottom: Math.max(insets.bottom, 32) }}
 					>
 						<View className="flex-row items-center justify-center px-6">
@@ -392,6 +401,7 @@ export default function CameraScreen() {
 				onRequestClose={() => setIsPlanSelectorVisible(false)}
 			>
 				<PlanSelector
+					projectId={params.id}
 					onSelect={handleSelectPlan}
 					onClose={() => setIsPlanSelectorVisible(false)}
 					showCloseButton
