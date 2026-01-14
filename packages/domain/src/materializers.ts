@@ -218,7 +218,7 @@ export const materializers = State.SQLite.materializers(events, {
 			.where({ id: event.planId }),
 
 	"v1.SheetImageGenerated": (event) =>
-		tables.sheets.insert({
+		tables.sheets.upsert({
 			id: event.sheetId,
 			projectId: event.projectId,
 			planId: event.planId,
