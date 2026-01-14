@@ -29,40 +29,40 @@ This spike validates that PMTiles can work with OpenSeadragon before integrating
 The core pattern uses OpenSeadragon's `imageLoader.addJob` override:
 
 ```typescript
-const originalAddJob = viewer.imageLoader.addJob;
+const originalAddJob = viewer.imageLoader.addJob
 viewer.imageLoader.addJob = function (options: any) {
-  const src = options.src;
+  const src = options.src
 
-  if (src?.startsWith('pmtiles://')) {
+  if (src?.startsWith("pmtiles://")) {
     // Parse z/x/y from custom protocol URL
-    const match = src.match(/pmtiles:\/\/(\d+)\/(\d+)\/(\d+)/);
+    const match = src.match(/pmtiles:\/\/(\d+)\/(\d+)\/(\d+)/)
     if (match) {
-      const [, z, x, y] = match;
+      const [, z, x, y] = match
 
       // Fetch from PMTiles
       pmtiles.getZxy(+z, +x, +y).then((tileData) => {
         if (tileData?.data) {
           // Convert to blob URL
-          const blob = new Blob([tileData.data]);
-          const url = URL.createObjectURL(blob);
+          const blob = new Blob([tileData.data])
+          const url = URL.createObjectURL(blob)
 
           // Load into image element
-          const img = new Image();
+          const img = new Image()
           img.onload = () => {
             // CRITICAL: callback(image, errorMsg, src)
-            options.callback(img, null, src);
-            URL.revokeObjectURL(url);
-          };
-          img.src = url;
+            options.callback(img, null, src)
+            URL.revokeObjectURL(url)
+          }
+          img.src = url
         }
-      });
+      })
 
-      return { src, callback: options.callback };
+      return { src, callback: options.callback }
     }
   }
 
-  return originalAddJob.call(this, options);
-};
+  return originalAddJob.call(this, options)
+}
 ```
 
 ## Setup
@@ -154,18 +154,21 @@ rm -rf tmp_tiles plan.mbtiles
 You can use different image formats for tiles:
 
 **WebP (recommended):**
+
 ```bash
 vips dzsave input.jpg tmp_tiles --layout google --suffix ".webp[Q=75]"
 mb-util tmp_tiles/ plan.mbtiles --scheme=zyx --image_format=webp
 ```
 
 **JPEG:**
+
 ```bash
 vips dzsave input.jpg tmp_tiles --layout google --suffix ".jpg[Q=85]"
 mb-util tmp_tiles/ plan.mbtiles --scheme=zyx --image_format=jpg
 ```
 
 **PNG:**
+
 ```bash
 vips dzsave input.jpg tmp_tiles --layout google --suffix ".png"
 mb-util tmp_tiles/ plan.mbtiles --scheme=zyx --image_format=png
@@ -189,6 +192,7 @@ mb-util tmp_tiles/ plan.mbtiles --scheme=zyx --image_format=png
 ### Verify Functionality
 
 Check the browser console for:
+
 - ✅ PMTiles header loaded successfully
 - ✅ Tiles loading: `Loading tile: z=X, x=Y, y=Z`
 - ✅ Tiles displaying correctly
@@ -220,12 +224,14 @@ apps/pmtiles-spike/
 ## Dependencies
 
 ### Runtime
+
 - `react` - UI framework
 - `react-dom` - React DOM rendering
 - `openseadragon` - Deep zoom image viewer
 - `pmtiles` - PMTiles format reader
 
 ### Development
+
 - `@types/react` - React TypeScript types
 - `@types/react-dom` - React DOM TypeScript types
 - `@types/openseadragon` - OpenSeadragon TypeScript types

@@ -1,28 +1,28 @@
 {
-  "name": "pmtiles-spike",
-  "version": "0.1.0",
-  "type": "module",
-  "private": true,
-  "scripts": {
-    "dev": "bun --hot server.ts",
-    "build": "bun build ./src/main.tsx --outdir ./dist --minify",
-    "start": "bun server.ts"
-  },
-  "devDependencies": {
-    "@types/bun": "latest",
-    "@types/openseadragon": "^5.0.1",
-    "@types/react": "^19.2.7",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^5.1.2",
-    "vite": "^7.3.0"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
-  },
-  "dependencies": {
-    "openseadragon": "^5.0.1",
-    "pmtiles": "^4.3.2",
-    "react": "^19.2.3",
-    "react-dom": "^19.2.3"
-  }
+	"name": "pmtiles-spike",
+	"version": "0.1.0",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"dev": "bun --hot server.ts",
+		"build": "bun build ./src/main.tsx --outdir ./dist --minify",
+		"start": "bun server.ts"
+	},
+	"devDependencies": {
+		"@types/bun": "latest",
+		"@types/openseadragon": "^5.0.1",
+		"@types/react": "^19.2.7",
+		"@types/react-dom": "^19.2.3",
+		"@vitejs/plugin-react": "^5.1.2",
+		"vite": "^7.3.0"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	},
+	"dependencies": {
+		"openseadragon": "^5.0.1",
+		"pmtiles": "^4.3.2",
+		"react": "^19.2.3",
+		"react-dom": "^19.2.3"
+	}
 }

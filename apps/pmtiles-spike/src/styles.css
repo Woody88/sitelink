@@ -1,136 +1,136 @@
 * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+	font-family:
+		-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
+		"Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
 }
 
 #root {
-  width: 100vw;
-  height: 100vh;
+	width: 100vw;
+	height: 100vh;
 }
 
 .app {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+	width: 100%;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
 }
 
 .header {
-  background: #2c3e50;
-  color: white;
-  padding: 1rem 2rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	background: #2c3e50;
+	color: white;
+	padding: 1rem 2rem;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .header h1 {
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
+	font-size: 1.5rem;
+	margin-bottom: 0.5rem;
 }
 
 .header p {
-  font-size: 0.875rem;
-  opacity: 0.9;
+	font-size: 0.875rem;
+	opacity: 0.9;
 }
 
 .main {
-  flex: 1;
-  display: flex;
-  overflow: hidden;
+	flex: 1;
+	display: flex;
+	overflow: hidden;
 }
 
 .viewer-container {
-  flex: 1;
-  position: relative;
-  background: #34495e;
+	flex: 1;
+	position: relative;
+	background: #34495e;
 }
 
 .openseadragon-container {
-  width: 100%;
-  height: 100%;
+	width: 100%;
+	height: 100%;
 }
 
 .info-panel {
-  width: 300px;
-  background: #ecf0f1;
-  padding: 1.5rem;
-  overflow-y: auto;
-  border-left: 1px solid #bdc3c7;
+	width: 300px;
+	background: #ecf0f1;
+	padding: 1.5rem;
+	overflow-y: auto;
+	border-left: 1px solid #bdc3c7;
 }
 
 .info-panel h2 {
-  font-size: 1.125rem;
-  margin-bottom: 1rem;
-  color: #2c3e50;
+	font-size: 1.125rem;
+	margin-bottom: 1rem;
+	color: #2c3e50;
 }
 
 .info-panel section {
-  margin-bottom: 1.5rem;
+	margin-bottom: 1.5rem;
 }
 
 .info-panel h3 {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #7f8c8d;
-  margin-bottom: 0.5rem;
-  text-transform: uppercase;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: #7f8c8d;
+	margin-bottom: 0.5rem;
+	text-transform: uppercase;
 }
 
 .info-panel pre {
-  background: white;
-  padding: 0.75rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  overflow-x: auto;
-  border: 1px solid #d5d8dc;
+	background: white;
+	padding: 0.75rem;
+	border-radius: 4px;
+	font-size: 0.75rem;
+	overflow-x: auto;
+	border: 1px solid #d5d8dc;
 }
 
 .info-panel code {
-  font-family: 'Monaco', 'Courier New', monospace;
+	font-family: "Monaco", "Courier New", monospace;
 }
 
 .status {
-  padding: 0.5rem;
-  border-radius: 4px;
-  margin-bottom: 1rem;
+	padding: 0.5rem;
+	border-radius: 4px;
+	margin-bottom: 1rem;
 }
 
 .status.loading {
-  background: #fff3cd;
-  color: #856404;
+	background: #fff3cd;
+	color: #856404;
 }
 
 .status.ready {
-  background: #d4edda;
-  color: #155724;
+	background: #d4edda;
+	color: #155724;
 }
 
 .status.error {
-  background: #f8d7da;
-  color: #721c24;
+	background: #f8d7da;
+	color: #721c24;
 }
 
 .instructions {
-  background: white;
-  padding: 1rem;
-  border-radius: 4px;
-  border: 1px solid #d5d8dc;
+	background: white;
+	padding: 1rem;
+	border-radius: 4px;
+	border: 1px solid #d5d8dc;
 }
 
 .instructions ol {
-  margin-left: 1.5rem;
-  margin-top: 0.5rem;
+	margin-left: 1.5rem;
+	margin-top: 0.5rem;
 }
 
 .instructions li {
-  margin-bottom: 0.5rem;
-  font-size: 0.875rem;
+	margin-bottom: 0.5rem;
+	font-size: 0.875rem;
 }
