@@ -31,7 +31,7 @@ export default function ProjectWorkspaceLayout() {
 	const [activeView, setActiveView] = useState<ActiveView>("plans");
 	const [isUploadSheetVisible, setIsUploadSheetVisible] = useState(false);
 
-	const { sessionToken, organizationId, userId, sessionId } =
+	const { sessionToken, organizationId, sessionId } =
 		useSessionContext();
 
 	const store = useAppStore(organizationId!, sessionToken, sessionId);
@@ -44,12 +44,10 @@ export default function ProjectWorkspaceLayout() {
 	const project = store.useQuery(projectQuery);
 
 	const projectData = Array.isArray(project) ? project[0] : null;
-	const uploadedBy = userId || "anonymous";
 
 	const { pickAndUploadPlan, uploadProgress } = usePlanUpload({
 		projectId: params.id,
 		organizationId: organizationId!,
-		uploadedBy,
 	});
 
 	const isCameraRoute = segments[segments.length - 1] === "camera";
@@ -135,12 +133,9 @@ export default function ProjectWorkspaceLayout() {
 					onUploadFromDevice={handleUploadFromDevice}
 				/>
 
-				{/* Processing Modal */}
+				{/* Upload Modal */}
 				<Modal
-					visible={
-						uploadProgress?.status === "uploading" ||
-						uploadProgress?.status === "processing"
-					}
+					visible={uploadProgress?.status === "uploading"}
 					transparent
 					animationType="fade"
 				>
@@ -148,16 +143,11 @@ export default function ProjectWorkspaceLayout() {
 						<View className="bg-background mx-8 items-center rounded-xl p-6">
 							<ActivityIndicator size="large" />
 							<Text className="text-foreground mt-4 text-lg font-semibold">
-								{uploadProgress?.status === "uploading"
-									? "Uploading Plan"
-									: "Processing Plan"}
+								Uploading Plan
 							</Text>
-							{uploadProgress && uploadProgress.status === "processing" && (
-								<Text className="text-muted-foreground mt-2 text-sm">
-									Page {uploadProgress.currentPage} of{" "}
-									{uploadProgress.totalPages}
-								</Text>
-							)}
+							<Text className="text-muted-foreground mt-2 text-sm">
+								Processing will begin automatically
+							</Text>
 						</View>
 					</View>
 				</Modal>
