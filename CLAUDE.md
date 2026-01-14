@@ -9,6 +9,81 @@ Agents MUST use these documentation sources when working with the following tech
 
 Fetch these docs before implementing LiveStore queries, mutations, or Expo-specific features.
 
+## Skills
+
+### expo-development
+Modern Expo SDK patterns for React Native. Auto-triggers when working with:
+- File operations with `expo-file-system` (use File class, not legacy functions)
+- Video playback with `expo-video` (NOT deprecated expo-av)
+- Audio playback/recording with `expo-audio` (NOT deprecated expo-av)
+- Image/video picking with `expo-image-picker`
+- Background tasks with `expo-background-task`
+- Blob operations with `expo-blob`
+
+**Enforces deprecation warnings for expo-av and legacy FileSystem APIs.**
+
+See `.claude/skills/expo-development/` for patterns and examples.
+
+## LiveStore Materializers - CRITICAL
+
+**LiveStore materializers MUST be pure functions** - they must produce the same output for the same input every time.
+
+### ❌ NEVER do this in materializers:
+
+```typescript
+// BAD - Uses Date.now() which returns different values each time
+"v1.ProjectCreated": (event) =>
+  tables.projects.insert({
+    id: event.id,
+    name: event.name,
+    createdAt: Date.now(),  // ❌ Impure! Will cause MaterializerHashMismatchError
+    updatedAt: Date.now(),  // ❌ Impure! Will cause MaterializerHashMismatchError
+  })
+```
+
+### ✅ DO this instead:
+
+```typescript
+// GOOD - Include timestamps in the event schema
+// In events.ts:
+projectCreated: Events.synced({
+  name: 'v1.ProjectCreated',
+  schema: Schema.Struct({
+    id: Schema.String,
+    name: Schema.String,
+    createdAt: Schema.Number,  // ✓ Timestamp in event
+  }),
+})
+
+// In materializers.ts:
+"v1.ProjectCreated": (event) =>
+  tables.projects.insert({
+    id: event.id,
+    name: event.name,
+    createdAt: event.createdAt,  // ✓ Pure! Uses event data
+    updatedAt: event.createdAt,  // ✓ Pure! Uses event data
+  })
+
+// When committing events:
+await store.commit(
+  events.projectCreated({
+    id: projectId,
+    name: "My Project",
+    createdAt: Date.now(),  // ✓ Generate timestamp when creating event
+  })
+)
+```
+
+**Why this matters**: LiveStore hashes materializer results to detect changes. Using `Date.now()` or other impure functions causes `MaterializerHashMismatchError` because the same event produces different database operations each time the materializer runs.
+
+**Other forbidden impure operations in materializers**:
+
+- `Math.random()`
+- `crypto.randomUUID()` or `nanoid()`
+- Reading from external state/globals
+- API calls or I/O operations
+- Anything that returns different values for the same input
+
 ## Code Style
 
 - Comments only at the top of functions if complex logic requires explanation
@@ -21,15 +96,15 @@ Fetch these docs before implementing LiveStore queries, mutations, or Expo-speci
 **CRITICAL for Mobile/Expo**: MUST use `nanoid` from `@livestore/livestore` for generating unique IDs.
 
 ```typescript
-import { nanoid } from '@livestore/livestore'
+import { nanoid } from "@livestore/livestore"
 
-const id = nanoid()  // Correct ✓
+const id = nanoid() // Correct ✓
 ```
 
 **DO NOT** use `crypto.randomUUID()` in mobile/Expo apps - it doesn't work in React Native/Expo environments.
 
 ```typescript
-const id = crypto.randomUUID()  // Wrong ✗ - breaks on Expo
+const id = crypto.randomUUID() // Wrong ✗ - breaks on Expo
 ```
 
 ## After Implementation
