@@ -148,6 +148,7 @@ export default {
 				const planId = nanoid();
 				const pdfPath = `organizations/${organizationId}/projects/${projectId}/plans/${planId}/source.pdf`;
 				const totalPages = 1;
+				const planName = file.name.replace(/\.pdf$/i, "");
 
 				// Upload PDF and automatically trigger pipeline (works in local dev and production)
 				await uploadPdfAndTriggerPipeline(
@@ -159,6 +160,7 @@ export default {
 						projectId,
 						organizationId,
 						totalPages,
+						planName,
 					},
 				);
 
@@ -177,14 +179,6 @@ export default {
 					},
 					organizationId,
 				);
-
-				await env.IMAGE_GENERATION_QUEUE.send({
-					planId,
-					projectId,
-					organizationId,
-					pdfPath,
-					totalPages,
-				});
 
 				return Response.json({
 					success: true,
@@ -233,6 +227,7 @@ export default {
 					organizationId: body.organizationId,
 					pdfPath,
 					totalPages,
+					planName: `test-plan-${planId}`,
 				});
 
 				return Response.json({

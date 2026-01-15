@@ -125,6 +125,7 @@ export const tables = {
 			id: State.SQLite.text({ primaryKey: true }),
 			projectId: State.SQLite.text(),
 			planId: State.SQLite.text(),
+			planName: State.SQLite.text(),
 			number: State.SQLite.text(),
 			title: State.SQLite.text(),
 			discipline: State.SQLite.text(),
@@ -143,10 +144,7 @@ export const tables = {
 		indexes: [
 			{ name: "sheets_projectId", columns: ["projectId"] },
 			{ name: "sheets_planId", columns: ["planId"] },
-			{
-				name: "sheets_projectId_discipline",
-				columns: ["projectId", "discipline"],
-			},
+			{ name: "sheets_projectId_planName", columns: ["projectId", "planName"] },
 		],
 	}),
 

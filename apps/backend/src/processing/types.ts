@@ -4,6 +4,7 @@ export interface ImageGenerationJob {
 	organizationId: string;
 	pdfPath: string; // R2 path to original PDF
 	totalPages: number;
+	planName: string; // Original PDF filename without extension (e.g., "sample-plan")
 }
 
 export interface MetadataExtractionJob {

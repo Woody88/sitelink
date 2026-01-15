@@ -4,10 +4,13 @@ import { useMemo } from "react";
 import { useSessionContext } from "@/lib/session-context";
 import { useAppStore } from "@/livestore/store";
 
+const BACKEND_URL = process.env.EXPO_PUBLIC_BETTER_AUTH_URL;
+
 export interface Sheet {
 	id: string;
 	projectId: string;
 	planId: string;
+	planName: string;
 	number: string;
 	title: string;
 	discipline: string;
@@ -22,10 +25,15 @@ export interface Sheet {
 	maxZoom?: number | null;
 }
 
+export type PlanStatus = "uploaded" | "processing" | "completed" | "failed";
+
 export interface SheetFolder {
 	id: string;
+	planId: string;
 	name: string;
 	sheets: Sheet[];
+	status: PlanStatus;
+	processingProgress: number | null;
 }
 
 export function useSheets(projectId: string) {
@@ -37,29 +45,62 @@ export function useSheets(projectId: string) {
 		queryDb(tables.sheets.where({ projectId }).orderBy("sortOrder", "asc")),
 	);
 
+	const plans = store.useQuery(queryDb(tables.plans.where({ projectId })));
+
 	return useMemo(() => {
 		const sheetsArray = Array.isArray(sheets) ? sheets : [];
+		const plansArray = Array.isArray(plans) ? plans : [];
 
-		const groupedByDiscipline: Record<string, Sheet[]> = {};
-
-		sheetsArray.forEach((sheet) => {
-			const discipline = sheet.discipline || "Unfiled sheets";
-
-			if (!groupedByDiscipline[discipline]) {
-				groupedByDiscipline[discipline] = [];
-			}
-
-			groupedByDiscipline[discipline].push(sheet);
+		const planStatusMap = new Map<
+			string,
+			{ status: PlanStatus; progress: number | null }
+		>();
+		plansArray.forEach((plan) => {
+			planStatusMap.set(plan.id, {
+				status: plan.status as PlanStatus,
+				progress: plan.processingProgress,
+			});
 		});
 
-		const folders: SheetFolder[] = Object.entries(groupedByDiscipline).map(
-			([discipline, disciplineSheets]) => ({
-				id: discipline.toLowerCase().replace(/\s+/g, "-"),
-				name: discipline,
-				sheets: disciplineSheets,
-			}),
+		const groupedByPlan: Record<
+			string,
+			{ planId: string; planName: string; sheets: Sheet[] }
+		> = {};
+
+		sheetsArray.forEach((sheet) => {
+			const planName = sheet.planName || "Unfiled sheets";
+			const planId = sheet.planId;
+
+			if (!groupedByPlan[planId]) {
+				groupedByPlan[planId] = { planId, planName, sheets: [] };
+			}
+
+			// Transform imagePath to full URL
+			const transformedSheet = {
+				...sheet,
+				imagePath:
+					sheet.imagePath?.startsWith("/api/")
+						? `${BACKEND_URL}${sheet.imagePath}`
+						: sheet.imagePath,
+			};
+
+			groupedByPlan[planId].sheets.push(transformedSheet);
+		});
+
+		const folders: SheetFolder[] = Object.values(groupedByPlan).map(
+			({ planId, planName, sheets: planSheets }) => {
+				const planInfo = planStatusMap.get(planId);
+				return {
+					id: planName.toLowerCase().replace(/\s+/g, "-"),
+					planId,
+					name: planName,
+					sheets: planSheets,
+					status: planInfo?.status ?? "completed",
+					processingProgress: planInfo?.progress ?? null,
+				};
+			},
 		);
 
 		return folders;
-	}, [sheets]);
+	}, [sheets, plans]);
 }

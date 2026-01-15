@@ -230,8 +230,10 @@ export const events = {
 			sheetId: Schema.String,
 			projectId: Schema.String,
 			planId: Schema.String,
+			planName: Schema.String,
 			pageNumber: Schema.Number,
 			localImagePath: Schema.String,
+			remoteImagePath: Schema.optional(Schema.String),
 			width: Schema.Number,
 			height: Schema.Number,
 			generatedAt: Schema.Number,
@@ -342,6 +344,7 @@ export const events = {
 		schema: Schema.Struct({
 			projectId: Schema.String,
 			planId: Schema.String,
+			planName: Schema.String,
 			sheets: Schema.Array(
 				Schema.Struct({
 					id: Schema.String,

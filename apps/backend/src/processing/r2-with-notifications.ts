@@ -11,6 +11,7 @@ interface PlanUploadMetadata {
 	projectId: string;
 	organizationId: string;
 	totalPages: number;
+	planName: string;
 }
 
 /**
@@ -44,6 +45,7 @@ export async function uploadPdfAndTriggerPipeline(
 		organizationId: metadata.organizationId,
 		pdfPath,
 		totalPages: metadata.totalPages,
+		planName: metadata.planName,
 	});
 
 	console.log(

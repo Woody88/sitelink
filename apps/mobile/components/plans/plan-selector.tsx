@@ -5,6 +5,7 @@ import {
 	Folder,
 	LayoutGrid,
 	List,
+	Loader2,
 	Search,
 	X,
 } from "lucide-react-native";
@@ -16,6 +17,12 @@ import {
 	ScrollView,
 	View,
 } from "react-native";
+import Animated, {
+	useAnimatedStyle,
+	useSharedValue,
+	withRepeat,
+	withTiming,
+} from "react-native-reanimated";
 import {
 	Collapsible,
 	CollapsibleContent,
@@ -24,8 +31,33 @@ import {
 import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import { Text } from "@/components/ui/text";
-import { type Sheet, useSheets } from "@/hooks/use-sheets";
+import { type Sheet, type SheetFolder, useSheets } from "@/hooks/use-sheets";
 import { cn } from "@/lib/utils";
+
+function ProcessingFolderIcon() {
+	const rotation = useSharedValue(0);
+
+	React.useEffect(() => {
+		rotation.value = withRepeat(withTiming(360, { duration: 1000 }), -1, false);
+	}, [rotation]);
+
+	const animatedStyle = useAnimatedStyle(() => ({
+		transform: [{ rotate: `${rotation.value}deg` }],
+	}));
+
+	return (
+		<Animated.View style={animatedStyle}>
+			<Icon as={Loader2} className="text-primary size-5" />
+		</Animated.View>
+	);
+}
+
+function FolderStatusIcon({ folder }: { folder: SheetFolder }) {
+	if (folder.status === "processing") {
+		return <ProcessingFolderIcon />;
+	}
+	return <Icon as={Folder} className="text-muted-foreground size-5" />;
+}
 
 export interface Plan {
 	id: string;
@@ -196,12 +228,16 @@ export function PlanSelector({
 							className="mb-4"
 						>
 							<CollapsibleTrigger asChild>
-								<Pressable className="bg-muted/10 flex-row items-center justify-between rounded-xl px-4 py-3">
+								<Pressable
+									className={cn(
+										"flex-row items-center justify-between rounded-xl px-4 py-3",
+										folder.status === "processing"
+											? "border-primary/30 bg-primary/5 border"
+											: "bg-muted/10",
+									)}
+								>
 									<View className="flex-1 flex-row items-center gap-3">
-										<Icon
-											as={Folder}
-											className="text-muted-foreground size-5"
-										/>
+										<FolderStatusIcon folder={folder} />
 										<View className="flex-1">
 											<Text
 												className="text-foreground text-base font-semibold"
@@ -210,7 +246,9 @@ export function PlanSelector({
 												{folder.name}
 											</Text>
 											<Text className="text-muted-foreground text-xs">
-												{folder.sheets.length} plans
+												{folder.status === "processing"
+													? `Processing... ${folder.processingProgress ?? 0}%`
+													: `${folder.sheets.length} sheets`}
 											</Text>
 										</View>
 									</View>

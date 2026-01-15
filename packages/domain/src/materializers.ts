@@ -188,7 +188,7 @@ export const materializers = State.SQLite.materializers(events, {
 			sheetCount: null,
 			errorMessage: null,
 			uploadedBy: event.uploadedBy,
-			uploadedAt: event.uploadedAt.getTime(),
+			uploadedAt: event.uploadedAt,
 			processedAt: null,
 		}),
 
@@ -218,25 +218,28 @@ export const materializers = State.SQLite.materializers(events, {
 			.where({ id: event.planId }),
 
 	"v1.SheetImageGenerated": (event) =>
-		tables.sheets.upsert({
-			id: event.sheetId,
-			projectId: event.projectId,
-			planId: event.planId,
-			number: "",
-			title: "",
-			discipline: "",
-			localImagePath: event.localImagePath,
-			localThumbnailPath: "",
-			imagePath: null,
-			width: event.width,
-			height: event.height,
-			sortOrder: event.pageNumber - 1,
-			processingStage: "image_generated",
-			localPmtilesPath: null,
-			remotePmtilesPath: null,
-			minZoom: null,
-			maxZoom: null,
-		}),
+		tables.sheets
+			.insert({
+				id: event.sheetId,
+				projectId: event.projectId,
+				planId: event.planId,
+				planName: event.planName,
+				number: `Sheet ${event.pageNumber}`,
+				title: `Sheet ${event.pageNumber}`,
+				discipline: "Unfiled sheets",
+				localImagePath: event.localImagePath,
+				localThumbnailPath: "",
+				imagePath: event.remoteImagePath ?? null,
+				width: event.width,
+				height: event.height,
+				sortOrder: event.pageNumber - 1,
+				processingStage: "image_generated",
+				localPmtilesPath: null,
+				remotePmtilesPath: null,
+				minZoom: null,
+				maxZoom: null,
+			})
+			.onConflict("id", "replace"),
 
 	// ===================
 	// Stage 2: Metadata Extraction materializers
@@ -331,6 +334,7 @@ export const materializers = State.SQLite.materializers(events, {
 				id: sheet.id,
 				projectId: event.projectId,
 				planId: event.planId,
+				planName: event.planName,
 				number: sheet.number,
 				title: sheet.title,
 				discipline: sheet.discipline,
@@ -403,7 +407,7 @@ export const materializers = State.SQLite.materializers(events, {
 			localPath: event.localPath,
 			remotePath: null,
 			isIssue: event.isIssue,
-			capturedAt: event.capturedAt.getTime(),
+			capturedAt: event.capturedAt,
 			capturedBy: event.capturedBy,
 		}),
 
