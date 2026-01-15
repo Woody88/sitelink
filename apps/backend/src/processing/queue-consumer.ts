@@ -20,14 +20,6 @@ export async function handleImageGenerationQueue(
 			const coordinatorId = env.PLAN_COORDINATOR_DO.idFromName(job.planId);
 			const coordinator = env.PLAN_COORDINATOR_DO.get(coordinatorId);
 
-			// Initialize coordinator
-			await coordinator.initialize({
-				planId: job.planId,
-				projectId: job.projectId,
-				organizationId: job.organizationId,
-				totalSheets: job.totalPages,
-			});
-
 			// Call the container to generate images from PDF
 			const pdfR2Path = job.pdfPath;
 			const pdfData = await env.R2_BUCKET.get(pdfR2Path);
@@ -90,6 +82,14 @@ export async function handleImageGenerationQueue(
 				}>;
 				totalPages: number;
 			};
+
+			// Initialize coordinator with ACTUAL page count from container
+			await coordinator.initialize({
+				planId: job.planId,
+				projectId: job.projectId,
+				organizationId: job.organizationId,
+				totalSheets: result.totalPages,
+			});
 
 			// Render each page and upload PNG to R2
 			for (const sheet of result.sheets) {
