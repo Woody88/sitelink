@@ -359,7 +359,7 @@ def generate_images():
                     "width": image.width,
                     "height": image.height,
                     "dpi": 300,
-                    "pageNumber": page_num
+                    "pageNumber": page_num + 1
                 })
             except Exception as page_error:
                 print(f"Error processing page {page_num}: {page_error}")
@@ -397,8 +397,8 @@ def render_page():
         if not pdf_data:
             return jsonify({"error": "No PDF data provided"}), 400
 
-        # Load specific page from PDF
-        image = pyvips.Image.new_from_buffer(pdf_data, '', dpi=300, page=page_num, access='sequential')
+        # Load specific page from PDF (page_num is 1-based, but pyvips expects 0-based)
+        image = pyvips.Image.new_from_buffer(pdf_data, '', dpi=300, page=page_num - 1, access='sequential')
 
         # Convert to PNG bytes
         png_data = image.pngsave_buffer(compression=6)
@@ -1013,15 +1013,16 @@ def create_mbtiles_from_tiles(tiles_dir, mbtiles_path, image_format='webp'):
 
             z = int(z_dir)
 
-            # Google layout from dzsave is z/y/x
+            # Google layout from dzsave is z/y/x (y directory, then x filename)
+            # See: https://github.com/libvips/libvips/issues/67
             for y_dir in sorted(os.listdir(z_path)):
                 y_path = os.path.join(z_path, y_dir)
                 if not os.path.isdir(y_path) or not y_dir.isdigit():
                     continue
 
-                y = int(y_dir)
-                # Flip y for TMS (MBTiles uses TMS y-coordinate)
-                tms_y = flip_y(z, y)
+                y_google = int(y_dir)
+                # Convert from Google/XYZ (y=0 at top) to TMS (y=0 at bottom) for MBTiles
+                y = flip_y(z, y_google)
 
                 for x_file in sorted(os.listdir(y_path)):
                     if not x_file.endswith(f'.{image_format}'):
@@ -1035,7 +1036,7 @@ def create_mbtiles_from_tiles(tiles_dir, mbtiles_path, image_format='webp'):
 
                     cur.execute(
                         "INSERT INTO tiles (zoom_level, tile_column, tile_row, tile_data) VALUES (?, ?, ?, ?)",
-                        (z, x, tms_y, sqlite3.Binary(tile_data))
+                        (z, x, y, sqlite3.Binary(tile_data))
                     )
                     tile_count += 1
 

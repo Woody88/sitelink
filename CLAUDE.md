@@ -24,6 +24,20 @@ Modern Expo SDK patterns for React Native. Auto-triggers when working with:
 
 See `.claude/skills/expo-development/` for patterns and examples.
 
+### mobile-testing
+Automated mobile UI testing with Maestro. Use when:
+- Testing fixes end-to-end before claiming something is fixed
+- Verifying user flows work correctly
+- Creating new test flows for features
+
+**Key capabilities**:
+- Running existing flows from `apps/mobile/maestro/`
+- Creating new flows using app-specific patterns (Expo Go, dev menu handling)
+- Finding element selectors via screenshots and view hierarchy inspection
+- Troubleshooting common Maestro issues with this codebase
+
+See `.claude/skills/mobile-testing/` for flow templates, patterns, and troubleshooting.
+
 ## LiveStore Materializers - CRITICAL
 
 **LiveStore materializers MUST be pure functions** - they must produce the same output for the same input every time.
@@ -225,3 +239,114 @@ bun --hot ./index.ts
 ```
 
 For more information, read the Bun API docs in `node_modules/bun-types/docs/**.mdx`.
+
+## Verification - CRITICAL
+
+**NEVER claim something is fixed without verifying it end-to-end using Maestro.**
+
+Before saying a fix is complete:
+1. Reset the environment if needed (`bun wrangler:state:reset` for backend, `bash delete_db.sh` for emulator)
+2. Start the app fresh (`bun dev:network` for backend, `bun run android` for mobile)
+3. Use Maestro to test the actual user flow
+4. Take screenshots to see what's actually happening
+5. Only then confirm the fix works
+
+**Commands for fresh testing:**
+```bash
+# Reset databases
+bun wrangler:state:reset  # Backend database
+bash delete_db.sh         # Emulator database
+
+# Push test files to emulator
+bash push_plan.sh         # Push sample-plan.pdf to emulator
+
+# Start services
+bun dev:network           # Backend server
+bun run android           # Mobile app
+```
+
+## Domain Knowledge - Sitelink
+
+### Sheet Naming Convention
+Sheets are identified by their **sheet number** in format like "A1", "A3", "B2" - NOT by their database ID or generic names like "Sheet 2" or "Sheet n".
+
+- ✅ Correct: "A1", "A3", "B2" (sheet number format)
+- ❌ Wrong: "Sheet 2", "Sheet n", or UUID-like IDs
+
+### Plan Markers
+When viewing a plan (PDF), markers should load and display on the image. Always verify markers are visible after uploading or viewing a plan.
+
+## PMTiles Tile Generation - CRITICAL
+
+The tile generation pipeline has specific coordinate system requirements. Getting these wrong causes images to appear upside down, rotated, or cropped.
+
+### Pipeline Overview
+```
+PDF → pyvips render → PNG → pyvips dzsave (layout='google') → MBTiles → pmtiles convert → PMTiles → OpenSeadragon
+```
+
+### Key Rules
+
+#### 1. pyvips dzsave layout='google' creates z/y/x structure (NOT z/x/y!)
+```python
+# dzsave creates: tiles_dir/z/y/x.webp
+# - Directory under z = Y coordinate
+# - Filename = X coordinate
+
+# ✅ CORRECT - Read Y from directory, X from filename:
+for y_dir in os.listdir(z_path):
+    y_google = int(y_dir)
+    for x_file in os.listdir(y_path):
+        x = int(x_file.replace('.webp', ''))
+
+# ❌ WRONG - This swaps X and Y:
+for x_dir in os.listdir(z_path):  # This is actually Y!
+    for y_file in os.listdir(x_path):  # This is actually X!
+```
+Reference: https://github.com/libvips/libvips/issues/67
+
+#### 2. MBTiles uses TMS coordinates (y=0 at BOTTOM)
+```python
+# Google/XYZ format: y=0 at TOP (what dzsave produces)
+# TMS format: y=0 at BOTTOM (what MBTiles expects)
+
+# ✅ CORRECT - Flip Y when storing to MBTiles:
+def flip_y(zoom, y):
+    return (2**zoom - 1) - y
+
+y_tms = flip_y(z, y_google)
+cursor.execute("INSERT INTO tiles ... VALUES (z, x, y_tms, data)")
+
+# ❌ WRONG - Storing without flip:
+cursor.execute("INSERT INTO tiles ... VALUES (z, x, y_google, data)")  # Wrong!
+```
+
+#### 3. OpenSeadragon tileSize must be 256 (hardcoded)
+```typescript
+// ❌ WRONG - tileType doesn't indicate tile size:
+const tileSize = header.tileType === 1 ? 256 : 512;  // WebP is type 4, gives 512!
+
+// ✅ CORRECT - Our tiles are always 256px from dzsave:
+const tileSize = 256;
+```
+
+#### 4. OpenSeadragon dimensions should be tile-boundary aligned
+```typescript
+// ✅ CORRECT - Round up to tile boundaries:
+const tilesX = Math.ceil(imageWidth / tileSize);
+const tilesY = Math.ceil(imageHeight / tileSize);
+const width = tilesX * tileSize;
+const height = tilesY * tileSize;
+
+// ❌ WRONG - Using raw dimensions may miss edge tiles:
+const width = imageWidth;
+const height = imageHeight;
+```
+
+### Debugging Tile Issues
+
+If images appear wrong:
+1. **Upside down** → Y-flip is missing or applied twice
+2. **Rotated 90°** → X and Y coordinates are swapped
+3. **Right/bottom cut off** → tileSize is wrong (probably 512 instead of 256)
+4. **Too much whitespace** → Using 2^maxZoom instead of actual tile count

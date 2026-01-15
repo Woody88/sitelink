@@ -25,6 +25,8 @@ export interface ViewerState {
 
 interface PMTilesViewerProps {
 	pmtilesUrl: string;
+	imageWidth: number;
+	imageHeight: number;
 	markers?: CalloutMarker[];
 	selectedMarkerId?: string | null;
 	onMarkerPress?: (marker: CalloutMarker) => Promise<void>;
@@ -43,6 +45,8 @@ interface PMTilesMetadata {
 
 export default function PMTilesViewer({
 	pmtilesUrl,
+	imageWidth,
+	imageHeight,
 	markers = [],
 	selectedMarkerId,
 	onMarkerPress,
@@ -74,7 +78,9 @@ export default function PMTilesViewer({
 				const header = await pmtiles.getHeader();
 				console.log("[PMTilesViewer] PMTiles Header:", header);
 
-				const tileSize = header.tileType === 1 ? 256 : 512;
+				// PMTiles tileType: 1=MVT, 2=PNG, 3=JPEG, 4=WebP
+				// Our tiles are always 256px (set in dzsave)
+				const tileSize = 256;
 				const meta: PMTilesMetadata = {
 					minZoom: header.minZoom,
 					maxZoom: header.maxZoom,
@@ -86,20 +92,26 @@ export default function PMTilesViewer({
 					tileSize,
 				};
 
-				const maxZoomLevel = header.maxZoom;
-				const tilesWide = 2 ** maxZoomLevel;
-				const width = tilesWide * tileSize;
-				const height = tilesWide * tileSize;
+				// Calculate dimensions based on actual tile coverage
+				// Round up to tile boundaries to ensure all edge tiles are requested
+				const tilesX = Math.ceil(imageWidth / tileSize);
+				const tilesY = Math.ceil(imageHeight / tileSize);
+				const width = tilesX * tileSize;
+				const height = tilesY * tileSize;
 
-				console.log("[PMTilesViewer] Calculated dimensions:", {
-					width,
-					height,
-					maxZoomLevel,
+				console.log("[PMTilesViewer] Dimensions:", {
+					imageWidth,
+					imageHeight,
+					tilesX,
+					tilesY,
+					effectiveWidth: width,
+					effectiveHeight: height,
+					maxZoom: header.maxZoom,
 					tileSize,
 				});
 
-				// Store dimensions for marker coordinate scaling
-				imageDimensionsRef.current = { width, height };
+				// Store ACTUAL dimensions for marker coordinate scaling
+				imageDimensionsRef.current = { width: imageWidth, height: imageHeight };
 
 				const customTileSource: OpenSeadragon.TileSource =
 					new OpenSeadragon.TileSource({
@@ -129,9 +141,7 @@ export default function PMTilesViewer({
 					imageLoaderLimit: 4,
 					immediateRender: false,
 					showNavigationControl: false,
-					drawer: "canvas",
-					autoResize: true,
-				} as any);
+				});
 
 				viewerRef.current = viewer;
 
@@ -214,6 +224,11 @@ export default function PMTilesViewer({
 
 				viewer.addHandler("open", () => {
 					console.log("[PMTilesViewer] Viewer opened successfully");
+					// Go to home position which fits the full image in viewport
+					if (viewer) {
+						viewer.viewport.goHome(true);
+						console.log("[PMTilesViewer] Viewport after goHome:", JSON.stringify(viewer.viewport.getBounds()));
+					}
 					if (onReady) onReady();
 				});
 
@@ -272,7 +287,7 @@ export default function PMTilesViewer({
 			pmtilesRef.current = null;
 			markerOverlaysRef.current.clear();
 		};
-	}, [pmtilesUrl, onReady, onError, onViewerStateChange]);
+	}, [pmtilesUrl, imageWidth, imageHeight, onReady, onError, onViewerStateChange]);
 
 	React.useEffect(() => {
 		const viewer = viewerRef.current;
