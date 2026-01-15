@@ -2,7 +2,7 @@ import { nanoid } from "@livestore/livestore";
 import { useStore } from "@livestore/react";
 import { events } from "@sitelink/domain";
 import * as Haptics from "expo-haptics";
-import { AlertCircle, Plus, RefreshCw, X } from "lucide-react-native";
+import { AlertCircle, Download, Plus, RefreshCw, X } from "lucide-react-native";
 import * as React from "react";
 import {
 	ActivityIndicator,
@@ -30,6 +30,7 @@ import {
 import { fetchImageAsBase64 } from "@/lib/image-utils";
 import { useSessionContext } from "@/lib/session-context";
 import { createAppStoreOptions } from "@/lib/store-config";
+import { useSheetPmtilesSync } from "@/services/file-sync-service";
 import { MarkerDetailSheet } from "./marker-detail-sheet";
 import OpenSeadragonViewer from "./openseadragon-viewer";
 import PMTilesViewer from "./pmtiles-viewer";
@@ -39,6 +40,8 @@ import { ViewerControls } from "./viewer-controls";
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface PlanViewerProps {
+	sheetId: string;
+	projectId: string;
 	planId: string;
 	planCode: string;
 	planTitle: string;
@@ -47,7 +50,6 @@ interface PlanViewerProps {
 	onSheetChange?: (sheetRef: string) => void;
 	onTakePhoto?: (marker: CalloutMarker) => void;
 	processingStage?: string | null;
-	localPmtilesPath?: string | null;
 	remotePmtilesPath?: string | null;
 }
 
@@ -61,6 +63,8 @@ interface PlanViewerProps {
  * - Professional Wealthsimple-inspired UI
  */
 export function PlanViewer({
+	sheetId,
+	projectId,
 	planId,
 	planCode,
 	planTitle,
@@ -69,7 +73,6 @@ export function PlanViewer({
 	onSheetChange,
 	onTakePhoto,
 	processingStage,
-	localPmtilesPath,
 	remotePmtilesPath,
 }: PlanViewerProps) {
 	const insets = useSafeAreaInsets();
@@ -91,8 +94,15 @@ export function PlanViewer({
 		onNavigateToSheet: onSheetChange,
 	});
 
+	// Download PMTiles to local storage if needed
+	const {
+		localPmtilesPath,
+		isDownloading: isPmtilesDownloading,
+		error: pmtilesError,
+	} = useSheetPmtilesSync(sheetId, projectId, planId, remotePmtilesPath);
+
 	// Query markers from LiveStore for the current sheet
-	const liveMarkers = useMarkers(planId);
+	const liveMarkers = useMarkers(sheetId);
 
 	// Use LiveStore markers, falling back to internal markers state
 	const markers = liveMarkers.length > 0 ? liveMarkers : internalMarkers;
@@ -114,10 +124,28 @@ export function PlanViewer({
 
 	const store = useStore(storeOptions);
 
+	// Prefer local PMTiles file, fall back to remote URL
 	const usePMTiles =
 		processingStage === "tiles_generated" &&
 		(localPmtilesPath || remotePmtilesPath);
-	const pmtilesUrl = usePMTiles ? remotePmtilesPath || localPmtilesPath : null;
+
+	// For now, always use backend proxy URL for WebView since WebViews can't fetch file:// URLs
+	// The local file download is for future offline support (when we implement a local HTTP server)
+	// Convert R2 URL to backend proxy URL for WebView access
+	const BACKEND_URL = process.env.EXPO_PUBLIC_BETTER_AUTH_URL;
+	const pmtilesUrl = usePMTiles && remotePmtilesPath
+		? remotePmtilesPath.startsWith("https://r2.sitelink.dev/")
+			? `${BACKEND_URL}/api/r2/${remotePmtilesPath.slice("https://r2.sitelink.dev/".length)}`
+			: remotePmtilesPath
+		: null;
+
+	console.log(`[PlanViewer] PMTiles config:`, {
+		usePMTiles,
+		localPmtilesPath: localPmtilesPath?.slice(0, 50),
+		remotePmtilesPath: remotePmtilesPath?.slice(0, 50),
+		pmtilesUrl: pmtilesUrl?.slice(0, 80),
+		isDownloading: isPmtilesDownloading,
+	});
 
 	// Fetch image and convert to base64 to bypass WebView CORS restrictions (only for non-PMTiles)
 	React.useEffect(() => {
@@ -267,7 +295,7 @@ export function PlanViewer({
 						await store.commit(
 							events.markerCreated({
 								id: markerId,
-								sheetId: planId,
+								sheetId: sheetId,
 								label: label.trim(),
 								x: centerX,
 								y: centerY,
@@ -282,7 +310,7 @@ export function PlanViewer({
 			],
 			"plain-text",
 		);
-	}, [userId, store, planId]);
+	}, [userId, store, sheetId]);
 
 	const controlsAnimatedStyle = useAnimatedStyle(() => ({
 		opacity: controlsOpacity.value,
@@ -336,18 +364,34 @@ export function PlanViewer({
 				</Animated.View>
 			)}
 
+			{/* PMTiles downloading overlay */}
+			{isPmtilesDownloading && !isLoading && (
+				<Animated.View
+					entering={FadeIn}
+					exiting={FadeOut}
+					className="absolute inset-0 items-center justify-center bg-black/80"
+				>
+					<Icon as={Download} className="mb-4 size-12 text-white" />
+					<ActivityIndicator size="large" color="#fff" />
+					<Text className="mt-4 text-white">Downloading tiles...</Text>
+					<Text className="mt-2 text-sm text-white/60">
+						This happens once per sheet
+					</Text>
+				</Animated.View>
+			)}
+
 			{/* Error overlay */}
-			{error && (
+			{(error || pmtilesError) && (
 				<Animated.View
 					entering={FadeIn}
 					className="absolute inset-0 items-center justify-center bg-black/90 px-8"
 				>
 					<Icon as={AlertCircle} className="text-destructive mb-4 size-16" />
 					<Text className="mb-2 text-center text-lg font-semibold text-white">
-						Failed to load plan
+						{pmtilesError ? "Failed to download tiles" : "Failed to load plan"}
 					</Text>
 					<Text className="mb-6 text-center text-sm text-white/60">
-						{error}
+						{pmtilesError || error}
 					</Text>
 					<Pressable
 						onPress={handleRetry}

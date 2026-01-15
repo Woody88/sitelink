@@ -177,3 +177,28 @@ export async function ensureSheetDirectoryExists(
 	await ensureDirectoryExists(sheetPath);
 	return sheetPath;
 }
+
+/**
+ * Get the local path for storing downloaded PMTiles for a sheet
+ * Structure: storage/sitelink/{organizationId}/{projectId}/plans/{planId}/sheets/{sheetId}/tiles.pmtiles
+ */
+export function getSheetPmtilesPath(
+	organizationId: string,
+	projectId: string,
+	planId: string,
+	sheetId: string,
+): string {
+	return `${BASE_STORAGE_PATH}/${organizationId}/${projectId}/plans/${planId}/sheets/${sheetId}/tiles.pmtiles`;
+}
+
+/**
+ * Get the directory path for a sheet by sheet ID
+ */
+export function getSheetDirectoryById(
+	organizationId: string,
+	projectId: string,
+	planId: string,
+	sheetId: string,
+): string {
+	return `${BASE_STORAGE_PATH}/${organizationId}/${projectId}/plans/${planId}/sheets/${sheetId}`;
+}

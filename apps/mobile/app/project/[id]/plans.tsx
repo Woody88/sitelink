@@ -363,7 +363,9 @@ export default function PlansScreen() {
 			>
 				{selectedPlan && selectedSheet && (
 					<PlanViewer
-						planId={selectedPlan.id}
+						sheetId={selectedSheet.id}
+						projectId={projectId!}
+						planId={selectedSheet.planId}
 						planCode={selectedPlan.code}
 						planTitle={selectedPlan.title}
 						imageUrl={
@@ -372,7 +374,6 @@ export default function PlansScreen() {
 						onClose={handleCloseViewer}
 						onSheetChange={handleSheetChange}
 						processingStage={selectedSheet.processingStage}
-						localPmtilesPath={selectedSheet.localPmtilesPath}
 						remotePmtilesPath={selectedSheet.remotePmtilesPath}
 					/>
 				)}

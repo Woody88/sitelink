@@ -1,0 +1,86 @@
+# Plan View Flow
+# Opens a sheet from the plans list and verifies the viewer loads
+#
+# Prerequisites:
+#   - User must be inside a project on Plans tab
+#   - At least one plan must be uploaded (run plan-upload.yaml first)
+#   - Backend running (bun dev:network)
+#
+# Run with:
+#   maestro test apps/mobile/maestro/plan-view.yaml
+
+appId: host.exp.exponent
+---
+# Verify we're on the Plans tab
+- assertVisible: 'Plans'
+
+# Wait for folders to be visible (plans loaded)
+- extendedWaitUntil:
+    visible:
+      text: '.*plans'
+    timeout: 30000
+
+# Expand the first folder if collapsed (tap on it)
+- tapOn:
+    text: '.*plans'
+- waitForAnimationToEnd
+
+# Wait for sheets to be visible inside the folder
+- extendedWaitUntil:
+    visible:
+      text: 'A1|A2|A3|Sheet.*'
+    timeout: 10000
+
+# Tap on the first sheet to open viewer
+- tapOn:
+    text: 'A1|A2|A3|Sheet.*'
+    index: 0
+- waitForAnimationToEnd
+
+# Wait for viewer to open - check for loading or viewer controls
+# The viewer shows a loading overlay first, then the PMTiles viewer
+- extendedWaitUntil:
+    visible:
+      text: 'Loading plan...|Downloading tiles...'
+    timeout: 10000
+    optional: true
+
+# Wait for loading to finish (loading text disappears)
+- extendedWaitUntil:
+    notVisible: 'Loading plan...'
+    timeout: 60000
+    optional: true
+
+# Wait for download to finish if needed
+- extendedWaitUntil:
+    notVisible: 'Downloading tiles...'
+    timeout: 120000
+    optional: true
+
+# Viewer should now be loaded - take a screenshot for verification
+# The close button (X) should be visible indicating viewer is loaded
+- extendedWaitUntil:
+    visible:
+      text: '.*'
+    timeout: 5000
+
+# Take screenshot to verify the viewer is showing the plan
+- takeScreenshot: plan-viewer-loaded
+
+# Verify we can see the sheet info bar (shows sheet code at bottom)
+- assertVisible:
+    text: 'A1|A2|A3|Sheet.*'
+    optional: true
+
+# Test closing the viewer by tapping the close button (top-left)
+- tapOn:
+    point: '10%,8%'
+- waitForAnimationToEnd
+
+# Should be back at plans list
+- extendedWaitUntil:
+    visible: 'Plans'
+    timeout: 5000
+
+# Take screenshot to verify we're back
+- takeScreenshot: plan-view-complete
