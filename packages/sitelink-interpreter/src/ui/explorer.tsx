@@ -192,8 +192,8 @@ function App() {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
-      const maxWidth = 900;
-      const maxHeight = 600;
+      const maxWidth = 1400;
+      const maxHeight = 900;
       const imgScale = Math.min(maxWidth / img.width, maxHeight / img.height) * scale;
 
       canvas.width = img.width * imgScale;
@@ -375,12 +375,12 @@ function App() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-400">Zoom:</span>
-                <button onClick={() => setScale(Math.max(0.5, scale - 0.25))} className="px-2 py-1 bg-gray-700 rounded">-</button>
+                <button onClick={() => setScale(Math.max(0.25, scale - 0.25))} className="px-2 py-1 bg-gray-700 rounded">-</button>
                 <span className="w-12 text-center">{(scale * 100).toFixed(0)}%</span>
-                <button onClick={() => setScale(Math.min(2, scale + 0.25))} className="px-2 py-1 bg-gray-700 rounded">+</button>
+                <button onClick={() => setScale(Math.min(4, scale + 0.25))} className="px-2 py-1 bg-gray-700 rounded">+</button>
               </div>
             </div>
-            <div className="bg-gray-900 rounded overflow-auto max-h-[600px]">
+            <div className="bg-gray-900 rounded overflow-auto max-h-[800px]">
               <canvas
                 ref={canvasRef}
                 onClick={handleCanvasClick}
