@@ -1,8 +1,12 @@
 import { sheets, entities, relationships, getDb, nanoid, type Sheet, type Entity } from "../db/index.ts";
 import { getProvenanceChain } from "../synthesis/index.ts";
+import { ingestPdf } from "../ingestion/index.ts";
+import { extractAll } from "../extraction/index.ts";
+import { buildRelationships } from "../synthesis/index.ts";
 import reviewHtml from "../ui/review.html";
+import explorerHtml from "../ui/explorer.html";
 import { join, basename } from "path";
-import { existsSync } from "fs";
+import { existsSync, mkdirSync, writeFileSync } from "fs";
 
 const PORT = 3456;
 const OUTPUT_DIR = join(import.meta.dir, "../../output/sheets");
@@ -33,13 +37,67 @@ const server = Bun.serve({
   port: PORT,
 
   routes: {
-    "/": reviewHtml,
+    "/": explorerHtml,
+    "/review": reviewHtml,
 
     "/api": () => {
       return Response.json({
         name: "SiteLink Interpreter API",
         version: "1.0.0",
       });
+    },
+
+    "/api/upload": {
+      async POST(req) {
+        try {
+          const formData = await req.formData();
+          const file = formData.get("pdf") as File | null;
+
+          if (!file) {
+            return Response.json({ error: "No PDF file provided" }, { status: 400 });
+          }
+
+          const uploadsDir = join(import.meta.dir, "../../uploads");
+          if (!existsSync(uploadsDir)) {
+            mkdirSync(uploadsDir, { recursive: true });
+          }
+
+          const pdfPath = join(uploadsDir, file.name);
+          const arrayBuffer = await file.arrayBuffer();
+          writeFileSync(pdfPath, Buffer.from(arrayBuffer));
+
+          console.log(`\n=== Processing uploaded PDF: ${file.name} ===`);
+
+          console.log("Step 1: Ingesting PDF...");
+          const ingestionResult = await ingestPdf(pdfPath);
+          console.log(`  Created ${ingestionResult.sheets.length} sheets`);
+
+          console.log("Step 2: Extracting entities...");
+          const extractionResults = await extractAll(pdfPath);
+          const totalEntities = extractionResults.reduce((sum, r) => sum + r.entities.length, 0);
+          console.log(`  Found ${totalEntities} entities`);
+
+          console.log("Step 3: Building relationships...");
+          const linkResult = buildRelationships();
+          console.log(`  Created ${linkResult.linked} relationships`);
+
+          console.log("=== Processing complete ===\n");
+
+          return Response.json({
+            success: true,
+            pdf_name: file.name,
+            sheets_created: ingestionResult.sheets.length,
+            entities_found: totalEntities,
+            relationships_created: linkResult.linked,
+          });
+        } catch (error) {
+          console.error("Upload processing failed:", error);
+          return Response.json({
+            error: "Processing failed",
+            details: String(error)
+          }, { status: 500 });
+        }
+      },
     },
 
     "/api/sheets": () => {
@@ -214,6 +272,61 @@ const server = Bun.serve({
       });
     },
 
+    "/api/metrics": () => {
+      const db = getDb();
+
+      const trainingData = db.query(`
+        SELECT original_label, corrected_label, COUNT(*) as count
+        FROM training_data
+        GROUP BY original_label, corrected_label
+      `).all() as { original_label: string; corrected_label: string; count: number }[];
+
+      const totalReviewed = trainingData.reduce((sum, row) => sum + row.count, 0);
+      const correct = trainingData
+        .filter(row => row.original_label === row.corrected_label)
+        .reduce((sum, row) => sum + row.count, 0);
+      const falsePositives = trainingData
+        .filter(row => row.corrected_label === "not_a_callout")
+        .reduce((sum, row) => sum + row.count, 0);
+      const misclassified = trainingData
+        .filter(row => row.original_label !== row.corrected_label && row.corrected_label !== "not_a_callout")
+        .reduce((sum, row) => sum + row.count, 0);
+
+      const accuracy = totalReviewed > 0 ? correct / totalReviewed : 0;
+      const falsePositiveRate = totalReviewed > 0 ? falsePositives / totalReviewed : 0;
+
+      const confusionMatrix: Record<string, Record<string, number>> = {};
+      for (const row of trainingData) {
+        if (!confusionMatrix[row.original_label]) {
+          confusionMatrix[row.original_label] = {};
+        }
+        confusionMatrix[row.original_label]![row.corrected_label] = row.count;
+      }
+
+      const precisionByClass: Record<string, number> = {};
+      const labels = [...new Set(trainingData.map(r => r.original_label))];
+      for (const label of labels) {
+        const predicted = trainingData.filter(r => r.original_label === label);
+        const totalPredicted = predicted.reduce((sum, r) => sum + r.count, 0);
+        const truePositive = predicted.find(r => r.corrected_label === label)?.count ?? 0;
+        precisionByClass[label] = totalPredicted > 0 ? truePositive / totalPredicted : 0;
+      }
+
+      return Response.json({
+        total_reviewed: totalReviewed,
+        correct,
+        false_positives: falsePositives,
+        misclassified,
+        accuracy: Math.round(accuracy * 100),
+        false_positive_rate: Math.round(falsePositiveRate * 100),
+        precision_by_class: Object.fromEntries(
+          Object.entries(precisionByClass).map(([k, v]) => [k, Math.round(v * 100)])
+        ),
+        confusion_matrix: confusionMatrix,
+        training_data: trainingData,
+      });
+    },
+
     "/images/:filename": async (req) => {
       const filename = req.params.filename;
       const imagePath = join(OUTPUT_DIR, filename);
@@ -238,4 +351,6 @@ const server = Bun.serve({
 });
 
 console.log(`SiteLink Interpreter running at http://localhost:${PORT}`);
-console.log(`\nHITL Review UI: http://localhost:${PORT}/`);
+console.log(`\n  Explorer:    http://localhost:${PORT}/`);
+console.log(`  HITL Review: http://localhost:${PORT}/review`);
+console.log(`  Metrics API: http://localhost:${PORT}/api/metrics`);
