@@ -1,8 +1,48 @@
 import { $ } from "bun";
 import { existsSync, readFileSync, mkdirSync } from "fs";
 import { join, dirname } from "path";
-import { sheets, entities, type Sheet, type Entity } from "../db/index.ts";
+import { sheets, entities, getDb, type Sheet, type Entity } from "../db/index.ts";
 import { extractProjectContext, type ProjectContext } from "../context/index.ts";
+
+interface CorrectionRule {
+  original_label: string;
+  corrected_label: string;
+  count: number;
+  confidence_threshold?: number;
+}
+
+let correctionRules: CorrectionRule[] = [];
+
+export function loadCorrectionRules(): CorrectionRule[] {
+  const db = getDb();
+  const rules = db.query(`
+    SELECT original_label, corrected_label, COUNT(*) as count
+    FROM training_data
+    WHERE original_label != corrected_label
+    GROUP BY original_label, corrected_label
+    ORDER BY count DESC
+  `).all() as CorrectionRule[];
+
+  correctionRules = rules;
+  console.log(`Loaded ${rules.length} correction rules from training data`);
+  return rules;
+}
+
+export function applyCorrection(classLabel: string, confidence: number): { label: string; wasCorrect: boolean } {
+  const rule = correctionRules.find(r => r.original_label === classLabel);
+
+  if (rule && rule.count >= 2) {
+    console.log(`    Applying correction: ${classLabel} → ${rule.corrected_label} (learned from ${rule.count} reviews)`);
+    return { label: rule.corrected_label, wasCorrect: false };
+  }
+
+  if (rule && confidence < 0.7) {
+    console.log(`    Low-confidence correction: ${classLabel} → ${rule.corrected_label}`);
+    return { label: rule.corrected_label, wasCorrect: false };
+  }
+
+  return { label: classLabel, wasCorrect: true };
+}
 
 const PYTHON_DETECTOR = join(import.meta.dir, "../../../callout-processor-v3/src/detect.py");
 const OUTPUT_DIR = join(import.meta.dir, "../../output/extractions");
@@ -30,11 +70,12 @@ export interface Marker {
   locationSheet?: string;
 }
 
-interface ExtractionResult {
+export interface ExtractionResult {
   sheetId: string;
   markers: Marker[];
   entities: Entity[];
   errors: string[];
+  corrections_applied?: number;
 }
 
 function mapMarkerTypeToClassLabel(type: string): string {
@@ -102,12 +143,13 @@ function getMarkersForSheet(pageNumber: number): Marker[] {
   return allMarkersCache.get(pageNumber - 1) ?? [];
 }
 
-export async function extractFromSheet(sheet: Sheet, context?: ProjectContext): Promise<ExtractionResult> {
+export async function extractFromSheet(sheet: Sheet, context?: ProjectContext, useCorrections = false): Promise<ExtractionResult> {
   const result: ExtractionResult = {
     sheetId: sheet.id,
     markers: [],
     entities: [],
     errors: [],
+    corrections_applied: 0,
   };
 
   result.markers = getMarkersForSheet(sheet.page_number);
@@ -115,11 +157,26 @@ export async function extractFromSheet(sheet: Sheet, context?: ProjectContext): 
 
   for (const marker of result.markers) {
     const { identifier, targetSheet } = parseCalloutLabel(marker.label);
-    const needsReview = marker.confidence < 0.8;
+    let classLabel = mapMarkerTypeToClassLabel(marker.type);
+    let needsReview = marker.confidence < 0.8;
+
+    if (useCorrections && correctionRules.length > 0) {
+      const correction = applyCorrection(classLabel, marker.confidence);
+      if (!correction.wasCorrect) {
+        classLabel = correction.label;
+        needsReview = false;
+        result.corrections_applied!++;
+      }
+    }
+
+    if (classLabel === "not_a_callout") {
+      console.log(`    Skipping false positive: ${marker.label}`);
+      continue;
+    }
 
     const entity = entities.insert({
       sheet_id: sheet.id,
-      class_label: mapMarkerTypeToClassLabel(marker.type),
+      class_label: classLabel,
       ocr_text: marker.label,
       confidence: marker.confidence,
       bbox_x1: marker.bbox.x1,
@@ -142,7 +199,7 @@ export async function extractFromSheet(sheet: Sheet, context?: ProjectContext): 
   return result;
 }
 
-export async function extractAll(pdfPath?: string): Promise<ExtractionResult[]> {
+export async function extractAll(pdfPath?: string, useCorrections = false): Promise<ExtractionResult[]> {
   const sheetsList = pdfPath ? sheets.getByPdf(pdfPath) : sheets.getAll();
 
   if (sheetsList.length === 0) {
@@ -150,6 +207,9 @@ export async function extractAll(pdfPath?: string): Promise<ExtractionResult[]> 
   }
 
   console.log(`\nExtracting entities from ${sheetsList.length} sheets...`);
+  if (useCorrections) {
+    loadCorrectionRules();
+  }
 
   const context = await extractProjectContext(pdfPath);
   console.log(`Using context: ${context.standard} / ${context.country}\n`);
@@ -162,17 +222,21 @@ export async function extractAll(pdfPath?: string): Promise<ExtractionResult[]> 
   const results: ExtractionResult[] = [];
 
   for (const sheet of sheetsList) {
-    const result = await extractFromSheet(sheet, context);
+    const result = await extractFromSheet(sheet, context, useCorrections);
     results.push(result);
   }
 
   const totalEntities = results.reduce((sum, r) => sum + r.entities.length, 0);
   const needsReview = results.reduce((sum, r) => sum + r.entities.filter(e => e.needs_review).length, 0);
+  const totalCorrections = results.reduce((sum, r) => sum + (r.corrections_applied ?? 0), 0);
 
   console.log(`\n--- Extraction Summary ---`);
   console.log(`Total sheets: ${results.length}`);
   console.log(`Total entities: ${totalEntities}`);
   console.log(`Needs review: ${needsReview}`);
+  if (useCorrections) {
+    console.log(`Corrections applied: ${totalCorrections}`);
+  }
 
   return results;
 }

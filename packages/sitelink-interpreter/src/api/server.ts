@@ -1,7 +1,7 @@
 import { sheets, entities, relationships, getDb, nanoid, type Sheet, type Entity } from "../db/index.ts";
 import { getProvenanceChain } from "../synthesis/index.ts";
 import { ingestPdf } from "../ingestion/index.ts";
-import { extractAll } from "../extraction/index.ts";
+import { extractAll, loadCorrectionRules } from "../extraction/index.ts";
 import { buildRelationships } from "../synthesis/index.ts";
 import reviewHtml from "../ui/review.html";
 import explorerHtml from "../ui/explorer.html";
@@ -270,6 +270,62 @@ const server = Bun.serve({
           };
         }),
       });
+    },
+
+    "/api/retrain": {
+      async POST() {
+        try {
+          const db = getDb();
+
+          const trainingCount = db.query(`SELECT COUNT(*) as count FROM training_data`).get() as { count: number };
+          if (trainingCount.count === 0) {
+            return Response.json({ error: "No training data. Review some entities first." }, { status: 400 });
+          }
+
+          const rules = loadCorrectionRules();
+          console.log(`\n=== Retraining with ${rules.length} correction rules ===`);
+
+          const beforeCount = db.query(`SELECT COUNT(*) as count FROM entities`).get() as { count: number };
+
+          db.exec(`PRAGMA foreign_keys = OFF`);
+          db.exec(`DELETE FROM relationships`);
+          db.exec(`DELETE FROM entities`);
+          db.exec(`PRAGMA foreign_keys = ON`);
+          console.log("Cleared existing entities and relationships");
+
+          const allSheets = sheets.getAll();
+          const pdfPaths = [...new Set(allSheets.map(s => s.pdf_path).filter(Boolean))];
+
+          let totalEntities = 0;
+          let totalCorrections = 0;
+
+          for (const pdfPath of pdfPaths) {
+            if (pdfPath) {
+              console.log(`Re-extracting from: ${pdfPath}`);
+              const results = await extractAll(pdfPath, true);
+              totalEntities += results.reduce((sum, r) => sum + r.entities.length, 0);
+              totalCorrections += results.reduce((sum, r) => sum + (r.corrections_applied ?? 0), 0);
+            }
+          }
+
+          const linkResult = buildRelationships();
+
+          console.log(`=== Retraining complete ===\n`);
+
+          return Response.json({
+            success: true,
+            correction_rules: rules.length,
+            entities_before: beforeCount.count,
+            entities_after: totalEntities,
+            corrections_applied: totalCorrections,
+            false_positives_removed: beforeCount.count - totalEntities,
+            relationships_created: linkResult.linked,
+          });
+        } catch (error) {
+          console.error("Retrain failed:", error);
+          return Response.json({ error: "Retrain failed", details: String(error) }, { status: 500 });
+        }
+      },
     },
 
     "/api/metrics": () => {

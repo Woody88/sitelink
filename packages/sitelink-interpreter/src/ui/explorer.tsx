@@ -64,6 +64,7 @@ function App() {
   const [provenance, setProvenance] = useState<Provenance | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [retraining, setRetraining] = useState(false);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [scale, setScale] = useState(1);
@@ -133,6 +134,39 @@ function App() {
       alert(`Upload failed: ${error}`);
     }
     setUploading(false);
+  }
+
+  async function handleRetrain() {
+    if (!confirm("This will re-run detection with learned corrections.\n\nFalse positives will be removed and misclassifications will be fixed.\n\nContinue?")) {
+      return;
+    }
+
+    setRetraining(true);
+    try {
+      const res = await fetch("/api/retrain", { method: "POST" });
+      const result = await res.json();
+
+      if (result.success) {
+        alert(
+          `Retraining Complete!\n\n` +
+          `Correction rules applied: ${result.correction_rules}\n` +
+          `Entities before: ${result.entities_before}\n` +
+          `Entities after: ${result.entities_after}\n` +
+          `False positives removed: ${result.false_positives_removed}\n` +
+          `Corrections applied: ${result.corrections_applied}`
+        );
+        fetchSheets();
+        fetchMetrics();
+        if (selectedSheet) {
+          fetchEntities(selectedSheet.id);
+        }
+      } else {
+        alert(`Error: ${result.error}\n${result.details || ""}`);
+      }
+    } catch (error) {
+      alert(`Retrain failed: ${error}`);
+    }
+    setRetraining(false);
   }
 
   async function fetchEntities(sheetId: string) {
@@ -259,6 +293,14 @@ function App() {
               className="px-4 py-2 bg-green-600 rounded hover:bg-green-500 disabled:opacity-50"
             >
               {uploading ? "Processing..." : "Upload PDF"}
+            </button>
+            <button
+              onClick={handleRetrain}
+              disabled={retraining || !metrics || metrics.total_reviewed === 0}
+              className="px-4 py-2 bg-yellow-600 rounded hover:bg-yellow-500 disabled:opacity-50"
+              title={!metrics || metrics.total_reviewed === 0 ? "Review some entities first" : "Apply learned corrections"}
+            >
+              {retraining ? "Retraining..." : "Retrain Model"}
             </button>
             <a href="/review" className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600">
               HITL Review →
