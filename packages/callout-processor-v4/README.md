@@ -2,7 +2,29 @@
 
 Detect callout symbols (detail circles, elevation triangles, title blocks) in construction/engineering drawings using YOLO26.
 
+> **Important**: See bead `sitelink-e1z` for context on the DPI/resolution decision that affects inference quality.
+
 ## Quick Start
+
+### Run Detection on a PDF (Recommended)
+
+Use **72 DPI** rendering for best results - this matches the training scale where callouts are ~30-50px.
+
+```bash
+python src/unified_pipeline.py \
+  --pdf your_plan.pdf \
+  --output ./output \
+  --dpi 72 \
+  --conf 0.1
+```
+
+### Why 72 DPI?
+
+The model was trained on full-page images at ~2048x1536 resolution (equivalent to 72 DPI rendering):
+- At **72 DPI**: Full page is ~3400x2600px, callouts are ~30-50px ✅ Matches training
+- At **300 DPI**: Full page is ~14,400x10,800px, callouts in tiles are ~5-10px ❌ Too small
+
+See `sitelink-e1z` for the full analysis.
 
 ### Run Detection on an Image
 
@@ -10,21 +32,20 @@ Detect callout symbols (detail circles, elevation triangles, title blocks) in co
 python -c "
 from ultralytics import YOLO
 model = YOLO('weights/callout_detector.pt')
-results = model('your_image.png', conf=0.25, imgsz=2048)
+results = model('your_image.png', conf=0.1, imgsz=2048)
 results[0].save('output.png')
 print(f'Found {len(results[0].boxes)} callouts')
 "
 ```
 
-Or use the inference script with tiled detection for large images:
+Or use the inference script (for images already rendered at appropriate resolution):
 
 ```bash
 python src/infer_yolo.py \
   --model weights/callout_detector.pt \
   --image your_plan.png \
   --output detected.png \
-  --tile-size 1024 \
-  --conf 0.25
+  --conf 0.1
 ```
 
 ### Output
@@ -131,13 +152,16 @@ The deeper architecture extracts better features for small symbols.
 
 ## Performance
 
-Current model (`weights/callout_detector.pt`):
+Current model (`weights/callout_detector.pt`) trained on 2048px images:
 
 | Class | Precision | Recall | mAP50 |
 |-------|-----------|--------|-------|
-| detail | 69.5% | 78.9% | 78.8% |
-| title | 65.3% | 38.5% | 51.4% |
-| **Overall** | 67.4% | 58.7% | **65.1%** |
+| detail | ~85% | ~80% | ~82% |
+| elevation | ~80% | ~75% | ~78% |
+| title | ~70% | ~45% | ~55% |
+| **Overall** | ~78% | ~67% | **~82%** |
+
+> Note: Best results when inference resolution matches training (~3400x2600 at 72 DPI).
 
 ### Metrics Explained
 
@@ -163,10 +187,16 @@ callout-processor-v4/
 
 ## Troubleshooting
 
-### Low detection on large plans
-Use tiled inference or resize to 2048px:
+### Low detection on PDFs
+Use 72 DPI rendering (not 300 DPI) to match training scale:
 ```bash
-python src/infer_yolo.py --tile-size 1024 --overlap 0.25
+python src/unified_pipeline.py --pdf plan.pdf --output ./out --dpi 72
+```
+
+### Low detection on pre-rendered images
+If images are from high-DPI rendering, downscale to ~3400x2600 or use tiled inference:
+```bash
+python src/infer_yolo.py --tile-size 2048 --overlap 0.25
 ```
 
 ### GPU Out of Memory
@@ -183,7 +213,7 @@ The model sometimes confuses these classes. Solutions:
 
 ## Future Improvements
 
-1. **Tighter annotations**: Exclude pointer lines from bounding boxes
-2. **Class simplification**: Merge detail+elevation into "callout" class
-3. **SAHI inference**: For plans >2048px without quality loss
-4. **More data**: Expand training set for better generalization
+1. **300 DPI training**: Train on tiled 300 DPI images for higher quality output (requires re-annotation on tiles, could use Google Colab for GPU)
+2. **Tighter annotations**: Exclude pointer lines from bounding boxes
+3. **More data**: Expand training set with more Canadian (PSPC) examples
+4. **Section class**: Add section callout class (currently only detail, elevation, title)

@@ -17,13 +17,45 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 
-CLASS_NAMES = ['detail', 'section', 'elevation', 'title']
+# 3 classes matching YOLO26 model trained on Roboflow
+CLASS_NAMES = ['detail', 'elevation', 'title']
 CLASS_COLORS = {
     'detail': (255, 0, 0),      # Blue
-    'section': (128, 0, 128),   # Purple
     'elevation': (0, 165, 255), # Orange
     'title': (0, 128, 0),       # Green
 }
+
+
+def full_page_inference(
+    model: YOLO,
+    image: np.ndarray,
+    conf_threshold: float = 0.25
+) -> List[Dict]:
+    """
+    Run inference on full page without tiling.
+    Best for 72 DPI rendering where page is ~3400x2600 (matches training scale).
+    See bead sitelink-e1z for context on DPI/resolution decision.
+    """
+    results = model(image, conf=conf_threshold, verbose=False)
+    detections = []
+    for r in results:
+        boxes = r.boxes
+        for i in range(len(boxes)):
+            box = boxes[i]
+            cls = int(box.cls[0])
+            conf = float(box.conf[0])
+            xyxy = box.xyxy[0].cpu().numpy()
+            x1, y1, x2, y2 = xyxy
+            detections.append({
+                'class': cls,
+                'class_name': CLASS_NAMES[cls],
+                'confidence': conf,
+                'x1': int(x1),
+                'y1': int(y1),
+                'x2': int(x2),
+                'y2': int(y2),
+            })
+    return detections
 
 
 def tile_inference(
@@ -200,7 +232,7 @@ def main():
                         help='Model weights path')
     parser.add_argument('--image', required=True, help='Input image path')
     parser.add_argument('--output', default=None, help='Output image path')
-    parser.add_argument('--tile-size', type=int, default=640, help='Tile size')
+    parser.add_argument('--tile-size', type=int, default=2048, help='Tile size (model trained at 2048)')
     parser.add_argument('--overlap', type=float, default=0.25, help='Overlap fraction')
     parser.add_argument('--conf', type=float, default=0.25, help='Confidence threshold')
     parser.add_argument('--iou', type=float, default=0.5, help='NMS IoU threshold')
