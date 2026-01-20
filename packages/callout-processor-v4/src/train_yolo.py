@@ -1,11 +1,20 @@
 #!/usr/bin/env python3
 """
-Train YOLOv8 for callout detection.
+Train YOLO for callout detection at high resolution.
 
 Usage:
     python src/train_yolo.py --epochs 100
 
-This will train YOLOv8n on the exported dataset.
+IMPORTANT: Callout symbols (detail circles, elevation triangles) are very small.
+At 1280x1280 training resolution:
+  - Detail circles: ~9px (TOO SMALL - YOLO minimum is ~20-30px)
+  - Elevation triangles: ~19px (borderline)
+
+At 2560x2560 training resolution:
+  - Detail circles: ~18px (borderline acceptable)
+  - Elevation triangles: ~40px (good)
+
+Always train at 2560+ resolution for reliable callout detection.
 """
 
 import argparse
@@ -15,14 +24,14 @@ from ultralytics import YOLO
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Train YOLOv8 for callout detection')
-    parser.add_argument('--model', default='yolov8n.pt',
-                        help='Base model (yolov8n.pt, yolov8s.pt, yolov8m.pt)')
+    parser = argparse.ArgumentParser(description='Train YOLO for callout detection')
+    parser.add_argument('--model', default='yolo11n.pt',
+                        help='Base model (yolo11n.pt, yolo26n.pt, yolo11s.pt)')
     parser.add_argument('--epochs', type=int, default=100, help='Training epochs')
-    parser.add_argument('--batch', type=int, default=4, help='Batch size (smaller for large images)')
-    parser.add_argument('--imgsz', type=int, default=1280, help='Image size for training')
+    parser.add_argument('--batch', type=int, default=2, help='Batch size (smaller for large images)')
+    parser.add_argument('--imgsz', type=int, default=2560, help='Image size for training (2560+ recommended)')
     parser.add_argument('--data', default='dataset/dataset.yaml', help='Dataset YAML')
-    parser.add_argument('--name', default='callout_detector', help='Run name')
+    parser.add_argument('--name', default='callout_detector_highres', help='Run name')
     parser.add_argument('--resume', action='store_true', help='Resume from last checkpoint')
     parser.add_argument('--device', default='0', help='GPU device (0, 1, or cpu)')
 
@@ -34,7 +43,7 @@ def main():
         return
 
     print("=" * 60)
-    print("YOLOv8 Training for Callout Detection")
+    print("YOLO High-Resolution Training for Callout Detection")
     print("=" * 60)
     print(f"Model: {args.model}")
     print(f"Epochs: {args.epochs}")
@@ -43,6 +52,16 @@ def main():
     print(f"Dataset: {data_path}")
     print(f"Device: {args.device}")
     print("=" * 60)
+
+    if args.imgsz < 2560:
+        print("\n⚠️  WARNING: imgsz < 2560 may result in poor detection of small callouts")
+        print("   Detail circles need ~18+ px to be detectable (requires 2560+ imgsz)")
+        print("")
+
+    if args.imgsz >= 2560 and args.batch > 2:
+        print("\n⚠️  WARNING: High imgsz with batch > 2 may cause GPU OOM")
+        print("   Consider using --batch 2 or --batch 1")
+        print("")
 
     model = YOLO(args.model)
 
