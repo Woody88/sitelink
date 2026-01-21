@@ -1,0 +1,21 @@
+# YOLO-26E Zero-Shot Callout Detection Requirements
+
+# YOLO-26E model (includes YOLO-World support)
+# Install with: pip install ultralytics
+ultralytics>=8.3.0
+
+# Core dependencies
+numpy>=1.24.0
+pillow>=10.0.0
+
+# Optional: OpenCV for advanced image processing
+# Uncomment if you prefer OpenCV over Pillow for annotations
+# opencv-python>=4.8.0
+
+# PyTorch (required by ultralytics, typically auto-installed)
+# Uncomment and specify version if you need a specific CUDA/CPU version
+# torch>=2.0.0
+# torchvision>=0.15.0
+
+# Additional utilities
+tqdm>=4.65.0  # Progress bars for batch processing
