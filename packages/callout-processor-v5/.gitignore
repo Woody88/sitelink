@@ -1,0 +1,34 @@
+# YOLO model files (downloaded automatically by Ultralytics)
+*.pt
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Test output
+test_output/*.png
+test_output/*.jpg
+test_output/*.json
+
+# Virtual environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+mobileclip2_b.ts

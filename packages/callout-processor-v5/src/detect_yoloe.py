@@ -63,9 +63,9 @@ def detect_callouts_visual(
     if not prompt_images:
         raise ValueError("At least one prompt image is required for visual detection")
 
-    # Load YOLOE-26 model
+    # Load YOLOE-26 model (nano version for speed)
     try:
-        model = YOLO("yoloe26n-world.pt")
+        model = YOLO("yoloe-26n-seg.pt")
     except Exception as e:
         raise RuntimeError(f"Failed to load YOLOE-26 model: {e}")
 
@@ -187,7 +187,7 @@ def detect_callouts_visual(
 
     # Build metadata
     metadata = {
-        "model": "yoloe26n-world.pt",
+        "model": "yoloe-26n-seg.pt",
         "conf_threshold": conf_threshold,
         "iou_threshold": iou_threshold,
         "num_detections": len(detections),
@@ -238,9 +238,9 @@ def detect_callouts_text(
     if not text_prompts or "callout_types" not in text_prompts:
         raise ValueError("text_prompts must contain 'callout_types' key")
 
-    # Load YOLOE-26 model
+    # Load YOLOE-26 model (nano version for speed)
     try:
-        model = YOLO("yoloe26n-world.pt")
+        model = YOLO("yoloe-26n-seg.pt")
     except Exception as e:
         raise RuntimeError(f"Failed to load YOLOE-26 model: {e}")
 
@@ -263,8 +263,9 @@ def detect_callouts_text(
     # Set classes with text prompts
     # YOLOE's set_classes method uses the model's text encoder to create
     # embeddings for the provided class descriptions
+    # Use the detailed text descriptions for better zero-shot performance
     try:
-        model.set_classes(class_names, model.get_text_pe(class_names))
+        model.set_classes(class_names, model.get_text_pe(text_descriptions))
     except Exception as e:
         raise RuntimeError(f"Failed to set classes with text prompts: {e}")
 
@@ -324,7 +325,7 @@ def detect_callouts_text(
 
     # Build metadata
     metadata = {
-        "model": "yoloe26n-world.pt",
+        "model": "yoloe-26n-seg.pt",
         "conf_threshold": conf_threshold,
         "iou_threshold": iou_threshold,
         "num_detections": len(detections),
