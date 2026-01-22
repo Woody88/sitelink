@@ -4,7 +4,7 @@
   "callout_types": {
     "detail": {
       "name": "Detail Callout",
-      "text_prompt": "A detail indicator symbol per NCS 01 42 00-020. Can be either a dashed circle OR dashed rectangle outline with 6mm (1/4 inch) continuous or medium dash line. Contains a detail identifier (number, letter, or alphanumeric) above a horizontal dividing line, with optional sheet reference below. Format examples: 'D2/A-512', '3/S5.1', 'A1/A-201'. The symbol is clean and distinct with NO triangles or solid attachments. Text is centered and uses construction drawing font. Sheet references include discipline prefix (A=Architectural, S=Structural, M=Mechanical, E=Electrical, P=Plumbing, C=Civil, L=Landscape) followed by sheet number with dash or dot separator (A-201, S5.1, S-501). Circle/rectangle size typically 0.3-0.8 inches. Based on US NCS standard 01 42 00-020.",
+      "text_prompt": "A small detail indicator symbol per NCS 01 42 00-020. MUST have a clearly visible DASHED outline (not solid) forming either a circle or rectangle, with evenly spaced dashes approximately 3-6mm apart. The dashed outline is distinctive and easy to see. Symbol diameter/width is small and compact: 0.3-0.8 inches (20-60 pixels at 150 DPI). Inside the dashed outline is a simple alphanumeric identifier (like '3', 'A1', 'D2') above a thin horizontal dividing line, with an optional sheet reference below (format: 'A-201', 'S5.1'). The symbol has NO triangles, NO solid attachments, NO thick borders. It is a standalone geometric shape, not part of large text boxes or title blocks. Appears on plan views to reference enlarged details. Size constraint: bounding box should be compact (20-60 pixels width/height), NOT large text areas or dimension annotations.",
       "visual_characteristics": [
         "Dashed circular OR dashed rectangular outline (6mm/1/4 inch line)",
         "No triangles or solid attachments",
@@ -24,14 +24,15 @@
     },
     "elevation": {
       "name": "Elevation Callout",
-      "text_prompt": "An elevation indicator symbol per NCS 01 42 00-027/028/029. Consists of a solid circle (12.7mm or 1/2 inch diameter for exterior, 9.5mm or 3/8 inch for interior) with a solid black triangle marker attached to indicate viewing direction. Circle has thin black outline with white fill, divided horizontally by a line. Contains an elevation identifier (number, letter, or alphanumeric like 'A4', 'A1', '2') above the dividing line, with sheet reference below in format 'A4/A-201' or 'A1/A-201'. The triangle points in the direction from which the elevation is viewed. Can show single or multiple elevation markers. Based on US NCS standard 01 42 00-027 (exterior), 01 42 00-028/029 (interior). Sheet references use NCS format: discipline prefix + dash/dot + number (A-201, S5.1).",
+      "text_prompt": "A compact elevation indicator symbol with a solid black triangle pointing in the viewing direction. The symbol is small (0.3-0.8 inches, 20-60 pixels at 150 DPI). Two types exist: Type 1 is a solid triangle with text near its base showing detail number and sheet reference separated by '/'. Type 2 is a circle with a triangle attached where the triangle points stick out from the circle edge; inside the circle is a horizontal line with detail number above and sheet reference below (like a fraction). CRITICAL distinguishing feature: MUST have a visible solid triangle. If no triangle is present, it is NOT an elevation - it's a different callout type. The triangle is the key identifier. Compact size, not large areas. May have a thin leader line pointing to the elevation location. Format examples: '2/A-201', 'A4' over 'A-201'.",
       "visual_characteristics": [
-        "Solid circular outline (12.7mm/1/2 inch or 9.5mm/3/8 inch diameter)",
-        "Horizontal dividing line inside circle",
-        "Triangle marker attached to circle edge",
-        "Triangle indicates viewing direction",
-        "Elevation identifier above line (A4, A1, 2, etc.)",
-        "Sheet reference below line (A-201, S5.1 format)",
+        "MUST have a solid black triangle (key identifier)",
+        "Triangle points in viewing direction",
+        "Compact size (0.3-0.8 inches, 20-60 pixels at 150 DPI)",
+        "Type 1: Triangle only with '/' separator for detail/sheet number",
+        "Type 2: Circle with triangle points sticking out, horizontal line inside (fraction format)",
+        "Detail number and sheet reference (e.g., '2/A-201', 'A4' over 'A-201')",
+        "May have thin leader line",
         "Based on NCS 01 42 00-027/028/029"
       ],
       "false_positives_to_exclude": [
@@ -65,7 +66,7 @@
     },
     "title": {
       "name": "Title Callout",
-      "text_prompt": "A small circular callout symbol appearing at the bottom or corner of an enlarged detail drawing box. Circle has thin black outline with white fill, contains a reference number (1-99), letter (A-Z), or letter+number (A1, B2) that corresponds to a detail callout elsewhere on the sheet. Often accompanied by text labels such as detail name, scale information (SCALE: 1/4\"=1'-0\"), or drawing title. Positioned within or immediately below detail drawing boundary boxes rather than on the main plan view. Circle diameter typically 0.25-0.5 inches, slightly smaller than detail callouts on main plan.",
+      "text_prompt": "A very small circular callout symbol, much smaller than regular detail callouts. Circle diameter is only 0.2-0.4 inches (15-35 pixels at 150 DPI). Appears INSIDE or immediately adjacent to an enlarged detail drawing box boundary, typically at the top-left or bottom-left corner of that detail box. Contains only a simple reference number (1-9) or letter (A-Z) that matches a detail callout on the main plan. The circle is thin-outlined, standalone, and compact. CRITICAL: This is NOT the large sheet title block with drawing name and sheet number - those are much larger rectangular areas. This is a tiny circle marker within individual detail enlargements. Size constraint: bounding box must be very small (15-35 pixels), NOT large title blocks or text areas exceeding 100 pixels in any dimension.",
       "visual_characteristics": [
         "Small circular outline",
         "Located at bottom/corner of detail drawing boxes",

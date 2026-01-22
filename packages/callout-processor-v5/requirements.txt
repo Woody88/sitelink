@@ -1,21 +1,28 @@
-# YOLO-26E Zero-Shot Callout Detection Requirements
+# Few-Shot Callout Detection with SAHI Requirements
 
-# YOLO-26E model (includes YOLO-World support)
-# Install with: pip install ultralytics
+# YOLO models
 ultralytics>=8.3.0
 
 # Core dependencies
 numpy>=1.24.0
 pillow>=10.0.0
+opencv-python>=4.8.0
+scipy>=1.10.0
+scikit-learn>=1.3.0
 
-# Optional: OpenCV for advanced image processing
-# Uncomment if you prefer OpenCV over Pillow for annotations
-# opencv-python>=4.8.0
+# PyTorch (required by multiple models)
+torch>=2.0.0
+torchvision>=0.15.0
 
-# PyTorch (required by ultralytics, typically auto-installed)
-# Uncomment and specify version if you need a specific CUDA/CPU version
-# torch>=2.0.0
-# torchvision>=0.15.0
+# GroundingDINO (installed separately from GitHub)
+# git+https://github.com/IDEA-Research/GroundingDINO.git
+transformers>=4.30.0
+supervision>=0.22.0
+timm>=0.9.0
+addict>=2.4.0
+
+# PDF processing
+PyMuPDF>=1.23.0
 
 # Additional utilities
-tqdm>=4.65.0  # Progress bars for batch processing
+tqdm>=4.65.0

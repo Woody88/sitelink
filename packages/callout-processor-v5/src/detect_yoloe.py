@@ -16,8 +16,10 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
+import cv2
 from ultralytics import YOLO
 from ultralytics.models.yolo.yoloe import YOLOEVPSegPredictor
+from sahi_tiling import tile_image, merge_detections, adjust_coordinates, TILE_SIZE, OVERLAP
 
 
 def detect_callouts_visual(
@@ -337,6 +339,143 @@ def detect_callouts_text(
         "detections": detections,
         "metadata": metadata,
     }
+
+
+def detect_callouts_text_sahi(
+    image_path: str,
+    text_prompts: Dict[str, Dict],
+    tile_size: int = TILE_SIZE,
+    overlap: float = OVERLAP,
+    conf_threshold: float = 0.05,
+    iou_threshold: float = 0.5,
+    output_path: str = None,
+) -> Dict:
+    """
+    Detect callouts using text prompts with SAHI tiling (improved version).
+
+    This is an improved version of detect_callouts_text() that uses SAHI tiling
+    to better detect small callouts across large construction plans.
+
+    Args:
+        image_path: Path to the construction plan image (PNG/JPG)
+        text_prompts: Dictionary from JSON prompt file
+        tile_size: Tile size in pixels (default: 2048 from v4 learnings)
+        overlap: Overlap ratio 0-1 (default: 0.25)
+        conf_threshold: Minimum confidence threshold (default: 0.05)
+        iou_threshold: IoU threshold for NMS (default: 0.5)
+        output_path: Optional path to save annotated image
+
+    Returns:
+        Dictionary containing detections and metadata
+    """
+    if not os.path.exists(image_path):
+        raise FileNotFoundError(f"Image not found: {image_path}")
+
+    if not text_prompts or "callout_types" not in text_prompts:
+        raise ValueError("text_prompts must contain 'callout_types' key")
+
+    model = YOLO("yoloe-26n-seg.pt")
+
+    callout_types = text_prompts["callout_types"]
+    class_names = list(callout_types.keys())
+
+    text_descriptions = []
+    for callout_type in class_names:
+        if "text_prompt" in callout_types[callout_type]:
+            text_descriptions.append(callout_types[callout_type]["text_prompt"])
+        else:
+            text_descriptions.append(callout_types[callout_type].get("name", callout_type))
+
+    model.set_classes(class_names, model.get_text_pe(text_descriptions))
+
+    image = cv2.imread(image_path)
+    if image is None:
+        raise ValueError(f"Could not load image: {image_path}")
+
+    tiles = tile_image(image, tile_size, overlap)
+    print(f"Generated {len(tiles)} tiles for SAHI detection")
+
+    all_detections = []
+    for i, (tile, offset) in enumerate(tiles):
+        print(f"Processing tile {i+1}/{len(tiles)}...", end='\r')
+
+        results = model.predict(tile, conf=conf_threshold, iou=iou_threshold, verbose=False)
+
+        if results and len(results) > 0:
+            result = results[0]
+            if hasattr(result, 'boxes') and result.boxes is not None:
+                for j in range(len(result.boxes)):
+                    box = result.boxes[j]
+                    xyxy = box.xyxy[0].cpu().numpy()
+                    x1, y1, x2, y2 = xyxy
+
+                    bbox = [float(x1), float(y1), float(x2-x1), float(y2-y1)]
+                    bbox_global = adjust_coordinates(bbox, offset)
+
+                    cls_id = int(box.cls[0])
+                    callout_type = class_names[cls_id]
+
+                    all_detections.append({
+                        'bbox': bbox_global,
+                        'confidence': float(box.conf[0]),
+                        'class': callout_type,
+                        'callout_type': callout_type,
+                        'method': 'yoloe_sahi',
+                        'image_path': image_path,
+                        'tile_index': i
+                    })
+
+    print(f"\nDetected {len(all_detections)} callouts before NMS")
+
+    merged = merge_detections(all_detections, iou_threshold=0.5)
+    print(f"After NMS: {len(merged)} callouts")
+
+    if output_path:
+        _save_annotated_sahi(image, merged, output_path)
+        print(f"Annotated image saved: {output_path}")
+
+    metadata = {
+        "model": "yoloe-26n-seg.pt",
+        "method": "yoloe_sahi",
+        "conf_threshold": conf_threshold,
+        "iou_threshold": iou_threshold,
+        "tile_size": tile_size,
+        "overlap": overlap,
+        "num_tiles": len(tiles),
+        "num_detections": len(merged),
+        "standard": text_prompts.get("standard", "unknown"),
+        "class_names": class_names,
+    }
+
+    return {
+        "detections": merged,
+        "metadata": metadata,
+    }
+
+
+def _save_annotated_sahi(image: np.ndarray, detections: List[Dict], output_path: str):
+    """Save annotated image with detection boxes."""
+    vis = image.copy()
+
+    colors = {
+        'detail': (255, 0, 0),
+        'elevation': (0, 255, 0),
+        'section': (0, 0, 255),
+        'title': (255, 165, 0)
+    }
+
+    for det in detections:
+        x, y, w, h = det['bbox']
+        x, y, w, h = int(x), int(y), int(w), int(h)
+
+        color = colors.get(det['callout_type'], (255, 255, 255))
+
+        cv2.rectangle(vis, (x, y), (x+w, y+h), color, 3)
+
+        label = f"{det['callout_type']}: {det['confidence']:.2f}"
+        cv2.putText(vis, label, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+
+    cv2.imwrite(output_path, vis)
 
 
 def load_prompt_json(prompt_file_path: str) -> Dict:
