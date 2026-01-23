@@ -27,6 +27,7 @@ import sys
 from pathlib import Path
 
 import cv2
+import numpy as np
 import fitz  # PyMuPDF
 from ultralytics import YOLO
 
@@ -59,13 +60,15 @@ def render_pdf_page(pdf_path: str, page_num: int, dpi: int = DPI) -> cv2.Mat:
     mat = fitz.Matrix(dpi / 72, dpi / 72)
     pix = page.get_pixmap(matrix=mat)
 
-    img = cv2.cvtColor(
-        cv2.imdecode(
-            cv2.frombuffer(pix.samples, dtype=cv2.uint8),
-            cv2.IMREAD_COLOR
-        ),
-        cv2.COLOR_RGB2BGR
-    )
+    # Convert PyMuPDF pixmap (RGB) to OpenCV format (BGR)
+    img = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)
+
+    # If RGBA, drop alpha channel
+    if pix.n == 4:
+        img = img[:, :, :3]
+
+    # Convert RGB to BGR for OpenCV
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
     doc.close()
     return img
