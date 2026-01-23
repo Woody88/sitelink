@@ -230,6 +230,33 @@ export async function extractWithYOLO(
 
   const allSheets = sheets.getByPdf(pdfPath);
 
+  // Run detection on each sheet using pre-rendered images
+  for (let i = 0; i < allSheets.length; i++) {
+    const sheet = allSheets[i];
+    if (!sheet || !sheet.image_path) {
+      console.warn(`Sheet ${i + 1} has no image path`);
+      continue;
+    }
+
+    const sheetOutputDir = join(outputDir, `sheet-${i}`);
+    mkdirSync(sheetOutputDir, { recursive: true });
+
+    // Use already-rendered image instead of re-rendering PDF
+    const args = [
+      'python', PYTHON_API,
+      '--image', sheet.image_path,
+      '--output', sheetOutputDir,
+      '--conf', String(confThreshold),
+    ];
+
+    if (!validate) {
+      args.push('--no-filters');
+    }
+
+    await $`${args}`.quiet();
+  }
+
+  // Now read all the detection results
   for (const sheetInfo of summary.sheets) {
     const sheet = allSheets.find(s => s.page_number === sheetInfo.sheet_index + 1);
     if (!sheet) {
