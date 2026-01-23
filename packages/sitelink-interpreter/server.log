@@ -1,0 +1,43 @@
+$ bun run src/api/server.ts
+SiteLink Interpreter running at http://localhost:3456
+
+  Explorer:    http://localhost:3456/
+  HITL Review: http://localhost:3456/review
+  Metrics API: http://localhost:3456/api/metrics
+Bundled page in 26ms: src/ui/explorer.html
+
+=== Processing uploaded PDF: 4-Structural-Drawings - 4pages.pdf ===
+Extraction method: yolo-v5
+Step 0: Clearing previous data...
+Detection cache cleared
+  Previous data cleared
+Step 1: Ingesting PDF...
+Ingesting PDF: /home/woodson/Code/projects/sitelink/packages/sitelink-interpreter/uploads/4-Structural-Drawings - 4pages.pdf
+Found 4 pages
+Converted to 4 PNG images
+  Sheet 1: Sheet-1 (7200x5400)
+    Extracted sheet number: S2.0
+  Sheet 2: S2.0 (7200x5400)
+    Extracted sheet number: S1.0
+  Sheet 3: S1.0 (7200x5400)
+    Extracted sheet number: S4.0
+  Sheet 4: S4.0 (7200x5400)
+
+Ingestion complete: 4 sheets processed
+  Created 4 sheets
+Step 2: Extracting entities...
+Running YOLO v5 detection on 4 sheets...
+  Detecting on sheet 1/4...
+  Detecting on sheet 2/4...
+  Detecting on sheet 3/4...
+  Detecting on sheet 4/4...
+v5 detection complete: 154 detections across 4 sheets
+Inserted 154 entities from YOLO pipeline
+  Found 154 entities (YOLO v5)
+Step 3: Building relationships...
+Building relationships for 154 entities...
+Found 0 callouts with target references
+
+  Created 0 relationships
+=== Processing complete ===
+

@@ -233,10 +233,15 @@ export async function extractWithYOLO(
 
     console.log(`  Detecting on sheet ${i + 1}/${allSheets.length}...`);
 
-    // Use already-rendered image instead of re-rendering PDF
+    // Downsample to 72 DPI for detection (model was trained on 72 DPI)
+    // Images from ingestion are 150 DPI (7200x5400) but model expects 72 DPI (3456x2592)
+    const downsampledPath = join(sheetOutputDir, 'downsampled-72dpi.png');
+    await $`python -c "from PIL import Image; img = Image.open('${sheet.image_path}'); downsampled = img.resize((3456, 2592), Image.Resampling.LANCZOS); downsampled.save('${downsampledPath}')"`.quiet();
+
+    // Use downsampled image for detection
     const args = [
       'python', PYTHON_API,
-      '--image', sheet.image_path,
+      '--image', downsampledPath,
       '--output', sheetOutputDir,
       '--conf', String(confThreshold),
     ];
@@ -277,6 +282,10 @@ export async function extractWithYOLO(
 
     totalDetections += detectionsFile.detections.length;
 
+    // Scale factor: detection was on 72 DPI (3456x2592), but we need coords for display resolution
+    const scaleX = (sheet.width ?? 7200) / 3456;
+    const scaleY = (sheet.height ?? 5400) / 2592;
+
     for (const det of detectionsFile.detections) {
       const classLabel = mapClassToLabel(det.class);
       byClass[det.class] = (byClass[det.class] ?? 0) + 1;
@@ -285,11 +294,11 @@ export async function extractWithYOLO(
         needsReview++;
       }
 
-      // Convert [x, y, w, h] to [x1, y1, x2, y2]
-      const x1 = det.bbox[0] ?? 0;
-      const y1 = det.bbox[1] ?? 0;
-      const x2 = (det.bbox[0] ?? 0) + (det.bbox[2] ?? 0);
-      const y2 = (det.bbox[1] ?? 0) + (det.bbox[3] ?? 0);
+      // Convert [x, y, w, h] to [x1, y1, x2, y2] and scale up to display resolution
+      const x1 = ((det.bbox[0] ?? 0) * scaleX);
+      const y1 = ((det.bbox[1] ?? 0) * scaleY);
+      const x2 = (((det.bbox[0] ?? 0) + (det.bbox[2] ?? 0)) * scaleX);
+      const y2 = (((det.bbox[1] ?? 0) + (det.bbox[3] ?? 0)) * scaleY);
 
       const entity = entities.insert({
         sheet_id: sheet.id,
