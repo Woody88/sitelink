@@ -197,38 +197,28 @@ export async function extractWithYOLO(
   runId: string;
   summary: PipelineSummary | null;
 }> {
+  const {
+    confThreshold = 0.25,
+    standard = 'auto',
+    validate = false,
+  } = options;
+
   const result = {
     entities: [] as Entity[],
     runId: '',
     summary: null as PipelineSummary | null,
   };
 
-  const summary = await runYOLOPipeline(pdfPath, options);
-  if (!summary) {
-    return result;
-  }
-
-  result.summary = summary;
-
-  const run = detectionRuns.insert({
-    pdf_path: pdfPath,
-    model_version: 'v5_combined2',
-    parameters_json: JSON.stringify({
-      dpi: options.dpi ?? 72,
-      tileSize: options.tileSize ?? 2048,
-      overlap: options.overlap ?? 0.2,
-      confThreshold: options.confThreshold ?? 0.25,
-      standard: options.standard ?? 'auto',
-    }),
-    total_detections: summary.total_detections,
-    needs_review: summary.needs_review,
-  });
-  result.runId = run.id;
-
   const pdfName = basename(pdfPath, '.pdf');
   const outputDir = join(OUTPUT_DIR, pdfName);
 
+  if (!existsSync(OUTPUT_DIR)) {
+    mkdirSync(OUTPUT_DIR, { recursive: true });
+  }
+
   const allSheets = sheets.getByPdf(pdfPath);
+
+  console.log(`Running YOLO v5 detection on ${allSheets.length} sheets...`);
 
   // Run detection on each sheet using pre-rendered images
   for (let i = 0; i < allSheets.length; i++) {
@@ -240,6 +230,8 @@ export async function extractWithYOLO(
 
     const sheetOutputDir = join(outputDir, `sheet-${i}`);
     mkdirSync(sheetOutputDir, { recursive: true });
+
+    console.log(`  Detecting on sheet ${i + 1}/${allSheets.length}...`);
 
     // Use already-rendered image instead of re-rendering PDF
     const args = [
@@ -256,19 +248,21 @@ export async function extractWithYOLO(
     await $`${args}`.quiet();
   }
 
-  // Now read all the detection results
-  for (const sheetInfo of summary.sheets) {
-    const sheet = allSheets.find(s => s.page_number === sheetInfo.sheet_index + 1);
-    if (!sheet) {
-      console.warn(`No sheet found for page ${sheetInfo.sheet_index + 1}`);
-      continue;
-    }
+  // Build summary from detection results
+  let totalDetections = 0;
+  let needsReview = 0;
+  const byClass: Record<string, number> = {};
 
-    const sheetDir = join(outputDir, `sheet-${sheetInfo.sheet_index}`);
+  // Read all detection results and insert entities
+  for (let i = 0; i < allSheets.length; i++) {
+    const sheet = allSheets[i];
+    if (!sheet) continue;
+
+    const sheetDir = join(outputDir, `sheet-${i}`);
     const detectionsPath = join(sheetDir, 'detections.json');
 
     if (!existsSync(detectionsPath)) {
-      console.warn(`No detections.json for sheet ${sheetInfo.sheet_index}`);
+      console.warn(`No detections.json for sheet ${i + 1}`);
       continue;
     }
 
@@ -281,8 +275,15 @@ export async function extractWithYOLO(
       }>;
     };
 
+    totalDetections += detectionsFile.detections.length;
+
     for (const det of detectionsFile.detections) {
       const classLabel = mapClassToLabel(det.class);
+      byClass[det.class] = (byClass[det.class] ?? 0) + 1;
+
+      if (det.confidence < 0.7) {
+        needsReview++;
+      }
 
       // Convert [x, y, w, h] to [x1, y1, x2, y2]
       const x1 = det.bbox[0] ?? 0;
@@ -306,7 +307,7 @@ export async function extractWithYOLO(
         yolo_confidence: det.confidence,
         ocr_confidence: null,
         detection_method: 'yolo_v5',
-        standard: options.standard ?? 'auto',
+        standard,
         raw_ocr_text: null,
         crop_image_path: null,
         needs_review: det.confidence < 0.7 ? 1 : 0,
@@ -318,6 +319,24 @@ export async function extractWithYOLO(
       result.entities.push(entity);
     }
   }
+
+  // Create detection run record
+  const run = detectionRuns.insert({
+    pdf_path: pdfPath,
+    model_version: 'v5_combined2',
+    parameters_json: JSON.stringify({
+      dpi: 72,
+      tileSize: 2048,
+      overlap: 0.2,
+      confThreshold,
+      standard,
+    }),
+    total_detections: totalDetections,
+    needs_review: needsReview,
+  });
+  result.runId = run.id;
+
+  console.log(`v5 detection complete: ${totalDetections} detections across ${allSheets.length} sheets`);
 
   console.log(`Inserted ${result.entities.length} entities from YOLO pipeline`);
   return result;
