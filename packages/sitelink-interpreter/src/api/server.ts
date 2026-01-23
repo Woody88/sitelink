@@ -54,6 +54,7 @@ const server = Bun.serve({
         try {
           const formData = await req.formData();
           const file = formData.get("pdf") as File | null;
+          const extractionMethod = formData.get("extractionMethod") as string | null;
 
           if (!file) {
             return Response.json({ error: "No PDF file provided" }, { status: 400 });
@@ -69,6 +70,7 @@ const server = Bun.serve({
           writeFileSync(pdfPath, Buffer.from(arrayBuffer));
 
           console.log(`\n=== Processing uploaded PDF: ${file.name} ===`);
+          console.log(`Extraction method: ${extractionMethod || "default"}`);
 
           console.log("Step 0: Clearing previous data...");
           const db = getDb();
@@ -85,9 +87,19 @@ const server = Bun.serve({
           console.log(`  Created ${ingestionResult.sheets.length} sheets`);
 
           console.log("Step 2: Extracting entities...");
-          const extractionResults = await extractAll(pdfPath);
-          const totalEntities = extractionResults.reduce((sum, r) => sum + r.entities.length, 0);
-          console.log(`  Found ${totalEntities} entities`);
+          let totalEntities: number;
+          let needsReview = 0;
+
+          if (extractionMethod === "yolo-v5") {
+            const yoloResult = await extractWithYOLO(pdfPath, {});
+            totalEntities = yoloResult.entities.length;
+            needsReview = yoloResult.summary?.needs_review ?? 0;
+            console.log(`  Found ${totalEntities} entities (YOLO v5)`);
+          } else {
+            const extractionResults = await extractAll(pdfPath);
+            totalEntities = extractionResults.reduce((sum, r) => sum + r.entities.length, 0);
+            console.log(`  Found ${totalEntities} entities`);
+          }
 
           console.log("Step 3: Building relationships...");
           const linkResult = buildRelationships();
@@ -100,6 +112,7 @@ const server = Bun.serve({
             pdf_name: file.name,
             sheets_created: ingestionResult.sheets.length,
             entities_found: totalEntities,
+            needs_review: needsReview,
             relationships_created: linkResult.created,
           });
         } catch (error) {
