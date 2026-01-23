@@ -3846,3 +3846,39 @@ time=2026-01-23T00:22:47.531-05:00 level=INFO msg="Export complete"
 time=2026-01-23T00:22:48.532-05:00 level=INFO msg="Import triggered by file change"
 time=2026-01-23T00:22:48.532-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
 time=2026-01-23T00:22:48.533-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-23T00:24:52.476-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-23T00:24:52.476-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-23T00:24:52.519-05:00 level=INFO msg="Git ref change detected: %s" !BADKEY=.git/refs/heads/dev-livestore.lock
+time=2026-01-23T00:24:53.520-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-23T00:24:53.520-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-23T00:24:53.520-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-23T00:33:17.713-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-23T00:33:17.713-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-23T00:33:17.744-05:00 level=INFO msg="Git ref change detected: %s" !BADKEY=.git/refs/heads/dev-livestore.lock
+time=2026-01-23T00:33:18.745-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-23T00:33:18.745-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-23T00:33:18.746-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-23T00:51:21.322-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-23T00:51:21.322-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-23T00:51:21.354-05:00 level=INFO msg="Git ref change detected: %s" !BADKEY=.git/refs/heads/dev-livestore.lock
+time=2026-01-23T00:51:22.356-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-23T00:51:22.356-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-23T00:51:22.356-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-23T00:59:43.401-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-23T00:59:43.401-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-23T00:59:43.431-05:00 level=INFO msg="Git ref change detected: %s" !BADKEY=.git/refs/heads/dev-livestore.lock
+time=2026-01-23T00:59:44.432-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-23T00:59:44.433-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-23T00:59:44.433-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-23T01:09:42.746-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-23T01:09:42.746-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-23T01:09:42.775-05:00 level=INFO msg="Git ref change detected: %s" !BADKEY=.git/refs/heads/dev-livestore.lock
+time=2026-01-23T01:09:43.776-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-23T01:09:43.777-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-23T01:09:43.777-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-01-23T01:34:58.022-05:00 level=INFO msg="JSONL file created: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-23T01:34:58.022-05:00 level=INFO msg="File change detected: %s" !BADKEY=/home/woodson/Code/projects/sitelink/.beads/issues.jsonl
+time=2026-01-23T01:34:58.052-05:00 level=INFO msg="Git ref change detected: %s" !BADKEY=.git/refs/heads/dev-livestore.lock
+time=2026-01-23T01:34:59.053-05:00 level=INFO msg="Import triggered by file change"
+time=2026-01-23T01:34:59.053-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-01-23T01:34:59.054-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
