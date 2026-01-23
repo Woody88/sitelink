@@ -1,12 +1,12 @@
 import { $ } from "bun";
-import { existsSync, readFileSync, mkdirSync } from "fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
 import { join, basename } from "path";
 import { sheets, entities, detectionRuns, type Sheet, type Entity } from "../db/index.ts";
 
-const PYTHON_PIPELINE = join(import.meta.dir, "../../../callout-processor-v4/src/unified_pipeline.py");
-// YOLO26 model trained on callout detection at 2048px native resolution
-// See bead sitelink-rnc for training history
-const YOLO_MODEL = join(import.meta.dir, "../../../callout-processor-v4/weights/callout_detector.pt");
+const PYTHON_API = join(import.meta.dir, "../../../callout-processor-v5/src/api_detect.py");
+// v5 model: 96.5% P/R on Canadian, 97.1% P / 95.4% R combined (Canadian + US)
+// Trained with SAHI tiling, 72 DPI, 2048px tiles
+const YOLO_MODEL = join(import.meta.dir, "../../../callout-processor-v5/runs/detect/v5_combined2/weights/best.pt");
 const OUTPUT_DIR = join(import.meta.dir, "../../output/yolo-extractions");
 
 interface YOLODetection {
@@ -49,10 +49,10 @@ interface PipelineSummary {
 }
 
 export interface YOLOExtractionOptions {
-  dpi?: number;
-  tileSize?: number;
-  overlap?: number;
-  confThreshold?: number;
+  dpi?: number;          // Default: 72 (CRITICAL - DO NOT CHANGE without retraining)
+  tileSize?: number;     // Default: 2048 (CRITICAL - DO NOT CHANGE without retraining)
+  overlap?: number;      // Default: 0.2 (CRITICAL - DO NOT CHANGE without retraining)
+  confThreshold?: number; // Default: 0.25
   standard?: 'auto' | 'pspc' | 'ncs';
   validate?: boolean;
 }
@@ -72,16 +72,16 @@ export async function runYOLOPipeline(
   options: YOLOExtractionOptions = {}
 ): Promise<PipelineSummary | null> {
   const {
-    dpi = 300,
-    tileSize = 640,
-    overlap = 0.25,
-    confThreshold = 0.1,
+    dpi = 72,        // v5 optimal DPI
+    tileSize = 2048, // v5 SAHI tile size
+    overlap = 0.2,   // v5 SAHI overlap
+    confThreshold = 0.25, // v5 optimal confidence
     standard = 'auto',
     validate = false,
   } = options;
 
-  if (!existsSync(PYTHON_PIPELINE)) {
-    console.error(`YOLO pipeline not found at ${PYTHON_PIPELINE}`);
+  if (!existsSync(PYTHON_API)) {
+    console.error(`YOLO API script not found at ${PYTHON_API}`);
     return null;
   }
 
@@ -97,36 +97,91 @@ export async function runYOLOPipeline(
     mkdirSync(OUTPUT_DIR, { recursive: true });
   }
 
-  console.log(`Running YOLO pipeline on ${pdfPath}...`);
+  console.log(`Running YOLO v5 detection on ${pdfPath}...`);
+  console.log(`  DPI: ${dpi}, Tile Size: ${tileSize}, Overlap: ${overlap}, Conf: ${confThreshold}`);
 
   try {
-    const args = [
-      'python', PYTHON_PIPELINE,
-      '--pdf', pdfPath,
-      '--output', outputDir,
-      '--model', YOLO_MODEL,
-      '--dpi', String(dpi),
-      '--tile-size', String(tileSize),
-      '--overlap', String(overlap),
-      '--conf', String(confThreshold),
-      '--standard', standard,
-    ];
+    // Get page count using pdfinfo (same as ingestion)
+    const pageCountStr = await $`pdfinfo ${pdfPath} | grep "Pages:" | awk '{print $2}'`.text();
+    const numPages = parseInt(pageCountStr.trim(), 10);
+    const sheets: PipelineSummary['sheets'] = [];
+    let totalDetections = 0;
+    let needsReview = 0;
+    const byClass: Record<string, number> = {};
 
-    if (!validate) {
-      args.push('--no-validate');
+    for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+      const pageOutputDir = join(outputDir, `sheet-${pageNum - 1}`);
+
+      const args = [
+        'python', PYTHON_API,
+        '--pdf', pdfPath,
+        '--page', String(pageNum),
+        '--output', pageOutputDir,
+        '--conf', String(confThreshold),
+      ];
+
+      if (!validate) {
+        args.push('--no-filters');
+      }
+
+      await $`${args}`.quiet();
+
+      // Read detections for this page
+      const detectionsPath = join(pageOutputDir, 'detections.json');
+      if (existsSync(detectionsPath)) {
+        const pageDetections = JSON.parse(readFileSync(detectionsPath, 'utf-8')) as {
+          detections: Array<{
+            bbox: number[];
+            class: string;
+            confidence: number;
+          }>;
+        };
+
+        const pageCount = pageDetections.detections.length;
+        totalDetections += pageCount;
+
+        const pageByClass: Record<string, number> = {};
+        for (const det of pageDetections.detections) {
+          pageByClass[det.class] = (pageByClass[det.class] ?? 0) + 1;
+          byClass[det.class] = (byClass[det.class] ?? 0) + 1;
+
+          if (det.confidence < 0.7) {
+            needsReview++;
+          }
+        }
+
+        // Get image dimensions (approximate from bbox if needed)
+        const maxX = Math.max(...pageDetections.detections.map(d => (d.bbox[0] ?? 0) + (d.bbox[2] ?? 0)), 0);
+        const maxY = Math.max(...pageDetections.detections.map(d => (d.bbox[1] ?? 0) + (d.bbox[3] ?? 0)), 0);
+
+        sheets.push({
+          sheet_index: pageNum - 1,
+          width: Math.ceil(maxX) || 2592,  // Fallback to typical 72 DPI 36" width
+          height: Math.ceil(maxY) || 3456, // Fallback to typical 72 DPI 48" height
+          total_detections: pageCount,
+          by_class: pageByClass,
+          needs_review: pageDetections.detections.filter(d => d.confidence < 0.7).length,
+        });
+      }
     }
 
-    await $`${args}`.quiet();
+    const summary: PipelineSummary = {
+      pdf_path: pdfPath,
+      model: 'v5_combined2',
+      dpi,
+      standard,
+      total_sheets: numPages,
+      total_detections: totalDetections,
+      needs_review: needsReview,
+      by_class: byClass,
+      sheets,
+    };
 
+    // Save summary
     const summaryPath = join(outputDir, 'summary.json');
-    if (!existsSync(summaryPath)) {
-      console.error("Pipeline ran but summary.json not found");
-      return null;
-    }
+    writeFileSync(summaryPath, JSON.stringify(summary, null, 2));
 
-    const summary = JSON.parse(readFileSync(summaryPath, 'utf-8')) as PipelineSummary;
-    console.log(`Pipeline complete: ${summary.total_detections} detections across ${summary.total_sheets} sheets`);
-
+    console.log(`v5 detection complete: ${summary.total_detections} detections across ${summary.total_sheets} sheets`);
     return summary;
   } catch (error) {
     console.error(`YOLO pipeline failed: ${error}`);
@@ -157,12 +212,12 @@ export async function extractWithYOLO(
 
   const run = detectionRuns.insert({
     pdf_path: pdfPath,
-    model_version: basename(YOLO_MODEL),
+    model_version: 'v5_combined2',
     parameters_json: JSON.stringify({
-      dpi: options.dpi ?? 300,
-      tileSize: options.tileSize ?? 640,
-      overlap: options.overlap ?? 0.25,
-      confThreshold: options.confThreshold ?? 0.1,
+      dpi: options.dpi ?? 72,
+      tileSize: options.tileSize ?? 2048,
+      overlap: options.overlap ?? 0.2,
+      confThreshold: options.confThreshold ?? 0.25,
       standard: options.standard ?? 'auto',
     }),
     total_detections: summary.total_detections,
@@ -190,35 +245,44 @@ export async function extractWithYOLO(
       continue;
     }
 
-    const detections = JSON.parse(readFileSync(detectionsPath, 'utf-8')) as YOLODetection[];
+    // v5 format: {detections: [{bbox: [x,y,w,h], class: string, confidence: number}]}
+    const detectionsFile = JSON.parse(readFileSync(detectionsPath, 'utf-8')) as {
+      detections: Array<{
+        bbox: number[];
+        class: string;
+        confidence: number;
+      }>;
+    };
 
-    for (const det of detections) {
-      const classLabel = mapClassToLabel(det.class_name);
+    for (const det of detectionsFile.detections) {
+      const classLabel = mapClassToLabel(det.class);
 
-      const cropPath = det.crop_path
-        ? join(sheetDir, det.crop_path)
-        : null;
+      // Convert [x, y, w, h] to [x1, y1, x2, y2]
+      const x1 = det.bbox[0] ?? 0;
+      const y1 = det.bbox[1] ?? 0;
+      const x2 = (det.bbox[0] ?? 0) + (det.bbox[2] ?? 0);
+      const y2 = (det.bbox[1] ?? 0) + (det.bbox[3] ?? 0);
 
       const entity = entities.insert({
         sheet_id: sheet.id,
         class_label: classLabel,
-        ocr_text: det.ocr_text,
-        confidence: det.confidence * (0.5 + 0.5 * det.ocr_confidence),
-        bbox_x1: det.bbox.x1,
-        bbox_y1: det.bbox.y1,
-        bbox_x2: det.bbox.x2,
-        bbox_y2: det.bbox.y2,
-        identifier: det.identifier,
-        target_sheet: det.view_sheet,
+        ocr_text: null,  // v5 doesn't include OCR
+        confidence: det.confidence,
+        bbox_x1: x1 as number,
+        bbox_y1: y1 as number,
+        bbox_x2: x2 as number,
+        bbox_y2: y2 as number,
+        identifier: null,
+        target_sheet: null,
         triangle_count: null,
         triangle_positions: null,
         yolo_confidence: det.confidence,
-        ocr_confidence: det.ocr_confidence,
-        detection_method: 'yolo',
-        standard: det.standard,
-        raw_ocr_text: det.ocr_text,
-        crop_image_path: cropPath,
-        needs_review: det.needs_review ? 1 : 0,
+        ocr_confidence: null,
+        detection_method: 'yolo_v5',
+        standard: options.standard ?? 'auto',
+        raw_ocr_text: null,
+        crop_image_path: null,
+        needs_review: det.confidence < 0.7 ? 1 : 0,
         reviewed: 0,
         reviewed_by: null,
         corrected_label: null,
@@ -242,15 +306,13 @@ export async function detectOnSheet(
   }
 
   const {
-    dpi = 300,
-    tileSize = 640,
-    overlap = 0.25,
-    confThreshold = 0.1,
+    confThreshold = 0.25, // v5 optimal confidence
     standard = 'auto',
+    validate = true,
   } = options;
 
-  if (!existsSync(PYTHON_PIPELINE)) {
-    throw new Error(`YOLO pipeline not found at ${PYTHON_PIPELINE}`);
+  if (!existsSync(PYTHON_API)) {
+    throw new Error(`YOLO API script not found at ${PYTHON_API}`);
   }
 
   if (!existsSync(YOLO_MODEL)) {
@@ -260,99 +322,70 @@ export async function detectOnSheet(
   const outputDir = join(OUTPUT_DIR, `sheet-${sheetId}`);
   mkdirSync(outputDir, { recursive: true });
 
-  console.log(`Running YOLO detection on sheet ${sheet.sheet_number}...`);
+  console.log(`Running YOLO v5 detection on sheet ${sheet.sheet_number}...`);
 
   try {
     const imagePath = sheet.image_path;
 
-    await $`python -c "
-import cv2
-import json
-import sys
-sys.path.insert(0, '${join(import.meta.dir, "../../../callout-processor-v4/src")}')
-from infer_yolo import tile_inference, YOLO, CLASS_NAMES
-from unified_pipeline import crop_detection, ocr_crop, parse_callout_label, validate_detection, Detection
-from standards import detect_standard
+    // Run v5 detection using api_detect.py
+    const args = [
+      'python', PYTHON_API,
+      '--image', imagePath,
+      '--output', outputDir,
+      '--conf', String(confThreshold),
+    ];
 
-model = YOLO('${YOLO_MODEL}')
-image = cv2.imread('${imagePath}')
+    if (!validate) {
+      args.push('--no-filters');
+    }
 
-raw_dets = tile_inference(model, image, tile_size=${tileSize}, overlap=${overlap}, conf_threshold=${confThreshold})
-
-results = []
-for i, det in enumerate(raw_dets):
-    bbox = {'x1': det['x1'], 'y1': det['y1'], 'x2': det['x2'], 'y2': det['y2']}
-    crop = crop_detection(image, bbox, padding=15)
-    crop_path = '${outputDir}/crop_{}.png'.format(i)
-    cv2.imwrite(crop_path, crop)
-
-    ocr_text, ocr_conf = ocr_crop(crop)
-    parsed = parse_callout_label(ocr_text or '')
-
-    detected_std = '${standard}'
-    if parsed['view_sheet']:
-        detected_std = detect_standard(parsed['view_sheet'])
-
-    results.append({
-        'class_name': det['class_name'],
-        'bbox': bbox,
-        'confidence': det['confidence'],
-        'ocr_text': ocr_text,
-        'ocr_confidence': ocr_conf,
-        'identifier': parsed['identifier'],
-        'view_sheet': parsed['view_sheet'],
-        'standard': detected_std if detected_std != 'unknown' else 'auto',
-        'needs_review': det['confidence'] < 0.7 or ocr_conf < 0.5,
-        'crop_path': crop_path,
-    })
-
-with open('${outputDir}/detections.json', 'w') as f:
-    json.dump(results, f, indent=2)
-
-print(f'Detected {len(results)} callouts')
-"`.quiet();
+    await $`${args}`.quiet();
 
     const detectionsPath = join(outputDir, 'detections.json');
     if (!existsSync(detectionsPath)) {
       return [];
     }
 
-    const detections = JSON.parse(readFileSync(detectionsPath, 'utf-8')) as Array<{
-      class_name: string;
-      bbox: { x1: number; y1: number; x2: number; y2: number };
-      confidence: number;
-      ocr_text: string | null;
-      ocr_confidence: number;
-      identifier: string | null;
-      view_sheet: string | null;
-      standard: string;
-      needs_review: boolean;
-      crop_path: string;
-    }>;
+    // v5 format: {detections: [{bbox: [x,y,w,h], class: string, confidence: number}]}
+    const detectionsFile = JSON.parse(readFileSync(detectionsPath, 'utf-8')) as {
+      detections: Array<{
+        bbox: number[];  // [x, y, w, h]
+        class: string;
+        confidence: number;
+      }>;
+    };
+
+    const detections = detectionsFile.detections;
 
     const newEntities: Entity[] = [];
 
     for (const det of detections) {
+      // Convert [x, y, w, h] to [x1, y1, x2, y2]
+      const x1 = det.bbox[0] ?? 0;
+      const y1 = det.bbox[1] ?? 0;
+      const x2 = (det.bbox[0] ?? 0) + (det.bbox[2] ?? 0);
+      const y2 = (det.bbox[1] ?? 0) + (det.bbox[3] ?? 0);
+
       const entity = entities.insert({
         sheet_id: sheetId,
-        class_label: mapClassToLabel(det.class_name),
-        ocr_text: det.ocr_text,
-        confidence: det.confidence * (0.5 + 0.5 * det.ocr_confidence),
-        bbox_x1: det.bbox.x1,
-        bbox_y1: det.bbox.y1,
-        bbox_x2: det.bbox.x2,
-        bbox_y2: det.bbox.y2,
-        identifier: det.identifier,
-        target_sheet: det.view_sheet,
+        class_label: mapClassToLabel(det.class),
+        ocr_text: null,  // v5 doesn't include OCR in detections
+        confidence: det.confidence,
+        bbox_x1: x1 as number,
+        bbox_y1: y1 as number,
+        bbox_x2: x2 as number,
+        bbox_y2: y2 as number,
+        identifier: null,
+        target_sheet: null,
         triangle_count: null,
         triangle_positions: null,
         yolo_confidence: det.confidence,
-        ocr_confidence: det.ocr_confidence,
-        detection_method: 'yolo',
-        standard: det.standard,
-        raw_ocr_text: det.ocr_text,
-        crop_image_path: det.crop_path,
-        needs_review: det.needs_review ? 1 : 0,
+        ocr_confidence: null,
+        detection_method: 'yolo_v5',
+        standard,
+        raw_ocr_text: null,
+        crop_image_path: null,  // v5 api_detect doesn't save crops
+        needs_review: det.confidence < 0.7 ? 1 : 0,
         reviewed: 0,
         reviewed_by: null,
         corrected_label: null,
