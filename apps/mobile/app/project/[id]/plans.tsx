@@ -371,6 +371,8 @@ export default function PlansScreen() {
 						imageUrl={
 							selectedSheet.imagePath || "https://picsum.photos/2000/1500"
 						}
+						imageWidth={selectedSheet.width}
+						imageHeight={selectedSheet.height}
 						onClose={handleCloseViewer}
 						onSheetChange={handleSheetChange}
 						processingStage={selectedSheet.processingStage}

@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 3
+names: ['detail', 'elevation', 'title']
+
+roboflow:
+  workspace: plan-detection
+  project: callout-detection-2
+  version: 3
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/plan-detection/callout-detection-2/dataset/3

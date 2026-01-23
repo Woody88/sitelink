@@ -1,0 +1,239 @@
+[
+  {
+    "id": "marker-1-0",
+    "label": "1/A5",
+    "type": "section_cut",
+    "x": 0.48627450980392156,
+    "y": 0.583939393939394,
+    "pixelX": 2480,
+    "pixelY": 1927,
+    "bbox": {
+      "x1": 2436,
+      "y1": 1909,
+      "x2": 2524,
+      "y2": 1995
+    },
+    "confidence": 0.95
+  },
+  {
+    "id": "marker-1-1",
+    "label": "2/A5",
+    "type": "section_cut",
+    "x": 0.7370588235294118,
+    "y": 0.3462121212121212,
+    "pixelX": 3759,
+    "pixelY": 1142,
+    "bbox": {
+      "x1": 3741,
+      "y1": 1099,
+      "x2": 3847,
+      "y2": 1186
+    },
+    "confidence": 0.95
+  },
+  {
+    "id": "marker-1-2",
+    "label": "3/A5",
+    "type": "section_cut",
+    "x": 0.5070588235294118,
+    "y": 0.15696969696969698,
+    "pixelX": 2586,
+    "pixelY": 518,
+    "bbox": {
+      "x1": 2542,
+      "y1": 450,
+      "x2": 2630,
+      "y2": 536
+    },
+    "confidence": 0.95
+  },
+  {
+    "id": "marker-1-3",
+    "label": "3/A7",
+    "type": "detail",
+    "x": 0.6619607843137255,
+    "y": 0.15878787878787878,
+    "pixelX": 3376,
+    "pixelY": 524,
+    "bbox": {
+      "x1": 3342,
+      "y1": 490,
+      "x2": 3410,
+      "y2": 558
+    },
+    "confidence": 0.9,
+    "radius": 34,
+    "triangleCount": 0,
+    "trianglePositions": [],
+    "identifier": "3",
+    "viewSheet": "A7"
+  },
+  {
+    "id": "marker-1-4",
+    "label": "1/A7",
+    "type": "detail",
+    "x": 0.6890196078431372,
+    "y": 0.6303030303030303,
+    "pixelX": 3514,
+    "pixelY": 2080,
+    "bbox": {
+      "x1": 3483,
+      "y1": 2049,
+      "x2": 3545,
+      "y2": 2111
+    },
+    "confidence": 0.9,
+    "radius": 31,
+    "triangleCount": 0,
+    "trianglePositions": [],
+    "identifier": "1",
+    "viewSheet": "A7"
+  },
+  {
+    "id": "marker-1-5",
+    "label": "2/A7",
+    "type": "detail",
+    "x": 0.6321568627450981,
+    "y": 0.49454545454545457,
+    "pixelX": 3224,
+    "pixelY": 1632,
+    "bbox": {
+      "x1": 3191,
+      "y1": 1599,
+      "x2": 3257,
+      "y2": 1665
+    },
+    "confidence": 0.9,
+    "radius": 33,
+    "triangleCount": 0,
+    "trianglePositions": [],
+    "identifier": "2",
+    "viewSheet": "A7"
+  },
+  {
+    "id": "marker-1-6",
+    "label": "1/A6",
+    "type": "detail",
+    "x": 0.7152941176470589,
+    "y": 0.3515151515151515,
+    "pixelX": 3648,
+    "pixelY": 1160,
+    "bbox": {
+      "x1": 3614,
+      "y1": 1126,
+      "x2": 3682,
+      "y2": 1194
+    },
+    "confidence": 0.9,
+    "radius": 34,
+    "triangleCount": 0,
+    "trianglePositions": [],
+    "identifier": "1",
+    "viewSheet": "A6"
+  },
+  {
+    "id": "marker-1-7",
+    "label": "1",
+    "type": "title",
+    "x": 0.2380392156862745,
+    "y": 0.6981818181818182,
+    "pixelX": 1214,
+    "pixelY": 2304,
+    "bbox": {
+      "x1": 1178,
+      "y1": 2268,
+      "x2": 1250,
+      "y2": 2340
+    },
+    "confidence": 0.75,
+    "radius": 36,
+    "triangleCount": 0,
+    "trianglePositions": [],
+    "identifier": "1"
+  },
+  {
+    "id": "marker-1-8",
+    "label": "1/A6",
+    "type": "detail",
+    "x": 0.5301960784313725,
+    "y": 0.3515151515151515,
+    "pixelX": 2704,
+    "pixelY": 1160,
+    "bbox": {
+      "x1": 2670,
+      "y1": 1126,
+      "x2": 2738,
+      "y2": 1194
+    },
+    "confidence": 0.9,
+    "radius": 34,
+    "triangleCount": 0,
+    "trianglePositions": [],
+    "identifier": "1",
+    "viewSheet": "A6"
+  },
+  {
+    "id": "marker-1-9",
+    "label": "2/A6",
+    "type": "detail",
+    "x": 0.6137254901960785,
+    "y": 0.1406060606060606,
+    "pixelX": 3130,
+    "pixelY": 464,
+    "bbox": {
+      "x1": 3097,
+      "y1": 431,
+      "x2": 3163,
+      "y2": 497
+    },
+    "confidence": 0.9,
+    "radius": 33,
+    "triangleCount": 0,
+    "trianglePositions": [],
+    "identifier": "2",
+    "viewSheet": "A6"
+  },
+  {
+    "id": "marker-1-10",
+    "label": "2/A6",
+    "type": "detail",
+    "x": 0.6137254901960785,
+    "y": 0.5096969696969696,
+    "pixelX": 3130,
+    "pixelY": 1682,
+    "bbox": {
+      "x1": 3097,
+      "y1": 1649,
+      "x2": 3163,
+      "y2": 1715
+    },
+    "confidence": 0.9,
+    "radius": 33,
+    "triangleCount": 0,
+    "trianglePositions": [],
+    "identifier": "2",
+    "viewSheet": "A6"
+  },
+  {
+    "id": "marker-1-11",
+    "label": "S",
+    "type": "section",
+    "x": 0.9215686274509803,
+    "y": 0.6963636363636364,
+    "pixelX": 4700,
+    "pixelY": 2298,
+    "bbox": {
+      "x1": 4664,
+      "y1": 2248,
+      "x2": 4736,
+      "y2": 2334
+    },
+    "confidence": 0.85,
+    "radius": 36,
+    "triangleCount": 1,
+    "trianglePositions": [
+      "left"
+    ],
+    "identifier": "S"
+  }
+]

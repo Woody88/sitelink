@@ -39,6 +39,8 @@ function inferDiscipline(
 export function useMarkers(sheetId: string | null) {
 	const { sessionToken, organizationId, sessionId } = useSessionContext();
 
+	console.log(`[useMarkers] Called with sheetId=${sheetId}, orgId=${organizationId}`);
+
 	const store = useAppStore(organizationId!, sessionToken, sessionId);
 
 	const markers = store.useQuery(
@@ -47,9 +49,12 @@ export function useMarkers(sheetId: string | null) {
 			: queryDb(tables.markers.where({ sheetId: "" })),
 	);
 
+	console.log(`[useMarkers] Raw query result for sheetId=${sheetId}:`, markers?.length ?? 0, "markers");
+
 	return useMemo(() => {
 		if (!sheetId) return [];
 		const markersArray = Array.isArray(markers) ? markers : [];
+		console.log(`[useMarkers] Processing ${markersArray.length} markers for sheet ${sheetId}`);
 
 		return markersArray.map((marker) => ({
 			id: marker.id,

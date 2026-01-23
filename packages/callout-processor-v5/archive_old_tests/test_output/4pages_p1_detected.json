@@ -1,0 +1,160 @@
+{
+  "detections": [
+    {
+      "bbox": [
+        1829.9338684082031,
+        702.0973510742188,
+        357.6778259277344,
+        44.14027404785156
+      ],
+      "confidence": 0.35220229625701904,
+      "class": "section",
+      "callout_type": "section",
+      "method": "yolo_finetuned_sahi",
+      "image_path": "test_output/4pages_p1.png",
+      "tile_index": 3
+    },
+    {
+      "bbox": [
+        548.9981689453125,
+        1907.7440185546875,
+        346.2537841796875,
+        47.307861328125
+      ],
+      "confidence": 0.023663705214858055,
+      "class": "section",
+      "callout_type": "section",
+      "method": "yolo_finetuned_sahi",
+      "image_path": "test_output/4pages_p1.png",
+      "tile_index": 0
+    },
+    {
+      "bbox": [
+        1455.17915725708,
+        1329.068359375,
+        30.325481414794922,
+        28.5194091796875
+      ],
+      "confidence": 0.2090883105993271,
+      "class": "detail",
+      "callout_type": "detail",
+      "method": "yolo_finetuned_sahi",
+      "image_path": "test_output/4pages_p1.png",
+      "tile_index": 1
+    },
+    {
+      "bbox": [
+        1455.3491592407227,
+        1240.2606811523438,
+        30.880821228027344,
+        30.05731201171875
+      ],
+      "confidence": 0.10507845133543015,
+      "class": "detail",
+      "callout_type": "detail",
+      "method": "yolo_finetuned_sahi",
+      "image_path": "test_output/4pages_p1.png",
+      "tile_index": 3
+    },
+    {
+      "bbox": [
+        1455.3071594238281,
+        1672.1529541015625,
+        31.275962829589844,
+        30.9967041015625
+      ],
+      "confidence": 0.07207609713077545,
+      "class": "detail",
+      "callout_type": "detail",
+      "method": "yolo_finetuned_sahi",
+      "image_path": "test_output/4pages_p1.png",
+      "tile_index": 1
+    },
+    {
+      "bbox": [
+        1455.3859977722168,
+        1152.798828125,
+        30.722965240478516,
+        30.078369140625
+      ],
+      "confidence": 0.03833392634987831,
+      "class": "detail",
+      "callout_type": "detail",
+      "method": "yolo_finetuned_sahi",
+      "image_path": "test_output/4pages_p1.png",
+      "tile_index": 1
+    },
+    {
+      "bbox": [
+        1454.913429260254,
+        956.2406616210938,
+        30.880592346191406,
+        29.85430908203125
+      ],
+      "confidence": 0.022685425356030464,
+      "class": "detail",
+      "callout_type": "detail",
+      "method": "yolo_finetuned_sahi",
+      "image_path": "test_output/4pages_p1.png",
+      "tile_index": 1
+    },
+    {
+      "bbox": [
+        1455.229118347168,
+        857.6747436523438,
+        30.560882568359375,
+        29.87554931640625
+      ],
+      "confidence": 0.022674348205327988,
+      "class": "detail",
+      "callout_type": "detail",
+      "method": "yolo_finetuned_sahi",
+      "image_path": "test_output/4pages_p1.png",
+      "tile_index": 1
+    },
+    {
+      "bbox": [
+        1454.8839721679688,
+        1054.0338134765625,
+        31.304115295410156,
+        29.14013671875
+      ],
+      "confidence": 0.022553464397788048,
+      "class": "detail",
+      "callout_type": "detail",
+      "method": "yolo_finetuned_sahi",
+      "image_path": "test_output/4pages_p1.png",
+      "tile_index": 1
+    },
+    {
+      "bbox": [
+        1454.7030334472656,
+        1416.2685546875,
+        31.769287109375,
+        29.2996826171875
+      ],
+      "confidence": 0.013293668627738953,
+      "class": "detail",
+      "callout_type": "detail",
+      "method": "yolo_finetuned_sahi",
+      "image_path": "test_output/4pages_p1.png",
+      "tile_index": 1
+    }
+  ],
+  "metadata": {
+    "model": "callout_detector.pt",
+    "method": "yolo_finetuned_sahi",
+    "conf_threshold": 0.01,
+    "iou_threshold": 0.5,
+    "tile_size": 2048,
+    "overlap": 0.25,
+    "num_tiles": 4,
+    "num_detections": 10,
+    "class_names": [
+      "detail",
+      "elevation",
+      "section",
+      "title"
+    ]
+  }
+}

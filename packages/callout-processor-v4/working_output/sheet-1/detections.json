@@ -1,0 +1,211 @@
+[
+  {
+    "id": "det-1-0",
+    "sheet_index": 1,
+    "class_name": "title",
+    "bbox": {
+      "x1": 12098,
+      "y1": 674,
+      "x2": 12355,
+      "y2": 712
+    },
+    "confidence": 0.23881439864635468,
+    "ocr_text": "WEEPING TILE",
+    "ocr_confidence": 0.9980075359344482,
+    "identifier": "WEEPI",
+    "view_sheet": "TILE",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-1-0.png"
+  },
+  {
+    "id": "det-1-1",
+    "sheet_index": 1,
+    "class_name": "title",
+    "bbox": {
+      "x1": 12101,
+      "y1": 1054,
+      "x2": 12432,
+      "y2": 1096
+    },
+    "confidence": 0.20392364263534546,
+    "ocr_text": "FOOTING EXTENTS",
+    "ocr_confidence": 0.9913210570812225,
+    "identifier": "FOOTI",
+    "view_sheet": "TS",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-1-1.png"
+  },
+  {
+    "id": "det-1-2",
+    "sheet_index": 1,
+    "class_name": "title",
+    "bbox": {
+      "x1": 4290,
+      "y1": 497,
+      "x2": 4509,
+      "y2": 574
+    },
+    "confidence": 0.16443561017513275,
+    "ocr_text": "EXTENT OF FROST SLAB",
+    "ocr_confidence": 0.977741003036499,
+    "identifier": "EXTEN",
+    "view_sheet": "SLAB",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-1-2.png"
+  },
+  {
+    "id": "det-1-3",
+    "sheet_index": 1,
+    "class_name": "title",
+    "bbox": {
+      "x1": 13690,
+      "y1": 7316,
+      "x2": 14133,
+      "y2": 7394
+    },
+    "confidence": 0.14762909710407257,
+    "ocr_text": "1235 WHEAT BOOM DRIVE OAKVILLE. ON",
+    "ocr_confidence": 0.9869665503501892,
+    "identifier": "1235",
+    "view_sheet": "ON",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-1-3.png"
+  },
+  {
+    "id": "det-1-4",
+    "sheet_index": 1,
+    "class_name": "title",
+    "bbox": {
+      "x1": 11947,
+      "y1": 5819,
+      "x2": 12166,
+      "y2": 5897
+    },
+    "confidence": 0.12791921198368073,
+    "ocr_text": "EXTENT OF FROST SLAB",
+    "ocr_confidence": 0.9407809972763062,
+    "identifier": "EXTEN",
+    "view_sheet": "SLAB",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-1-4.png"
+  },
+  {
+    "id": "det-1-5",
+    "sheet_index": 1,
+    "class_name": "title",
+    "bbox": {
+      "x1": 12288,
+      "y1": 1452,
+      "x2": 12479,
+      "y2": 1499
+    },
+    "confidence": 0.11977464705705643,
+    "ocr_text": "N FOOTING",
+    "ocr_confidence": 0.9890468120574951,
+    "identifier": "N",
+    "view_sheet": "NG",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-1-5.png"
+  },
+  {
+    "id": "det-1-6",
+    "sheet_index": 1,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 2239,
+      "y1": 8955,
+      "x2": 2279,
+      "y2": 9074
+    },
+    "confidence": 0.1350792497396469,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-1-6.png"
+  },
+  {
+    "id": "det-1-7",
+    "sheet_index": 1,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 7471,
+      "y1": 8992,
+      "x2": 7513,
+      "y2": 9119
+    },
+    "confidence": 0.12804655730724335,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-1-7.png"
+  },
+  {
+    "id": "det-1-8",
+    "sheet_index": 1,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 3072,
+      "y1": 5647,
+      "x2": 3129,
+      "y2": 5706
+    },
+    "confidence": 0.12028432637453079,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-1-8.png"
+  },
+  {
+    "id": "det-1-9",
+    "sheet_index": 1,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 5653,
+      "y1": 2599,
+      "x2": 5702,
+      "y2": 2687
+    },
+    "confidence": 0.10594820231199265,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-1-9.png"
+  },
+  {
+    "id": "det-1-10",
+    "sheet_index": 1,
+    "class_name": "elevation",
+    "bbox": {
+      "x1": 8146,
+      "y1": 5695,
+      "x2": 8190,
+      "y2": 5826
+    },
+    "confidence": 0.1390165090560913,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-1-10.png"
+  }
+]

@@ -1,0 +1,7 @@
+Model,Conf,Total,Detail,Elevation,Recall_vs_89GT,Change
+Baseline,0.10,79,34,45,44%,baseline
+Baseline,0.05,99,43,56,56%,+20
+Baseline,0.03,117,54,63,66%,+38
+Improved,0.10,67,34,33,34%,baseline
+Improved,0.05,80,44,35,45%,+13
+Improved,0.03,98,56,40,55%,+31

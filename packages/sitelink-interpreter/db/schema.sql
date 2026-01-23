@@ -45,11 +45,29 @@ CREATE TABLE IF NOT EXISTS entities (
   -- Detection metadata
   triangle_count INTEGER,
   triangle_positions TEXT, -- JSON array
+  -- YOLO+OCR pipeline metadata
+  yolo_confidence REAL, -- YOLO detection confidence
+  ocr_confidence REAL, -- PaddleOCR confidence
+  detection_method TEXT DEFAULT 'legacy', -- 'yolo', 'legacy', 'manual'
+  standard TEXT, -- 'pspc', 'ncs', 'auto'
+  raw_ocr_text TEXT, -- Original OCR result before parsing
+  crop_image_path TEXT, -- Path to cropped detection image
   -- Review status
   needs_review INTEGER DEFAULT 0,
   reviewed INTEGER DEFAULT 0,
   reviewed_by TEXT,
   corrected_label TEXT,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Detection runs for tracking pipeline executions
+CREATE TABLE IF NOT EXISTS detection_runs (
+  id TEXT PRIMARY KEY,
+  pdf_path TEXT NOT NULL,
+  model_version TEXT,
+  parameters_json TEXT, -- JSON with dpi, tile_size, conf_threshold, etc.
+  total_detections INTEGER,
+  needs_review INTEGER,
   created_at TEXT DEFAULT (datetime('now'))
 );
 

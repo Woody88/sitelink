@@ -1,0 +1,648 @@
+[
+  {
+    "id": "det-0-2",
+    "sheet_index": 0,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 1455,
+      "y1": 1329,
+      "x2": 1485,
+      "y2": 1357
+    },
+    "confidence": 0.2090883105993271,
+    "ocr_text": "S6",
+    "ocr_confidence": 0.847902774810791,
+    "identifier": "S6",
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-0-2.png"
+  },
+  {
+    "id": "det-0-3",
+    "sheet_index": 0,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 1455,
+      "y1": 1672,
+      "x2": 1486,
+      "y2": 1703
+    },
+    "confidence": 0.07207609713077545,
+    "ocr_text": "D2",
+    "ocr_confidence": 0.9971210956573486,
+    "identifier": "D2",
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-0-3.png"
+  },
+  {
+    "id": "det-0-4",
+    "sheet_index": 0,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 1454,
+      "y1": 956,
+      "x2": 1485,
+      "y2": 986
+    },
+    "confidence": 0.022685425356030464,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-0-4.png"
+  },
+  {
+    "id": "det-1-0",
+    "sheet_index": 1,
+    "class_name": "elevation",
+    "bbox": {
+      "x1": 1671,
+      "y1": 2027,
+      "x2": 1730,
+      "y2": 2078
+    },
+    "confidence": 0.9673790335655212,
+    "ocr_text": "10 S2.0",
+    "ocr_confidence": 0.9894476532936096,
+    "identifier": "10",
+    "view_sheet": "S2.0",
+    "standard": "ncs",
+    "needs_review": false,
+    "crop_path": "crops/det-1-0.png"
+  },
+  {
+    "id": "det-1-4",
+    "sheet_index": 1,
+    "class_name": "elevation",
+    "bbox": {
+      "x1": 1885,
+      "y1": 1451,
+      "x2": 1939,
+      "y2": 1508
+    },
+    "confidence": 0.9268774390220642,
+    "ocr_text": "18 S2.0",
+    "ocr_confidence": 0.9851281046867371,
+    "identifier": "18",
+    "view_sheet": "S2.0",
+    "standard": "ncs",
+    "needs_review": false,
+    "crop_path": "crops/det-1-4.png"
+  },
+  {
+    "id": "det-1-5",
+    "sheet_index": 1,
+    "class_name": "elevation",
+    "bbox": {
+      "x1": 901,
+      "y1": 1296,
+      "x2": 958,
+      "y2": 1344
+    },
+    "confidence": 0.923115611076355,
+    "ocr_text": "15 S2.0",
+    "ocr_confidence": 0.9329940378665924,
+    "identifier": "15",
+    "view_sheet": "S2.0",
+    "standard": "ncs",
+    "needs_review": false,
+    "crop_path": "crops/det-1-5.png"
+  },
+  {
+    "id": "det-1-13",
+    "sheet_index": 1,
+    "class_name": "elevation",
+    "bbox": {
+      "x1": 507,
+      "y1": 2101,
+      "x2": 567,
+      "y2": 2152
+    },
+    "confidence": 0.8724801540374756,
+    "ocr_text": "10 S2.0",
+    "ocr_confidence": 0.9794630110263824,
+    "identifier": "10",
+    "view_sheet": "S2.0",
+    "standard": "ncs",
+    "needs_review": false,
+    "crop_path": "crops/det-1-13.png"
+  },
+  {
+    "id": "det-1-18",
+    "sheet_index": 1,
+    "class_name": "elevation",
+    "bbox": {
+      "x1": 661,
+      "y1": 1761,
+      "x2": 713,
+      "y2": 1819
+    },
+    "confidence": 0.8372386693954468,
+    "ocr_text": "11 S2.0",
+    "ocr_confidence": 0.9633817672729492,
+    "identifier": "11",
+    "view_sheet": "S2.0",
+    "standard": "ncs",
+    "needs_review": false,
+    "crop_path": "crops/det-1-18.png"
+  },
+  {
+    "id": "det-1-19",
+    "sheet_index": 1,
+    "class_name": "elevation",
+    "bbox": {
+      "x1": 721,
+      "y1": 1353,
+      "x2": 773,
+      "y2": 1409
+    },
+    "confidence": 0.8135316371917725,
+    "ocr_text": "10 S2.0",
+    "ocr_confidence": 0.9870879054069519,
+    "identifier": "10",
+    "view_sheet": "S2.0",
+    "standard": "ncs",
+    "needs_review": false,
+    "crop_path": "crops/det-1-19.png"
+  },
+  {
+    "id": "det-1-28",
+    "sheet_index": 1,
+    "class_name": "elevation",
+    "bbox": {
+      "x1": 352,
+      "y1": 1873,
+      "x2": 412,
+      "y2": 1923
+    },
+    "confidence": 0.5536370873451233,
+    "ocr_text": "3 S2.0",
+    "ocr_confidence": 0.9687949120998383,
+    "identifier": "3",
+    "view_sheet": "S2.0",
+    "standard": "ncs",
+    "needs_review": true,
+    "crop_path": "crops/det-1-28.png"
+  },
+  {
+    "id": "det-1-34",
+    "sheet_index": 1,
+    "class_name": "elevation",
+    "bbox": {
+      "x1": 1142,
+      "y1": 1499,
+      "x2": 1195,
+      "y2": 1559
+    },
+    "confidence": 0.31502246856689453,
+    "ocr_text": "8 S2.0",
+    "ocr_confidence": 0.9552607834339142,
+    "identifier": "8",
+    "view_sheet": "S2.0",
+    "standard": "ncs",
+    "needs_review": true,
+    "crop_path": "crops/det-1-34.png"
+  },
+  {
+    "id": "det-1-38",
+    "sheet_index": 1,
+    "class_name": "title",
+    "bbox": {
+      "x1": 1179,
+      "y1": 2533,
+      "x2": 2048,
+      "y2": 2592
+    },
+    "confidence": 0.07917117327451706,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-1-38.png"
+  },
+  {
+    "id": "det-1-40",
+    "sheet_index": 1,
+    "class_name": "title",
+    "bbox": {
+      "x1": 679,
+      "y1": 2532,
+      "x2": 1753,
+      "y2": 2592
+    },
+    "confidence": 0.016246886923909187,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-1-40.png"
+  },
+  {
+    "id": "det-1-47",
+    "sheet_index": 1,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 1318,
+      "y1": 1875,
+      "x2": 1350,
+      "y2": 1907
+    },
+    "confidence": 0.020743923261761665,
+    "ocr_text": "30",
+    "ocr_confidence": 0.5861033201217651,
+    "identifier": "30",
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-1-47.png"
+  },
+  {
+    "id": "det-1-48",
+    "sheet_index": 1,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 844,
+      "y1": 1913,
+      "x2": 863,
+      "y2": 1933
+    },
+    "confidence": 0.017873698845505714,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-1-48.png"
+  },
+  {
+    "id": "det-1-49",
+    "sheet_index": 1,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 1050,
+      "y1": 227,
+      "x2": 1080,
+      "y2": 275
+    },
+    "confidence": 0.01780925877392292,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-1-49.png"
+  },
+  {
+    "id": "det-1-50",
+    "sheet_index": 1,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 1953,
+      "y1": 429,
+      "x2": 1974,
+      "y2": 451
+    },
+    "confidence": 0.016937511041760445,
+    "ocr_text": "8",
+    "ocr_confidence": 0.7868409156799316,
+    "identifier": "8",
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-1-50.png"
+  },
+  {
+    "id": "det-1-51",
+    "sheet_index": 1,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 421,
+      "y1": 1431,
+      "x2": 445,
+      "y2": 1454
+    },
+    "confidence": 0.014726628549396992,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-1-51.png"
+  },
+  {
+    "id": "det-1-52",
+    "sheet_index": 1,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 786,
+      "y1": 612,
+      "x2": 807,
+      "y2": 642
+    },
+    "confidence": 0.012863977812230587,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-1-52.png"
+  },
+  {
+    "id": "det-3-2",
+    "sheet_index": 3,
+    "class_name": "elevation",
+    "bbox": {
+      "x1": 905,
+      "y1": 175,
+      "x2": 952,
+      "y2": 230
+    },
+    "confidence": 0.9197765588760376,
+    "ocr_text": "15 S4.1",
+    "ocr_confidence": 0.9838681817054749,
+    "identifier": "15",
+    "view_sheet": "S4.1",
+    "standard": "ncs",
+    "needs_review": false,
+    "crop_path": "crops/det-3-2.png"
+  },
+  {
+    "id": "det-3-9",
+    "sheet_index": 3,
+    "class_name": "elevation",
+    "bbox": {
+      "x1": 2068,
+      "y1": 1264,
+      "x2": 2119,
+      "y2": 1324
+    },
+    "confidence": 0.5905712246894836,
+    "ocr_text": "13 S4.1",
+    "ocr_confidence": 0.9897904396057129,
+    "identifier": "13",
+    "view_sheet": "S4.1",
+    "standard": "ncs",
+    "needs_review": true,
+    "crop_path": "crops/det-3-9.png"
+  },
+  {
+    "id": "det-3-12",
+    "sheet_index": 3,
+    "class_name": "elevation",
+    "bbox": {
+      "x1": 1166,
+      "y1": 238,
+      "x2": 1188,
+      "y2": 264
+    },
+    "confidence": 0.012994791381061077,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-12.png"
+  },
+  {
+    "id": "det-3-15",
+    "sheet_index": 3,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 1497,
+      "y1": 2220,
+      "x2": 1513,
+      "y2": 2234
+    },
+    "confidence": 0.18115653097629547,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-15.png"
+  },
+  {
+    "id": "det-3-16",
+    "sheet_index": 3,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 547,
+      "y1": 960,
+      "x2": 560,
+      "y2": 974
+    },
+    "confidence": 0.10858968645334244,
+    "ocr_text": "C6",
+    "ocr_confidence": 0.9758497476577759,
+    "identifier": "C6",
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-16.png"
+  },
+  {
+    "id": "det-3-18",
+    "sheet_index": 3,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 1149,
+      "y1": 1073,
+      "x2": 1163,
+      "y2": 1085
+    },
+    "confidence": 0.10309279710054398,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-18.png"
+  },
+  {
+    "id": "det-3-20",
+    "sheet_index": 3,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 900,
+      "y1": 1248,
+      "x2": 913,
+      "y2": 1262
+    },
+    "confidence": 0.08020522445440292,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-20.png"
+  },
+  {
+    "id": "det-3-22",
+    "sheet_index": 3,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 487,
+      "y1": 1950,
+      "x2": 511,
+      "y2": 1972
+    },
+    "confidence": 0.07398545742034912,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-22.png"
+  },
+  {
+    "id": "det-3-23",
+    "sheet_index": 3,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 1843,
+      "y1": 1900,
+      "x2": 1859,
+      "y2": 1915
+    },
+    "confidence": 0.0712694525718689,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-23.png"
+  },
+  {
+    "id": "det-3-24",
+    "sheet_index": 3,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 991,
+      "y1": 2156,
+      "x2": 1006,
+      "y2": 2170
+    },
+    "confidence": 0.06878899782896042,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-24.png"
+  },
+  {
+    "id": "det-3-26",
+    "sheet_index": 3,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 900,
+      "y1": 700,
+      "x2": 913,
+      "y2": 713
+    },
+    "confidence": 0.041559260338544846,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-26.png"
+  },
+  {
+    "id": "det-3-27",
+    "sheet_index": 3,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 631,
+      "y1": 2213,
+      "x2": 649,
+      "y2": 2229
+    },
+    "confidence": 0.02730143629014492,
+    "ocr_text": "D2",
+    "ocr_confidence": 0.6699485778808594,
+    "identifier": "D2",
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-27.png"
+  },
+  {
+    "id": "det-3-29",
+    "sheet_index": 3,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 1119,
+      "y1": 1679,
+      "x2": 1145,
+      "y2": 1703
+    },
+    "confidence": 0.010147467255592346,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-29.png"
+  },
+  {
+    "id": "det-3-32",
+    "sheet_index": 3,
+    "class_name": "title",
+    "bbox": {
+      "x1": 650,
+      "y1": 2535,
+      "x2": 1719,
+      "y2": 2592
+    },
+    "confidence": 0.04455863684415817,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-32.png"
+  },
+  {
+    "id": "det-3-33",
+    "sheet_index": 3,
+    "class_name": "title",
+    "bbox": {
+      "x1": 1147,
+      "y1": 2532,
+      "x2": 2048,
+      "y2": 2592
+    },
+    "confidence": 0.02566513605415821,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-33.png"
+  }
+]

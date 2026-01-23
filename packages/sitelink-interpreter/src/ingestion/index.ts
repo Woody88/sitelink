@@ -4,7 +4,7 @@ import { join, basename, dirname } from "path";
 import { sheets, getDb, closeDb, type Sheet } from "../db/index.ts";
 
 const OUTPUT_DIR = join(import.meta.dir, "../../output/sheets");
-const DPI = 300;
+const DPI = 150;
 
 interface IngestionResult {
   pdfPath: string;
@@ -57,8 +57,20 @@ async function getImageDimensions(imagePath: string): Promise<{ width: number; h
   return { width: 0, height: 0 };
 }
 
-function parseSheetNumber(pageNumber: number, _imagePath: string): string | null {
-  return `A${pageNumber}`;
+const SHEET_NUMBER_EXTRACTOR = join(import.meta.dir, "extract_sheet_number.py");
+
+async function parseSheetNumber(pageNumber: number, imagePath: string): Promise<string> {
+  try {
+    const result = await $`python ${SHEET_NUMBER_EXTRACTOR} ${imagePath}`.quiet().text();
+    const parsed = JSON.parse(result);
+    if (parsed.sheet_number) {
+      console.log(`    Extracted sheet number: ${parsed.sheet_number}`);
+      return parsed.sheet_number;
+    }
+  } catch (error) {
+    console.warn(`    OCR extraction failed for page ${pageNumber}: ${error}`);
+  }
+  return `Sheet-${pageNumber}`;
 }
 
 export async function ingestPdf(pdfPath: string): Promise<IngestionResult> {
@@ -88,7 +100,7 @@ export async function ingestPdf(pdfPath: string): Promise<IngestionResult> {
       const pageNumber = i + 1;
 
       const dimensions = await getImageDimensions(imagePath);
-      const sheetNumber = parseSheetNumber(pageNumber, imagePath);
+      const sheetNumber = await parseSheetNumber(pageNumber, imagePath);
 
       const sheet = sheets.insert({
         pdf_path: pdfPath,

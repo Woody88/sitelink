@@ -59,16 +59,16 @@ Please start with Phase 1 research for task [BEAD_ID].
 
 Use this table to select the right agent for each phase of work:
 
-| Phase | Agent Type | When to Use | Example |
-|-------|-----------|-------------|---------|
-| **Research - Codebase** | `Explore` | Understand current navigation structure, find existing patterns | "How is tab navigation currently implemented?" |
-| **Research - Libraries** | `Context7` | Get latest API docs for expo-camera, reanimated, etc. | "Get expo-camera API for React Native" |
-| **Research - UX Patterns** | `WebSearch` | Find best practices for mobile gestures, accessibility | "Best practices for swipeable tabs in React Native" |
-| **Planning** | `Plan` | Design implementation strategy, break down into steps | "Plan implementation of Camera tab with state persistence" |
-| **Execution** | *(You)* | Write code following the plan | Direct implementation |
-| **Review - Code Quality** | `codereview` | Review for performance, patterns, best practices | "Review Camera tab implementation" |
-| **Review - Testing** | `unit-testing:test-automator` | Generate tests for critical functionality | "Create tests for camera state persistence" |
-| **Debugging** | `unit-testing:debugger` | Investigate errors, test failures, unexpected behavior | "Camera state not persisting across tab switches" |
+| Phase                      | Agent Type                    | When to Use                                                     | Example                                                    |
+| -------------------------- | ----------------------------- | --------------------------------------------------------------- | ---------------------------------------------------------- |
+| **Research - Codebase**    | `Explore`                     | Understand current navigation structure, find existing patterns | "How is tab navigation currently implemented?"             |
+| **Research - Libraries**   | `Context7`                    | Get latest API docs for expo-camera, reanimated, etc.           | "Get expo-camera API for React Native"                     |
+| **Research - UX Patterns** | `WebSearch`                   | Find best practices for mobile gestures, accessibility          | "Best practices for swipeable tabs in React Native"        |
+| **Planning**               | `Plan`                        | Design implementation strategy, break down into steps           | "Plan implementation of Camera tab with state persistence" |
+| **Execution**              | _(You)_                       | Write code following the plan                                   | Direct implementation                                      |
+| **Review - Code Quality**  | `codereview`                  | Review for performance, patterns, best practices                | "Review Camera tab implementation"                         |
+| **Review - Testing**       | `unit-testing:test-automator` | Generate tests for critical functionality                       | "Create tests for camera state persistence"                |
+| **Debugging**              | `unit-testing:debugger`       | Investigate errors, test failures, unexpected behavior          | "Camera state not persisting across tab switches"          |
 
 ---
 
@@ -79,6 +79,7 @@ Use this table to select the right agent for each phase of work:
 #### Phase 1: Research (30 min)
 
 **Explore Agent:**
+
 ```
 Analyze the current project workspace navigation implementation:
 - Current route structure in apps/mobile/app/project/[id]/
@@ -94,6 +95,7 @@ Provide:
 ```
 
 **Context7 Agent:**
+
 ```
 Get documentation for:
 1. expo-router file-based routing (latest)
@@ -109,6 +111,7 @@ Focus on:
 #### Phase 2: Planning (30 min)
 
 **Plan Agent:**
+
 ```
 Plan the implementation of workspace navigation refactor based on:
 - Spec: docs/design/NAVIGATION_UX_SPEC.md Section 3.2
@@ -134,6 +137,7 @@ Identify:
 Follow the plan. Key checkpoints:
 
 **Checkpoint 1: Header Component**
+
 - Create `components/workspace/workspace-header.tsx`
 - Back button with "← Projects" label
 - Project name (not tappable)
@@ -141,17 +145,20 @@ Follow the plan. Key checkpoints:
 - Test: Back button navigates to /projects
 
 **Checkpoint 2: Tab Bar Component**
+
 - Create `components/workspace/workspace-tabs.tsx`
 - Three tabs: Plans, Camera, Activity
 - Tab indicator (animated underline)
 - Test: Tapping tab changes content
 
 **Checkpoint 3: Tab Content**
+
 - Create `components/workspace/tab-content.tsx`
 - PagerView or similar for swipeable content
 - Test: Content changes when tab switches
 
 **Checkpoint 4: Integration**
+
 - Update `app/project/[id]/_layout.tsx`
 - Remove old `(tabs)/_layout.tsx`
 - Test: Full navigation flow
@@ -159,6 +166,7 @@ Follow the plan. Key checkpoints:
 #### Phase 4: Review (1 day)
 
 **codereview Agent:**
+
 ```
 Review the workspace navigation implementation:
 
@@ -183,6 +191,7 @@ Verify against:
 ```
 
 **unit-testing:test-automator Agent:**
+
 ```
 Generate tests for workspace navigation:
 
@@ -206,6 +215,7 @@ Use React Native Testing Library with:
 #### Phase 1: Research (30 min)
 
 **Context7 Agent:**
+
 ```
 Get latest documentation for:
 1. expo-camera - Camera component API, permissions, photo capture
@@ -221,6 +231,7 @@ Focus on:
 ```
 
 **Explore Agent:**
+
 ```
 Find existing implementations in the codebase:
 - Any existing camera code
@@ -232,6 +243,7 @@ Find existing implementations in the codebase:
 #### Phase 2: Planning (45 min)
 
 **Plan Agent:**
+
 ```
 Plan the Camera tab implementation based on:
 - Spec: docs/design/NAVIGATION_UX_SPEC.md Section 3.3
@@ -268,6 +280,7 @@ Implementation order:
 #### Phase 3: Execution (3-4 days)
 
 **Checkpoint 1: Zustand Store**
+
 ```typescript
 // stores/camera-store.ts
 interface CameraState {
@@ -281,24 +294,28 @@ interface CameraState {
 ```
 
 **Checkpoint 2: Camera Viewfinder**
+
 - Implement expo-camera
 - Request permissions
 - Handle camera ready state
 - Test: Camera shows video feed
 
 **Checkpoint 3: Shutter Button**
+
 - 72pt circular button
 - Spring press animation
 - Red color when isIssueMode is true
 - Test: Animation smooth at 60fps
 
 **Checkpoint 4: Issue Toggle**
+
 - Toggle button component
 - Updates Zustand store
 - Resets after photo capture
 - Test: State changes correctly
 
 **Checkpoint 5: Photo Capture**
+
 ```typescript
 // hooks/use-capture-photo.ts
 function useCapturePhoto() {
@@ -310,14 +327,16 @@ function useCapturePhoto() {
     const id = crypto.randomUUID()
     const localPath = await saveLocally(photo.uri, id)
 
-    store.commit(events.photoCaptured({
-      id,
-      projectId: currentProjectId,
-      markerId: linkedCalloutId,
-      localPath,
-      isIssue: isIssueMode,
-      capturedAt: new Date(),
-    }))
+    store.commit(
+      events.photoCaptured({
+        id,
+        projectId: currentProjectId,
+        markerId: linkedCalloutId,
+        localPath,
+        isIssue: isIssueMode,
+        capturedAt: new Date(),
+      }),
+    )
 
     resetIssueMode() // Reset after capture
   }, [isIssueMode, linkedCalloutId])
@@ -325,6 +344,7 @@ function useCapturePhoto() {
 ```
 
 **Checkpoint 6: State Persistence Test**
+
 - Capture photo in Camera tab
 - Switch to Plans tab
 - Switch back to Camera tab
@@ -333,6 +353,7 @@ function useCapturePhoto() {
 #### Phase 4: Review (1 day)
 
 **codereview Agent:**
+
 ```
 Review Camera tab implementation:
 
@@ -354,6 +375,7 @@ Focus on:
 ```
 
 **unit-testing:debugger Agent** (if state not persisting):
+
 ```
 Debug camera state persistence issue:
 
@@ -379,6 +401,7 @@ Steps to debug:
 #### Phase 1: Research (30 min)
 
 **Explore Agent:**
+
 ```
 Find existing photo queries and LiveStore patterns:
 - How photos are currently queried from LiveStore
@@ -393,6 +416,7 @@ Provide:
 ```
 
 **Context7 Agent:**
+
 ```
 Get documentation for:
 1. React Native SectionList - Grouped list rendering
@@ -409,6 +433,7 @@ Focus on:
 #### Phase 2: Planning (45 min)
 
 **Plan Agent:**
+
 ```
 Plan Activity tab implementation based on:
 - Spec: docs/design/NAVIGATION_UX_SPEC.md Section 3.4
@@ -444,37 +469,34 @@ Implementation order:
 #### Phase 3: Execution (3-4 days)
 
 **Checkpoint 1: Timeline Query**
+
 ```typescript
 // hooks/use-photos-timeline.ts
 export function usePhotosTimeline(projectId: string) {
-  const photos = useQuery(
-    tables.photos
-      .where({ projectId })
-      .orderBy('capturedAt', 'desc')
-  )
+  const photos = useQuery(tables.photos.where({ projectId }).orderBy("capturedAt", "desc"))
 
   return useMemo(() => {
     // Group by date
-    const byDate = groupBy(photos, p =>
-      format(p.capturedAt, 'yyyy-MM-dd')
-    )
+    const byDate = groupBy(photos, (p) => format(p.capturedAt, "yyyy-MM-dd"))
 
     // Within each date, group by callout
     return Object.entries(byDate).map(([date, datePhotos]) => ({
       date,
-      data: groupBy(datePhotos, p => p.markerId)
+      data: groupBy(datePhotos, (p) => p.markerId),
     }))
   }, [photos])
 }
 ```
 
 **Checkpoint 2: PhotoTimeline Component**
+
 - SectionList with date sections
 - Sticky section headers
 - CalloutGroup with horizontal photo scroll
 - Test: Scrolling is smooth
 
 **Checkpoint 3: PhotoThumbnail**
+
 - expo-image for caching
 - Issue badge overlay (if isIssue)
 - Voice note badge (if has voice note)
@@ -482,6 +504,7 @@ export function usePhotosTimeline(projectId: string) {
 - Test: Images load efficiently
 
 **Checkpoint 4: SummaryCard**
+
 - Placeholder for AI-generated content
 - "Generate Summary" button
 - Loading state
@@ -489,6 +512,7 @@ export function usePhotosTimeline(projectId: string) {
 - Test: Button triggers API call
 
 **Checkpoint 5: Real-time Updates**
+
 - Capture photo in Camera tab
 - Switch to Activity tab
 - Verify: New photo appears in timeline
@@ -497,6 +521,7 @@ export function usePhotosTimeline(projectId: string) {
 #### Phase 4: Review (1 day)
 
 **codereview Agent:**
+
 ```
 Review Activity tab implementation:
 
@@ -659,7 +684,7 @@ export function use[ActionName]() {
 ```typescript
 // Use react-native-reanimated
 
-import { useSharedValue, withSpring, withTiming } from 'react-native-reanimated'
+import { useSharedValue, withSpring, withTiming } from "react-native-reanimated"
 
 // For smooth gestures - use shared values
 const translateX = useSharedValue(0)
@@ -674,9 +699,9 @@ const pressOut = () => {
 }
 
 // For color transitions
-const bgColor = useSharedValue('#38383A')
+const bgColor = useSharedValue("#38383A")
 const toggleColor = (isActive: boolean) => {
-  bgColor.value = withTiming(isActive ? '#FF453A' : '#38383A', { duration: 150 })
+  bgColor.value = withTiming(isActive ? "#FF453A" : "#38383A", { duration: 150 })
 }
 ```
 
@@ -687,6 +712,7 @@ const toggleColor = (isActive: boolean) => {
 If stuck for >1 hour:
 
 1. **Use `unit-testing:debugger` agent:**
+
 ```
 Debug this issue: [DESCRIBE PROBLEM]
 
@@ -701,17 +727,20 @@ Please investigate and suggest fixes.
 ```
 
 2. **Simplify the implementation:**
+
 - Remove animations temporarily
 - Use static data instead of LiveStore queries
 - Remove memo/useCallback
 - Get it working first, optimize later
 
 3. **Consult the spec:**
+
 - Re-read NAVIGATION_UX_SPEC.md relevant section
 - Check if you're implementing the right thing
 - Look at Wealthsimple screenshots for clarity
 
 4. **Ask for help:**
+
 - Post issue in beads with specific error
 - Tag with relevant labels
 - Include code snippets and error messages
@@ -733,4 +762,4 @@ Track these for each task:
 
 ---
 
-*Last Updated: January 4, 2026*
+_Last Updated: January 4, 2026_

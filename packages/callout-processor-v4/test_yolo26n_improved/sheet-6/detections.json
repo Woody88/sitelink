@@ -1,0 +1,97 @@
+[
+  {
+    "id": "det-6-0",
+    "sheet_index": 6,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 251,
+      "y1": 693,
+      "x2": 265,
+      "y2": 737
+    },
+    "confidence": 0.39017727971076965,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-6-0.png"
+  },
+  {
+    "id": "det-6-1",
+    "sheet_index": 6,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 382,
+      "y1": 700,
+      "x2": 396,
+      "y2": 737
+    },
+    "confidence": 0.27172693610191345,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-6-1.png"
+  },
+  {
+    "id": "det-6-2",
+    "sheet_index": 6,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 316,
+      "y1": 690,
+      "x2": 331,
+      "y2": 738
+    },
+    "confidence": 0.26824259757995605,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-6-2.png"
+  },
+  {
+    "id": "det-6-3",
+    "sheet_index": 6,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 509,
+      "y1": 719,
+      "x2": 527,
+      "y2": 740
+    },
+    "confidence": 0.21851150691509247,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-6-3.png"
+  },
+  {
+    "id": "det-6-4",
+    "sheet_index": 6,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 185,
+      "y1": 693,
+      "x2": 200,
+      "y2": 738
+    },
+    "confidence": 0.12503422796726227,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-6-4.png"
+  }
+]

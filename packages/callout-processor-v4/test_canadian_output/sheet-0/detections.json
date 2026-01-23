@@ -1,0 +1,97 @@
+[
+  {
+    "id": "det-0-2",
+    "sheet_index": 0,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 13792,
+      "y1": 7156,
+      "x2": 13842,
+      "y2": 7212
+    },
+    "confidence": 0.1253054291009903,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-0-2.png"
+  },
+  {
+    "id": "det-0-3",
+    "sheet_index": 0,
+    "class_name": "elevation",
+    "bbox": {
+      "x1": 6144,
+      "y1": 6610,
+      "x2": 6183,
+      "y2": 6656
+    },
+    "confidence": 0.8051982522010803,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-0-3.png"
+  },
+  {
+    "id": "det-0-5",
+    "sheet_index": 0,
+    "class_name": "elevation",
+    "bbox": {
+      "x1": 13889,
+      "y1": 4892,
+      "x2": 13942,
+      "y2": 4941
+    },
+    "confidence": 0.12990282475948334,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-0-5.png"
+  },
+  {
+    "id": "det-0-6",
+    "sheet_index": 0,
+    "class_name": "elevation",
+    "bbox": {
+      "x1": 7274,
+      "y1": 5226,
+      "x2": 7353,
+      "y2": 5309
+    },
+    "confidence": 0.1105155274271965,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-0-6.png"
+  },
+  {
+    "id": "det-0-7",
+    "sheet_index": 0,
+    "class_name": "elevation",
+    "bbox": {
+      "x1": 7274,
+      "y1": 3634,
+      "x2": 7355,
+      "y2": 3717
+    },
+    "confidence": 0.1087186187505722,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-0-7.png"
+  }
+]

@@ -8,22 +8,22 @@ Based on competitive research and user complaints, here's exactly what small con
 
 ### Features Field Workers Never Use (Evidence-Based)
 
-| Enterprise Feature | What It Does | Why Small Contractors Don't Use It |
-|-------------------|--------------|-----------------------------------|
-| **RFI Workflows** | Formal request for information with approval chains | Subcontractors just text or call |
-| **Submittal Management** | Track material/equipment approval documents | Only relevant for GCs managing subs |
-| **Budget/Cost Tracking** | Track project finances, change orders | Field workers don't manage budgets |
-| **ERP Integration** | Connect to accounting systems | Small contractors use QuickBooks or nothing |
-| **Custom Form Builders** | Create inspection checklists from scratch | "Forms are not pre-done as per industry standard" |
-| **SSO/SAML** | Enterprise single sign-on | 5-person company doesn't need identity federation |
-| **Audit Logs** | Compliance tracking of who did what | Regulatory requirement for large projects only |
+| Enterprise Feature       | What It Does                                        | Why Small Contractors Don't Use It                |
+| ------------------------ | --------------------------------------------------- | ------------------------------------------------- |
+| **RFI Workflows**        | Formal request for information with approval chains | Subcontractors just text or call                  |
+| **Submittal Management** | Track material/equipment approval documents         | Only relevant for GCs managing subs               |
+| **Budget/Cost Tracking** | Track project finances, change orders               | Field workers don't manage budgets                |
+| **ERP Integration**      | Connect to accounting systems                       | Small contractors use QuickBooks or nothing       |
+| **Custom Form Builders** | Create inspection checklists from scratch           | "Forms are not pre-done as per industry standard" |
+| **SSO/SAML**             | Enterprise single sign-on                           | 5-person company doesn't need identity federation |
+| **Audit Logs**           | Compliance tracking of who did what                 | Regulatory requirement for large projects only    |
 
 ### UI Complexity That Kills Adoption
 
 **Critical finding from research:**
 
 > "If it takes 10 taps just to clock in a worker, the crew gives up." - Foreman on Reddit
-> 
+>
 > "Construction teams waste 9.1 hours weekly searching through disorganized project photos." - Industry research
 
 **SiteLink's approach:** 3 tabs max: Plans, Camera, Projects. Tap marker → take photo → done.
@@ -42,12 +42,12 @@ Based on competitive research and user complaints, here's exactly what small con
 
 ### What Workers Actually Do vs. What Apps Expect
 
-| What Apps Expect | What Actually Happens |
-|------------------|----------------------|
-| Manager creates task in advance | Worker arrives, assesses situation |
-| Worker opens app, finds assigned task | Worker looks at plans, decides what to do |
-| Worker updates task status through workflow | Worker does work, maybe takes photo |
-| Worker closes task with completion status | Work is done; status update is afterthought |
+| What Apps Expect                            | What Actually Happens                       |
+| ------------------------------------------- | ------------------------------------------- |
+| Manager creates task in advance             | Worker arrives, assesses situation          |
+| Worker opens app, finds assigned task       | Worker looks at plans, decides what to do   |
+| Worker updates task status through workflow | Worker does work, maybe takes photo         |
+| Worker closes task with completion status   | Work is done; status update is afterthought |
 
 ### SiteLink's Photo-First Approach
 
@@ -69,6 +69,7 @@ NO TASK CREATED. Work state inferred from:
 ```
 
 **Why This Beats Traditional Task Management:**
+
 1. **Zero upfront setup** - no one has to create tasks before work
 2. **Captures reality** - work as-actually-done, not as-planned
 3. **Audit trail** - timestamped photos prove work sequence (LiveStore events!)
@@ -81,6 +82,7 @@ NO TASK CREATED. Work state inferred from:
 ### The Key Insight
 
 Construction documentation is fundamentally about **what happened when**:
+
 - When was this issue flagged?
 - Who marked this work as complete?
 - What did the site look like on January 2nd?
@@ -115,28 +117,28 @@ Event sourcing answers these questions **by design**.
 
 ### Concrete Benefits for SiteLink
 
-| Scenario | CRUD Approach | LiveStore Approach |
-|----------|---------------|-------------------|
-| "When was this issue flagged?" | Need separate audit log table | `photoMarkedAsIssue` event has timestamp |
-| "Who marked it as issue?" | Need to track `updatedBy` field | Event has actor built-in |
-| "Show me the project state from last week" | Need point-in-time backup | Replay events up to that date |
-| "Undo marking as issue" | `UPDATE isIssue = false` (loses history) | Emit `photoUnmarkedAsIssue` event |
+| Scenario                                   | CRUD Approach                            | LiveStore Approach                       |
+| ------------------------------------------ | ---------------------------------------- | ---------------------------------------- |
+| "When was this issue flagged?"             | Need separate audit log table            | `photoMarkedAsIssue` event has timestamp |
+| "Who marked it as issue?"                  | Need to track `updatedBy` field          | Event has actor built-in                 |
+| "Show me the project state from last week" | Need point-in-time backup                | Replay events up to that date            |
+| "Undo marking as issue"                    | `UPDATE isIssue = false` (loses history) | Emit `photoUnmarkedAsIssue` event        |
 
 ### SiteLink Events (Core)
 
 ```typescript
 // Capture events
-photoCaptured        // User took a photo
-photoMarkedAsIssue   // User flagged as issue
-photoLinkedToMarker  // User linked to callout
+photoCaptured // User took a photo
+photoMarkedAsIssue // User flagged as issue
+photoLinkedToMarker // User linked to callout
 
 // Voice events
-voiceNoteRecorded    // User recorded audio
+voiceNoteRecorded // User recorded audio
 voiceNoteTranscribed // System transcribed audio
 
 // Sync events (from server)
-sheetsReceived       // Plans processed
-markersReceived      // Callouts detected
+sheetsReceived // Plans processed
+markersReceived // Callouts detected
 ```
 
 ---
@@ -145,19 +147,19 @@ markersReceived      // Callouts detected
 
 ### Near-Term AI (Uses Existing Pipeline)
 
-| Feature | How It Works | User Pain Point | Effort |
-|---------|--------------|-----------------|--------|
-| **Marker Confidence Scoring** | Show 95%, 85%, 70% confidence on detected markers | "Is this link correct?" | 1 day |
-| **Smart Marker Review** | Queue low-confidence markers for human review | Cleaning up detection errors | 2 days |
+| Feature                       | How It Works                                      | User Pain Point              | Effort |
+| ----------------------------- | ------------------------------------------------- | ---------------------------- | ------ |
+| **Marker Confidence Scoring** | Show 95%, 85%, 70% confidence on detected markers | "Is this link correct?"      | 1 day  |
+| **Smart Marker Review**       | Queue low-confidence markers for human review     | Cleaning up detection errors | 2 days |
 
 ### Medium-Term AI (New Models, 2-4 Weeks)
 
-| Feature | How It Works | User Pain Point | Differentiator? |
-|---------|--------------|-----------------|-----------------|
-| **Voice Transcription** | Whisper API on recorded audio | Gloved hands can't type | YES |
-| **Plan Text Search** | Full-text search on OCR text | "Where is panel E-4?" | YES |
-| **Photo Text Extraction** | OCR on captured photos | Capture labels without typing | YES |
-| **Daily Summary** | LLM summarizes day's photos/notes | 30 min daily report → 30 sec | YES |
+| Feature                   | How It Works                      | User Pain Point               | Differentiator? |
+| ------------------------- | --------------------------------- | ----------------------------- | --------------- |
+| **Voice Transcription**   | Whisper API on recorded audio     | Gloved hands can't type       | YES             |
+| **Plan Text Search**      | Full-text search on OCR text      | "Where is panel E-4?"         | YES             |
+| **Photo Text Extraction** | OCR on captured photos            | Capture labels without typing | YES             |
+| **Daily Summary**         | LLM summarizes day's photos/notes | 30 min daily report → 30 sec  | YES             |
 
 ### AI Feature Priority Matrix
 
@@ -187,14 +189,17 @@ markersReceived      // Callouts detected
 ### Current Competitor Onboarding Problems
 
 **Fieldwire:**
+
 - "No initial onboarding video or step-by-step tutorial"
 - Setup takes "30 minutes" for basic use
 
 **Autodesk Build:**
+
 - "Steep learning curve"
 - "Initial Setup Required - takes initial time investment"
 
 **Procore:**
+
 - "We rolled out Procore without training... The crews hated it"
 
 ### SiteLink's "60-Second Setup" Promise
@@ -221,6 +226,7 @@ TOTAL: < 60 seconds to value
 ```
 
 **Subcontractor Access (Zero-Friction):**
+
 ```
 1. Owner taps "Share" on project
 2. Gets link: sitelink.app/p/ABC123
@@ -258,16 +264,16 @@ TOTAL: < 60 seconds to value
 
 ### What Works Offline
 
-| Feature | Offline Support |
-|---------|-----------------|
-| View downloaded plans | ✅ Full |
-| Pan/zoom plans | ✅ Full |
-| Tap callout markers | ✅ Full (within downloaded sheets) |
-| Take photos | ✅ Full (queued for upload) |
-| Record voice notes | ✅ Full (queued for transcription) |
-| View existing photos | ✅ Downloaded only |
-| Search plans | ❌ Requires server |
-| Generate daily summary | ❌ Requires server |
+| Feature                | Offline Support                    |
+| ---------------------- | ---------------------------------- |
+| View downloaded plans  | ✅ Full                            |
+| Pan/zoom plans         | ✅ Full                            |
+| Tap callout markers    | ✅ Full (within downloaded sheets) |
+| Take photos            | ✅ Full (queued for upload)        |
+| Record voice notes     | ✅ Full (queued for transcription) |
+| View existing photos   | ✅ Downloaded only                 |
+| Search plans           | ❌ Requires server                 |
+| Generate daily summary | ❌ Requires server                 |
 
 ### Biometric Auth for Offline Access
 
@@ -289,12 +295,14 @@ TOTAL: < 60 seconds to value
 ## 7. Revised Strategic Positioning
 
 ### What SiteLink IS:
+
 - **Plan viewer** with automatic sheet navigation
 - **Photo capture** tool for work documentation
 - **Share links** for team access
 - **Offline-first** construction field app
 
 ### What SiteLink is NOT (by design):
+
 - Task management system (photos ARE the tasks)
 - RFI/submittal workflow tool
 - Budget/cost tracker
@@ -304,20 +312,21 @@ TOTAL: < 60 seconds to value
 ### The "Simplicity" Value Proposition (Concrete)
 
 **Tagline Options:**
+
 - "The plan viewer that links itself"
 - "Plans + Photos. That's it."
 - "Stop managing tasks. Start taking photos."
 
 **Feature Comparison (Marketing):**
 
-| | Fieldwire | Autodesk Build | SiteLink |
-|---|-----------|----------------|----------|
-| Setup time | 30+ minutes | Hours | 60 seconds |
-| Features | 50+ | 100+ | 5 |
-| Learning curve | Medium | High | None |
-| Price | $39+/user/mo | $135+/user/mo | $29/mo flat |
-| Offline | Partial | Limited | Full |
-| What it does | Everything | Everything + BIM | Plans + Photos |
+|                | Fieldwire    | Autodesk Build   | SiteLink       |
+| -------------- | ------------ | ---------------- | -------------- |
+| Setup time     | 30+ minutes  | Hours            | 60 seconds     |
+| Features       | 50+          | 100+             | 5              |
+| Learning curve | Medium       | High             | None           |
+| Price          | $39+/user/mo | $135+/user/mo    | $29/mo flat    |
+| Offline        | Partial      | Limited          | Full           |
+| What it does   | Everything   | Everything + BIM | Plans + Photos |
 
 ---
 

@@ -2,7 +2,7 @@
 Validate detection results against Roboflow ground truth annotations.
 
 Parses YOLO format annotations and calculates precision/recall/F1.
-Generates TP/FP/FN visualizations.
+Generates TP/FP/FN visualizations and can extract FNs for retraining.
 """
 
 import json
@@ -168,12 +168,46 @@ def visualize_validation(image_path: str, tp: List, fp: List, fn: List, output_p
     cv2.imwrite(output_path, image)
 
 
+def extract_false_negatives(image_path: str, fn: List, output_dir: str):
+    """
+    Crops and saves false negative regions from an image for data augmentation.
+    """
+    image = cv2.imread(image_path)
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    print(f"\nExtracting {len(fn)} false negatives to '{output_dir}'...")
+
+    for i, item in enumerate(fn):
+        x, y, w, h = [int(v) for v in item['bbox']]
+
+        # Add some padding to the crop to ensure context is captured
+        padding = int(max(w, h) * 0.2) # 20% padding
+        x1 = max(0, x - padding)
+        y1 = max(0, y - padding)
+        x2 = min(image.shape[1], x + w + padding)
+        y2 = min(image.shape[0], y + h + padding)
+
+        cropped_image = image[y1:y2, x1:x2]
+
+        # Construct a meaningful filename
+        class_name = item['class']
+        image_stem = Path(image_path).stem
+        output_filename = f"{image_stem}_fn_{i}_{class_name}_({x},{y},{w},{h}).png"
+
+        save_path = output_path / output_filename
+        cv2.imwrite(str(save_path), cropped_image)
+
+    print(f"Successfully extracted {len(fn)} images.")
+
+
 def validate_detection(
     image_path: str,
     detection_json: str,
     annotation_path: str,
     class_names: List[str],
-    output_path: str = None
+    output_path: str = None,
+    extract_fn_dir: str = None
 ) -> Dict:
     """
     Validate detection results against ground truth.
@@ -184,6 +218,7 @@ def validate_detection(
         annotation_path: Path to YOLO format annotation file
         class_names: List of class names ['detail', 'elevation', 'title']
         output_path: Optional path to save validation visualization
+        extract_fn_dir: Optional directory to save false negative crops
 
     Returns:
         Metrics dict with precision, recall, F1, counts
@@ -241,6 +276,10 @@ def validate_detection(
     if output_path:
         visualize_validation(image_path, tp, fp, fn, output_path)
 
+    # Extract false negatives for retraining
+    if extract_fn_dir:
+        extract_false_negatives(image_path, fn, extract_fn_dir)
+
     return {
         'precision': precision,
         'recall': recall,
@@ -262,6 +301,7 @@ if __name__ == "__main__":
     parser.add_argument("detection_json", help="Path to detection JSON")
     parser.add_argument("annotation", help="Path to YOLO annotation file")
     parser.add_argument("--output", help="Path to save validation visualization")
+    parser.add_argument("--extract-fn", help="Directory to save false negative crops for retraining")
 
     args = parser.parse_args()
 
@@ -272,7 +312,8 @@ if __name__ == "__main__":
         args.detection_json,
         args.annotation,
         class_names,
-        args.output
+        args.output,
+        args.extract_fn
     )
 
     print("\n" + "=" * 60)

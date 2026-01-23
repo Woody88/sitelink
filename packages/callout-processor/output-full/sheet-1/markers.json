@@ -1,0 +1,162 @@
+[
+  {
+    "id": "marker-sheet-1-6-29f4204d",
+    "label": "2/A6",
+    "targetSheetRef": "A6",
+    "calloutType": "section",
+    "calloutNumber": "2",
+    "x": 0.6136274509803922,
+    "y": 0.14106060606060605,
+    "pixelX": 3129,
+    "pixelY": 465,
+    "bbox": {
+      "x1": 3088,
+      "y1": 424,
+      "x2": 3170,
+      "y2": 506
+    },
+    "confidence": 0.95,
+    "source": "cv_hough_pass0",
+    "needsReview": false
+  },
+  {
+    "id": "marker-sheet-1-0-01e93361",
+    "label": "3/A7",
+    "targetSheetRef": "A7",
+    "calloutType": "detail",
+    "calloutNumber": "3",
+    "x": 0.6620588235294118,
+    "y": 0.15893939393939394,
+    "pixelX": 3376,
+    "pixelY": 524,
+    "bbox": {
+      "x1": 3336,
+      "y1": 484,
+      "x2": 3416,
+      "y2": 564
+    },
+    "confidence": 0.95,
+    "source": "cv_hough_pass0",
+    "needsReview": false
+  },
+  {
+    "id": "marker-sheet-1-16-4382ef7a",
+    "label": "3/A5",
+    "targetSheetRef": "A5",
+    "calloutType": "elevation",
+    "calloutNumber": "3",
+    "x": 0.5199019607843137,
+    "y": 0.17833333333333334,
+    "pixelX": 2651,
+    "pixelY": 588,
+    "bbox": {
+      "x1": 2565,
+      "y1": 502,
+      "x2": 2737,
+      "y2": 674
+    },
+    "confidence": 0.95,
+    "source": "cv_hough_pass2",
+    "needsReview": false
+  },
+  {
+    "id": "marker-sheet-1-3-9dbe5cf1",
+    "label": "1/A6",
+    "targetSheetRef": "A6",
+    "calloutType": "section",
+    "calloutNumber": "1",
+    "x": 0.7151960784313726,
+    "y": 0.3510606060606061,
+    "pixelX": 3647,
+    "pixelY": 1158,
+    "bbox": {
+      "x1": 3609,
+      "y1": 1120,
+      "x2": 3685,
+      "y2": 1196
+    },
+    "confidence": 0.95,
+    "source": "cv_hough_pass0",
+    "needsReview": false
+  },
+  {
+    "id": "marker-sheet-1-4-9ccf317f",
+    "label": "1/A6",
+    "targetSheetRef": "A6",
+    "calloutType": "section",
+    "calloutNumber": "1",
+    "x": 0.5300980392156863,
+    "y": 0.351969696969697,
+    "pixelX": 2703,
+    "pixelY": 1161,
+    "bbox": {
+      "x1": 2663,
+      "y1": 1121,
+      "x2": 2743,
+      "y2": 1201
+    },
+    "confidence": 0.95,
+    "source": "cv_hough_pass0",
+    "needsReview": false
+  },
+  {
+    "id": "marker-sheet-1-2-c04fa3e9",
+    "label": "2/A7",
+    "targetSheetRef": "A7",
+    "calloutType": "detail",
+    "calloutNumber": "2",
+    "x": 0.6320588235294118,
+    "y": 0.4940909090909091,
+    "pixelX": 3223,
+    "pixelY": 1630,
+    "bbox": {
+      "x1": 3183,
+      "y1": 1590,
+      "x2": 3263,
+      "y2": 1670
+    },
+    "confidence": 0.95,
+    "source": "cv_hough_pass0",
+    "needsReview": false
+  },
+  {
+    "id": "marker-sheet-1-5-33e5b999",
+    "label": "2/A6",
+    "targetSheetRef": "A6",
+    "calloutType": "section",
+    "calloutNumber": "2",
+    "x": 0.6138235294117647,
+    "y": 0.5098484848484849,
+    "pixelX": 3130,
+    "pixelY": 1682,
+    "bbox": {
+      "x1": 3088,
+      "y1": 1640,
+      "x2": 3172,
+      "y2": 1724
+    },
+    "confidence": 0.95,
+    "source": "cv_hough_pass0",
+    "needsReview": false
+  },
+  {
+    "id": "marker-sheet-1-1-e997df4e",
+    "label": "1/A7",
+    "targetSheetRef": "A7",
+    "calloutType": "detail",
+    "calloutNumber": "1",
+    "x": 0.688921568627451,
+    "y": 0.6301515151515151,
+    "pixelX": 3513,
+    "pixelY": 2079,
+    "bbox": {
+      "x1": 3473,
+      "y1": 2039,
+      "x2": 3553,
+      "y2": 2119
+    },
+    "confidence": 0.95,
+    "source": "cv_hough_pass0",
+    "needsReview": false
+  }
+]

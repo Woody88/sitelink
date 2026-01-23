@@ -1,0 +1,14 @@
+{
+  "sheetId": "sheet-5",
+  "pageNumber": 6,
+  "width": 5100,
+  "height": 3300,
+  "dpi": 300,
+  "cvCandidates": 587,
+  "ocrCandidates": 0,
+  "mergedCandidates": 575,
+  "filteredCandidates": 512,
+  "markersFound": 9,
+  "llmValidated": true,
+  "ocrEnabled": false
+}

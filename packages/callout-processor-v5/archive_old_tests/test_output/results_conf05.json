@@ -1,0 +1,53 @@
+{
+  "detections": [
+    {
+      "bbox": [
+        1543.5904541015625,
+        203.2797088623047,
+        48.0250244140625,
+        50.741485595703125
+      ],
+      "confidence": 0.08507142215967178,
+      "callout_type": "elevation",
+      "method": "text",
+      "image_path": "test_output/sample-plan-2.png"
+    },
+    {
+      "bbox": [
+        1268.2213134765625,
+        236.07681274414062,
+        47.9854736328125,
+        31.02691650390625
+      ],
+      "confidence": 0.07333135604858398,
+      "callout_type": "elevation",
+      "method": "text",
+      "image_path": "test_output/sample-plan-2.png"
+    },
+    {
+      "bbox": [
+        1272.96533203125,
+        234.65438842773438,
+        42.7108154296875,
+        37.2274169921875
+      ],
+      "confidence": 0.06238116696476936,
+      "callout_type": "elevation",
+      "method": "text",
+      "image_path": "test_output/sample-plan-2.png"
+    }
+  ],
+  "metadata": {
+    "model": "yoloe-26n-seg.pt",
+    "conf_threshold": 0.05,
+    "iou_threshold": 0.5,
+    "num_detections": 3,
+    "standard": "us_ncs",
+    "class_names": [
+      "detail",
+      "elevation",
+      "section",
+      "title"
+    ]
+  }
+}

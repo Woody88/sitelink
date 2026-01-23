@@ -1,0 +1,21 @@
+{
+  "detections": [],
+  "metadata": {
+    "model": "yoloe-26n-seg.pt",
+    "conf_threshold": 0.05,
+    "iou_threshold": 0.5,
+    "num_detections": 0,
+    "prompt_images": [
+      "examples/us/ncs/detail/image1.png",
+      "examples/us/ncs/detail/image2.png",
+      "examples/us/ncs/elevation/image1.png",
+      "examples/us/ncs/elevation/image2.png",
+      "examples/us/ncs/elevation/image3.png",
+      "examples/us/ncs/elevation/image4.png",
+      "examples/us/ncs/elevation/image5.png",
+      "examples/us/ncs/section/image1.png",
+      "examples/us/ncs/section/image2.png",
+      "examples/us/ncs/section/image3.png"
+    ]
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "pdf_path": "/mnt/c/Users/Woodson/Downloads/plans/us/Rinker_051.pdf",
+  "model": "weights/callout_detector.pt",
+  "dpi": 72,
+  "standard": "auto",
+  "total_sheets": 1,
+  "total_detections": 15,
+  "needs_review": 15,
+  "by_class": {
+    "elevation": 2,
+    "detail": 13
+  },
+  "sheets": [
+    {
+      "sheet_index": 0,
+      "width": 3035,
+      "height": 2160,
+      "total_detections": 15,
+      "by_class": {
+        "elevation": 2,
+        "detail": 13
+      },
+      "needs_review": 15
+    }
+  ]
+}

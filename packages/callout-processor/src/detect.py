@@ -30,7 +30,8 @@ from typing import List, Optional, Tuple
 
 import cv2
 import numpy as np
-import pyvips
+import fitz  # PyMuPDF for PDF rendering
+from PIL import Image
 from dotenv import load_dotenv
 
 # Load .env from package directory or current directory
@@ -41,6 +42,49 @@ load_dotenv()  # Also check current working directory
 # PaddleOCR is imported lazily in detect_callouts_ocr() to avoid slow startup
 PADDLEOCR_AVAILABLE = None  # Will be set on first use
 _paddleocr_instance = None
+
+
+def render_pdf_page(pdf_path: str, page_num: int, dpi: int = 300) -> Tuple[np.ndarray, int, int]:
+    """
+    Render a PDF page to a numpy array using PyMuPDF.
+
+    Args:
+        pdf_path: Path to the PDF file
+        page_num: Page number (0-indexed)
+        dpi: Resolution in dots per inch
+
+    Returns:
+        Tuple of (image array in BGR format, width, height)
+    """
+    doc = fitz.open(pdf_path)
+    page = doc[page_num]
+
+    # Calculate zoom factor for desired DPI (PDF default is 72 DPI)
+    zoom = dpi / 72.0
+    mat = fitz.Matrix(zoom, zoom)
+
+    # Render page to pixmap
+    pix = page.get_pixmap(matrix=mat, alpha=False)
+
+    # Convert to numpy array
+    img = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)
+
+    # Convert RGB to BGR for OpenCV
+    if pix.n == 3:
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    elif pix.n == 4:
+        img = cv2.cvtColor(img, cv2.COLOR_RGBA2BGR)
+
+    doc.close()
+    return img, pix.width, pix.height
+
+
+def get_pdf_page_count(pdf_path: str) -> int:
+    """Get the number of pages in a PDF file."""
+    doc = fitz.open(pdf_path)
+    count = len(doc)
+    doc.close()
+    return count
 
 
 def find_project_root() -> Path:
@@ -83,12 +127,12 @@ CONFIG = {
 
     # CV Detection - Multi-pass with different parameters
     "cv_passes": [
-        # Pass 1: Standard circles
+        # Pass 1: Standard circles (typical callout size)
         {"dp": 1.0, "param1": 50, "param2": 30, "minRadius": 12, "maxRadius": 50},
-        # Pass 2: Faint circles (lower edge threshold)
+        # Pass 2: Faint circles (lower edge threshold, same size range)
         {"dp": 1.0, "param1": 30, "param2": 20, "minRadius": 12, "maxRadius": 50},
-        # Pass 3: Large circles (section callouts)
-        {"dp": 1.0, "param1": 50, "param2": 30, "minRadius": 40, "maxRadius": 120},
+        # Pass 3: Slightly larger section callouts (reduced from 120, higher param2)
+        {"dp": 1.0, "param1": 50, "param2": 35, "minRadius": 35, "maxRadius": 70},
         # Pass 4: Small circles (detail callouts at scale)
         {"dp": 1.0, "param1": 50, "param2": 25, "minRadius": 8, "maxRadius": 20},
     ],
@@ -96,6 +140,11 @@ CONFIG = {
     # OCR Detection
     "ocr_enabled": True,
     "ocr_callout_pattern": r"^(\d{1,2})\s*/\s*([A-Z]\d{1,2})$",
+
+    # Candidate Filtering (Stage 2.5 - before LLM)
+    "size_outlier_multiplier": 1.8,  # Reject candidates > 1.8x median radius
+    "aspect_ratio_min": 0.7,  # Reject if width/height < 0.7
+    "aspect_ratio_max": 1.4,  # Reject if width/height > 1.4
 
     # Candidate Merging
     "iou_threshold": 0.3,
@@ -389,6 +438,79 @@ def merge_candidates(cv_candidates: List[Candidate],
     return merged
 
 
+def filter_size_outliers(candidates: List[Candidate],
+                         max_multiplier: float = 1.8) -> List[Candidate]:
+    """
+    Filter out candidates that are significantly larger than the median size.
+    This removes large drawing elements that CV mistakenly detected as callouts.
+
+    Args:
+        candidates: List of candidates to filter
+        max_multiplier: Reject candidates > max_multiplier * median radius
+
+    Returns:
+        Filtered list with outliers removed
+    """
+    if len(candidates) < 3:
+        return candidates  # Not enough data to compute meaningful median
+
+    radii = [c.radius for c in candidates]
+    median_radius = np.median(radii)
+    max_radius = median_radius * max_multiplier
+
+    filtered = []
+    rejected_count = 0
+    for c in candidates:
+        if c.radius <= max_radius:
+            filtered.append(c)
+        else:
+            rejected_count += 1
+
+    if rejected_count > 0:
+        print(f"[Filter] Rejected {rejected_count} size outliers (radius > {max_radius:.0f}px, median={median_radius:.0f}px)")
+
+    return filtered
+
+
+def filter_aspect_ratio(candidates: List[Candidate],
+                        min_ratio: float = 0.7,
+                        max_ratio: float = 1.4) -> List[Candidate]:
+    """
+    Filter out candidates with non-circular bounding boxes.
+    Callouts are typically circular, while drawing elements are often elongated.
+
+    Args:
+        candidates: List of candidates to filter
+        min_ratio: Minimum width/height ratio (0.7 = slightly tall)
+        max_ratio: Maximum width/height ratio (1.4 = slightly wide)
+
+    Returns:
+        Filtered list with non-circular candidates removed
+    """
+    filtered = []
+    rejected_count = 0
+
+    for c in candidates:
+        if c.bbox:
+            width = c.bbox['x2'] - c.bbox['x1']
+            height = c.bbox['y2'] - c.bbox['y1']
+            if height > 0:
+                ratio = width / height
+                if min_ratio <= ratio <= max_ratio:
+                    filtered.append(c)
+                else:
+                    rejected_count += 1
+            else:
+                filtered.append(c)  # Keep if can't compute ratio
+        else:
+            filtered.append(c)  # Keep if no bbox
+
+    if rejected_count > 0:
+        print(f"[Filter] Rejected {rejected_count} non-circular candidates (aspect ratio not in [{min_ratio}, {max_ratio}])")
+
+    return filtered
+
+
 def get_contextual_crop(image: np.ndarray, candidate: Candidate) -> np.ndarray:
     """
     Extract crop with contextual padding based on candidate size (1.5x radius).
@@ -431,46 +553,67 @@ def is_valid_callout_ref(ref: str) -> bool:
     return True
 
 
-def build_batch_validation_prompt(image_count: int, valid_sheets: list) -> str:
+def load_pspc_reference_images() -> List[str]:
+    """Load PSPC standard reference images as base64 for LLM context."""
+    import base64
+
+    reference_images = []
+    assets_dir = Path(__file__).parent.parent / "assets"
+
+    for i in [1, 2]:  # Two pages of the standard
+        ref_path = assets_dir / f"pspc_standard_page_{i}.png"
+        if ref_path.exists():
+            with open(ref_path, 'rb') as f:
+                img_b64 = base64.b64encode(f.read()).decode('utf-8')
+                reference_images.append(img_b64)
+
+    return reference_images
+
+
+def build_batch_validation_prompt(image_count: int, valid_sheets: list, has_reference_images: bool = False) -> str:
     """Build prompt for batch validation of cropped candidates (per PSPC National CADD Standard)."""
     sheet_list = ', '.join(valid_sheets) if valid_sheets else 'Any valid sheet number'
 
-    return f"""Analyze these {image_count} construction plan image crops for callout symbols.
+    reference_intro = ""
+    if has_reference_images:
+        reference_intro = """**IMPORTANT: The first 2 images are the PSPC National CADD Standard reference showing what REAL callout symbols look like. Compare ALL subsequent crop images against these standards.**
 
-**CALLOUT TYPES** (per PSPC National CADD Standard):
+"""
 
-1. **Detail Callout**: Circle with number on top, sheet reference below (e.g., "1/A2", "3/B1")
-   - May have horizontal divider line inside circle
-   - Number identifies the detail, sheet identifies where it's drawn
+    return f"""{reference_intro}Analyze the construction plan image crops for callout symbols.
 
+**CRITICAL: Only mark as callout if you can CLEARLY SEE:**
+1. A circle or circular shape
+2. A number or letter INSIDE the circle
+3. Optionally: a sheet reference (like "A6") below or inside the circle
+4. Optionally: a triangle pointer for elevation/section callouts
+
+**If the crop does NOT clearly show these elements, return isCallout: false.**
+
+**CALLOUT TYPES** (see reference images for visual examples):
+
+1. **Detail Callout**: Circle with number, may have sheet reference below (e.g., "1/A2")
 2. **Elevation Callout**: Circle with triangle pointer indicating viewing direction
-   - Triangle points toward the elevation view
-   - Contains elevation number and sheet reference
+3. **Section Callout**: Circle with triangle pointers on sides and section letter
+4. **Title Callout**: Circle next to drawing title with scale bar
 
-3. **Section Callout**: Circle with triangle pointer and section letter (e.g., "A-A")
-   - Triangle indicates cut direction
-   - Section letters appear at both ends of the cut line
-
-4. **Borderless Callout**: Just text in "number/sheet" format without circle
-   - Plain text like "1/A2" acting as callout reference
-
-**What are NOT callouts:**
-- Scale Indicators (e.g., "1/4\\" = 1'-0\\"", "SCALE: 1/8\\" = 1'-0\\"")
-- Dimensions (e.g., "12'-6\\"", "24'-0\\"")
-- North Arrows or compass symbols
-- Grid bubbles (just "A" or "1" in circle without sheet reference)
-- Room names or labels
-- Drawing titles
+**What are NOT callouts (return isCallout: false):**
+- Random lines, structural elements, or drawing fragments
+- Scale Indicators (e.g., "1/4\\" = 1'-0\\"")
+- Dimensions or measurements
+- Grid bubbles (just "A" or "1" without sheet reference)
+- Drawing/view numbers in title blocks (circled numbers labeling plans)
+- Any image where you cannot clearly identify a callout symbol
 
 **Valid target sheets:** {sheet_list}
 
-**For EACH crop (0 to {image_count - 1}), provide:**
-- index: The image number
-- isCallout: true/false
+**For EACH crop image (starting from index 0), provide:**
+- index: The crop image number (0-indexed, NOT counting reference images)
+- isCallout: true ONLY if you can clearly see a callout symbol, false otherwise
 - calloutType: "detail" | "elevation" | "section" | "borderless" | null
 - calloutNumber: The number/letter identifier (e.g., "1", "A")
-- detectedRef: Full reference in "number/sheet" format (e.g., "1/A6")
-- targetSheet: The target sheet reference (e.g., "A6", "B1")
+- detectedRef: Full reference in "number/sheet" format (e.g., "1/A6") or null
+- targetSheet: The target sheet reference (e.g., "A6") or null
 - confidence: 0.0-1.0
 
 **Response format (JSON only, no markdown):**
@@ -488,21 +631,34 @@ def build_batch_validation_prompt(image_count: int, valid_sheets: list) -> str:
   ]
 }}
 
-Analyze all {image_count} images now:"""
+Analyze all {image_count} crop images now (remember: if you cannot clearly see a callout symbol, return isCallout: false):"""
 
 
-def call_openrouter_vision_batch(prompt: str, images_base64: list, api_key: str, model: str) -> dict:
+def call_openrouter_vision_batch(prompt: str, images_base64: list, api_key: str, model: str,
+                                  reference_images: List[str] = None) -> dict:
     """Call OpenRouter API with multiple images for batch validation."""
     import requests
 
     if not api_key or len(images_base64) == 0:
         return None
 
-    print(f"[LLM] Batch validation with {len(images_base64)} images using {model}")
+    ref_count = len(reference_images) if reference_images else 0
+    print(f"[LLM] Batch validation with {len(images_base64)} images using {model}" +
+          (f" (+{ref_count} ref images)" if ref_count else ""))
 
     try:
-        # Build content array with text prompt and all images
+        # Build content array with text prompt, reference images, then crop images
         content = [{"type": "text", "text": prompt}]
+
+        # Add reference images first (if provided)
+        if reference_images:
+            for ref_b64 in reference_images:
+                content.append({
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/png;base64,{ref_b64}"}
+                })
+
+        # Add crop images to validate
         for img_b64 in images_base64:
             content.append({
                 "type": "image_url",
@@ -546,7 +702,8 @@ def call_openrouter_vision_batch(prompt: str, images_base64: list, api_key: str,
 
 def validate_candidates_with_llm(candidates: List[Candidate], image: np.ndarray,
                                   valid_sheets: list, sheet_id: str,
-                                  api_key: str, model: str) -> list:
+                                  api_key: str, model: str,
+                                  sheet_dir: Optional[Path] = None) -> list:
     """Batch validate merged candidates with LLM using contextual crops."""
     import base64
 
@@ -555,6 +712,12 @@ def validate_candidates_with_llm(candidates: List[Candidate], image: np.ndarray,
 
     h, w = image.shape[:2]
     batch_size = CONFIG["batch_size"]  # Max 20 images per LLM request
+
+    # Create crops directory if sheet_dir provided
+    crops_dir = None
+    if sheet_dir:
+        crops_dir = Path(sheet_dir) / "crops"
+        crops_dir.mkdir(parents=True, exist_ok=True)
 
     # Prepare all crops
     all_crops = []
@@ -569,13 +732,26 @@ def validate_candidates_with_llm(candidates: List[Candidate], image: np.ndarray,
         if success:
             crop_b64 = base64.b64encode(buffer).decode('utf-8')
             all_crops.append(crop_b64)
-            candidate_map[len(all_crops) - 1] = cand
+            crop_idx = len(all_crops) - 1
+            candidate_map[crop_idx] = cand
+
+            # Save crop to disk for debugging
+            if crops_dir:
+                crop_path = crops_dir / f"crop_{crop_idx:04d}.png"
+                cv2.imwrite(str(crop_path), crop)
 
     if len(all_crops) == 0:
         return []
 
+    # Load PSPC reference images for comparison
+    reference_images = load_pspc_reference_images()
+    has_refs = len(reference_images) > 0
+    if has_refs:
+        print(f"[Validate] Loaded {len(reference_images)} PSPC reference images")
+
     # Process in batches
     validated = []
+    crop_results = []  # Track all crop validation results for debugging
     normalized_sheets = [s.upper() for s in valid_sheets] if valid_sheets else []
     num_batches = (len(all_crops) + batch_size - 1) // batch_size
 
@@ -588,8 +764,9 @@ def validate_candidates_with_llm(candidates: List[Candidate], image: np.ndarray,
 
         print(f"[Validate] Batch {batch_idx + 1}/{num_batches} ({len(batch_crops)} images)...")
 
-        prompt = build_batch_validation_prompt(len(batch_crops), valid_sheets)
-        result = call_openrouter_vision_batch(prompt, batch_crops, api_key, model)
+        prompt = build_batch_validation_prompt(len(batch_crops), valid_sheets, has_reference_images=has_refs)
+        result = call_openrouter_vision_batch(prompt, batch_crops, api_key, model,
+                                               reference_images=reference_images if has_refs else None)
 
         if not result or 'results' not in result:
             print(f"[Validate] Batch {batch_idx + 1} failed, skipping...")
@@ -612,16 +789,36 @@ def validate_candidates_with_llm(candidates: List[Candidate], image: np.ndarray,
             callout_type = item.get('calloutType', 'detail')
             callout_number = item.get('calloutNumber', '')
 
+            cand = candidate_map[global_idx]
+
+            # Track all crop results for debugging
+            crop_results.append({
+                "cropIndex": global_idx,
+                "cropFile": f"crop_{global_idx:04d}.png",
+                "pixelX": int(cand.x),
+                "pixelY": int(cand.y),
+                "isCallout": is_callout,
+                "confidence": confidence,
+                "detectedRef": detected_ref,
+                "calloutType": callout_type,
+                "accepted": False  # Will be set to True if passes all filters
+            })
+
             if not is_callout:
                 continue
             if confidence < CONFIDENCE_THRESHOLD:
                 continue
-            if detected_ref and not is_valid_callout_ref(detected_ref):
+            # Require a valid detected reference - reject if null/empty
+            if not detected_ref:
+                continue
+            if not is_valid_callout_ref(detected_ref):
                 continue
             if normalized_sheets and target_sheet.upper() not in normalized_sheets:
                 continue
 
-            cand = candidate_map[global_idx]
+            # Mark as accepted
+            crop_results[-1]["accepted"] = True
+
             validated.append({
                 "id": f"marker-{sheet_id}-{len(validated)}-{uuid.uuid4().hex[:8]}",
                 "label": detected_ref,
@@ -635,9 +832,16 @@ def validate_candidates_with_llm(candidates: List[Candidate], image: np.ndarray,
                 "bbox": cand.bbox,
                 "confidence": confidence,
                 "source": cand.source,
-                "needsReview": False
+                "needsReview": False,
+                "cropIndex": global_idx  # Link to crop file
             })
             print(f"   [OK] {detected_ref} ({callout_type}) @ ({int(cand.x)}, {int(cand.y)}) conf={confidence*100:.0f}%")
+
+    # Save crop validation results for debugging
+    if crops_dir and crop_results:
+        results_path = crops_dir / "validation_results.json"
+        with open(results_path, 'w') as f:
+            json.dump(crop_results, f, indent=2)
 
     return validated
 
@@ -662,22 +866,30 @@ def validate_shapes_with_llm(shapes: list, image: np.ndarray, valid_sheets: list
 
 
 def deduplicate_callouts(callouts: list, distance_threshold: int = DEDUP_DISTANCE_PX) -> list:
-    """Remove duplicate callouts that are too close together with same reference."""
+    """Remove duplicate callouts that are too close together with same label."""
     if len(callouts) <= 1:
         return callouts
 
     result = []
     used = set()
 
-    # Group by reference
-    by_ref = {}
+    # Group by full label (calloutNumber + targetSheetRef) - not just sheetRef
+    by_label = {}
     for i, c in enumerate(callouts):
-        ref = (c.get('targetSheetRef') or '').upper()
-        if ref not in by_ref:
-            by_ref[ref] = []
-        by_ref[ref].append((i, c))
+        label = c.get('label', '').upper()
+        if not label:
+            # Fallback to constructing label
+            num = c.get('calloutNumber', '')
+            ref = c.get('targetSheetRef', '')
+            label = f"{num}/{ref}".upper() if num and ref else ''
+        if label not in by_label:
+            by_label[label] = []
+        by_label[label].append((i, c))
 
-    for ref, items in by_ref.items():
+    # Normalized distance threshold - 0.03 is about 150px on a 5100px image
+    DEDUP_NORMALIZED_DIST = 0.03
+
+    for label, items in by_label.items():
         groups = []
         for idx, callout in items:
             if idx in used:
@@ -690,13 +902,14 @@ def deduplicate_callouts(callouts: list, distance_threshold: int = DEDUP_DISTANC
                 if other_idx in used:
                     continue
                 dist = np.hypot(callout['x'] - other['x'], callout['y'] - other['y'])
-                if dist < 0.067:
+                if dist < DEDUP_NORMALIZED_DIST:
                     group.append(other)
                     used.add(other_idx)
 
             groups.append(group)
 
         for group in groups:
+            # Pick the one with highest confidence, or smallest bbox (tightest fit)
             best = max(group, key=lambda c: c.get('confidence', 0))
             result.append(best)
 
@@ -795,12 +1008,8 @@ def process_pdf(pdf_path: str, output_dir: str, use_llm: bool = False,
 
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-    with open(pdf_path, 'rb') as f:
-        pdf_data = f.read()
-
     try:
-        first_page = pyvips.Image.new_from_buffer(pdf_data, '', dpi=DPI, page=0, access='sequential')
-        n_pages = first_page.get('n-pages') if 'n-pages' in first_page.get_fields() else 1
+        n_pages = get_pdf_page_count(pdf_path)
     except Exception as e:
         print(f"Error loading PDF: {e}")
         return {"error": str(e)}
@@ -840,24 +1049,17 @@ def process_pdf(pdf_path: str, output_dir: str, use_llm: bool = False,
         print(f"Processing {sheet_id} (page {page_num + 1}/{n_pages})")
         print(f"{'='*50}")
 
-        # Render page at 300 DPI
+        # Render page at 300 DPI using PyMuPDF
         print(f"\n[Render] Rendering at {DPI} DPI...")
-        image = pyvips.Image.new_from_buffer(pdf_data, '', dpi=DPI, page=page_num, access='sequential')
-        width, height = image.width, image.height
+        img_np, width, height = render_pdf_page(pdf_path, page_num, dpi=DPI)
         print(f"[Render] Dimensions: {width} x {height}")
 
+        # Save source image
         source_path = sheet_dir / "source.png"
-        image.pngsave(str(source_path), compression=6)
+        cv2.imwrite(str(source_path), img_np)
 
-        # Convert to OpenCV format
-        img_np = np.ndarray(
-            buffer=image.write_to_memory(),
-            dtype=np.uint8,
-            shape=[height, width, image.bands]
-        )
-        if image.bands == 4:
-            img_np = cv2.cvtColor(img_np, cv2.COLOR_RGBA2BGR)
-        elif image.bands == 1:
+        # img_np is already in BGR format from render_pdf_page
+        if len(img_np.shape) == 2:
             img_np = cv2.cvtColor(img_np, cv2.COLOR_GRAY2BGR)
 
         # STAGE 1: GENERATE - Multi-pass CV + OCR
@@ -878,23 +1080,38 @@ def process_pdf(pdf_path: str, output_dir: str, use_llm: bool = False,
         merged_candidates = merge_candidates(cv_candidates, ocr_candidates)
         print(f"[Merge] {len(cv_candidates)} CV + {len(ocr_candidates)} OCR → {len(merged_candidates)} merged")
 
-        # Save candidates JSON
+        # STAGE 2.5: FILTER - Size outliers and aspect ratio
+        print(f"\n[Filter] Stage 2.5: Filtering Outliers")
+        pre_filter_count = len(merged_candidates)
+        filtered_candidates = filter_size_outliers(
+            merged_candidates,
+            max_multiplier=CONFIG["size_outlier_multiplier"]
+        )
+        filtered_candidates = filter_aspect_ratio(
+            filtered_candidates,
+            min_ratio=CONFIG["aspect_ratio_min"],
+            max_ratio=CONFIG["aspect_ratio_max"]
+        )
+        print(f"[Filter] {pre_filter_count} → {len(filtered_candidates)} after filtering")
+
+        # Save candidates JSON (filtered)
         candidates_path = sheet_dir / "candidates.json"
         with open(candidates_path, 'w') as f:
-            json.dump([c.to_dict() for c in merged_candidates], f, indent=2)
+            json.dump([c.to_dict() for c in filtered_candidates], f, indent=2)
 
         # STAGE 3: VALIDATE - LLM batch validation
         markers = []
-        if use_llm and len(merged_candidates) > 0:
+        if use_llm and len(filtered_candidates) > 0:
             print(f"\n[Validate] Stage 3: LLM Validation")
             validated = validate_candidates_with_llm(
-                merged_candidates, img_np, valid_sheets or [], sheet_id, api_key, model
+                filtered_candidates, img_np, valid_sheets or [], sheet_id, api_key, model,
+                sheet_dir=sheet_dir
             )
             markers = deduplicate_callouts(validated)
-            print(f"[Validate] {len(merged_candidates)} candidates → {len(markers)} validated markers")
+            print(f"[Validate] {len(filtered_candidates)} candidates → {len(markers)} validated markers")
         else:
             # Without LLM, convert candidates to marker format
-            for i, cand in enumerate(merged_candidates):
+            for i, cand in enumerate(filtered_candidates):
                 markers.append({
                     "id": f"marker-{sheet_id}-{i}-{uuid.uuid4().hex[:8]}",
                     "label": cand.text or "?/?",
@@ -915,8 +1132,8 @@ def process_pdf(pdf_path: str, output_dir: str, use_llm: bool = False,
         with open(markers_path, 'w') as f:
             json.dump(markers, f, indent=2)
 
-        # Convert candidates to shape dicts for annotation
-        shapes_for_annotation = [c.to_dict() for c in merged_candidates]
+        # Convert filtered candidates to shape dicts for annotation
+        shapes_for_annotation = [c.to_dict() for c in filtered_candidates]
 
         # Generate annotated image
         print(f"\n[Output] Generating annotated image...")
@@ -934,6 +1151,7 @@ def process_pdf(pdf_path: str, output_dir: str, use_llm: bool = False,
             "cvCandidates": len(cv_candidates),
             "ocrCandidates": len(ocr_candidates),
             "mergedCandidates": len(merged_candidates),
+            "filteredCandidates": len(filtered_candidates),
             "markersFound": len(markers),
             "llmValidated": use_llm,
             "ocrEnabled": ocr_enabled
@@ -952,6 +1170,7 @@ def process_pdf(pdf_path: str, output_dir: str, use_llm: bool = False,
             "cvCandidates": len(cv_candidates),
             "ocrCandidates": len(ocr_candidates),
             "mergedCandidates": len(merged_candidates),
+            "filteredCandidates": len(filtered_candidates),
             "markers": len(markers)
         })
 
@@ -1037,8 +1256,9 @@ def main():
         cv_count = sheet.get('cvCandidates', sheet.get('shapeCandidates', 0))
         ocr_count = sheet.get('ocrCandidates', 0)
         merged = sheet.get('mergedCandidates', cv_count)
+        filtered = sheet.get('filteredCandidates', merged)
         print(f"  {sheet['sheetId']}: {sheet['width']}x{sheet['height']}")
-        print(f"    CV: {cv_count}, OCR: {ocr_count} → Merged: {merged} → Markers: {sheet['markers']}")
+        print(f"    CV: {cv_count}, OCR: {ocr_count} → Merged: {merged} → Filtered: {filtered} → Markers: {sheet['markers']}")
 
     sys.exit(0)
 

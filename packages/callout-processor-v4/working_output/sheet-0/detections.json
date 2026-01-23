@@ -1,0 +1,173 @@
+[
+  {
+    "id": "det-0-0",
+    "sheet_index": 0,
+    "class_name": "elevation",
+    "bbox": {
+      "x1": 8923,
+      "y1": 2946,
+      "x2": 9002,
+      "y2": 3023
+    },
+    "confidence": 0.11430048942565918,
+    "ocr_text": "Y",
+    "ocr_confidence": 0.7726571559906006,
+    "identifier": "Y",
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-0-0.png"
+  },
+  {
+    "id": "det-0-1",
+    "sheet_index": 0,
+    "class_name": "title",
+    "bbox": {
+      "x1": 3072,
+      "y1": 8939,
+      "x2": 3326,
+      "y2": 8984
+    },
+    "confidence": 0.19817809760570526,
+    "ocr_text": "ESS, G90 (Z275)",
+    "ocr_confidence": 0.993740439414978,
+    "identifier": "ESS",
+    "view_sheet": "Z275",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-0-1.png"
+  },
+  {
+    "id": "det-0-2",
+    "sheet_index": 0,
+    "class_name": "title",
+    "bbox": {
+      "x1": 6435,
+      "y1": 7317,
+      "x2": 6655,
+      "y2": 7397
+    },
+    "confidence": 0.18530644476413727,
+    "ocr_text": "38 STEEL DE( C/W 1",
+    "ocr_confidence": 0.9501623213291168,
+    "identifier": "38",
+    "view_sheet": "1",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-0-2.png"
+  },
+  {
+    "id": "det-0-3",
+    "sheet_index": 0,
+    "class_name": "title",
+    "bbox": {
+      "x1": 7680,
+      "y1": 4040,
+      "x2": 7903,
+      "y2": 4078
+    },
+    "confidence": 0.15182746946811676,
+    "ocr_text": "ANCHOR BOLT",
+    "ocr_confidence": 0.9894704818725586,
+    "identifier": "ANCHO",
+    "view_sheet": "BOLT",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-0-3.png"
+  },
+  {
+    "id": "det-0-4",
+    "sheet_index": 0,
+    "class_name": "title",
+    "bbox": {
+      "x1": 13690,
+      "y1": 7316,
+      "x2": 14133,
+      "y2": 7394
+    },
+    "confidence": 0.14762909710407257,
+    "ocr_text": "1235 WHEAT BOOM DRIVE OAKVILLE. ON",
+    "ocr_confidence": 0.9869665503501892,
+    "identifier": "1235",
+    "view_sheet": "ON",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-0-4.png"
+  },
+  {
+    "id": "det-0-5",
+    "sheet_index": 0,
+    "class_name": "title",
+    "bbox": {
+      "x1": 4608,
+      "y1": 8055,
+      "x2": 4742,
+      "y2": 8134
+    },
+    "confidence": 0.14570298790931702,
+    "ocr_text": "FLOORS : DEAD :",
+    "ocr_confidence": 0.9977875649929047,
+    "identifier": "FLOOR",
+    "view_sheet": "DEAD",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-0-5.png"
+  },
+  {
+    "id": "det-0-6",
+    "sheet_index": 0,
+    "class_name": "title",
+    "bbox": {
+      "x1": 8595,
+      "y1": 6273,
+      "x2": 8931,
+      "y2": 6322
+    },
+    "confidence": 0.12761901319026947,
+    "ocr_text": "2000X2000X400",
+    "ocr_confidence": 0.9988260865211487,
+    "identifier": "2000X",
+    "view_sheet": "400",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-0-6.png"
+  },
+  {
+    "id": "det-0-7",
+    "sheet_index": 0,
+    "class_name": "title",
+    "bbox": {
+      "x1": 1537,
+      "y1": 10524,
+      "x2": 1819,
+      "y2": 10608
+    },
+    "confidence": 0.11521853506565094,
+    "ocr_text": "N ACCORDANCE L) PROCEDURES",
+    "ocr_confidence": 0.9792925715446472,
+    "identifier": "N",
+    "view_sheet": "DURES",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-0-7.png"
+  },
+  {
+    "id": "det-0-8",
+    "sheet_index": 0,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 6144,
+      "y1": 6611,
+      "x2": 6180,
+      "y2": 6656
+    },
+    "confidence": 0.10814294964075089,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-0-8.png"
+  }
+]

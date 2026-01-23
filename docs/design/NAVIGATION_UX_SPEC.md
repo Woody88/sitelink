@@ -24,25 +24,25 @@
 
 ### Guiding Principles for Construction Workers
 
-| Principle | Application |
-|-----------|-------------|
+| Principle                   | Application                                                                                              |
+| --------------------------- | -------------------------------------------------------------------------------------------------------- |
 | **Clarity Over Cleverness** | Obvious interactions. No hidden gestures as primary navigation. Large, clear tap targets (48px minimum). |
-| **Action Over Destination** | Camera is an action (FAB), not a destination. Primary workflows are one-tap away. |
-| **Support, Don't Dictate** | Preserve state across view switches. Don't reset user context. |
-| **Design for Interruption** | Workers constantly switch between app and physical world. App must feel like picking up a tool. |
-| **Glove-First Interaction** | 48px minimum touch targets. Forgiving gestures. No precision required. |
+| **Action Over Destination** | Camera is an action (FAB), not a destination. Primary workflows are one-tap away.                        |
+| **Support, Don't Dictate**  | Preserve state across view switches. Don't reset user context.                                           |
+| **Design for Interruption** | Workers constantly switch between app and physical world. App must feel like picking up a tool.          |
+| **Glove-First Interaction** | 48px minimum touch targets. Forgiving gestures. No precision required.                                   |
 
 ### Wealthsimple Patterns Adopted
 
-| Pattern | Wealthsimple Usage | SiteLink Adaptation |
-|---------|-------------------|---------------------|
-| **Horizontal filter chips** | Transaction type filters | Project status filters (All, Active, Completed, Archived) - **48px height** |
-| **Segmented control** | Two-option toggles | Plans/Activity view switcher in project workspace |
-| **Bottom sheet modals** | Multi-level filter drill-down | Notification actions, sheet discipline filter |
-| **Subtle banners** | Account alerts | Daily summary generation (no heavy card styling) |
-| **Back arrow + title** | Navigation header | `← Back to Projects` header in workspace |
-| **Contextual headers** | Different headers per screen type | Global nav vs project nav vs detail nav |
-| **Dark theme** | Full dark UI | Dark theme as default (construction site visibility) |
+| Pattern                     | Wealthsimple Usage                | SiteLink Adaptation                                                         |
+| --------------------------- | --------------------------------- | --------------------------------------------------------------------------- |
+| **Horizontal filter chips** | Transaction type filters          | Project status filters (All, Active, Completed, Archived) - **48px height** |
+| **Segmented control**       | Two-option toggles                | Plans/Activity view switcher in project workspace                           |
+| **Bottom sheet modals**     | Multi-level filter drill-down     | Notification actions, sheet discipline filter                               |
+| **Subtle banners**          | Account alerts                    | Daily summary generation (no heavy card styling)                            |
+| **Back arrow + title**      | Navigation header                 | `← Back to Projects` header in workspace                                    |
+| **Contextual headers**      | Different headers per screen type | Global nav vs project nav vs detail nav                                     |
+| **Dark theme**              | Full dark UI                      | Dark theme as default (construction site visibility)                        |
 
 ### Key Design Change: Camera as Action
 
@@ -50,6 +50,7 @@
 **New:** Camera is a Floating Action Button (FAB) accessible from Plans and Activity views
 
 **Rationale:**
+
 - Camera is the **primary action**, not a browsing destination
 - Construction workers need 1-tap photo capture
 - FAB is ergonomic for gloved, one-handed use (bottom-right, thumb zone)
@@ -151,6 +152,7 @@
 **Purpose:** Central hub for project access, global notifications, profile
 
 #### Header Layout
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │  [🔔 48x48]        Projects         [👤 48x48]         │
@@ -158,6 +160,7 @@
 ```
 
 #### Filter Chips (Redesigned for Glove Use)
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │  [ All (filled) ] [ Active ] [ Completed ] [ Archived ]│  ← 48px height
@@ -166,6 +169,7 @@
 ```
 
 **Filter Chip Specs:**
+
 - Height: **48px** (was too small before)
 - Padding: 16px horizontal, 12px vertical
 - Border radius: 24px (full pill)
@@ -174,6 +178,7 @@
 - Typography: 14px medium weight
 
 #### Project List Item
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │  Riverside Apartments                       2h ago  >  │  ← 64px min height
@@ -185,6 +190,7 @@
 ```
 
 **List Item Specs:**
+
 - Min height: 64px
 - Padding: 16px horizontal, 16px vertical
 - Active state: `bg-muted/50`
@@ -203,6 +209,7 @@
 #### Header Pattern (Two Rows)
 
 **Row 1: Navigation & View Selector**
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │  [← Back]    [ (Plans) | Activity ]       [ ⋯ Menu ]   │  ← Sticky
@@ -210,6 +217,7 @@
 ```
 
 **Component Specs:**
+
 - Back button: 48x48px touch target, includes arrow + "Back" text
 - Segmented control: 48px height, centered
   - Plans/Activity toggle
@@ -218,6 +226,7 @@
 - Menu (⋯): 48x48px touch target, opens project settings
 
 **Row 2: Project Context**
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │  Riverside Apartments                                  │  ← Sticky
@@ -226,6 +235,7 @@
 ```
 
 **Context Row Specs:**
+
 - Padding: 16px horizontal, 12px vertical
 - Background: Subtle contrast from main content area
 - Typography:
@@ -241,6 +251,7 @@
 ```
 
 **FAB Specs:**
+
 - Size: **56x56px** (exceeds 48px minimum)
 - Position: Bottom-right, 16px from edges
 - Elevation: 6dp shadow
@@ -259,6 +270,7 @@
 **Purpose:** View construction plans, place markers, zoom/pan
 
 #### Layout
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │  [PDF Plan Viewer]                                     │
@@ -273,6 +285,7 @@
 ```
 
 **Markers:**
+
 - Size: 32x32px minimum (glove-friendly)
 - Color coding: By discipline (from backend config)
 - Tap behavior: Opens marker detail sheet
@@ -298,6 +311,7 @@
 ```
 
 **Daily Summary Banner Specs:**
+
 - **NOT a heavy card** - use subtle borders, minimal elevation
 - Padding: 16px
 - Background: Very subtle contrast (e.g., `bg-muted/20`)
@@ -309,7 +323,9 @@
   - Shares summary as text
 
 **States:**
+
 1. **Empty state** (no summary):
+
    ```
    ✨ Today's Summary
    Generate an AI summary of today's progress and photos.
@@ -317,6 +333,7 @@
    ```
 
 2. **Loading state**:
+
    ```
    ✨ Today's Summary
    [Spinner] Generating summary...
@@ -361,22 +378,26 @@
 **Timeline Specs:**
 
 **Date Headers:**
+
 - Typography: 20px bold, foreground color
 - Spacing: 24px top margin, 12px bottom margin
 - Format: "Today", "Yesterday", or "October 25, 2023"
 
 **Marker Groups:**
+
 - Typography: 16px medium, foreground color
 - Icon: 📍 (pin icon)
 - Photo count: 14px regular, muted-foreground
 
 **Photo Carousels:**
+
 - Horizontal scrolling (FlatList with horizontal prop)
 - Thumbnail size: 160x160px
 - Spacing: 8px between thumbnails
 - Timestamp overlay: Bottom-left, 12px regular, white text with dark shadow
 
 **Photo Badges:**
+
 - Issue badge (❗): Red circle, 20px, top-right corner
 - Voice note badge (🎤): Blue circle, 20px, bottom-right corner
 
@@ -413,6 +434,7 @@
 ```
 
 **Bottom Sheet Specs:**
+
 - Backdrop: Dim screen to 40% opacity
 - Sheet background: Card background color
 - Drag handle: 32px wide, 4px tall, centered
@@ -422,6 +444,7 @@
 - Tap behavior on "Clear all": Shows confirmation dialog first
 
 **Confirmation Dialog:**
+
 ```
 ┌────────────────────────────────────────────┐
 │  Clear All Notifications                   │
@@ -441,6 +464,7 @@
 **Purpose:** Capture photos/videos with issue toggle
 
 #### Layout (Full Screen)
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │  [✕ Close]                                  [Gallery]  │
@@ -455,6 +479,7 @@
 ```
 
 **Component Specs:**
+
 - Close button: Top-left, 48x48px, "✕" icon
 - Gallery button: Top-right, 48x48px, opens device gallery
 - Issue toggle: Segmented control, 48px height
@@ -544,39 +569,39 @@ NotificationsScreen
 
 ### Typography Scale
 
-| Element | Size | Weight | Color | Usage |
-|---------|------|--------|-------|-------|
-| **Screen Title** | 20px | Bold | foreground | "Projects", "Notifications" |
-| **Section Header** | 20px | Bold | foreground | "Today", "Yesterday" |
-| **Card Title** | 18px | Semibold | foreground | Bottom sheet titles |
-| **Project Name** | 16px | Semibold | foreground | Project context row |
-| **Body Text** | 16px | Medium | foreground | List item primary text |
-| **Label** | 14px | Medium | foreground | Filter chip active state |
-| **Secondary Text** | 14px | Regular | muted-foreground | Addresses, marker labels |
-| **Timestamp** | 12px | Regular | muted-foreground | Photo timestamps, relative times |
-| **Caption** | 12px | Regular | muted-foreground | Photo counts, helper text |
+| Element            | Size | Weight   | Color            | Usage                            |
+| ------------------ | ---- | -------- | ---------------- | -------------------------------- |
+| **Screen Title**   | 20px | Bold     | foreground       | "Projects", "Notifications"      |
+| **Section Header** | 20px | Bold     | foreground       | "Today", "Yesterday"             |
+| **Card Title**     | 18px | Semibold | foreground       | Bottom sheet titles              |
+| **Project Name**   | 16px | Semibold | foreground       | Project context row              |
+| **Body Text**      | 16px | Medium   | foreground       | List item primary text           |
+| **Label**          | 14px | Medium   | foreground       | Filter chip active state         |
+| **Secondary Text** | 14px | Regular  | muted-foreground | Addresses, marker labels         |
+| **Timestamp**      | 12px | Regular  | muted-foreground | Photo timestamps, relative times |
+| **Caption**        | 12px | Regular  | muted-foreground | Photo counts, helper text        |
 
 ### Spacing System
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| `spacing-xs` | 4px | Icon-to-text gap |
-| `spacing-sm` | 8px | Between filter chips, photo thumbnails |
-| `spacing-md` | 12px | Internal component padding (context row vertical) |
-| `spacing-lg` | 16px | Standard padding (horizontal, vertical for list items) |
-| `spacing-xl` | 24px | Section spacing (between date groups) |
-| `spacing-2xl` | 32px | Large gaps (not used often) |
+| Token         | Value | Usage                                                  |
+| ------------- | ----- | ------------------------------------------------------ |
+| `spacing-xs`  | 4px   | Icon-to-text gap                                       |
+| `spacing-sm`  | 8px   | Between filter chips, photo thumbnails                 |
+| `spacing-md`  | 12px  | Internal component padding (context row vertical)      |
+| `spacing-lg`  | 16px  | Standard padding (horizontal, vertical for list items) |
+| `spacing-xl`  | 24px  | Section spacing (between date groups)                  |
+| `spacing-2xl` | 32px  | Large gaps (not used often)                            |
 
 ### Touch Target Minimums
 
-| Component | Minimum Size | Actual Implementation |
-|-----------|--------------|----------------------|
-| **Icon Buttons** | 48x48px | 48x48px |
-| **Filter Chips** | 48px height | 48px height, variable width |
-| **List Items** | 48px height | 64px height (more comfortable) |
-| **Segmented Control** | 48px height | 48px height |
-| **FAB** | 48x48px | 56x56px (exceeds minimum) |
-| **Shutter Button** | 56x56px | 72x72px (easier for gloves) |
+| Component             | Minimum Size | Actual Implementation          |
+| --------------------- | ------------ | ------------------------------ |
+| **Icon Buttons**      | 48x48px      | 48x48px                        |
+| **Filter Chips**      | 48px height  | 48px height, variable width    |
+| **List Items**        | 48px height  | 64px height (more comfortable) |
+| **Segmented Control** | 48px height  | 48px height                    |
+| **FAB**               | 48x48px      | 56x56px (exceeds minimum)      |
+| **Shutter Button**    | 56x56px      | 72x72px (easier for gloves)    |
 
 ---
 
@@ -584,16 +609,17 @@ NotificationsScreen
 
 ### Animation Principles
 
-| Principle | Application |
-|-----------|-------------|
-| **Fast & Snappy** | Animations should feel instant, not sluggish. Max duration: 300ms. |
-| **Spring Physics** | Use spring-based animations (damping: 20, stiffness: 200) for natural feel. |
-| **Preserve Context** | When switching views, use cross-fade to maintain spatial awareness. |
-| **Minimize Motion** | Respect device accessibility settings (reduce motion). |
+| Principle            | Application                                                                 |
+| -------------------- | --------------------------------------------------------------------------- |
+| **Fast & Snappy**    | Animations should feel instant, not sluggish. Max duration: 300ms.          |
+| **Spring Physics**   | Use spring-based animations (damping: 20, stiffness: 200) for natural feel. |
+| **Preserve Context** | When switching views, use cross-fade to maintain spatial awareness.         |
+| **Minimize Motion**  | Respect device accessibility settings (reduce motion).                      |
 
 ### Specific Animations
 
 #### Segmented Control Transition
+
 ```typescript
 // When switching between Plans and Activity
 Animated.spring(viewOpacity, {
@@ -609,6 +635,7 @@ Animated.spring(viewOpacity, {
 - Easing: Spring (damping: 20, stiffness: 200)
 
 #### FAB Scroll Behavior (Optional)
+
 ```typescript
 // Fade to 60% opacity when scrolling down
 Animated.timing(fabOpacity, {
@@ -619,6 +646,7 @@ Animated.timing(fabOpacity, {
 ```
 
 #### Bottom Sheet Entrance
+
 ```typescript
 // Slide up from bottom with backdrop fade
 Animated.parallel([
@@ -636,6 +664,7 @@ Animated.parallel([
 ```
 
 #### Photo Thumbnail Tap
+
 - Scale: 0.95 on press down, 1.0 on release
 - Duration: 100ms
 - Haptic feedback: Light impact
@@ -650,7 +679,7 @@ Animated.parallel([
 **Pattern:** Local state (useState) with transition animation
 
 ```typescript
-const [activeView, setActiveView] = useState<'plans' | 'activity'>('plans')
+const [activeView, setActiveView] = useState<"plans" | "activity">("plans")
 
 // No persistence needed - user can quickly switch
 ```
@@ -702,6 +731,7 @@ const sections = usePhotosTimeline(projectId)
 ### Component Structure Best Practices
 
 #### 1. Extract Business Logic
+
 ```typescript
 // ❌ Bad: Logic in component
 function ActivityView({ projectId }) {
@@ -726,6 +756,7 @@ function ActivityView({ projectId }) {
 ```
 
 #### 2. Memoize List Items
+
 ```typescript
 // Photo thumbnails in carousel
 const PhotoThumbnail = React.memo(function PhotoThumbnail({ photo, onPress }) {
@@ -738,14 +769,19 @@ const PhotoThumbnail = React.memo(function PhotoThumbnail({ photo, onPress }) {
 ```
 
 #### 3. Use useCallback for Event Handlers
+
 ```typescript
-const handlePhotoPress = useCallback((photoId: string) => {
-  // Navigate to photo detail
-  router.push(`/photo/${photoId}`)
-}, [router])
+const handlePhotoPress = useCallback(
+  (photoId: string) => {
+    // Navigate to photo detail
+    router.push(`/photo/${photoId}`)
+  },
+  [router],
+)
 ```
 
 #### 4. Optimize FlatList Rendering
+
 ```typescript
 <FlatList
   data={photos}
@@ -819,12 +855,15 @@ components/
 ### Why Remove Camera Tab?
 
 **Problem:** Camera was a destination tab, requiring:
+
 1. Tap project → 2. Land on default tab → 3. Tap Camera → 4. Take photo
 
 **Solution:** Camera as a FAB (Floating Action Button)
+
 1. Tap project → 2. Tap FAB → 3. Take photo
 
 **Impact:**
+
 - Reduces steps from 4 to 3
 - FAB is persistent across Plans and Activity
 - Ergonomically placed for one-handed, gloved operation
@@ -844,6 +883,7 @@ components/
 **Alternative considered:** Gear icon directly navigates to settings
 
 **Bottom sheet is better because:**
+
 - Groups related actions ("Settings" + "Clear all")
 - "Clear all" is immediate (no extra navigation)
 - Thumb-friendly zone (bottom of screen)
@@ -856,6 +896,7 @@ components/
 **Solution:** Dedicated second row for project name + address
 
 **Benefits:**
+
 - Always visible (sticky) as user scrolls
 - Clear separation: Navigation (row 1) vs Context (row 2)
 - Prevents user confusion about which project they're in

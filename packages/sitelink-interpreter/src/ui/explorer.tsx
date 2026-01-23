@@ -35,6 +35,12 @@ interface Entity {
   identifier: string | null;
   target_sheet: string | null;
   sheet_number?: string;
+  yolo_confidence: number | null;
+  ocr_confidence: number | null;
+  detection_method: string | null;
+  standard: string | null;
+  raw_ocr_text: string | null;
+  crop_image_path: string | null;
 }
 
 interface Provenance {
@@ -65,10 +71,14 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [retraining, setRetraining] = useState(false);
+  const [detecting, setDetecting] = useState(false);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [scale, setScale] = useState(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [useYOLO, setUseYOLO] = useState(true);
+  const [showLowConfidence, setShowLowConfidence] = useState(true);
+  const [confThreshold, setConfThreshold] = useState(0.1);
 
   useEffect(() => {
     fetchSheets();
@@ -85,7 +95,7 @@ function App() {
     if (selectedSheet && entities.length >= 0) {
       drawSheetWithCallouts();
     }
-  }, [selectedSheet, entities, selectedEntity, scale]);
+  }, [selectedSheet, entities, selectedEntity, scale, showLowConfidence, confThreshold]);
 
   useEffect(() => {
     if (selectedEntity) {
@@ -117,14 +127,24 @@ function App() {
       const formData = new FormData();
       formData.append("pdf", file);
 
-      const res = await fetch("/api/upload", {
+      const endpoint = useYOLO ? "/api/detect" : "/api/upload";
+
+      if (useYOLO) {
+        formData.append("options", JSON.stringify({
+          dpi: 300,
+          confThreshold: confThreshold,
+        }));
+      }
+
+      const res = await fetch(endpoint, {
         method: "POST",
         body: formData,
       });
 
       const result = await res.json();
       if (result.success) {
-        alert(`Processed ${result.pdf_name}:\n- ${result.sheets_created} sheets\n- ${result.entities_found} entities\n- ${result.relationships_created} relationships`);
+        const methodLabel = useYOLO ? "YOLO" : "Legacy";
+        alert(`Processed ${result.pdf_name} (${methodLabel}):\n- ${result.sheets_created} sheets\n- ${result.entities_found} entities\n- ${result.needs_review ?? 0} need review\n- ${result.relationships_created} relationships`);
         fetchSheets();
         fetchMetrics();
       } else {
@@ -134,6 +154,32 @@ function App() {
       alert(`Upload failed: ${error}`);
     }
     setUploading(false);
+  }
+
+  async function handleDetectSheet() {
+    if (!selectedSheet) return;
+
+    setDetecting(true);
+    try {
+      const res = await fetch(`/api/sheets/${selectedSheet.id}/detect`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          confThreshold: confThreshold,
+        }),
+      });
+
+      const result = await res.json();
+      if (result.success) {
+        alert(`Detected ${result.entities_detected} entities on sheet ${result.sheet_number}`);
+        fetchEntities(selectedSheet.id);
+      } else {
+        alert(`Error: ${result.error}\n${result.details || ""}`);
+      }
+    } catch (error) {
+      alert(`Detection failed: ${error}`);
+    }
+    setDetecting(false);
   }
 
   async function handleRetrain() {
@@ -201,30 +247,40 @@ function App() {
 
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-      for (const entity of entities) {
+      const filteredEntities = entities.filter(e => {
+        if (!showLowConfidence && (e.confidence ?? 1) < confThreshold) {
+          return false;
+        }
+        return true;
+      });
+
+      for (const entity of filteredEntities) {
         const x = entity.bbox_x1 * imgScale;
         const y = entity.bbox_y1 * imgScale;
         const w = (entity.bbox_x2 - entity.bbox_x1) * imgScale;
         const h = (entity.bbox_y2 - entity.bbox_y1) * imgScale;
 
         const isSelected = selectedEntity?.id === entity.id;
+        const isLowConf = (entity.confidence ?? 1) < confThreshold;
         const color = CLASS_COLORS[entity.class_label] || "#888";
 
-        ctx.strokeStyle = isSelected ? "#facc15" : color;
+        ctx.strokeStyle = isSelected ? "#facc15" : isLowConf ? "#666" : color;
         ctx.lineWidth = isSelected ? 4 : 2;
+        ctx.setLineDash(isLowConf ? [5, 5] : []);
         ctx.strokeRect(x, y, w, h);
+        ctx.setLineDash([]);
 
         if (isSelected) {
           ctx.fillStyle = "rgba(250, 204, 21, 0.3)";
           ctx.fillRect(x, y, w, h);
         }
 
-        ctx.fillStyle = isSelected ? "#facc15" : color;
+        ctx.fillStyle = isSelected ? "#facc15" : isLowConf ? "#666" : color;
         ctx.font = `bold ${Math.max(12, 14 * scale)}px sans-serif`;
         const label = entity.ocr_text || "?";
         const textWidth = ctx.measureText(label).width;
         ctx.fillRect(x, y - 18 * scale, textWidth + 8, 18 * scale);
-        ctx.fillStyle = "#000";
+        ctx.fillStyle = isLowConf ? "#aaa" : "#000";
         ctx.fillText(label, x + 4, y - 4 * scale);
       }
     };
@@ -287,12 +343,45 @@ function App() {
               onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0])}
               className="hidden"
             />
+            <div className="flex items-center gap-2 bg-gray-800 rounded px-2 py-1">
+              <label className="text-sm text-gray-400 flex items-center gap-1">
+                <input
+                  type="checkbox"
+                  checked={useYOLO}
+                  onChange={(e) => setUseYOLO(e.target.checked)}
+                  className="w-4 h-4"
+                />
+                YOLO
+              </label>
+              <span className="text-gray-600">|</span>
+              <label className="text-sm text-gray-400 flex items-center gap-1">
+                Conf:
+                <input
+                  type="range"
+                  min="0.1"
+                  max="0.9"
+                  step="0.1"
+                  value={confThreshold}
+                  onChange={(e) => setConfThreshold(parseFloat(e.target.value))}
+                  className="w-16"
+                />
+                <span className="w-8">{(confThreshold * 100).toFixed(0)}%</span>
+              </label>
+            </div>
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
               className="px-4 py-2 bg-green-600 rounded hover:bg-green-500 disabled:opacity-50"
             >
               {uploading ? "Processing..." : "Upload PDF"}
+            </button>
+            <button
+              onClick={handleDetectSheet}
+              disabled={detecting || !selectedSheet}
+              className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-500 disabled:opacity-50"
+              title="Run YOLO detection on current sheet"
+            >
+              {detecting ? "Detecting..." : "Detect Sheet"}
             </button>
             <button
               onClick={handleRetrain}
@@ -373,11 +462,22 @@ function App() {
                   ))}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-400">Zoom:</span>
-                <button onClick={() => setScale(Math.max(0.25, scale - 0.25))} className="px-2 py-1 bg-gray-700 rounded">-</button>
-                <span className="w-12 text-center">{(scale * 100).toFixed(0)}%</span>
-                <button onClick={() => setScale(Math.min(4, scale + 0.25))} className="px-2 py-1 bg-gray-700 rounded">+</button>
+              <div className="flex items-center gap-4">
+                <label className="text-sm text-gray-400 flex items-center gap-1">
+                  <input
+                    type="checkbox"
+                    checked={showLowConfidence}
+                    onChange={(e) => setShowLowConfidence(e.target.checked)}
+                    className="w-4 h-4"
+                  />
+                  Show low confidence
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-400">Zoom:</span>
+                  <button onClick={() => setScale(Math.max(0.25, scale - 0.25))} className="px-2 py-1 bg-gray-700 rounded">-</button>
+                  <span className="w-12 text-center">{(scale * 100).toFixed(0)}%</span>
+                  <button onClick={() => setScale(Math.min(4, scale + 0.25))} className="px-2 py-1 bg-gray-700 rounded">+</button>
+                </div>
               </div>
             </div>
             <div className="bg-gray-900 rounded overflow-auto max-h-[800px]">
@@ -407,6 +507,87 @@ function App() {
                   Sheet {selectedEntity.sheet_number} at ({selectedEntity.bbox_x1}, {selectedEntity.bbox_y1})
                 </div>
               </div>
+
+              {selectedEntity.crop_image_path && (
+                <div className="border-t border-gray-700 pt-3">
+                  <div className="text-sm text-gray-400 mb-2">Detection Crop:</div>
+                  <div className="bg-gray-900 rounded p-2 flex items-center justify-center">
+                    <img
+                      src={`/api/entities/${selectedEntity.id}/crop`}
+                      alt="Detection crop"
+                      className="max-h-24 border border-gray-600"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {(selectedEntity.yolo_confidence != null || selectedEntity.ocr_confidence != null) && (
+                <div className="border-t border-gray-700 pt-3">
+                  <div className="text-sm text-gray-400 mb-2">Confidence Scores:</div>
+                  <div className="space-y-2 text-sm">
+                    {selectedEntity.yolo_confidence != null && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500">YOLO:</span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-24 h-2 bg-gray-700 rounded overflow-hidden">
+                            <div
+                              className={`h-full ${selectedEntity.yolo_confidence >= 0.7 ? 'bg-green-500' : selectedEntity.yolo_confidence >= 0.5 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                              style={{ width: `${selectedEntity.yolo_confidence * 100}%` }}
+                            />
+                          </div>
+                          <span className="w-12 text-right">{(selectedEntity.yolo_confidence * 100).toFixed(0)}%</span>
+                        </div>
+                      </div>
+                    )}
+                    {selectedEntity.ocr_confidence != null && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500">OCR:</span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-24 h-2 bg-gray-700 rounded overflow-hidden">
+                            <div
+                              className={`h-full ${selectedEntity.ocr_confidence >= 0.7 ? 'bg-green-500' : selectedEntity.ocr_confidence >= 0.5 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                              style={{ width: `${selectedEntity.ocr_confidence * 100}%` }}
+                            />
+                          </div>
+                          <span className="w-12 text-right">{(selectedEntity.ocr_confidence * 100).toFixed(0)}%</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {(selectedEntity.identifier || selectedEntity.standard) && (
+                <div className="border-t border-gray-700 pt-3">
+                  <div className="text-sm text-gray-400 mb-2">Parsed Data:</div>
+                  <div className="space-y-1 text-sm">
+                    {selectedEntity.identifier && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Identifier:</span>
+                        <span className="font-mono text-green-400">{selectedEntity.identifier}</span>
+                      </div>
+                    )}
+                    {selectedEntity.target_sheet && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Target Sheet:</span>
+                        <span className="font-mono text-blue-400">{selectedEntity.target_sheet}</span>
+                      </div>
+                    )}
+                    {selectedEntity.standard && selectedEntity.standard !== 'auto' && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Standard:</span>
+                        <span className="uppercase text-purple-400">{selectedEntity.standard}</span>
+                      </div>
+                    )}
+                    {selectedEntity.detection_method && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Method:</span>
+                        <span className="uppercase text-gray-400">{selectedEntity.detection_method}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {selectedEntity.target_sheet && (
                 <div className="border-t border-gray-700 pt-3">
@@ -464,6 +645,12 @@ function App() {
                       </button>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {selectedEntity.raw_ocr_text && selectedEntity.raw_ocr_text !== selectedEntity.ocr_text && (
+                <div className="border-t border-gray-700 pt-3 text-xs text-gray-500">
+                  Raw OCR: {selectedEntity.raw_ocr_text}
                 </div>
               )}
 

@@ -1,0 +1,62 @@
+[
+  {
+    "id": "marker-sheet-4-0-4647174c",
+    "label": "2/A6",
+    "targetSheetRef": "A6",
+    "calloutType": "section",
+    "calloutNumber": "2",
+    "x": 0.5291176470588236,
+    "y": 0.06348484848484849,
+    "pixelX": 2698,
+    "pixelY": 209,
+    "bbox": {
+      "x1": 2660,
+      "y1": 171,
+      "x2": 2736,
+      "y2": 247
+    },
+    "confidence": 0.95,
+    "source": "cv_hough_pass0",
+    "needsReview": false
+  },
+  {
+    "id": "marker-sheet-4-1-50b69c69",
+    "label": "1/A6",
+    "targetSheetRef": "A6",
+    "calloutType": "detail",
+    "calloutNumber": "1",
+    "x": 0.6948039215686275,
+    "y": 0.35984848484848486,
+    "pixelX": 3543,
+    "pixelY": 1187,
+    "bbox": {
+      "x1": 3502,
+      "y1": 1146,
+      "x2": 3584,
+      "y2": 1228
+    },
+    "confidence": 0.95,
+    "source": "cv_hough_pass0",
+    "needsReview": false
+  },
+  {
+    "id": "marker-sheet-4-2-c9b28d29",
+    "label": "2/A6",
+    "targetSheetRef": "A6",
+    "calloutType": "detail",
+    "calloutNumber": "2",
+    "x": 0.32166666666666666,
+    "y": 0.6307575757575757,
+    "pixelX": 1640,
+    "pixelY": 2081,
+    "bbox": {
+      "x1": 1601,
+      "y1": 2042,
+      "x2": 1679,
+      "y2": 2120
+    },
+    "confidence": 0.95,
+    "source": "cv_hough_pass0",
+    "needsReview": false
+  }
+]

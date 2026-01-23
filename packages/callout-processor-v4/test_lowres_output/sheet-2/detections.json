@@ -1,0 +1,287 @@
+[
+  {
+    "id": "det-2-0",
+    "sheet_index": 2,
+    "class_name": "title",
+    "bbox": {
+      "x1": 2728,
+      "y1": 691,
+      "x2": 3048,
+      "y2": 748
+    },
+    "confidence": 0.6903496980667114,
+    "ocr_text": "EXTERIOR SECTION 1 2 SCALE: 1 : 20 S1.0",
+    "ocr_confidence": 0.9232330203056336,
+    "identifier": "EXTER",
+    "view_sheet": "0",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-2-0.png"
+  },
+  {
+    "id": "det-2-1",
+    "sheet_index": 2,
+    "class_name": "title",
+    "bbox": {
+      "x1": 843,
+      "y1": 3446,
+      "x2": 1212,
+      "y2": 3520
+    },
+    "confidence": 0.6805890798568726,
+    "ocr_text": "TYPICAL SAW-CUT CONTROL IN SLAB-ON-GRADE NOT TO SCALE",
+    "ocr_confidence": 0.8948489824930826,
+    "identifier": "TYPIC",
+    "view_sheet": "SCALE",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-2-1.png"
+  },
+  {
+    "id": "det-2-2",
+    "sheet_index": 2,
+    "class_name": "title",
+    "bbox": {
+      "x1": 1492,
+      "y1": 406,
+      "x2": 1836,
+      "y2": 480
+    },
+    "confidence": 0.5659412145614624,
+    "ocr_text": "TYPICAL SLAB-ON-GRADE CONSTRUCTION JOINT NOT TO SCALE",
+    "ocr_confidence": 0.9370449582735697,
+    "identifier": "TYPIC",
+    "view_sheet": "SCALE",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-2-2.png"
+  },
+  {
+    "id": "det-2-3",
+    "sheet_index": 2,
+    "class_name": "title",
+    "bbox": {
+      "x1": 2964,
+      "y1": 3429,
+      "x2": 3200,
+      "y2": 3487
+    },
+    "confidence": 0.5427445769309998,
+    "ocr_text": "STAGE SECTION DE SCALE:",
+    "ocr_confidence": 0.8610840141773224,
+    "identifier": "STAGE",
+    "view_sheet": "SCALE",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-2-3.png"
+  },
+  {
+    "id": "det-2-4",
+    "sheet_index": 2,
+    "class_name": "title",
+    "bbox": {
+      "x1": 3934,
+      "y1": 1380,
+      "x2": 4253,
+      "y2": 1436
+    },
+    "confidence": 0.5089969635009766,
+    "ocr_text": "INTERIOR SECTION 1 8 SCALE: 1 : 20 S1.0",
+    "ocr_confidence": 0.9243181824684144,
+    "identifier": "INTER",
+    "view_sheet": "0",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-2-4.png"
+  },
+  {
+    "id": "det-2-5",
+    "sheet_index": 2,
+    "class_name": "title",
+    "bbox": {
+      "x1": 960,
+      "y1": 443,
+      "x2": 1243,
+      "y2": 497
+    },
+    "confidence": 0.49566566944122314,
+    "ocr_text": "AL DETAIL AT COLUMN NOT TO SCAE",
+    "ocr_confidence": 0.8145592212677002,
+    "identifier": "AL",
+    "view_sheet": "SCAE",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-2-5.png"
+  },
+  {
+    "id": "det-2-6",
+    "sheet_index": 2,
+    "class_name": "title",
+    "bbox": {
+      "x1": 2880,
+      "y1": 1382,
+      "x2": 3051,
+      "y2": 1434
+    },
+    "confidence": 0.4207495450973511,
+    "ocr_text": "SECTION 5 6 SCALE: 1:20 S1.0",
+    "ocr_confidence": 0.9271220207214356,
+    "identifier": "SECTI",
+    "view_sheet": "0",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-2-6.png"
+  },
+  {
+    "id": "det-2-7",
+    "sheet_index": 2,
+    "class_name": "title",
+    "bbox": {
+      "x1": 2743,
+      "y1": 2800,
+      "x2": 3064,
+      "y2": 2851
+    },
+    "confidence": 0.41057175397872925,
+    "ocr_text": "NTERIOR SECTION 7 14 SCALE: 1 : 20 S1.0",
+    "ocr_confidence": 0.9179482579231262,
+    "identifier": "NTERI",
+    "view_sheet": "0",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-2-7.png"
+  },
+  {
+    "id": "det-2-8",
+    "sheet_index": 2,
+    "class_name": "title",
+    "bbox": {
+      "x1": 924,
+      "y1": 1424,
+      "x2": 1171,
+      "y2": 1498
+    },
+    "confidence": 0.3806455135345459,
+    "ocr_text": "EXTERIOR COLUMN WATERPROOFING NOT TO SCALE",
+    "ocr_confidence": 0.9183613061904907,
+    "identifier": "EXTER",
+    "view_sheet": "SCALE",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-2-8.png"
+  },
+  {
+    "id": "det-2-9",
+    "sheet_index": 2,
+    "class_name": "title",
+    "bbox": {
+      "x1": 2101,
+      "y1": 1382,
+      "x2": 2450,
+      "y2": 1437
+    },
+    "confidence": 0.33654534816741943,
+    "ocr_text": "@300 EXTERIOR SECTION 4 5 SCALE: 1 : 20 S1.0",
+    "ocr_confidence": 0.9292436043421427,
+    "identifier": "300",
+    "view_sheet": "0",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-2-9.png"
+  },
+  {
+    "id": "det-2-10",
+    "sheet_index": 2,
+    "class_name": "title",
+    "bbox": {
+      "x1": 3956,
+      "y1": 2084,
+      "x2": 4160,
+      "y2": 2131
+    },
+    "confidence": 0.27246007323265076,
+    "ocr_text": "INTERIOR SECTIOI SCALE:",
+    "ocr_confidence": 0.8643503487110138,
+    "identifier": "INTER",
+    "view_sheet": "SCALE",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-2-10.png"
+  },
+  {
+    "id": "det-2-11",
+    "sheet_index": 2,
+    "class_name": "title",
+    "bbox": {
+      "x1": 273,
+      "y1": 3402,
+      "x2": 577,
+      "y2": 3472
+    },
+    "confidence": 0.26758483052253723,
+    "ocr_text": "TYPIGAL CONCRETE BLOCK STRIP FOOTING NOT TO SCALE",
+    "ocr_confidence": 0.7183317542076111,
+    "identifier": "TYPIG",
+    "view_sheet": "SCALE",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-2-11.png"
+  },
+  {
+    "id": "det-2-12",
+    "sheet_index": 2,
+    "class_name": "title",
+    "bbox": {
+      "x1": 2066,
+      "y1": 2094,
+      "x2": 2385,
+      "y2": 2147
+    },
+    "confidence": 0.26543471217155457,
+    "ocr_text": "INTERIOR SECTION 2 9 SCALE: 1:20 S1.0",
+    "ocr_confidence": 0.9212624669075012,
+    "identifier": "INTER",
+    "view_sheet": "0",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-2-12.png"
+  },
+  {
+    "id": "det-2-13",
+    "sheet_index": 2,
+    "class_name": "title",
+    "bbox": {
+      "x1": 961,
+      "y1": 955,
+      "x2": 1198,
+      "y2": 1006
+    },
+    "confidence": 0.26489758491516113,
+    "ocr_text": "ENETRATION DETAIL NOT TOSCALE",
+    "ocr_confidence": 0.8712165355682373,
+    "identifier": "ENETR",
+    "view_sheet": "LE",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-2-13.png"
+  },
+  {
+    "id": "det-2-14",
+    "sheet_index": 2,
+    "class_name": "title",
+    "bbox": {
+      "x1": 3921,
+      "y1": 675,
+      "x2": 4252,
+      "y2": 726
+    },
+    "confidence": 0.2585870027542114,
+    "ocr_text": "EXTERIOR SECTION 3 4 SCALE: 1 : 20 S1.0",
+    "ocr_confidence": 0.906374168395996,
+    "identifier": "EXTER",
+    "view_sheet": "0",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-2-14.png"
+  }
+]

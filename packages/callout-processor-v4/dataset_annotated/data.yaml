@@ -1,0 +1,12 @@
+train: train/images
+val: valid/images
+test: test/images
+
+nc: 3
+names: ['detail', 'elevation', 'title']
+
+# Merged from:
+# - callout-detection-2.v4i.yolo26 (124 images)
+# - callout-detection.v5i.yolo26 (98 images)
+# Total: 222 unique images
+# Split: 177 train (80%), 22 valid (10%), 23 test (10%)
