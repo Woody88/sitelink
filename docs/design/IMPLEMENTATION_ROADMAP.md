@@ -13,16 +13,19 @@
 **Priority:** Get the core navigation structure in place
 
 #### 1.1 Workspace Navigation (P1 - CRITICAL PATH)
+
 **Task:** sitelink-576 - Refactor project workspace navigation structure
 **Why First:** Unblocks all other workspace tasks (Camera, Activity, gestures)
 **Effort:** 3-5 days
 **Deliverables:**
+
 - New route: `/project/[id]/_layout.tsx` with swipeable tabs
 - Components: WorkspaceHeader, WorkspaceTabs, TabContent
 - Remove old nested tabs structure
 - Back arrow navigation working
 
 **Success Criteria:**
+
 - [ ] Can navigate Projects → Workspace → Back to Projects
 - [ ] Three tabs visible: Plans, Camera, Activity
 - [ ] Tab switching works (tap only, gestures come later)
@@ -33,16 +36,19 @@
 ---
 
 #### 1.2 Projects Screen Update (P2 - PARALLEL WORK)
+
 **Task:** sitelink-auf - Update Projects screen with filter chips
 **Why Parallel:** Independent of workspace refactor
 **Effort:** 2-3 days
 **Deliverables:**
+
 - Horizontal scrollable filter chips (All, Active, Completed, Archived)
 - NotificationBell component with badge
 - ProfileAvatar component
 - Updated ProjectCard layout
 
 **Success Criteria:**
+
 - [ ] Filter chips scroll horizontally
 - [ ] Tapping chip filters project list
 - [ ] Selected chip has filled background
@@ -57,10 +63,12 @@
 Once workspace navigation (sitelink-576) is complete:
 
 #### 2.1 Camera Tab (P1)
+
 **Task:** sitelink-sku - Implement Camera tab with state persistence
 **Depends On:** sitelink-576 (workspace navigation)
 **Effort:** 4-5 days
 **Deliverables:**
+
 - Camera viewfinder with expo-camera
 - Issue toggle with red shutter mode
 - Voice note button (hold to record)
@@ -68,6 +76,7 @@ Once workspace navigation (sitelink-576) is complete:
 - Zustand store for camera state persistence
 
 **Success Criteria:**
+
 - [ ] Camera opens and captures photos
 - [ ] Issue toggle changes shutter to red
 - [ ] Linked callout persists when switching tabs
@@ -79,16 +88,19 @@ Once workspace navigation (sitelink-576) is complete:
 ---
 
 #### 2.2 Activity Tab (P1)
+
 **Task:** sitelink-ju1 - Build Activity tab with AI summary and photo timeline
 **Depends On:** sitelink-576 (workspace navigation)
 **Effort:** 4-5 days
 **Deliverables:**
+
 - AI Summary card (with placeholder/loading state)
 - Photo timeline grouped by date + callout
 - Filter button for timeline
 - Copy/Share buttons for summary
 
 **Success Criteria:**
+
 - [ ] Summary card visible at top
 - [ ] Timeline shows photos grouped by callout
 - [ ] Horizontal scroll for photos within callout group
@@ -102,16 +114,19 @@ Once workspace navigation (sitelink-576) is complete:
 ### Phase 3: Supporting Features (Week 3-4)
 
 #### 3.1 Notifications Screen (P2)
+
 **Task:** sitelink-dbw - Create Notifications screen and bell component
 **Depends On:** sitelink-576 (for header integration)
 **Effort:** 2-3 days
 **Deliverables:**
+
 - NotificationBell component with unread badge
 - Notifications screen with grouped list
 - Notification types with icons/colors
 - Stack navigation route
 
 **Success Criteria:**
+
 - [ ] Bell icon shows in workspace header
 - [ ] Badge shows unread count
 - [ ] Tapping bell opens notifications screen
@@ -123,15 +138,18 @@ Once workspace navigation (sitelink-576) is complete:
 ---
 
 #### 3.2 Settings Refactor (P2)
+
 **Task:** sitelink-bb2 - Refactor Settings to stack navigation
 **Effort:** 2-3 days
 **Deliverables:**
+
 - Settings as stack screen at `/settings`
 - Gear icon in workspace header
 - Profile avatar in Projects header
 - Migrated settings content
 
 **Success Criteria:**
+
 - [ ] Gear icon opens Settings
 - [ ] Profile avatar opens Settings
 - [ ] All existing settings functionality preserved
@@ -144,15 +162,18 @@ Once workspace navigation (sitelink-576) is complete:
 ### Phase 4: Gestures & Polish (Week 4-5)
 
 #### 4.1 Swipe Gestures for Tabs (P2)
+
 **Task:** sitelink-e4j - Implement swipe gestures for tab navigation
 **Depends On:** sitelink-576 (workspace tabs must exist)
 **Effort:** 2-3 days
 **Deliverables:**
+
 - Pan gesture handler for horizontal swipes
 - Tab indicator animation with spring physics
 - Smooth 60fps transitions
 
 **Success Criteria:**
+
 - [ ] Swipe left/right switches tabs
 - [ ] Tab indicator follows finger during swipe
 - [ ] Smooth spring animation on release
@@ -163,15 +184,18 @@ Once workspace navigation (sitelink-576) is complete:
 ---
 
 #### 4.2 Back Gesture (P3 - OPTIONAL)
+
 **Task:** sitelink-aq5 - Add back gesture navigation from workspace
 **Depends On:** sitelink-576
 **Effort:** 1-2 days
 **Deliverables:**
+
 - Slide-from-left edge gesture
 - Overlay reveal animation
 - 40% threshold to go back
 
 **Success Criteria:**
+
 - [ ] Swipe from left edge reveals overlay
 - [ ] Releasing past threshold navigates back
 - [ ] Smooth animation
@@ -187,17 +211,20 @@ Once workspace navigation (sitelink-576) is complete:
 To maximize velocity, these tasks can be done simultaneously:
 
 ### Week 1-2 Parallel Tracks:
+
 - **Track A:** Workspace navigation refactor (sitelink-576)
 - **Track B:** Projects screen filter chips (sitelink-auf)
 - **Track C:** Settings refactor (sitelink-bb2) - if separate developer available
 
 ### Week 2-3 Parallel Tracks:
+
 - **Track A:** Camera tab (sitelink-sku)
 - **Track B:** Activity tab (sitelink-ju1)
 
 Both depend on workspace navigation being done first.
 
 ### Week 3-4 Parallel Tracks:
+
 - **Track A:** Notifications screen (sitelink-dbw)
 - **Track B:** Swipe gestures (sitelink-e4j)
 
@@ -245,6 +272,7 @@ Day 19-21: sitelink-e4j (Swipe Gestures)
 Before marking each task complete:
 
 ### Code Quality
+
 - [ ] All components < 150 lines
 - [ ] Business logic extracted to hooks
 - [ ] TypeScript strict mode passing
@@ -252,6 +280,7 @@ Before marking each task complete:
 - [ ] Touch targets >= 48px verified
 
 ### Performance
+
 - [ ] FlatList used for all lists
 - [ ] Components memoized where appropriate
 - [ ] Callbacks wrapped in useCallback
@@ -259,6 +288,7 @@ Before marking each task complete:
 - [ ] 60fps maintained during gestures
 
 ### Testing
+
 - [ ] Run on iOS simulator
 - [ ] Run on Android emulator
 - [ ] Test with gloved hands (thick tap targets)
@@ -266,6 +296,7 @@ Before marking each task complete:
 - [ ] Test state persistence
 
 ### Review
+
 - [ ] Use `codereview` agent to review code
 - [ ] Check against NAVIGATION_UX_SPEC.md
 - [ ] Verify Wealthsimple patterns followed
@@ -277,6 +308,7 @@ Before marking each task complete:
 See `AGENT_ORCHESTRATION.md` for detailed agent usage patterns.
 
 **Quick Reference:**
+
 1. **Research:** Use `Explore` + `Context7` agents
 2. **Planning:** Use `Plan` agent for implementation strategy
 3. **Execution:** Follow plan, consult spec frequently
@@ -287,18 +319,21 @@ See `AGENT_ORCHESTRATION.md` for detailed agent usage patterns.
 ## When Things Go Wrong
 
 ### If stuck on workspace navigation (sitelink-576):
+
 - Consult `Explore` agent to understand current tab implementation
 - Reference React Navigation docs via `Context7`
 - Check Wealthsimple screenshots for layout inspiration
 - Simplify: Start with static tabs, add swipe later
 
 ### If camera state isn't persisting:
+
 - Review Zustand persistence setup
 - Check AsyncStorage initialization
 - Verify store is properly wrapped in provider
 - Use `debug` agent to investigate state issues
 
 ### If animations are janky:
+
 - Ensure using `useNativeDriver: true`
 - Move to Reanimated worklets
 - Profile with React DevTools
@@ -321,22 +356,27 @@ See `AGENT_ORCHESTRATION.md` for detailed agent usage patterns.
 Mark these off as you complete each phase:
 
 ### Phase 1: Foundation
+
 - [ ] sitelink-576: Workspace navigation complete
 - [ ] sitelink-auf: Projects filter chips complete
 
 ### Phase 2: Tab Content
+
 - [ ] sitelink-sku: Camera tab complete
 - [ ] sitelink-ju1: Activity tab complete
 
 ### Phase 3: Supporting Features
+
 - [ ] sitelink-dbw: Notifications screen complete
 - [ ] sitelink-bb2: Settings refactor complete
 
 ### Phase 4: Gestures & Polish
+
 - [ ] sitelink-e4j: Swipe gestures complete
 - [ ] sitelink-aq5: Back gesture complete (optional)
 
 ### Final Integration
+
 - [ ] All tabs working in workspace
 - [ ] Navigation flows smoothly
 - [ ] Animations at 60fps
@@ -346,4 +386,4 @@ Mark these off as you complete each phase:
 
 ---
 
-*Last Updated: January 4, 2026*
+_Last Updated: January 4, 2026_

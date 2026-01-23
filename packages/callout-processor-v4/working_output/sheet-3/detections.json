@@ -1,0 +1,306 @@
+[
+  {
+    "id": "det-3-0",
+    "sheet_index": 3,
+    "class_name": "title",
+    "bbox": {
+      "x1": 3769,
+      "y1": 614,
+      "x2": 4069,
+      "y2": 653
+    },
+    "confidence": 0.24544267356395721,
+    "ocr_text": "8MM CLOSURE PI",
+    "ocr_confidence": 0.9559382796287537,
+    "identifier": "8MM",
+    "view_sheet": "PI",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-0.png"
+  },
+  {
+    "id": "det-3-1",
+    "sheet_index": 3,
+    "class_name": "title",
+    "bbox": {
+      "x1": 6368,
+      "y1": 9179,
+      "x2": 6656,
+      "y2": 9221
+    },
+    "confidence": 0.21962176263332367,
+    "ocr_text": "NOTCH PRECAST",
+    "ocr_confidence": 0.981816291809082,
+    "identifier": "NOTCH",
+    "view_sheet": "ST",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-1.png"
+  },
+  {
+    "id": "det-3-2",
+    "sheet_index": 3,
+    "class_name": "title",
+    "bbox": {
+      "x1": 4807,
+      "y1": 2256,
+      "x2": 5033,
+      "y2": 2332
+    },
+    "confidence": 0.165416419506073,
+    "ocr_text": "BLOCK WALL ABOVE",
+    "ocr_confidence": 0.9848200380802155,
+    "identifier": "BLOCK",
+    "view_sheet": "ABOVE",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-2.png"
+  },
+  {
+    "id": "det-3-3",
+    "sheet_index": 3,
+    "class_name": "title",
+    "bbox": {
+      "x1": 13690,
+      "y1": 7316,
+      "x2": 14133,
+      "y2": 7394
+    },
+    "confidence": 0.14762909710407257,
+    "ocr_text": "1235 WHEAT BOOM DRIVE OAKVILLE. ON",
+    "ocr_confidence": 0.9869665503501892,
+    "identifier": "1235",
+    "view_sheet": "ON",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-3.png"
+  },
+  {
+    "id": "det-3-4",
+    "sheet_index": 3,
+    "class_name": "title",
+    "bbox": {
+      "x1": 11277,
+      "y1": 8801,
+      "x2": 11658,
+      "y2": 8878
+    },
+    "confidence": 0.10132431983947754,
+    "ocr_text": "3200 MIN. BACKSPAN",
+    "ocr_confidence": 0.9895343482494354,
+    "identifier": "3200",
+    "view_sheet": "PAN",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-4.png"
+  },
+  {
+    "id": "det-3-5",
+    "sheet_index": 3,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 3250,
+      "y1": 9259,
+      "x2": 3289,
+      "y2": 9341
+    },
+    "confidence": 0.29325225949287415,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-5.png"
+  },
+  {
+    "id": "det-3-6",
+    "sheet_index": 3,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 5083,
+      "y1": 701,
+      "x2": 5129,
+      "y2": 858
+    },
+    "confidence": 0.2722812592983246,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-6.png"
+  },
+  {
+    "id": "det-3-7",
+    "sheet_index": 3,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 9521,
+      "y1": 8401,
+      "x2": 9563,
+      "y2": 8603
+    },
+    "confidence": 0.19616159796714783,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-7.png"
+  },
+  {
+    "id": "det-3-8",
+    "sheet_index": 3,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 5862,
+      "y1": 8107,
+      "x2": 5921,
+      "y2": 8147
+    },
+    "confidence": 0.1726648062467575,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-8.png"
+  },
+  {
+    "id": "det-3-9",
+    "sheet_index": 3,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 4284,
+      "y1": 9254,
+      "x2": 4327,
+      "y2": 9296
+    },
+    "confidence": 0.15084373950958252,
+    "ocr_text": "C3",
+    "ocr_confidence": 0.8653637170791626,
+    "identifier": "C3",
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-9.png"
+  },
+  {
+    "id": "det-3-10",
+    "sheet_index": 3,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 3754,
+      "y1": 3507,
+      "x2": 3801,
+      "y2": 3551
+    },
+    "confidence": 0.13942120969295502,
+    "ocr_text": "C6",
+    "ocr_confidence": 0.8373858332633972,
+    "identifier": "C6",
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-10.png"
+  },
+  {
+    "id": "det-3-11",
+    "sheet_index": 3,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 6098,
+      "y1": 6615,
+      "x2": 6139,
+      "y2": 6657
+    },
+    "confidence": 0.1206323578953743,
+    "ocr_text": "C1",
+    "ocr_confidence": 0.9462756514549255,
+    "identifier": "C1",
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-11.png"
+  },
+  {
+    "id": "det-3-12",
+    "sheet_index": 3,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 3533,
+      "y1": 7303,
+      "x2": 3579,
+      "y2": 7453
+    },
+    "confidence": 0.11850424110889435,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-12.png"
+  },
+  {
+    "id": "det-3-13",
+    "sheet_index": 3,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 2271,
+      "y1": 2306,
+      "x2": 2313,
+      "y2": 2345
+    },
+    "confidence": 0.1084548830986023,
+    "ocr_text": "C6",
+    "ocr_confidence": 0.9771485328674316,
+    "identifier": "C6",
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-13.png"
+  },
+  {
+    "id": "det-3-14",
+    "sheet_index": 3,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 3752,
+      "y1": 5716,
+      "x2": 3795,
+      "y2": 5759
+    },
+    "confidence": 0.10770205408334732,
+    "ocr_text": "C6",
+    "ocr_confidence": 0.9893862009048462,
+    "identifier": "C6",
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-14.png"
+  },
+  {
+    "id": "det-3-15",
+    "sheet_index": 3,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 2279,
+      "y1": 4841,
+      "x2": 2329,
+      "y2": 4885
+    },
+    "confidence": 0.10486743599176407,
+    "ocr_text": "C6",
+    "ocr_confidence": 0.9834803342819214,
+    "identifier": "C6",
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-15.png"
+  }
+]

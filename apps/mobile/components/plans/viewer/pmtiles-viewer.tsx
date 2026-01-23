@@ -62,6 +62,7 @@ export default function PMTilesViewer({
 		width: number;
 		height: number;
 	} | null>(null);
+	const [isViewerReady, setIsViewerReady] = React.useState(false);
 
 	React.useEffect(() => {
 		if (!containerRef.current) return;
@@ -229,6 +230,7 @@ export default function PMTilesViewer({
 						viewer.viewport.goHome(true);
 						console.log("[PMTilesViewer] Viewport after goHome:", JSON.stringify(viewer.viewport.getBounds()));
 					}
+					setIsViewerReady(true);
 					if (onReady) onReady();
 				});
 
@@ -286,12 +288,17 @@ export default function PMTilesViewer({
 			}
 			pmtilesRef.current = null;
 			markerOverlaysRef.current.clear();
+			setIsViewerReady(false);
 		};
 	}, [pmtilesUrl, imageWidth, imageHeight, onReady, onError, onViewerStateChange]);
 
 	React.useEffect(() => {
+		console.log(`[PMTilesViewer] Marker effect triggered with ${markers.length} markers`);
 		const viewer = viewerRef.current;
-		if (!viewer) return;
+		if (!viewer) {
+			console.log("[PMTilesViewer] No viewer ref yet, skipping markers");
+			return;
+		}
 
 		markerOverlaysRef.current.forEach((overlay) => {
 			viewer.removeOverlay(overlay);
@@ -305,6 +312,7 @@ export default function PMTilesViewer({
 			);
 			return;
 		}
+		console.log(`[PMTilesViewer] Rendering ${markers.length} markers with dimensions:`, dimensions);
 
 		markers.forEach((marker) => {
 			const el = document.createElement("div");
@@ -373,31 +381,39 @@ export default function PMTilesViewer({
 				}
 			});
 
+			// OpenSeadragon viewport coordinates:
+			// - x: 0 to 1 (full width)
+			// - y: 0 to aspectRatio (height/width)
+			// Our markers have normalized (0-1) coords relative to image dimensions
+			const aspectRatio = dimensions.height / dimensions.width;
+
 			// Check if coordinates are normalized (0-1 range) or legacy pixel values
 			const isNormalized = marker.x <= 1 && marker.y <= 1;
 
-			let pixelX: number;
-			let pixelY: number;
+			let viewportX: number;
+			let viewportY: number;
 
 			if (isNormalized) {
-				// Convert normalized (0-1) to tile pixel coordinates
-				pixelX = marker.x * dimensions.width;
-				pixelY = marker.y * dimensions.height;
+				// Convert normalized (0-1) to viewport coordinates
+				viewportX = marker.x;
+				viewportY = marker.y * aspectRatio;
 			} else {
-				// Legacy: assume pixel coords are already in tile space
-				pixelX = marker.x;
-				pixelY = marker.y;
+				// Legacy: convert pixel coords to viewport coords
+				viewportX = marker.x / dimensions.width;
+				viewportY = (marker.y / dimensions.height) * aspectRatio;
 			}
+
+			console.log(`[PMTilesViewer] Adding marker ${marker.label} at viewport (${viewportX.toFixed(3)}, ${viewportY.toFixed(3)})`);
 
 			viewer.addOverlay({
 				element: el,
-				location: new OpenSeadragon.Point(pixelX, pixelY),
+				location: new OpenSeadragon.Point(viewportX, viewportY),
 				placement: OpenSeadragon.Placement.CENTER,
 			});
 
 			markerOverlaysRef.current.set(marker.id, el);
 		});
-	}, [markers, selectedMarkerId, onMarkerPress]);
+	}, [markers, selectedMarkerId, onMarkerPress, isViewerReady]);
 
 	return (
 		<>

@@ -52,6 +52,7 @@ SiteLink is a mobile-first construction plan viewer that automatically detects a
 ### Technical Foundation
 
 Built on **LiveStore** (local-first, event-sourcing data layer) for:
+
 - Full offline operation with automatic sync
 - Built-in audit trail ("who did what when")
 - Reactive queries for instant UI updates
@@ -71,24 +72,24 @@ Built on **LiveStore** (local-first, event-sourcing data layer) for:
 
 ### Competitive Landscape
 
-| Product | Price (5 users) | Auto-Linking | Complexity | Target |
-|---------|-----------------|--------------|------------|--------|
-| Fieldwire | $195/mo | Yes | Medium | Mid-size GCs |
-| Autodesk Build | $675/mo | Yes | High | Enterprise |
-| Procore | $375+/mo | Yes | Very High | Enterprise |
-| **SiteLink** | **$79/mo** | **Yes (91.5%)** | **Low** | **Small contractors** |
+| Product        | Price (5 users) | Auto-Linking    | Complexity | Target                |
+| -------------- | --------------- | --------------- | ---------- | --------------------- |
+| Fieldwire      | $195/mo         | Yes             | Medium     | Mid-size GCs          |
+| Autodesk Build | $675/mo         | Yes             | High       | Enterprise            |
+| Procore        | $375+/mo        | Yes             | Very High  | Enterprise            |
+| **SiteLink**   | **$79/mo**      | **Yes (91.5%)** | **Low**    | **Small contractors** |
 
 ### Differentiation Strategy
 
-| Competitor Weakness | SiteLink Advantage |
-|--------------------|--------------------|
-| Complex setup (30+ min) | 60-second setup |
-| Per-user pricing adds up | Flat monthly pricing |
-| Features field workers never use | Only what matters |
-| Enterprise-focused | Small contractor focused |
-| Requires training | Self-explanatory |
-| Partial offline support | True offline-first (LiveStore) |
-| No audit trail | Event sourcing = built-in history |
+| Competitor Weakness              | SiteLink Advantage                |
+| -------------------------------- | --------------------------------- |
+| Complex setup (30+ min)          | 60-second setup                   |
+| Per-user pricing adds up         | Flat monthly pricing              |
+| Features field workers never use | Only what matters                 |
+| Enterprise-focused               | Small contractor focused          |
+| Requires training                | Self-explanatory                  |
+| Partial offline support          | True offline-first (LiveStore)    |
+| No audit trail                   | Event sourcing = built-in history |
 
 ### Target Customer
 
@@ -120,7 +121,7 @@ Needs:
 - Share with boss/inspector
 - Works offline
 
-Quote: "I just need to see the plans and take some pictures. 
+Quote: "I just need to see the plans and take some pictures.
        I don't need all that other stuff."
 ```
 
@@ -143,7 +144,7 @@ Needs:
 - Professional reports for clients
 - Affordable pricing
 
-Quote: "I've tried Fieldwire and Procore. My guys just 
+Quote: "I've tried Fieldwire and Procore. My guys just
        won't use them. Too complicated."
 ```
 
@@ -165,7 +166,7 @@ Needs:
 - Take photos for his records
 - Simple, no learning curve
 
-Quote: "Just send me the plans. I don't want to 
+Quote: "Just send me the plans. I don't want to
        create another account."
 ```
 
@@ -266,13 +267,13 @@ Tab Bar Specifications:
 
 ### Navigation Patterns
 
-| Pattern | When Used | Example |
-|---------|-----------|---------|
-| Tab switch | Moving between main sections | Plans → Camera |
-| Push (stack) | Drilling into detail | Project List → Project Detail |
-| Modal (bottom sheet) | Quick actions | Callout tap → Action Sheet |
-| Full-screen modal | Focused tasks | Photo capture, Checkout |
-| Overlay | Non-blocking info | Toast notifications |
+| Pattern              | When Used                    | Example                       |
+| -------------------- | ---------------------------- | ----------------------------- |
+| Tab switch           | Moving between main sections | Plans → Camera                |
+| Push (stack)         | Drilling into detail         | Project List → Project Detail |
+| Modal (bottom sheet) | Quick actions                | Callout tap → Action Sheet    |
+| Full-screen modal    | Focused tasks                | Photo capture, Checkout       |
+| Overlay              | Non-blocking info            | Toast notifications           |
 
 ### Header Patterns
 
@@ -1806,16 +1807,19 @@ IF TRIAL EXPIRES WITHOUT SUBSCRIPTION:
 **Trigger:** User taps "Add Voice" after taking photo
 
 **Input:**
+
 - Audio file (m4a/webm, max 60 seconds)
 - Associated photo ID
 - Associated callout ID (if linked)
 
 **Processing:**
+
 1. Audio uploaded to R2 storage
 2. Whisper API called asynchronously
 3. Transcription stored in database
 
 **Output:**
+
 - Original audio (playable)
 - Transcription text (searchable)
 
@@ -1824,6 +1828,7 @@ IF TRIAL EXPIRES WITHOUT SUBSCRIPTION:
 **Latency:** 2-5 seconds for 30-second clip
 
 **UI States:**
+
 ```
 Recording:     "🔴 Recording... 0:03"
 Uploading:     "Saving voice note..."
@@ -1839,15 +1844,18 @@ Error:         "🎤 Voice note (0:05) ▶️"
 **Trigger:** User taps search icon in Plans tab, types query
 
 **Processing:**
+
 1. During plan upload: OCR all sheets, store text with bounding boxes
 2. Build full-text search index (PostgreSQL FTS or Typesense)
 3. On search: Query index, return matches with snippets
 
 **Input:**
+
 - Search query string
 - Current project ID
 
 **Output:**
+
 - List of sheets containing matches
 - Match count per sheet
 - Snippet with match highlighted
@@ -1860,11 +1868,13 @@ Error:         "🎤 Voice note (0:05) ▶️"
 **Trigger:** Automatic on photo capture (background)
 
 **Processing:**
+
 1. Photo uploaded
 2. PaddleOCR extracts text
 3. Text stored with photo metadata
 
 **Output:**
+
 - Extracted text (editable by user)
 - Searchable in photo search
 
@@ -1876,6 +1886,7 @@ Error:         "🎤 Voice note (0:05) ▶️"
 **Trigger:** User taps "Generate Daily Summary" in Project Detail
 
 **Input:**
+
 - All photos from selected date
 - All voice note transcriptions
 - Issue flags
@@ -1884,6 +1895,7 @@ Error:         "🎤 Voice note (0:05) ▶️"
 - Weather data (from address, optional)
 
 **Prompt Template:**
+
 ```
 Generate a professional Daily Construction Report from the following data:
 
@@ -1918,12 +1930,14 @@ Keep it professional and concise. Use construction industry terminology.
 **Trigger:** User taps "Generate RFI" on issue photo
 
 **Input:**
+
 - Issue photo
 - Voice note transcription
 - Callout reference (sheet number, detail number)
 - Project metadata
 
 **Prompt Template:**
+
 ```
 Generate a professional Request for Information (RFI) draft for construction:
 
@@ -1960,18 +1974,18 @@ Attachments referenced: Photo dated {date}
 
 ### 9.1 What Works Offline
 
-| Feature | Offline Support | Notes |
-|---------|-----------------|-------|
-| View downloaded plans | ✅ Full | Tiles stored locally |
-| Pan/zoom plans | ✅ Full | |
-| Tap callout markers | ✅ Full | Links work within downloaded sheets |
-| Take photos | ✅ Full | Stored locally, queued for upload |
-| Record voice notes | ✅ Full | Stored locally, queued for transcription |
-| View existing photos | ✅ Downloaded only | Only photos included in download |
-| Search plans | ❌ No | Requires server |
-| Generate daily summary | ❌ No | Requires LLM API |
-| Upload new plans | ❌ No | Requires server processing |
-| Share project | ❌ No | Requires server |
+| Feature                | Offline Support    | Notes                                    |
+| ---------------------- | ------------------ | ---------------------------------------- |
+| View downloaded plans  | ✅ Full            | Tiles stored locally                     |
+| Pan/zoom plans         | ✅ Full            |                                          |
+| Tap callout markers    | ✅ Full            | Links work within downloaded sheets      |
+| Take photos            | ✅ Full            | Stored locally, queued for upload        |
+| Record voice notes     | ✅ Full            | Stored locally, queued for transcription |
+| View existing photos   | ✅ Downloaded only | Only photos included in download         |
+| Search plans           | ❌ No              | Requires server                          |
+| Generate daily summary | ❌ No              | Requires LLM API                         |
+| Upload new plans       | ❌ No              | Requires server processing               |
+| Share project          | ❌ No              | Requires server                          |
 
 ### 9.2 Download Process
 
@@ -2064,16 +2078,16 @@ Tapping shows: "You're offline. Some features unavailable."
 
 ### 10.1 Push Notification Types
 
-| Notification | Trigger | Content |
-|--------------|---------|---------|
-| Plan processing complete | Plans finished processing | "Your plans are ready! 47 sheets processed." |
-| Issue flagged | Team member flags issue | "Mike flagged an issue at 5/A7" |
-| Team activity | Photos added by others | "Sarah added 5 photos to Riverside Apartments" |
-| Daily summary reminder | 5 PM local time (if enabled) | "Ready to generate today's summary? 12 photos captured." |
-| Trial ending | 3 days before trial ends | "Your trial ends in 3 days. Upgrade to keep your projects." |
-| Trial expired | Day trial ends | "Your trial has ended. Upgrade to continue editing." |
-| Subscription renewed | Monthly renewal | "Your Pro subscription renewed. Thanks for using SiteLink!" |
-| Subscription failed | Payment failed | "Payment failed. Update your card to keep Pro features." |
+| Notification             | Trigger                      | Content                                                     |
+| ------------------------ | ---------------------------- | ----------------------------------------------------------- |
+| Plan processing complete | Plans finished processing    | "Your plans are ready! 47 sheets processed."                |
+| Issue flagged            | Team member flags issue      | "Mike flagged an issue at 5/A7"                             |
+| Team activity            | Photos added by others       | "Sarah added 5 photos to Riverside Apartments"              |
+| Daily summary reminder   | 5 PM local time (if enabled) | "Ready to generate today's summary? 12 photos captured."    |
+| Trial ending             | 3 days before trial ends     | "Your trial ends in 3 days. Upgrade to keep your projects." |
+| Trial expired            | Day trial ends               | "Your trial has ended. Upgrade to continue editing."        |
+| Subscription renewed     | Monthly renewal              | "Your Pro subscription renewed. Thanks for using SiteLink!" |
+| Subscription failed      | Payment failed               | "Payment failed. Update your card to keep Pro features."    |
 
 ### 10.2 In-App Notification Center
 
@@ -2086,14 +2100,14 @@ For MVP: Push notifications only, no in-app notification center
 
 ### 10.3 Notification Deep Links
 
-| Notification | Deep Link Target |
-|--------------|------------------|
+| Notification             | Deep Link Target                  |
+| ------------------------ | --------------------------------- |
 | Plan processing complete | Plans Tab (project auto-selected) |
-| Issue flagged | Photo Timeline for that callout |
-| Team activity | Project Detail |
-| Daily summary reminder | Project Detail |
-| Trial ending/expired | Subscription screen |
-| Subscription issues | Subscription screen |
+| Issue flagged            | Photo Timeline for that callout   |
+| Team activity            | Project Detail                    |
+| Daily summary reminder   | Project Detail                    |
+| Trial ending/expired     | Subscription screen               |
+| Subscription issues      | Subscription screen               |
 
 ---
 
@@ -2101,29 +2115,29 @@ For MVP: Push notifications only, no in-app notification center
 
 ### 11.1 Pricing Tiers
 
-| Tier | Price | Projects | Users | Sheets | Features |
-|------|-------|----------|-------|--------|----------|
-| **Starter** | $29/mo | 1 | 3 | 500 | Core (no AI) |
-| **Pro** | $79/mo | 5 | 15 | Unlimited | + Voice, Search, Summaries |
+| Tier         | Price   | Projects  | Users     | Sheets    | Features                     |
+| ------------ | ------- | --------- | --------- | --------- | ---------------------------- |
+| **Starter**  | $29/mo  | 1         | 3         | 500       | Core (no AI)                 |
+| **Pro**      | $79/mo  | 5         | 15        | Unlimited | + Voice, Search, Summaries   |
 | **Business** | $149/mo | Unlimited | Unlimited | Unlimited | + RFI, API, Priority Support |
 
 ### 11.2 Feature Availability by Tier
 
-| Feature | Starter | Pro | Business |
-|---------|---------|-----|----------|
-| Plan viewing + callout linking | ✅ | ✅ | ✅ |
-| Photo capture + timeline | ✅ | ✅ | ✅ |
-| Voice notes (audio only) | ✅ | ✅ | ✅ |
-| Share view-only links | ✅ | ✅ | ✅ |
-| Offline downloads | ✅ | ✅ | ✅ |
-| Voice transcription | ❌ | ✅ | ✅ |
-| Plan text search | ❌ | ✅ | ✅ |
-| Photo text extraction (OCR) | ❌ | ✅ | ✅ |
-| Daily summary generation | ❌ | ✅ | ✅ |
-| RFI draft generation | ❌ | ❌ | ✅ |
-| API access | ❌ | ❌ | ✅ |
-| Priority support | ❌ | ❌ | ✅ |
-| Custom report branding | ❌ | ❌ | ✅ |
+| Feature                        | Starter | Pro | Business |
+| ------------------------------ | ------- | --- | -------- |
+| Plan viewing + callout linking | ✅      | ✅  | ✅       |
+| Photo capture + timeline       | ✅      | ✅  | ✅       |
+| Voice notes (audio only)       | ✅      | ✅  | ✅       |
+| Share view-only links          | ✅      | ✅  | ✅       |
+| Offline downloads              | ✅      | ✅  | ✅       |
+| Voice transcription            | ❌      | ✅  | ✅       |
+| Plan text search               | ❌      | ✅  | ✅       |
+| Photo text extraction (OCR)    | ❌      | ✅  | ✅       |
+| Daily summary generation       | ❌      | ✅  | ✅       |
+| RFI draft generation           | ❌      | ❌  | ✅       |
+| API access                     | ❌      | ❌  | ✅       |
+| Priority support               | ❌      | ❌  | ✅       |
+| Custom report branding         | ❌      | ❌  | ✅       |
 
 ### 11.3 Trial Details
 
@@ -2137,9 +2151,10 @@ For MVP: Push notifications only, no in-app notification center
 ### 11.4 Polar Integration
 
 **Setup:**
+
 ```typescript
 // backend/src/auth/index.ts
-import { polar, checkout, portal } from "@polar-sh/better-auth";
+import { polar, checkout, portal } from "@polar-sh/better-auth"
 
 const auth = betterAuth({
   plugins: [
@@ -2151,7 +2166,7 @@ const auth = betterAuth({
           products: [
             { productId: STARTER_PRODUCT_ID, slug: "starter" },
             { productId: PRO_PRODUCT_ID, slug: "pro" },
-            { productId: BUSINESS_PRODUCT_ID, slug: "business" }
+            { productId: BUSINESS_PRODUCT_ID, slug: "business" },
           ],
           successUrl: "/subscription/success",
         }),
@@ -2159,10 +2174,11 @@ const auth = betterAuth({
       ],
     }),
   ],
-});
+})
 ```
 
 **Checkout Flow:**
+
 1. User taps "Select" on plan
 2. App calls `authClient.checkout({ slug: "pro" })`
 3. Polar embedded checkout opens as overlay
@@ -2173,6 +2189,7 @@ const auth = betterAuth({
 8. Success screen shown
 
 **Subscription Management:**
+
 - "Manage Subscription" opens Polar Customer Portal
 - User can update payment method, cancel, view invoices
 - Cancellation effective at end of billing period
@@ -2230,19 +2247,20 @@ const auth = betterAuth({
 
 **For internal monitoring:**
 
-| Metric | Definition | Target |
-|--------|------------|--------|
-| DAU | Daily active users | Growing |
-| WAU | Weekly active users | Growing |
-| Activation rate | % signups who upload plans within 7 days | >60% |
-| Photo capture rate | Avg photos per active user per day | >5 |
-| Trial conversion | % trials that convert to paid | >15% |
-| Churn rate | Monthly % paid users who cancel | <5% |
-| NPS | Net Promoter Score (from in-app survey) | >50 |
+| Metric             | Definition                               | Target  |
+| ------------------ | ---------------------------------------- | ------- |
+| DAU                | Daily active users                       | Growing |
+| WAU                | Weekly active users                      | Growing |
+| Activation rate    | % signups who upload plans within 7 days | >60%    |
+| Photo capture rate | Avg photos per active user per day       | >5      |
+| Trial conversion   | % trials that convert to paid            | >15%    |
+| Churn rate         | Monthly % paid users who cancel          | <5%     |
+| NPS                | Net Promoter Score (from in-app survey)  | >50     |
 
 ### 12.3 User-Facing Reports (Future)
 
 **Project Activity Report (Business tier):**
+
 - Photos captured per day/week/month
 - Team member activity breakdown
 - Issues flagged and resolved
@@ -2254,21 +2272,23 @@ const auth = betterAuth({
 
 ### 13.1 Share Types
 
-| Share Type | Who Can View | Auth Required | Expires |
-|------------|--------------|---------------|---------|
-| Project (view-only) | Anyone with link | No | Never (until revoked) |
-| Daily Report | Anyone with link | No | 30 days (configurable) |
-| Full Project Access | Invited members | Yes (account required) | Never |
+| Share Type          | Who Can View     | Auth Required          | Expires                |
+| ------------------- | ---------------- | ---------------------- | ---------------------- |
+| Project (view-only) | Anyone with link | No                     | Never (until revoked)  |
+| Daily Report        | Anyone with link | No                     | 30 days (configurable) |
+| Full Project Access | Invited members  | Yes (account required) | Never                  |
 
 ### 13.2 View-Only Project Share
 
 **What shared users can do:**
+
 - View all plan sheets
 - Navigate via callout links
 - View photos (but not add)
 - Download sheets for offline
 
 **What shared users cannot do:**
+
 - Add photos
 - Record voice notes
 - Generate summaries
@@ -2277,11 +2297,11 @@ const auth = betterAuth({
 
 ### 13.3 Team Member Roles
 
-| Role | Permissions |
-|------|-------------|
-| **Owner** | Full access, billing, can delete project |
-| **Admin** | Full access except billing |
-| **Member** | View plans, add photos, generate summaries |
+| Role       | Permissions                                 |
+| ---------- | ------------------------------------------- |
+| **Owner**  | Full access, billing, can delete project    |
+| **Admin**  | Full access except billing                  |
+| **Member** | View plans, add photos, generate summaries  |
 | **Viewer** | View only (same as share link, but tracked) |
 
 ### 13.4 Shared Report Page (Web)
@@ -2339,13 +2359,13 @@ Brand exposure:
 
 ### 14.1 In-App Feedback Points
 
-| Location | Type | Trigger |
-|----------|------|---------|
-| More Tab | Feature Request | Manual tap |
-| Photo capture | Quick feedback | After 10th photo (first time only) |
-| Daily summary | Quality rating | After viewing summary |
-| Support chat | Bug report | Manual tap |
-| Trial ending | Exit survey | When not converting |
+| Location      | Type            | Trigger                            |
+| ------------- | --------------- | ---------------------------------- |
+| More Tab      | Feature Request | Manual tap                         |
+| Photo capture | Quick feedback  | After 10th photo (first time only) |
+| Daily summary | Quality rating  | After viewing summary              |
+| Support chat  | Bug report      | Manual tap                         |
+| Trial ending  | Exit survey     | When not converting                |
 
 ### 14.2 Quick Feedback Prompt (After 10 Photos)
 
@@ -2366,7 +2386,7 @@ Brand exposure:
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 
-If "Great": "Thanks! If you have ideas for improvement, 
+If "Great": "Thanks! If you have ideas for improvement,
             find us in More → Request a Feature"
 
 If "OK" or "Needs work": "What could be better?"
@@ -2376,6 +2396,7 @@ If "OK" or "Needs work": "What could be better?"
 ### 14.3 Feature Request Tracking
 
 **Stored fields:**
+
 - User ID
 - Request text
 - Category
@@ -2384,6 +2405,7 @@ If "OK" or "Needs work": "What could be better?"
 - Status (new/planned/in-progress/shipped/declined)
 
 **Internal review:**
+
 - Weekly review of new requests
 - Top-voted requests prioritized in roadmap
 - Users notified when their request ships
@@ -2460,6 +2482,7 @@ LIST ITEM HEIGHT: 56pt minimum (touch target)
 ### 15.4 Components
 
 **Buttons:**
+
 ```
 PRIMARY BUTTON
 - Height: 56pt
@@ -2486,6 +2509,7 @@ DESTRUCTIVE BUTTON
 ```
 
 **Input Fields:**
+
 ```
 TEXT INPUT
 - Height: 52pt
@@ -2498,6 +2522,7 @@ TEXT INPUT
 ```
 
 **Cards:**
+
 ```
 CARD
 - Background: White
@@ -2524,35 +2549,35 @@ For construction/gloved use, prefer:
 
 ### 16.1 Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| Mobile App | Expo (React Native) |
-| State Management | LiveStore (local-first, event sourcing) |
-| Local Storage | expo-sqlite (via LiveStore adapter) |
-| Sync Backend | Cloudflare Workers + Durable Objects (via @livestore/sync-cf) |
-| Plan Viewer | OpenSeadragon (via DOM Components) |
-| Backend API | Cloudflare Workers + Effect-TS |
-| File Storage | Cloudflare R2 |
-| Auth | Better-Auth |
-| Payments | Polar |
-| OCR | PaddleOCR (Docker container) |
-| Tile Generation | vips (Docker container) |
-| AI - Transcription | Whisper (OpenAI or CF Workers AI) |
-| AI - Summaries | Gemini 2.0 Flash |
-| AI - RFI | Claude 3.5 Sonnet |
-| Analytics | PostHog |
+| Layer              | Technology                                                    |
+| ------------------ | ------------------------------------------------------------- |
+| Mobile App         | Expo (React Native)                                           |
+| State Management   | LiveStore (local-first, event sourcing)                       |
+| Local Storage      | expo-sqlite (via LiveStore adapter)                           |
+| Sync Backend       | Cloudflare Workers + Durable Objects (via @livestore/sync-cf) |
+| Plan Viewer        | OpenSeadragon (via DOM Components)                            |
+| Backend API        | Cloudflare Workers + Effect-TS                                |
+| File Storage       | Cloudflare R2                                                 |
+| Auth               | Better-Auth                                                   |
+| Payments           | Polar                                                         |
+| OCR                | PaddleOCR (Docker container)                                  |
+| Tile Generation    | vips (Docker container)                                       |
+| AI - Transcription | Whisper (OpenAI or CF Workers AI)                             |
+| AI - Summaries     | Gemini 2.0 Flash                                              |
+| AI - RFI           | Claude 3.5 Sonnet                                             |
+| Analytics          | PostHog                                                       |
 
 ### 16.1.1 Why LiveStore?
 
 LiveStore is a local-first data layer using event sourcing. Benefits for SiteLink:
 
-| Benefit | How It Helps |
-|---------|--------------|
-| **Offline-first** | Field workers have poor connectivity; works fully offline |
-| **Event sourcing** | Built-in audit trail: "who did what when" for construction docs |
-| **Reactive queries** | UI updates instantly when data changes |
-| **Automatic sync** | Events queue locally, sync when online - no manual sync code |
-| **Conflict resolution** | Handles concurrent edits from multiple devices |
+| Benefit                 | How It Helps                                                    |
+| ----------------------- | --------------------------------------------------------------- |
+| **Offline-first**       | Field workers have poor connectivity; works fully offline       |
+| **Event sourcing**      | Built-in audit trail: "who did what when" for construction docs |
+| **Reactive queries**    | UI updates instantly when data changes                          |
+| **Automatic sync**      | Events queue locally, sync when online - no manual sync code    |
+| **Conflict resolution** | Handles concurrent edits from multiple devices                  |
 
 ### 16.2 Data Models (LiveStore)
 
@@ -2562,27 +2587,27 @@ SiteLink uses LiveStore's event sourcing pattern. State (SQLite tables) is deriv
 
 ```typescript
 // packages/domain/src/events.ts
-import { Events, Schema } from '@livestore/livestore'
+import { Events, Schema } from "@livestore/livestore"
 
 export const events = {
   // Project events
   projectCreated: Events.synced({
-    name: 'v1.ProjectCreated',
+    name: "v1.ProjectCreated",
     schema: Schema.Struct({
       id: Schema.String,
       name: Schema.String,
       address: Schema.optional(Schema.String),
     }),
   }),
-  
+
   projectRenamed: Events.synced({
-    name: 'v1.ProjectRenamed',
+    name: "v1.ProjectRenamed",
     schema: Schema.Struct({ projectId: Schema.String, name: Schema.String }),
   }),
 
   // Photo events
   photoCaptured: Events.synced({
-    name: 'v1.PhotoCaptured',
+    name: "v1.PhotoCaptured",
     schema: Schema.Struct({
       id: Schema.String,
       projectId: Schema.String,
@@ -2592,30 +2617,30 @@ export const events = {
       capturedAt: Schema.Date,
     }),
   }),
-  
+
   photoMarkedAsIssue: Events.synced({
-    name: 'v1.PhotoMarkedAsIssue',
+    name: "v1.PhotoMarkedAsIssue",
     schema: Schema.Struct({ photoId: Schema.String }),
   }),
-  
+
   photoUnmarkedAsIssue: Events.synced({
-    name: 'v1.PhotoUnmarkedAsIssue',
+    name: "v1.PhotoUnmarkedAsIssue",
     schema: Schema.Struct({ photoId: Schema.String }),
   }),
-  
+
   photoLinkedToMarker: Events.synced({
-    name: 'v1.PhotoLinkedToMarker',
+    name: "v1.PhotoLinkedToMarker",
     schema: Schema.Struct({ photoId: Schema.String, markerId: Schema.String }),
   }),
-  
+
   photoUploaded: Events.synced({
-    name: 'v1.PhotoUploaded',
+    name: "v1.PhotoUploaded",
     schema: Schema.Struct({ photoId: Schema.String, remotePath: Schema.String }),
   }),
 
   // Voice note events
   voiceNoteRecorded: Events.synced({
-    name: 'v1.VoiceNoteRecorded',
+    name: "v1.VoiceNoteRecorded",
     schema: Schema.Struct({
       id: Schema.String,
       photoId: Schema.String,
@@ -2623,39 +2648,43 @@ export const events = {
       durationSeconds: Schema.Number,
     }),
   }),
-  
+
   voiceNoteTranscribed: Events.synced({
-    name: 'v1.VoiceNoteTranscribed',
+    name: "v1.VoiceNoteTranscribed",
     schema: Schema.Struct({ voiceNoteId: Schema.String, transcription: Schema.String }),
   }),
 
   // Sheet/Marker events (from server sync after PDF processing)
   sheetsReceived: Events.synced({
-    name: 'v1.SheetsReceived',
+    name: "v1.SheetsReceived",
     schema: Schema.Struct({
       projectId: Schema.String,
-      sheets: Schema.Array(Schema.Struct({
-        id: Schema.String,
-        pageNumber: Schema.Number,
-        sheetNumber: Schema.optional(Schema.String),
-        sheetTitle: Schema.optional(Schema.String),
-        discipline: Schema.optional(Schema.String),
-      })),
+      sheets: Schema.Array(
+        Schema.Struct({
+          id: Schema.String,
+          pageNumber: Schema.Number,
+          sheetNumber: Schema.optional(Schema.String),
+          sheetTitle: Schema.optional(Schema.String),
+          discipline: Schema.optional(Schema.String),
+        }),
+      ),
     }),
   }),
-  
+
   markersReceived: Events.synced({
-    name: 'v1.MarkersReceived',
+    name: "v1.MarkersReceived",
     schema: Schema.Struct({
       sheetId: Schema.String,
-      markers: Schema.Array(Schema.Struct({
-        id: Schema.String,
-        reference: Schema.String,
-        x: Schema.Number,
-        y: Schema.Number,
-        targetSheetId: Schema.optional(Schema.String),
-        confidence: Schema.Number,
-      })),
+      markers: Schema.Array(
+        Schema.Struct({
+          id: Schema.String,
+          reference: Schema.String,
+          x: Schema.Number,
+          y: Schema.Number,
+          targetSheetId: Schema.optional(Schema.String),
+          confidence: Schema.Number,
+        }),
+      ),
     }),
   }),
 }
@@ -2665,11 +2694,11 @@ export const events = {
 
 ```typescript
 // packages/domain/src/tables.ts
-import { State, Schema } from '@livestore/livestore'
+import { State, Schema } from "@livestore/livestore"
 
 export const tables = {
   projects: State.SQLite.table({
-    name: 'projects',
+    name: "projects",
     columns: {
       id: State.SQLite.text({ primaryKey: true }),
       name: State.SQLite.text(),
@@ -2677,9 +2706,9 @@ export const tables = {
       createdAt: State.SQLite.integer({ schema: Schema.DateFromNumber }),
     },
   }),
-  
+
   sheets: State.SQLite.table({
-    name: 'sheets',
+    name: "sheets",
     columns: {
       id: State.SQLite.text({ primaryKey: true }),
       projectId: State.SQLite.text(),
@@ -2691,9 +2720,9 @@ export const tables = {
       detailPath: State.SQLite.text({ nullable: true }),
     },
   }),
-  
+
   markers: State.SQLite.table({
-    name: 'markers',
+    name: "markers",
     columns: {
       id: State.SQLite.text({ primaryKey: true }),
       sheetId: State.SQLite.text(),
@@ -2704,9 +2733,9 @@ export const tables = {
       confidence: State.SQLite.real({ nullable: true }),
     },
   }),
-  
+
   photos: State.SQLite.table({
-    name: 'photos',
+    name: "photos",
     columns: {
       id: State.SQLite.text({ primaryKey: true }),
       projectId: State.SQLite.text(),
@@ -2717,9 +2746,9 @@ export const tables = {
       capturedAt: State.SQLite.integer({ schema: Schema.DateFromNumber }),
     },
   }),
-  
+
   voiceNotes: State.SQLite.table({
-    name: 'voice_notes',
+    name: "voice_notes",
     columns: {
       id: State.SQLite.text({ primaryKey: true }),
       photoId: State.SQLite.text(),
@@ -2736,43 +2765,50 @@ export const tables = {
 
 ```typescript
 // packages/domain/src/materializers.ts
-import { State } from '@livestore/livestore'
-import { events } from './events'
-import { tables } from './tables'
+import { State } from "@livestore/livestore"
+import { events } from "./events"
+import { tables } from "./tables"
 
 export const materializers = State.SQLite.materializers(events, {
-  projectCreated: ({ id, name, address }) => 
+  projectCreated: ({ id, name, address }) =>
     tables.projects.insert({ id, name, address, createdAt: Date.now() }),
-  
-  projectRenamed: ({ projectId, name }) => 
+
+  projectRenamed: ({ projectId, name }) =>
     tables.projects.update({ name }).where({ id: projectId }),
-  
+
   photoCaptured: ({ id, projectId, markerId, localPath, isIssue, capturedAt }) =>
-    tables.photos.insert({ id, projectId, markerId, localPath, isIssue, capturedAt: capturedAt.getTime() }),
-  
+    tables.photos.insert({
+      id,
+      projectId,
+      markerId,
+      localPath,
+      isIssue,
+      capturedAt: capturedAt.getTime(),
+    }),
+
   photoMarkedAsIssue: ({ photoId }) =>
     tables.photos.update({ isIssue: true }).where({ id: photoId }),
-  
+
   photoUnmarkedAsIssue: ({ photoId }) =>
     tables.photos.update({ isIssue: false }).where({ id: photoId }),
-  
+
   photoLinkedToMarker: ({ photoId, markerId }) =>
     tables.photos.update({ markerId }).where({ id: photoId }),
-  
+
   photoUploaded: ({ photoId, remotePath }) =>
     tables.photos.update({ remotePath }).where({ id: photoId }),
-  
+
   voiceNoteRecorded: ({ id, photoId, localPath, durationSeconds }) =>
     tables.voiceNotes.insert({ id, photoId, localPath, durationSeconds }),
-  
+
   voiceNoteTranscribed: ({ voiceNoteId, transcription }) =>
     tables.voiceNotes.update({ transcription }).where({ id: voiceNoteId }),
-  
+
   sheetsReceived: ({ projectId, sheets }) =>
-    sheets.map(sheet => tables.sheets.insert({ ...sheet, projectId })),
-  
+    sheets.map((sheet) => tables.sheets.insert({ ...sheet, projectId })),
+
   markersReceived: ({ sheetId, markers }) =>
-    markers.map(marker => tables.markers.insert({ ...marker, sheetId })),
+    markers.map((marker) => tables.markers.insert({ ...marker, sheetId })),
 })
 ```
 
@@ -2789,7 +2825,7 @@ function PhotoTimeline({ markerId }: { markerId: string }) {
       .where({ markerId })
       .orderBy('capturedAt', 'desc')
   )
-  
+
   return (
     <FlatList data={photos} renderItem={({ item }) => <PhotoCard photo={item} />} />
   )
@@ -2801,12 +2837,12 @@ import { events } from '@sitelink/domain'
 
 function CaptureButton({ projectId, markerId }) {
   const { store } = useStore()
-  
+
   const handleCapture = async (uri: string, isIssue: boolean) => {
     const id = crypto.randomUUID()
     const localPath = `${FileSystem.documentDirectory}photos/${id}.jpg`
     await FileSystem.copyAsync({ from: uri, to: localPath })
-    
+
     store.commit(events.photoCaptured({
       id,
       projectId,
@@ -2930,23 +2966,25 @@ GET    /api/share/:token                (public)
 
 #### Event Sourcing Benefits for Construction
 
-| Scenario | Traditional CRUD | LiveStore Event Sourcing |
-|----------|-----------------|-------------------------|
-| "When was this issue flagged?" | Need separate audit log | `photoMarkedAsIssue` event has timestamp |
-| "Who marked it?" | Track `updatedBy` field | Event has actor built-in |
-| "Undo issue flag" | `UPDATE isIssue = false` (loses history) | Emit `photoUnmarkedAsIssue` event |
-| "Project state from last week" | Need point-in-time backup | Replay events up to that date |
+| Scenario                       | Traditional CRUD                         | LiveStore Event Sourcing                 |
+| ------------------------------ | ---------------------------------------- | ---------------------------------------- |
+| "When was this issue flagged?" | Need separate audit log                  | `photoMarkedAsIssue` event has timestamp |
+| "Who marked it?"               | Track `updatedBy` field                  | Event has actor built-in                 |
+| "Undo issue flag"              | `UPDATE isIssue = false` (loses history) | Emit `photoUnmarkedAsIssue` event        |
+| "Project state from last week" | Need point-in-time backup                | Replay events up to that date            |
+
 ├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌─────────────────┐    ┌─────────────────┐                │
-│  │   Workers API   │    │   R2 Storage    │                │
-│  └─────────────────┘    └─────────────────┘                │
-│                                                             │
-│  ┌─────────────────┐    ┌─────────────────┐                │
-│  │   D1 Database   │    │   AI Services   │                │
-│  └─────────────────┘    └─────────────────┘                │
-│                                                             │
+│ │
+│ ┌─────────────────┐ ┌─────────────────┐ │
+│ │ Workers API │ │ R2 Storage │ │
+│ └─────────────────┘ └─────────────────┘ │
+│ │
+│ ┌─────────────────┐ ┌─────────────────┐ │
+│ │ D1 Database │ │ AI Services │ │
+│ └─────────────────┘ └─────────────────┘ │
+│ │
 └─────────────────────────────────────────────────────────────┘
+
 ```
 
 ---
@@ -3086,3 +3124,4 @@ The following items were added to ensure completeness:
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | Jan 2, 2026 | Initial comprehensive PRD |
+```

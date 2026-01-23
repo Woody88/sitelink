@@ -258,9 +258,10 @@ def apply_all_filters(
     stats['final'] = len(current)
 
     if verbose:
+        retention_pct = (stats['final']/original_count*100) if original_count > 0 else 0
         print(f"\nTotal: {original_count} → {stats['final']} "
               f"({original_count - stats['final']} removed, "
-              f"{stats['final']/original_count*100:.1f}% retained)")
+              f"{retention_pct:.1f}% retained)")
 
     return {
         'filtered_detections': current,

@@ -67,7 +67,7 @@ export const useAppStore = (
 		console.log(`[useAppStore] Cached options globally for key: ${cacheKey}`);
 
 		return newOptions;
-	}, []);
+	}, [cacheKey, storeId, sessionToken]);
 
 	return useStore(options);
 };

@@ -46,6 +46,8 @@ interface PlanViewerProps {
 	planCode: string;
 	planTitle: string;
 	imageUrl: string;
+	imageWidth: number;
+	imageHeight: number;
 	onClose: () => void;
 	onSheetChange?: (sheetRef: string) => void;
 	onTakePhoto?: (marker: CalloutMarker) => void;
@@ -69,6 +71,8 @@ export function PlanViewer({
 	planCode,
 	planTitle,
 	imageUrl,
+	imageWidth,
+	imageHeight,
 	onClose,
 	onSheetChange,
 	onTakePhoto,
@@ -107,6 +111,8 @@ export function PlanViewer({
 	// Use LiveStore markers, falling back to internal markers state
 	const markers = liveMarkers.length > 0 ? liveMarkers : internalMarkers;
 
+	console.log(`[PlanViewer] sheetId=${sheetId}, liveMarkers=${liveMarkers.length}, internalMarkers=${internalMarkers.length}, using=${markers.length}`);
+
 	// UI state
 	const [showMarkerSheet, setShowMarkerSheet] = React.useState(false);
 	const [selectedMarker, setSelectedMarker] =
@@ -141,10 +147,10 @@ export function PlanViewer({
 
 	console.log(`[PlanViewer] PMTiles config:`, {
 		usePMTiles,
+		imageWidth,
+		imageHeight,
 		localPmtilesPath: localPmtilesPath?.slice(0, 50),
-		remotePmtilesPath: remotePmtilesPath?.slice(0, 50),
 		pmtilesUrl: pmtilesUrl?.slice(0, 80),
-		isDownloading: isPmtilesDownloading,
 	});
 
 	// Fetch image and convert to base64 to bypass WebView CORS restrictions (only for non-PMTiles)
@@ -330,6 +336,8 @@ export function PlanViewer({
 				{usePMTiles && pmtilesUrl ? (
 					<PMTilesViewer
 						pmtilesUrl={pmtilesUrl}
+						imageWidth={imageWidth}
+						imageHeight={imageHeight}
 						markers={markers}
 						selectedMarkerId={selectedMarkerId}
 						onMarkerPress={handleMarkerPress}

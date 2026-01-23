@@ -103,10 +103,23 @@ function parseCalloutLabel(label: string): { identifier: string | null; targetSh
 }
 
 let detectionRan = false;
+let lastDetectedPdf: string | null = null;
 let allMarkersCache: Map<number, Marker[]> = new Map();
 
+export function resetDetectionCache(): void {
+  detectionRan = false;
+  lastDetectedPdf = null;
+  allMarkersCache.clear();
+  console.log("Detection cache cleared");
+}
+
 async function runPythonDetectorOnPdf(pdfPath: string, outputDir: string): Promise<void> {
-  if (detectionRan) return;
+  if (detectionRan && lastDetectedPdf === pdfPath) return;
+
+  if (lastDetectedPdf !== pdfPath) {
+    allMarkersCache.clear();
+    detectionRan = false;
+  }
 
   if (!existsSync(PYTHON_DETECTOR)) {
     console.warn(`Python detector not found at ${PYTHON_DETECTOR}`);
@@ -117,11 +130,12 @@ async function runPythonDetectorOnPdf(pdfPath: string, outputDir: string): Promi
     mkdirSync(outputDir, { recursive: true });
   }
 
-  console.log(`Running Python detector on PDF...`);
+  console.log(`Running Python detector on PDF at 150 DPI...`);
 
   try {
-    await $`python ${PYTHON_DETECTOR} --pdf ${pdfPath} --output ${outputDir}`.quiet();
+    await $`python ${PYTHON_DETECTOR} --pdf ${pdfPath} --output ${outputDir} --dpi 150`.quiet();
     detectionRan = true;
+    lastDetectedPdf = pdfPath;
 
     const sheetDirs = await $`ls -d ${outputDir}/sheet-* 2>/dev/null || true`.text();
     for (const dir of sheetDirs.trim().split("\n").filter(Boolean)) {

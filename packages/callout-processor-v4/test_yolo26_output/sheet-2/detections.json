@@ -1,0 +1,97 @@
+[
+  {
+    "id": "det-2-0",
+    "sheet_index": 2,
+    "class_name": "title",
+    "bbox": {
+      "x1": 8795,
+      "y1": 8752,
+      "x2": 8959,
+      "y2": 8787
+    },
+    "confidence": 0.346578985452652,
+    "ocr_text": "150 CONCF",
+    "ocr_confidence": 0.9697113037109375,
+    "identifier": "150",
+    "view_sheet": "CONCF",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-2-0.png"
+  },
+  {
+    "id": "det-2-1",
+    "sheet_index": 2,
+    "class_name": "title",
+    "bbox": {
+      "x1": 11718,
+      "y1": 5249,
+      "x2": 11840,
+      "y2": 5284
+    },
+    "confidence": 0.3111129105091095,
+    "ocr_text": "150 CON",
+    "ocr_confidence": 0.9405947327613831,
+    "identifier": "150",
+    "view_sheet": "CON",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-2-1.png"
+  },
+  {
+    "id": "det-2-2",
+    "sheet_index": 2,
+    "class_name": "title",
+    "bbox": {
+      "x1": 11721,
+      "y1": 9853,
+      "x2": 11840,
+      "y2": 9888
+    },
+    "confidence": 0.31018492579460144,
+    "ocr_text": "GROUT",
+    "ocr_confidence": 0.9975116848945618,
+    "identifier": "GROUT",
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-2-2.png"
+  },
+  {
+    "id": "det-2-3",
+    "sheet_index": 2,
+    "class_name": "title",
+    "bbox": {
+      "x1": 3044,
+      "y1": 6013,
+      "x2": 3200,
+      "y2": 6050
+    },
+    "confidence": 0.3024778962135315,
+    "ocr_text": "NOTTOS",
+    "ocr_confidence": 0.965498149394989,
+    "identifier": "NOTTO",
+    "view_sheet": "S",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-2-3.png"
+  },
+  {
+    "id": "det-2-4",
+    "sheet_index": 2,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 654,
+      "y1": 5760,
+      "x2": 671,
+      "y2": 5884
+    },
+    "confidence": 0.27302852272987366,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-2-4.png"
+  }
+]

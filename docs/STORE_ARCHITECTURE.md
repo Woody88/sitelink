@@ -33,14 +33,16 @@ When a user first opens a store for an organization they've just joined, **LiveS
 
 ```typescript
 // 1. User creates/opens store for the first time
-const store = useStore(storeOptions({
-  storeId: 'org-redheadsteel-abc123', // ← New organization for this user
-  schema,
-  adapter: makePersistedAdapter({
-    sync: { backend: makeWsSync({ url: SYNC_URL }) }
+const store = useStore(
+  storeOptions({
+    storeId: "org-redheadsteel-abc123", // ← New organization for this user
+    schema,
+    adapter: makePersistedAdapter({
+      sync: { backend: makeWsSync({ url: SYNC_URL }) },
+    }),
+    syncPayload: { authToken: sessionToken },
   }),
-  syncPayload: { authToken: sessionToken }
-}))
+)
 
 // 2. LiveStore automatically:
 //    - Opens local SQLite databases (eventlog + state)
@@ -72,20 +74,23 @@ LiveStore provides two modes for handling initial sync:
 #### Option 1: Skip (Default - Background Sync)
 
 ```typescript
-const store = useStore(storeOptions({
-  storeId: `org-${organizationId}`,
-  schema,
-  adapter: makePersistedAdapter({
-    sync: {
-      backend,
-      // Default: { _tag: 'Skip' }
-      // Sync happens in background
-    }
-  })
-}))
+const store = useStore(
+  storeOptions({
+    storeId: `org-${organizationId}`,
+    schema,
+    adapter: makePersistedAdapter({
+      sync: {
+        backend,
+        // Default: { _tag: 'Skip' }
+        // Sync happens in background
+      },
+    }),
+  }),
+)
 ```
 
 **Behavior:**
+
 - ✅ App starts immediately, no waiting
 - ✅ Sync runs automatically in background
 - ✅ UI updates reactively as events arrive
@@ -94,6 +99,7 @@ const store = useStore(storeOptions({
 - ❌ Data appears progressively
 
 **Best for:**
+
 - Subsequent logins (data already mostly synced)
 - Organizations with few events
 - Apps where progressive loading is acceptable
@@ -101,24 +107,27 @@ const store = useStore(storeOptions({
 #### Option 2: Blocking (Wait for Initial Sync)
 
 ```typescript
-import { Duration } from 'effect'
+import { Duration } from "effect"
 
-const store = useStore(storeOptions({
-  storeId: `org-${organizationId}`,
-  schema,
-  adapter: makePersistedAdapter({
-    sync: {
-      backend,
-      initialSyncOptions: {
-        _tag: 'Blocking',
-        timeout: Duration.seconds(60) // Wait up to 60s
-      }
-    }
-  })
-}))
+const store = useStore(
+  storeOptions({
+    storeId: `org-${organizationId}`,
+    schema,
+    adapter: makePersistedAdapter({
+      sync: {
+        backend,
+        initialSyncOptions: {
+          _tag: "Blocking",
+          timeout: Duration.seconds(60), // Wait up to 60s
+        },
+      },
+    }),
+  }),
+)
 ```
 
 **Behavior:**
+
 - ✅ Waits for initial sync to complete
 - ✅ User sees fully synced data immediately
 - ✅ No empty states or progressive loading
@@ -128,6 +137,7 @@ const store = useStore(storeOptions({
 - ⚠️ Suspends React component until sync completes
 
 **Best for:**
+
 - First-time organization access
 - Critical data that must be complete
 - Organizations with moderate event counts
@@ -165,21 +175,23 @@ export function useOrganizationStore(organizationId: string) {
   }
 
   // Create store with appropriate sync mode
-  return useStore(storeOptions({
-    storeId: `org-${organizationId}`,
-    schema,
-    adapter: makePersistedAdapter({
-      sync: {
-        backend: makeWsSync({ url: SYNC_URL }),
-        // First time: block and show "Setting up..." screen
-        // Subsequent: skip and sync in background
-        initialSyncOptions: isFirstSync
-          ? { _tag: 'Blocking', timeout: Duration.seconds(45) }
-          : { _tag: 'Skip' }
-      }
+  return useStore(
+    storeOptions({
+      storeId: `org-${organizationId}`,
+      schema,
+      adapter: makePersistedAdapter({
+        sync: {
+          backend: makeWsSync({ url: SYNC_URL }),
+          // First time: block and show "Setting up..." screen
+          // Subsequent: skip and sync in background
+          initialSyncOptions: isFirstSync
+            ? { _tag: "Blocking", timeout: Duration.seconds(45) }
+            : { _tag: "Skip" },
+        },
+      }),
+      syncPayload: { authToken: session.token },
     }),
-    syncPayload: { authToken: session.token }
-  }))
+  )
 }
 ```
 
@@ -211,18 +223,20 @@ When a user belongs to multiple organizations:
 
 ```typescript
 const organizations = [
-  { id: 'redheadsteel-abc', name: 'RedHeadSteel' },
-  { id: 'acmecorp-def', name: 'AcmeCorp' },
-  { id: 'smithinc-ghi', name: 'Smith Inc' }
+  { id: "redheadsteel-abc", name: "RedHeadSteel" },
+  { id: "acmecorp-def", name: "AcmeCorp" },
+  { id: "smithinc-ghi", name: "Smith Inc" },
 ]
 
 // Each store syncs independently and automatically
-organizations.forEach(org => {
-  const store = useStore(storeOptions({
-    storeId: `org-${org.id}`,
-    schema,
-    adapter: makePersistedAdapter({ sync: { backend } })
-  }))
+organizations.forEach((org) => {
+  const store = useStore(
+    storeOptions({
+      storeId: `org-${org.id}`,
+      schema,
+      adapter: makePersistedAdapter({ sync: { backend } }),
+    }),
+  )
   // Automatic sync starts for each organization
   // Each pulls from seqNum 0 on first connection
   // Subsequent connections only pull new events
@@ -230,6 +244,7 @@ organizations.forEach(org => {
 ```
 
 **Key Points:**
+
 - ✅ Stores sync **independently** - no blocking between orgs
 - ✅ Can work in one org while another syncs in background
 - ✅ Each org's cursor tracked separately
@@ -345,6 +360,7 @@ When the store is created with `useStore()`, LiveStore automatically:
 10. ✅ User sees complete organization data
 
 **What gets synced automatically:**
+
 - All historical projects since organization creation
 - All photos ever captured
 - All markers ever created
@@ -359,27 +375,31 @@ When the store is created with `useStore()`, LiveStore automatically:
 // - App starts immediately
 // - Shows loading states while syncing
 // - Data appears progressively
-const store = useStore(storeOptions({
-  storeId: 'org-redheadsteel-abc123',
-  // No initialSyncOptions needed - defaults to background
-}))
+const store = useStore(
+  storeOptions({
+    storeId: "org-redheadsteel-abc123",
+    // No initialSyncOptions needed - defaults to background
+  }),
+)
 
 // Option B: Blocking sync (recommended for first-time)
 // - Waits for sync to complete
 // - Shows "Setting up RedHeadSteel..." screen
 // - User sees complete data when ready
-const store = useStore(storeOptions({
-  storeId: 'org-redheadsteel-abc123',
-  adapter: makePersistedAdapter({
-    sync: {
-      backend,
-      initialSyncOptions: {
-        _tag: 'Blocking',
-        timeout: Duration.seconds(60)
-      }
-    }
-  })
-}))
+const store = useStore(
+  storeOptions({
+    storeId: "org-redheadsteel-abc123",
+    adapter: makePersistedAdapter({
+      sync: {
+        backend,
+        initialSyncOptions: {
+          _tag: "Blocking",
+          timeout: Duration.seconds(60),
+        },
+      },
+    }),
+  }),
+)
 ```
 
 See the **"Automatic Sync from seqNum 0"** section above for detailed configuration options and best practices.
@@ -394,29 +414,39 @@ async function validatePayload(payload, context, env) {
   const { storeId } = context // e.g., "org-redheadsteel-abc123"
 
   // Validate session
-  const session = await env.DB.prepare(`
+  const session = await env.DB.prepare(
+    `
     SELECT s.*, u.id as user_id
     FROM session s
     JOIN user u ON s.user_id = u.id
     WHERE s.token = ? AND s.expires_at > ?
-  `).bind(authToken, Date.now()).first()
+  `,
+  )
+    .bind(authToken, Date.now())
+    .first()
 
   if (!session) throw new Error("Invalid session")
 
   // Extract organization ID from storeId
-  const orgId = storeId.replace('org-', '')
+  const orgId = storeId.replace("org-", "")
 
   // Verify user is a member of this organization
-  const membership = await env.DB.prepare(`
+  const membership = await env.DB.prepare(
+    `
     SELECT role FROM organization_members
     WHERE organization_id = ? AND user_id = ?
-  `).bind(orgId, session.user_id).first()
+  `,
+  )
+    .bind(orgId, session.user_id)
+    .first()
 
   if (!membership) {
     throw new Error(`User not authorized for organization ${orgId}`)
   }
 
-  console.log(`[Sync] User ${session.user_id} authorized for org ${orgId} with role ${membership.role}`)
+  console.log(
+    `[Sync] User ${session.user_id} authorized for org ${orgId} with role ${membership.role}`,
+  )
 }
 ```
 
@@ -466,16 +496,19 @@ StoreRegistry keeps stores cached for 60 seconds after last use:
 For long-running organizations with many events:
 
 **Option 1: Event Log Compaction**
+
 - Backend periodically creates state snapshots
 - New users download: snapshot + recent events
 - Reduces initial sync time
 
 **Option 2: Lazy Project Loading**
+
 - Use project-level stores: `project-${projectId}`
 - Only sync when user opens that specific project
 - Reduces initial data transfer
 
 **Option 3: Pagination**
+
 - Pull events in chunks
 - Show progress indicator
 - Allow app to be usable during sync
@@ -522,17 +555,20 @@ photoCaptured: {
 Current single-store setup needs refactoring:
 
 ### Phase 1: Backend Changes
+
 1. Update `validatePayload` to extract orgId from storeId
 2. Check organization membership in D1
 3. Update Durable Object naming to use org-prefixed storeIds
 
 ### Phase 2: Mobile Changes
+
 1. Create OrganizationStoresProvider context
 2. Fetch user's organizations on login
 3. Create store for each organization
 4. Update UI to select active organization
 
 ### Phase 3: Data Migration
+
 1. Migrate existing single store data to org-specific stores
 2. Update env variables to remove global LIVESTORE_STORE_ID
 3. Implement per-org store creation
@@ -540,16 +576,19 @@ Current single-store setup needs refactoring:
 ## Future Enhancements
 
 ### Store Discovery
+
 - Backend API: GET /api/user/organizations
 - Returns list of orgs user can access
 - Client creates stores dynamically
 
 ### Offline Support
+
 - Stores sync independently
 - User can work in one org while another syncs
 - Background sync with retry logic
 
 ### Store Cleanup
+
 - Remove stores for organizations user leaves
 - Archive old organizations
 - Implement data retention policies
@@ -561,20 +600,22 @@ Current single-store setup needs refactoring:
 **Yes, absolutely!** There is no technical limitation on the number of organizations a user can own or belong to.
 
 **Examples:**
+
 - Contractor managing multiple client organizations
 - User with personal org + work org + side project org
 - Admin managing multiple companies
 - Freelancer with different teams
 
 **How it works:**
+
 ```typescript
 // User owns/belongs to 5 organizations
 const userOrganizations = [
-  { id: 'org-1', name: 'RedHeadSteel', role: 'owner' },
-  { id: 'org-2', name: 'AcmeCorp', role: 'owner' },
-  { id: 'org-3', name: 'Client Project A', role: 'member' },
-  { id: 'org-4', name: 'Personal', role: 'owner' },
-  { id: 'org-5', name: 'Side Hustle LLC', role: 'owner' }
+  { id: "org-1", name: "RedHeadSteel", role: "owner" },
+  { id: "org-2", name: "AcmeCorp", role: "owner" },
+  { id: "org-3", name: "Client Project A", role: "member" },
+  { id: "org-4", name: "Personal", role: "owner" },
+  { id: "org-5", name: "Side Hustle LLC", role: "owner" },
 ]
 
 // Each gets its own store
@@ -584,6 +625,7 @@ const userOrganizations = [
 ```
 
 **This is purely an RBAC concern:**
+
 - LiveStore doesn't care about ownership semantics
 - Backend validates membership via `organization_members` table
 - Each organization is just another isolated store
@@ -600,11 +642,13 @@ const userOrganizations = [
 5. No manual triggering needed
 
 **What you control:**
+
 - Whether to block UI during sync (`Blocking` vs `Skip`)
 - Timeout duration for blocking mode
 - Progress indication during background sync
 
 **What LiveStore handles automatically:**
+
 - Connecting to sync backend
 - Pulling all historical events
 - Processing events through materializers
@@ -617,10 +661,12 @@ After the initial sync from seqNum 0:
 
 ```typescript
 // User opens app next day
-const store = useStore(storeOptions({
-  storeId: 'org-redheadsteel-abc123'
-  // Same storeId as before
-}))
+const store = useStore(
+  storeOptions({
+    storeId: "org-redheadsteel-abc123",
+    // Same storeId as before
+  }),
+)
 
 // LiveStore automatically:
 // 1. Opens existing local databases
@@ -632,6 +678,7 @@ const store = useStore(storeOptions({
 ```
 
 **Key Points:**
+
 - ✅ Only new events are synced
 - ✅ Cursor automatically tracked per organization
 - ✅ Fast incremental updates

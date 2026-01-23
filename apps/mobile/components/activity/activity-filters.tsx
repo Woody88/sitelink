@@ -53,3 +53,6 @@ export const ActivityFilters = React.memo(function ActivityFilters({
 		</ScrollView>
 	);
 });
+
+
+

@@ -1,0 +1,78 @@
+[
+  {
+    "id": "det-3-3",
+    "sheet_index": 3,
+    "class_name": "elevation",
+    "bbox": {
+      "x1": 2159,
+      "y1": 8148,
+      "x2": 2213,
+      "y2": 8187
+    },
+    "confidence": 0.20644795894622803,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-3.png"
+  },
+  {
+    "id": "det-3-4",
+    "sheet_index": 3,
+    "class_name": "elevation",
+    "bbox": {
+      "x1": 990,
+      "y1": 4039,
+      "x2": 1046,
+      "y2": 4105
+    },
+    "confidence": 0.2044263482093811,
+    "ocr_text": "Y",
+    "ocr_confidence": 0.989029049873352,
+    "identifier": "Y",
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-4.png"
+  },
+  {
+    "id": "det-3-5",
+    "sheet_index": 3,
+    "class_name": "elevation",
+    "bbox": {
+      "x1": 3530,
+      "y1": 7406,
+      "x2": 3580,
+      "y2": 7574
+    },
+    "confidence": 0.15469934046268463,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-5.png"
+  },
+  {
+    "id": "det-3-6",
+    "sheet_index": 3,
+    "class_name": "detail",
+    "bbox": {
+      "x1": 7177,
+      "y1": 6532,
+      "x2": 7232,
+      "y2": 6654
+    },
+    "confidence": 0.14765681326389313,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-6.png"
+  }
+]

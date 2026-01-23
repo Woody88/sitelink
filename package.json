@@ -20,7 +20,8 @@
 		"typecheck": "tsc --build --noEmit",
 		"format": "prettier --write .",
 		"check-format": "prettier --check .",
-		"dev:all": "concurrently \"bun --cwd apps/backend dev\" \"bun --cwd apps/mobile dev\""
+		"dev:all": "concurrently \"bun --cwd apps/backend dev\" \"bun --cwd apps/mobile dev\"",
+		"callout:detect": "python3 packages/callout-processor/src/detect.py"
 	},
 	"type": "module",
 	"workspaces": {

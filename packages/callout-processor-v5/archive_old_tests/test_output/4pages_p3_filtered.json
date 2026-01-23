@@ -1,0 +1,42 @@
+{
+  "detections": [
+    {
+      "bbox": [
+        1976.9085083007812,
+        410.9486083984375,
+        22.5322265625,
+        22.447601318359375
+      ],
+      "confidence": 0.011143182404339314,
+      "class": "detail",
+      "callout_type": "detail",
+      "method": "yolo_finetuned_sahi",
+      "image_path": "test_output/4pages_p3.png",
+      "tile_index": 1
+    }
+  ],
+  "metadata": {
+    "model": "callout_detector.pt",
+    "method": "yolo_finetuned_sahi",
+    "conf_threshold": 0.01,
+    "iou_threshold": 0.5,
+    "tile_size": 2048,
+    "overlap": 0.25,
+    "num_tiles": 4,
+    "num_detections": 1,
+    "class_names": [
+      "detail",
+      "elevation",
+      "title"
+    ],
+    "post_processing_enabled": true,
+    "filter_stats": {
+      "original": 45,
+      "removed_by_size": 39,
+      "removed_by_aspect": 2,
+      "removed_by_area": 0,
+      "removed_by_class": 3,
+      "final": 1
+    }
+  }
+}

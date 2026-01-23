@@ -1,4 +1,4 @@
 #!/bin/bash
 
-adb push ../sample-A6-plan.pdf /sdcard/Download/sample-A6-plan.pdf
+adb push ../sample-plan.pdf /sdcard/Download/sample-plan.pdf
 echo "✓ PDF uploaded to both devices"

@@ -1,0 +1,86 @@
+# Plan Upload Flow
+# Uploads a PDF plan from device storage
+# Must be inside a project on the Plans tab
+#
+# Prerequisites:
+#   - User must be inside a project (run project-create.yaml first)
+#   - sample-plan.pdf must be on device (bash push_plan.sh)
+#   - Backend running (bun dev:network)
+#
+# Note: This flow uses the Android file picker. The PDF should be
+# in the Downloads folder after running push_plan.sh
+
+appId: host.exp.exponent
+---
+# Verify we're on the Plans tab inside a project
+- assertVisible: 'Plans'
+
+# Tap FAB (+ button) to open upload sheet
+- tapOn:
+    point: '90%,90%'
+
+# Wait for upload sheet
+- extendedWaitUntil:
+    visible: 'Upload Plan'
+    timeout: 5000
+- assertVisible: 'Device Storage'
+
+# Select device storage option
+- tapOn: 'Device Storage'
+- waitForAnimationToEnd
+
+# Android file picker should open
+# Wait for it to load
+- extendedWaitUntil:
+    visible:
+      text: '.*'
+    timeout: 5000
+
+# Navigate to Downloads if not already there
+- runFlow:
+    when:
+      visible: 'Downloads'
+    commands:
+      - tapOn: 'Downloads'
+      - waitForAnimationToEnd
+
+# Look for sample-plan.pdf
+- extendedWaitUntil:
+    visible: 'sample-plan.pdf'
+    timeout: 5000
+
+# Select the PDF
+- tapOn: 'sample-plan.pdf'
+- waitForAnimationToEnd
+
+# Some file pickers require tapping Select/Open
+- runFlow:
+    when:
+      visible: 'Select'
+    commands:
+      - tapOn: 'Select'
+- runFlow:
+    when:
+      visible: 'Open'
+    commands:
+      - tapOn: 'Open'
+
+# Wait for upload to start - modal shows "Uploading Plan"
+- extendedWaitUntil:
+    visible: 'Uploading Plan'
+    timeout: 10000
+    optional: true
+
+# Wait for upload to complete and sheets to appear
+# This can take 30-60 seconds for processing
+- extendedWaitUntil:
+    notVisible: 'Uploading Plan'
+    timeout: 60000
+    optional: true
+
+# After processing completes, we should see sheets
+# Wait for at least one folder to appear (processing pipeline creates these)
+- extendedWaitUntil:
+    visible:
+      text: '.*plans'
+    timeout: 120000

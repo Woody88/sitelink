@@ -1,0 +1,21 @@
+[
+  {
+    "id": "det-0-1",
+    "sheet_index": 0,
+    "class_name": "title",
+    "bbox": {
+      "x1": 0,
+      "y1": 0,
+      "x2": 1738,
+      "y2": 62
+    },
+    "confidence": 0.05860782414674759,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-0-1.png"
+  }
+]

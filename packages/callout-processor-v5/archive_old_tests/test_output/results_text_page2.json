@@ -1,0 +1,16 @@
+{
+  "detections": [],
+  "metadata": {
+    "model": "yoloe-26n-seg.pt",
+    "conf_threshold": 0.05,
+    "iou_threshold": 0.5,
+    "num_detections": 0,
+    "standard": "us_ncs",
+    "class_names": [
+      "detail",
+      "elevation",
+      "section",
+      "title"
+    ]
+  }
+}

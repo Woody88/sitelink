@@ -14,6 +14,7 @@ This document details the migration from LiveStore 0.3.1 to 0.4.0-dev.22, includ
 LiveStore 0.4.0 introduces a **complete API redesign** around the `StoreRegistry` pattern, enabling better store lifecycle management, caching, and multi-store support. The migration required significant refactoring of both mobile and backend code.
 
 ### Key Changes
+
 - ✅ Replaced `LiveStoreProvider` with `StoreRegistryProvider`
 - ✅ Introduced `StoreRegistry` for store lifecycle management
 - ✅ Server-side event emission via Cloudflare adapter
@@ -28,6 +29,7 @@ LiveStore 0.4.0 introduces a **complete API redesign** around the `StoreRegistry
 ### 1. React Provider API Change
 
 **Before (0.3.1):**
+
 ```tsx
 import { LiveStoreProvider } from '@livestore/react'
 import { makePersistedAdapter } from '@livestore/adapter-expo'
@@ -53,6 +55,7 @@ const adapter = makePersistedAdapter({
 ```
 
 **After (0.4.0):**
+
 ```tsx
 import { StoreRegistryProvider } from '@livestore/react'
 import { StoreRegistry, storeOptions } from '@livestore/livestore'
@@ -72,6 +75,7 @@ const storeRegistry = new StoreRegistry({
 ```
 
 **Key Differences:**
+
 - No more `renderLoading`, `renderError`, `renderShutdown` props
 - Store configuration moved to per-component level via `useStore()` hook
 - Registry handles caching and lifecycle automatically
@@ -80,13 +84,15 @@ const storeRegistry = new StoreRegistry({
 ### 2. Mobile Sync Import Change
 
 **Before (0.3.1):**
+
 ```tsx
-import { makeCfSync } from '@livestore/sync-cf'
+import { makeCfSync } from "@livestore/sync-cf"
 ```
 
 **After (0.4.0):**
+
 ```tsx
-import { makeWsSync } from '@livestore/sync-cf/client'
+import { makeWsSync } from "@livestore/sync-cf/client"
 ```
 
 **Reason:** The `@livestore/sync-cf` package is for **backend only** (Cloudflare Workers). Mobile apps must use the `/client` subpath which exports `makeWsSync` for WebSocket client connections.
@@ -100,8 +106,8 @@ Store was provided implicitly through `LiveStoreProvider` context.
 Explicitly fetch store in components using `useStore()`:
 
 ```tsx
-import { useStore } from '@livestore/react'
-import { createAppStoreOptions } from '@/lib/store-config'
+import { useStore } from "@livestore/react"
+import { createAppStoreOptions } from "@/lib/store-config"
 
 function MyComponent() {
   const sessionToken = getSessionToken()
@@ -126,7 +132,7 @@ export function createAuth(
   db: D1Database,
   secret: string,
   baseUrl: string,
-  liveStoreClient?: LiveStoreClient
+  liveStoreClient?: LiveStoreClient,
 ) {
   return betterAuth({
     // ... config
@@ -142,10 +148,10 @@ export function createAuth(
                 avatarUrl: user.image ?? undefined,
               })
             }
-          }
-        }
-      }
-    }
+          },
+        },
+      },
+    },
   })
 }
 ```
@@ -162,8 +168,8 @@ export function createAuth(
 {
   "catalogs": {
     "effect": {
-      "effect": "3.19.14",           // was 3.15.2
-      "@effect/platform": "0.94.1"   // was 0.82.4 (added to catalog)
+      "effect": "3.19.14", // was 3.15.2
+      "@effect/platform": "0.94.1" // was 0.82.4 (added to catalog)
     }
   }
 }
@@ -182,7 +188,7 @@ All updated to `0.4.0-dev.22`:
       "@livestore/livestore": "0.4.0-dev.22",
       "@livestore/adapter-expo": "0.4.0-dev.22",
       "@livestore/adapter-web": "0.4.0-dev.22",
-      "@livestore/adapter-cloudflare": "0.4.0-dev.22",  // NEW
+      "@livestore/adapter-cloudflare": "0.4.0-dev.22", // NEW
       "@livestore/devtools-expo": "0.4.0-dev.22",
       "@livestore/react": "0.4.0-dev.22",
       "@livestore/sync-cf": "0.4.0-dev.22",
@@ -205,12 +211,12 @@ All updated to `0.4.0-dev.22`:
   "durable_objects": {
     "bindings": [
       {
-        "name": "SYNC_BACKEND_DO",          // renamed from WEBSOCKET_SERVER
+        "name": "SYNC_BACKEND_DO", // renamed from WEBSOCKET_SERVER
         "class_name": "WebSocketServer",
         "script_name": "sitelink-backend"
       },
       {
-        "name": "LIVESTORE_CLIENT_DO",      // NEW
+        "name": "LIVESTORE_CLIENT_DO", // NEW
         "class_name": "LiveStoreClientDO",
         "script_name": "sitelink-backend"
       }
@@ -219,13 +225,14 @@ All updated to `0.4.0-dev.22`:
   "migrations": [
     {
       "tag": "v1",
-      "new_sqlite_classes": ["WebSocketServer", "LiveStoreClientDO"]  // BOTH need SQL
+      "new_sqlite_classes": ["WebSocketServer", "LiveStoreClientDO"] // BOTH need SQL
     }
   ]
 }
 ```
 
 **Critical Changes:**
+
 - Both DOs use `new_sqlite_classes` (was `new_classes` for WebSocketServer)
 - LiveStore 0.4.0 requires SQL storage for both sync backend and client DOs
 - Renamed binding from `WEBSOCKET_SERVER` to `SYNC_BACKEND_DO` (required by `makeWorker`)
@@ -235,15 +242,15 @@ All updated to `0.4.0-dev.22`:
 **Updated:** `apps/backend/src/sync/worker.ts`
 
 ```typescript
-import { makeDurableObject, makeWorker } from '@livestore/sync-cf/cf-worker'
+import { makeDurableObject, makeWorker } from "@livestore/sync-cf/cf-worker"
 
 // Define WebSocketServer inline
 export class WebSocketServer extends makeDurableObject({
   onPush: async (message) => {
-    console.log('onPush', message.batch)
+    console.log("onPush", message.batch)
   },
   onPull: async (message) => {
-    console.log('onPull', message)
+    console.log("onPull", message)
   },
 }) {}
 
@@ -253,16 +260,18 @@ export default makeWorker({
     const { authToken } = payload
 
     if (!authToken) {
-      throw new Error('No auth token provided')
+      throw new Error("No auth token provided")
     }
 
     // Direct DB query (better-auth session validation issues persist)
     const sessionResult = await env.DB.prepare(
-      "SELECT s.*, u.id as user_id, u.email, u.name FROM session s JOIN user u ON s.user_id = u.id WHERE s.token = ? AND s.expires_at > ?"
-    ).bind(authToken, Date.now()).first()
+      "SELECT s.*, u.id as user_id, u.email, u.name FROM session s JOIN user u ON s.user_id = u.id WHERE s.token = ? AND s.expires_at > ?",
+    )
+      .bind(authToken, Date.now())
+      .first()
 
     if (!sessionResult) {
-      throw new Error('Invalid or expired session')
+      throw new Error("Invalid or expired session")
     }
 
     return {
@@ -275,11 +284,13 @@ export default makeWorker({
 ```
 
 **Removed:**
+
 - `createSyncWorker()` function
 - `handleSyncRequest()` function
 - Separate `websocket-server.ts` file
 
 **Benefits:**
+
 - Simpler, more declarative pattern
 - Less boilerplate
 - Follows official LiveStore 0.4.0 patterns
@@ -294,24 +305,27 @@ This Durable Object provides a server-side LiveStore instance for programmatic e
 export class LiveStoreClientDO implements DurableObject {
   private store: any | undefined
 
-  constructor(private ctx: DurableObjectState, private env: Env) {}
+  constructor(
+    private ctx: DurableObjectState,
+    private env: Env,
+  ) {}
 
   private async getStore(): Promise<any> {
     if (this.store) return this.store
 
     const syncBackendStub = this.env.SYNC_BACKEND_DO.get(
-      this.env.SYNC_BACKEND_DO.idFromName('default')
+      this.env.SYNC_BACKEND_DO.idFromName("default"),
     )
 
     this.store = await createStoreDoPromise({
       schema,
-      storeId: 'server-store',
+      storeId: "server-store",
       clientId: this.ctx.id.toString(),
-      sessionId: 'server-session',
+      sessionId: "server-session",
       durableObject: {
         ctx: this.ctx,
         env: this.env,
-        bindingName: 'LIVESTORE_CLIENT_DO',
+        bindingName: "LIVESTORE_CLIENT_DO",
       },
       syncBackendStub,
     })
@@ -328,30 +342,33 @@ export class LiveStoreClientDO implements DurableObject {
     const store = await this.getStore()
 
     // IMPORTANT: Call events.userCreated() as a function
-    await store.commit(events.userCreated({
-      id: data.id,
-      email: data.email,
-      name: data.name,
-      avatarUrl: data.avatarUrl,
-    }))
+    await store.commit(
+      events.userCreated({
+        id: data.id,
+        email: data.email,
+        name: data.name,
+        avatarUrl: data.avatarUrl,
+      }),
+    )
   }
 
   // HTTP RPC interface
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url)
 
-    if (url.pathname === '/commit-user-created' && request.method === 'POST') {
+    if (url.pathname === "/commit-user-created" && request.method === "POST") {
       const data = await request.json()
       await this.commitUserCreated(data)
       return Response.json({ success: true })
     }
 
-    return Response.json({ error: 'Not found' }, { status: 404 })
+    return Response.json({ error: "Not found" }, { status: 404 })
   }
 }
 ```
 
 **Event Emission Syntax:**
+
 ```typescript
 // ❌ Wrong (0.3.1 style)
 await store.commit(events.userCreated, { id, email, name, avatarUrl })
@@ -369,19 +386,20 @@ Added required `secret` and `baseURL` parameters:
 ```typescript
 export function createAuth(
   db: D1Database,
-  secret: string,        // NEW: Required for signing tokens
-  baseUrl: string,       // NEW: Required for auth endpoints
-  liveStoreClient?: LiveStoreClient
+  secret: string, // NEW: Required for signing tokens
+  baseUrl: string, // NEW: Required for auth endpoints
+  liveStoreClient?: LiveStoreClient,
 ) {
   return betterAuth({
-    secret,              // Signs JWT tokens, encrypts sessions
-    baseURL: baseUrl,    // Base URL for auth redirects
+    secret, // Signs JWT tokens, encrypts sessions
+    baseURL: baseUrl, // Base URL for auth redirects
     // ... rest of config
   })
 }
 ```
 
 **Environment Variables** (`.dev.vars`):
+
 ```bash
 BETTER_AUTH_SECRET=7y0ARec3uxL6lwYx0s5epioJTwaloPo6
 BETTER_AUTH_URL=http://localhost:8787
@@ -398,10 +416,10 @@ BETTER_AUTH_URL=http://localhost:8787
 Centralizes all LiveStore setup logic:
 
 ```typescript
-import { StoreRegistry, storeOptions } from '@livestore/livestore'
-import { makePersistedAdapter } from '@livestore/adapter-expo'
-import { makeWsSync } from '@livestore/sync-cf/client'
-import { unstable_batchedUpdates as batchUpdates } from 'react-native'
+import { StoreRegistry, storeOptions } from "@livestore/livestore"
+import { makePersistedAdapter } from "@livestore/adapter-expo"
+import { makeWsSync } from "@livestore/sync-cf/client"
+import { unstable_batchedUpdates as batchUpdates } from "react-native"
 
 let _storeRegistry: StoreRegistry | null = null
 
@@ -432,6 +450,7 @@ export function createAppStoreOptions(sessionToken: string) {
 ```
 
 **Pattern:**
+
 - Lazy initialization with singleton pattern
 - Registry created on first access
 - Store options factory function for components
@@ -441,8 +460,8 @@ export function createAppStoreOptions(sessionToken: string) {
 **Updated:** `apps/mobile/app/_layout.tsx`
 
 ```tsx
-import { StoreRegistryProvider } from '@livestore/react'
-import { getStoreRegistry } from '@/lib/store-config'
+import { StoreRegistryProvider } from "@livestore/react"
+import { getStoreRegistry } from "@/lib/store-config"
 
 export default function RootLayout() {
   const { data, isPending } = authClient.useSession()
@@ -453,7 +472,7 @@ export default function RootLayout() {
 
   return (
     <StoreRegistryProvider storeRegistry={getStoreRegistry()}>
-      <ThemeProvider value={NAV_THEME[theme ?? 'light']}>
+      <ThemeProvider value={NAV_THEME[theme ?? "light"]}>
         <ProjectProvider>
           <Stack screenOptions={{ headerShown: false }} />
         </ProjectProvider>
@@ -464,6 +483,7 @@ export default function RootLayout() {
 ```
 
 **Removed:**
+
 - All `renderLoading`, `renderError`, `renderShutdown` UI code
 - `NetworkStatusMonitor` component (placeholder, not fully implemented)
 - `NewUserEventCommitter` component (server handles this now)
@@ -472,6 +492,7 @@ export default function RootLayout() {
 ### 3. Cleanup - Removed Files
 
 **Deleted:**
+
 - `apps/mobile/components/NewUserEventCommitter.tsx` - Server-side emission replaces this
 - Deferred event code from `lib/biometric.ts`:
   - `PENDING_NEW_USER_KEY`
@@ -520,6 +541,7 @@ function MyComponent() {
 ```
 
 **Benefits:**
+
 - Each component explicitly declares its store needs
 - StoreRegistry caches stores by configuration
 - Multiple stores possible (different storeIds, adapters, etc.)
@@ -532,6 +554,7 @@ function MyComponent() {
 ### Automatic Caching
 
 The `StoreRegistry` automatically:
+
 - **Reuses stores** with identical configuration (storeId, adapter, schema)
 - **Tracks retention** - keeps stores alive while components use them
 - **Cleans up** after `unusedCacheTime` (default 60s) when no components reference the store
@@ -541,14 +564,15 @@ The `StoreRegistry` automatically:
 ```typescript
 const registry = new StoreRegistry({
   defaultOptions: {
-    batchUpdates,           // React batching function
+    batchUpdates, // React batching function
     unusedCacheTime: 60_000, // Keep stores 60s after last use
     confirmUnsavedChanges: true, // Warn before closing with unsaved data
-  }
+  },
 })
 ```
 
 **States:**
+
 1. **Loading** - Store is initializing (boot, sync handshake)
 2. **Active** - At least one component using the store
 3. **Unused** - No components using it, cache timer running
@@ -561,16 +585,20 @@ You can now have multiple stores in the same app:
 ```typescript
 // User store
 const userStoreOptions = storeOptions({
-  storeId: 'user-store',
+  storeId: "user-store",
   schema: userSchema,
-  adapter: makePersistedAdapter({ /* ... */ }),
+  adapter: makePersistedAdapter({
+    /* ... */
+  }),
 })
 
 // Organization store
 const orgStoreOptions = storeOptions({
-  storeId: 'org-store',
+  storeId: "org-store",
   schema: orgSchema,
-  adapter: makePersistedAdapter({ /* ... */ }),
+  adapter: makePersistedAdapter({
+    /* ... */
+  }),
 })
 
 function MyComponent() {
@@ -588,12 +616,14 @@ function MyComponent() {
 ### Backend Tests
 
 1. **Start backend:**
+
    ```bash
    cd apps/backend
    bun dev:network
    ```
 
 2. **Verify logs:**
+
    ```
    ✓ Both DOs bind correctly (SYNC_BACKEND_DO, LIVESTORE_CLIENT_DO)
    ✓ Server starts on http://localhost:8787
@@ -601,6 +631,7 @@ function MyComponent() {
    ```
 
 3. **Test sign-up:**
+
    ```bash
    curl -X POST http://localhost:8787/api/auth/sign-up/email \
      -H "Content-Type: application/json" \
@@ -608,6 +639,7 @@ function MyComponent() {
    ```
 
    **Expected logs:**
+
    ```
    [Auth] UserCreated event emitted for: <user-id>
    [LiveStoreClientDO] Committed UserCreated event: <user-id>
@@ -617,6 +649,7 @@ function MyComponent() {
 ### Mobile Tests
 
 1. **Clear cache and start:**
+
    ```bash
    cd apps/mobile
    rm -rf .expo node_modules/.cache
@@ -645,6 +678,7 @@ function MyComponent() {
 **Symptom:** Metro bundler can't find `StoreRegistry` export
 
 **Fix:** Clear Metro cache:
+
 ```bash
 rm -rf .expo node_modules/.cache
 bun dev --clear
@@ -655,6 +689,7 @@ bun dev --clear
 **Symptom:** Backend crashes with SQL error
 
 **Fix:** Update migrations in `wrangler.json`:
+
 ```json
 "migrations": [
   {
@@ -665,6 +700,7 @@ bun dev --clear
 ```
 
 Then delete local storage:
+
 ```bash
 rm -rf apps/backend/.wrangler/state
 ```
@@ -674,6 +710,7 @@ rm -rf apps/backend/.wrangler/state
 **Symptom:** Event emission fails
 
 **Fix:** Call event factory as function:
+
 ```typescript
 // ❌ Wrong
 store.commit(events.userCreated, { id, email, name })
@@ -687,6 +724,7 @@ store.commit(events.userCreated({ id, email, name }))
 **Symptom:** Backend bundling fails
 
 **Fix:** Update Effect packages:
+
 ```json
 {
   "catalogs": {

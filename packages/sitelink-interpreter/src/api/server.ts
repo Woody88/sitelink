@@ -1,15 +1,17 @@
 import { sheets, entities, relationships, getDb, nanoid, type Sheet, type Entity } from "../db/index.ts";
 import { getProvenanceChain } from "../synthesis/index.ts";
 import { ingestPdf } from "../ingestion/index.ts";
-import { extractAll, loadCorrectionRules } from "../extraction/index.ts";
+import { extractAll, loadCorrectionRules, resetDetectionCache } from "../extraction/index.ts";
+import { extractWithYOLO, detectOnSheet, getCropPath, type YOLOExtractionOptions } from "../extraction/yolo-extraction.ts";
 import { buildRelationships } from "../synthesis/index.ts";
 import reviewHtml from "../ui/review.html";
 import explorerHtml from "../ui/explorer.html";
-import { join, basename } from "path";
+import { join, basename, dirname } from "path";
 import { existsSync, mkdirSync, writeFileSync } from "fs";
 
 const PORT = 3456;
 const OUTPUT_DIR = join(import.meta.dir, "../../output/sheets");
+const YOLO_OUTPUT_DIR = join(import.meta.dir, "../../output/yolo-extractions");
 
 interface EntityWithProvenance extends Entity {
   sheet_number?: string;
@@ -68,6 +70,16 @@ const server = Bun.serve({
 
           console.log(`\n=== Processing uploaded PDF: ${file.name} ===`);
 
+          console.log("Step 0: Clearing previous data...");
+          const db = getDb();
+          db.exec(`PRAGMA foreign_keys = OFF`);
+          db.exec(`DELETE FROM relationships`);
+          db.exec(`DELETE FROM entities`);
+          db.exec(`DELETE FROM sheets`);
+          db.exec(`PRAGMA foreign_keys = ON`);
+          resetDetectionCache();
+          console.log("  Previous data cleared");
+
           console.log("Step 1: Ingesting PDF...");
           const ingestionResult = await ingestPdf(pdfPath);
           console.log(`  Created ${ingestionResult.sheets.length} sheets`);
@@ -79,7 +91,7 @@ const server = Bun.serve({
 
           console.log("Step 3: Building relationships...");
           const linkResult = buildRelationships();
-          console.log(`  Created ${linkResult.linked} relationships`);
+          console.log(`  Created ${linkResult.created} relationships`);
 
           console.log("=== Processing complete ===\n");
 
@@ -88,7 +100,7 @@ const server = Bun.serve({
             pdf_name: file.name,
             sheets_created: ingestionResult.sheets.length,
             entities_found: totalEntities,
-            relationships_created: linkResult.linked,
+            relationships_created: linkResult.created,
           });
         } catch (error) {
           console.error("Upload processing failed:", error);
@@ -141,6 +153,102 @@ const server = Bun.serve({
         count: sheetEntities.length,
         entities: sheetEntities.map(enrichEntity),
       });
+    },
+
+    "/api/sheets/:id/detect": {
+      async POST(req) {
+        const sheet = sheets.getById(req.params.id);
+        if (!sheet) {
+          return Response.json({ error: "Sheet not found" }, { status: 404 });
+        }
+
+        try {
+          const body = await req.json().catch(() => ({})) as YOLOExtractionOptions;
+
+          console.log(`\n=== Running YOLO detection on sheet ${sheet.sheet_number} ===`);
+          const newEntities = await detectOnSheet(req.params.id, body);
+
+          return Response.json({
+            success: true,
+            sheet_id: sheet.id,
+            sheet_number: sheet.sheet_number,
+            entities_detected: newEntities.length,
+            entities: newEntities.map(enrichEntity),
+          });
+        } catch (error) {
+          console.error("Detection failed:", error);
+          return Response.json({
+            error: "Detection failed",
+            details: String(error),
+          }, { status: 500 });
+        }
+      },
+    },
+
+    "/api/detect": {
+      async POST(req) {
+        try {
+          const formData = await req.formData();
+          const file = formData.get("pdf") as File | null;
+          const optionsJson = formData.get("options") as string | null;
+
+          if (!file) {
+            return Response.json({ error: "No PDF file provided" }, { status: 400 });
+          }
+
+          const options: YOLOExtractionOptions = optionsJson
+            ? JSON.parse(optionsJson)
+            : {};
+
+          const uploadsDir = join(import.meta.dir, "../../uploads");
+          if (!existsSync(uploadsDir)) {
+            mkdirSync(uploadsDir, { recursive: true });
+          }
+
+          const pdfPath = join(uploadsDir, file.name);
+          const arrayBuffer = await file.arrayBuffer();
+          writeFileSync(pdfPath, Buffer.from(arrayBuffer));
+
+          console.log(`\n=== Running YOLO pipeline on ${file.name} ===`);
+
+          console.log("Step 0: Clearing previous data...");
+          const db = getDb();
+          db.exec(`PRAGMA foreign_keys = OFF`);
+          db.exec(`DELETE FROM relationships`);
+          db.exec(`DELETE FROM entities`);
+          db.exec(`DELETE FROM sheets`);
+          db.exec(`PRAGMA foreign_keys = ON`);
+          resetDetectionCache();
+
+          console.log("Step 1: Ingesting PDF...");
+          const ingestionResult = await ingestPdf(pdfPath);
+
+          console.log("Step 2: Running YOLO detection...");
+          const yoloResult = await extractWithYOLO(pdfPath, options);
+
+          console.log("Step 3: Building relationships...");
+          const linkResult = buildRelationships();
+
+          console.log("=== YOLO pipeline complete ===\n");
+
+          return Response.json({
+            success: true,
+            pdf_name: file.name,
+            sheets_created: ingestionResult.sheets.length,
+            entities_found: yoloResult.entities.length,
+            needs_review: yoloResult.summary?.needs_review ?? 0,
+            relationships_created: linkResult.created,
+            run_id: yoloResult.runId,
+            by_class: yoloResult.summary?.by_class ?? {},
+          });
+        } catch (error) {
+          console.error("Detection failed:", error);
+          return Response.json({
+            error: "Detection failed",
+            details: String(error),
+          }, { status: 500 });
+        }
+      },
     },
 
     "/api/entities": (req) => {
@@ -218,6 +326,30 @@ const server = Bun.serve({
           ...e,
           sheet_number: getSheetForEntity(e)?.sheet_number,
         })) ?? [],
+      });
+    },
+
+    "/api/entities/:id/crop": async (req) => {
+      const entity = entities.getById(req.params.id);
+      if (!entity) {
+        return Response.json({ error: "Entity not found" }, { status: 404 });
+      }
+
+      if (!entity.crop_image_path) {
+        return Response.json({ error: "No crop image available for this entity" }, { status: 404 });
+      }
+
+      const cropPath = entity.crop_image_path;
+      if (!existsSync(cropPath)) {
+        return Response.json({ error: "Crop image file not found" }, { status: 404 });
+      }
+
+      const file = Bun.file(cropPath);
+      return new Response(file, {
+        headers: {
+          "Content-Type": "image/png",
+          "Cache-Control": "public, max-age=3600",
+        },
       });
     },
 
@@ -319,7 +451,7 @@ const server = Bun.serve({
             entities_after: totalEntities,
             corrections_applied: totalCorrections,
             false_positives_removed: beforeCount.count - totalEntities,
-            relationships_created: linkResult.linked,
+            relationships_created: linkResult.created,
           });
         } catch (error) {
           console.error("Retrain failed:", error);

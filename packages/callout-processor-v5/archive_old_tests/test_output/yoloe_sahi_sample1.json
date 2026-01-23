@@ -1,0 +1,49 @@
+{
+  "detections": [
+    {
+      "bbox": [
+        1523.5162963867188,
+        1142.8963623046875,
+        42.05645751953125,
+        43.9278564453125
+      ],
+      "confidence": 0.21649840474128723,
+      "class": "elevation",
+      "callout_type": "elevation",
+      "method": "yoloe_sahi",
+      "image_path": "test_output/sample-plan-1.png",
+      "tile_index": 1
+    },
+    {
+      "bbox": [
+        1107.2062377929688,
+        592.3719482421875,
+        45.8485107421875,
+        38.95977783203125
+      ],
+      "confidence": 0.073475681245327,
+      "class": "elevation",
+      "callout_type": "elevation",
+      "method": "yoloe_sahi",
+      "image_path": "test_output/sample-plan-1.png",
+      "tile_index": 1
+    }
+  ],
+  "metadata": {
+    "model": "yoloe-26n-seg.pt",
+    "method": "yoloe_sahi",
+    "conf_threshold": 0.05,
+    "iou_threshold": 0.5,
+    "tile_size": 2048,
+    "overlap": 0.25,
+    "num_tiles": 2,
+    "num_detections": 2,
+    "standard": "us_ncs",
+    "class_names": [
+      "detail",
+      "elevation",
+      "section",
+      "title"
+    ]
+  }
+}

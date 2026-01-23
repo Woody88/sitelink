@@ -74,7 +74,7 @@ Added fields for local image storage:
 ```typescript
 {
   planId: string
-  progress: number        // 0-100
+  progress: number // 0-100
   currentPage: number
   totalPages: number
 }
@@ -162,7 +162,7 @@ Future enhancement: Backend will extract actual title from title block during sy
 - ✅ Schema changes validated
 - ✅ Event definitions type-checked
 - ✅ Materializers properly typed
-- ⚠️  ESLint warnings remain (pre-existing, not related to this feature)
+- ⚠️ ESLint warnings remain (pre-existing, not related to this feature)
 
 ## Known Limitations
 

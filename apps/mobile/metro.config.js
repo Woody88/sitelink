@@ -17,16 +17,18 @@ if (process.env.MONOREPO_ROOT) {
 	config.watchFolders = [path.resolve(process.env.MONOREPO_ROOT)];
 }
 
-addLiveStoreDevtoolsMiddleware(config, {
-	schemaPath: "../../packages/domain/src/schema.ts",
-	viteConfig: (viteConfig) => {
-		viteConfig.server.fs ??= {};
-		viteConfig.server.fs.strict = false;
-		viteConfig.optimizeDeps ??= {};
-		viteConfig.optimizeDeps.force = true;
-		return viteConfig;
-	},
-});
+if (process.env.ENABLE_LIVESTORE) {
+	addLiveStoreDevtoolsMiddleware(config, {
+		schemaPath: "../../packages/domain/src/schema.ts",
+		viteConfig: (viteConfig) => {
+			viteConfig.server.fs ??= {};
+			viteConfig.server.fs.strict = false;
+			viteConfig.optimizeDeps ??= {};
+			viteConfig.optimizeDeps.force = true;
+			return viteConfig;
+		},
+	});
+}
 
 module.exports = withUniwindConfig(config, {
 	cssEntryFile: "./global.css",

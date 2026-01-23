@@ -1,0 +1,9 @@
+{
+  "name": "@sitelink/callout-processor",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "callout:detect": "python3 src/detect.py"
+  }
+}

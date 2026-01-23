@@ -1,0 +1,62 @@
+[
+  {
+    "id": "marker-sheet-6-2-b9c95602",
+    "label": null,
+    "targetSheetRef": null,
+    "calloutType": "detail",
+    "calloutNumber": "1",
+    "x": 0.10656862745098039,
+    "y": 0.2428787878787879,
+    "pixelX": 543,
+    "pixelY": 801,
+    "bbox": {
+      "x1": 445,
+      "y1": 703,
+      "x2": 641,
+      "y2": 899
+    },
+    "confidence": 0.8,
+    "source": "cv_hough_pass2",
+    "needsReview": false
+  },
+  {
+    "id": "marker-sheet-6-1-e86b3ae1",
+    "label": "24/C",
+    "targetSheetRef": "C",
+    "calloutType": "borderless",
+    "calloutNumber": "24",
+    "x": 0.7512745098039215,
+    "y": 0.5722727272727273,
+    "pixelX": 3831,
+    "pixelY": 1888,
+    "bbox": {
+      "x1": 3802,
+      "y1": 1859,
+      "x2": 3860,
+      "y2": 1917
+    },
+    "confidence": 0.85,
+    "source": "cv_hough_pass1",
+    "needsReview": false
+  },
+  {
+    "id": "marker-sheet-6-0-da7a9c1c",
+    "label": "2/S1",
+    "targetSheetRef": "S1",
+    "calloutType": "detail",
+    "calloutNumber": "2",
+    "x": 0.7579411764705882,
+    "y": 0.7113636363636363,
+    "pixelX": 3865,
+    "pixelY": 2347,
+    "bbox": {
+      "x1": 3831,
+      "y1": 2313,
+      "x2": 3899,
+      "y2": 2381
+    },
+    "confidence": 0.85,
+    "source": "cv_hough_pass1",
+    "needsReview": false
+  }
+]

@@ -4,22 +4,25 @@
   "callout_types": {
     "detail": {
       "name": "Detail Callout",
-      "text_prompt": "A small detail indicator symbol per NCS 01 42 00-020. MUST have a clearly visible DASHED outline (not solid) forming either a circle or rectangle, with evenly spaced dashes approximately 3-6mm apart. The dashed outline is distinctive and easy to see. Symbol diameter/width is small and compact: 0.3-0.8 inches (20-60 pixels at 150 DPI). Inside the dashed outline is a simple alphanumeric identifier (like '3', 'A1', 'D2') above a thin horizontal dividing line, with an optional sheet reference below (format: 'A-201', 'S5.1'). The symbol has NO triangles, NO solid attachments, NO thick borders. It is a standalone geometric shape, not part of large text boxes or title blocks. Appears on plan views to reference enlarged details. Size constraint: bounding box should be compact (20-60 pixels width/height), NOT large text areas or dimension annotations.",
+      "text_prompt": "A small detail indicator symbol per NCS 01 42 00-020. MUST be a circle (or rectangle/hexagon) with a HORIZONTAL DIVIDING LINE through the middle. The horizontal line is the KEY DISTINGUISHING FEATURE. Symbol diameter/width is small and compact: 0.3-0.8 inches (20-60 pixels at 150 DPI). Inside the circle is a simple alphanumeric identifier (like '3', 'D2', '15') ABOVE the horizontal dividing line, with an optional sheet reference BELOW the line (format: 'A-201', 'S4.1', 'A-512'). CRITICAL: The symbol has NO TRIANGLES - if it has a triangle, it's an elevation callout, NOT a detail callout. The horizontal divider line separates the detail number from the sheet reference, appearing like a fraction. May have a thin leader line or arrow pointing to the detail location. Appears on plan views to reference enlarged details. Size constraint: bounding box should be compact (20-60 pixels width/height), NOT large text areas or dimension annotations.",
       "visual_characteristics": [
-        "Dashed circular OR dashed rectangular outline (6mm/1/4 inch line)",
-        "No triangles or solid attachments",
-        "Detail identifier above horizontal dividing line",
-        "Optional sheet reference below (A-201, S5.1, M-301 format)",
-        "Medium dash or continuous line outline",
-        "Sheet reference format: discipline letter + dash/dot + number"
+        "Circle, rectangle, or hexagon outline",
+        "MUST have horizontal dividing line through middle (KEY FEATURE)",
+        "NO triangles (triangles indicate elevation callouts)",
+        "Detail identifier ABOVE horizontal line",
+        "Sheet reference BELOW horizontal line (A-201, S4.1, A-512 format)",
+        "Appears like a fraction: 'D2' over 'A-512'",
+        "May have thin leader line or diagonal arrow",
+        "Compact size (20-60 pixels at 150 DPI)"
       ],
       "false_positives_to_exclude": [
-        "Circles with only words (3+ consecutive letters)",
-        "Grid reference markers",
-        "Dimension text",
+        "Plain circles WITHOUT horizontal divider (slab types, grid markers, room numbers)",
+        "Circles with only single alphanumeric (like 'S6', '7', 'B') - these are slab/grid markers",
+        "Dimension text (measurements like 12'-6\", 3/4\")",
         "Title block text",
-        "Text like NORTH, SCALE, NOTE, DETAIL, VERIFY",
-        "Solid outline circles (likely elevation/section markers)"
+        "Text annotations (NORTH, SCALE, NOTE, TYP, EQ)",
+        "Elevation callouts (have triangles)",
+        "Section indicators (have cutting plane lines)"
       ]
     },
     "elevation": {

@@ -27,3 +27,6 @@ export function useDailySummary(projectId: string) {
 		generateSummary,
 	};
 }
+
+
+

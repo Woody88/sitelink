@@ -78,15 +78,40 @@ export class LiveStoreClientDO
 	}
 
 	async commit(eventName: string, data: any): Promise<void> {
-		const store = await this.getStore();
-		const eventCreator = (events as any)[eventName];
+		try {
+			const store = await this.getStore();
+			const eventCreator = (events as any)[eventName];
 
-		if (!eventCreator) {
-			throw new Error(`Unknown event: ${eventName}`);
+			if (!eventCreator) {
+				throw new Error(`Unknown event: ${eventName}`);
+			}
+
+			await store.commit(eventCreator(data));
+			console.log(`[LiveStoreClientDO] Committed ${eventName}`);
+		} catch (error) {
+			// If store was shut down, clear cache and retry once
+			if (
+				error instanceof Error &&
+				error.message.includes("shut down")
+			) {
+				console.log("[LiveStoreClientDO] Store shut down, recreating...");
+				this.cachedStore = undefined;
+				this.storeSubscription?.();
+				this.storeSubscription = undefined;
+
+				const store = await this.getStore();
+				const eventCreator = (events as any)[eventName];
+
+				if (!eventCreator) {
+					throw new Error(`Unknown event: ${eventName}`);
+				}
+
+				await store.commit(eventCreator(data));
+				console.log(`[LiveStoreClientDO] Committed ${eventName} after recreate`);
+			} else {
+				throw error;
+			}
 		}
-
-		await store.commit(eventCreator(data));
-		console.log(`[LiveStoreClientDO] Committed ${eventName}`);
 	}
 
 	private async getStore() {

@@ -1,0 +1,40 @@
+[
+  {
+    "id": "det-0-1",
+    "sheet_index": 0,
+    "class_name": "title",
+    "bbox": {
+      "x1": 0,
+      "y1": 0,
+      "x2": 1738,
+      "y2": 62
+    },
+    "confidence": 0.05860782414674759,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-0-1.png"
+  },
+  {
+    "id": "det-0-2",
+    "sheet_index": 0,
+    "class_name": "title",
+    "bbox": {
+      "x1": 1599,
+      "y1": 0,
+      "x2": 3456,
+      "y2": 68
+    },
+    "confidence": 0.03358924388885498,
+    "ocr_text": null,
+    "ocr_confidence": 0.0,
+    "identifier": null,
+    "view_sheet": null,
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-0-2.png"
+  }
+]

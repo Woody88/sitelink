@@ -55,10 +55,26 @@ export interface Entity {
   target_sheet: string | null;
   triangle_count: number | null;
   triangle_positions: string | null;
+  yolo_confidence: number | null;
+  ocr_confidence: number | null;
+  detection_method: string | null;
+  standard: string | null;
+  raw_ocr_text: string | null;
+  crop_image_path: string | null;
   needs_review: number;
   reviewed: number;
   reviewed_by: string | null;
   corrected_label: string | null;
+  created_at: string;
+}
+
+export interface DetectionRun {
+  id: string;
+  pdf_path: string;
+  model_version: string | null;
+  parameters_json: string | null;
+  total_detections: number | null;
+  needs_review: number | null;
   created_at: string;
 }
 
@@ -114,11 +130,15 @@ export const entities = {
     const id = nanoid();
     db.run(
       `INSERT INTO entities (id, sheet_id, class_label, ocr_text, confidence, bbox_x1, bbox_y1, bbox_x2, bbox_y2,
-        identifier, target_sheet, triangle_count, triangle_positions, needs_review, reviewed, reviewed_by, corrected_label)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        identifier, target_sheet, triangle_count, triangle_positions,
+        yolo_confidence, ocr_confidence, detection_method, standard, raw_ocr_text, crop_image_path,
+        needs_review, reviewed, reviewed_by, corrected_label)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [id, data.sheet_id, data.class_label, data.ocr_text, data.confidence,
        data.bbox_x1, data.bbox_y1, data.bbox_x2, data.bbox_y2,
        data.identifier, data.target_sheet, data.triangle_count, data.triangle_positions,
+       data.yolo_confidence, data.ocr_confidence, data.detection_method, data.standard,
+       data.raw_ocr_text, data.crop_image_path,
        data.needs_review, data.reviewed, data.reviewed_by, data.corrected_label]
     );
     return db.query<Entity, [string]>("SELECT * FROM entities WHERE id = ?").get(id)!;
@@ -163,6 +183,27 @@ export const relationships = {
 
   getByTarget(entityId: string): Relationship[] {
     return getDb().query<Relationship, [string]>("SELECT * FROM relationships WHERE target_entity_id = ?").all(entityId);
+  },
+};
+
+export const detectionRuns = {
+  insert(data: Omit<DetectionRun, "id" | "created_at">): DetectionRun {
+    const db = getDb();
+    const id = nanoid();
+    db.run(
+      `INSERT INTO detection_runs (id, pdf_path, model_version, parameters_json, total_detections, needs_review)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [id, data.pdf_path, data.model_version, data.parameters_json, data.total_detections, data.needs_review]
+    );
+    return db.query<DetectionRun, [string]>("SELECT * FROM detection_runs WHERE id = ?").get(id)!;
+  },
+
+  getLatest(): DetectionRun | null {
+    return getDb().query<DetectionRun, []>("SELECT * FROM detection_runs ORDER BY created_at DESC LIMIT 1").get();
+  },
+
+  getByPdf(pdfPath: string): DetectionRun[] {
+    return getDb().query<DetectionRun, [string]>("SELECT * FROM detection_runs WHERE pdf_path = ? ORDER BY created_at DESC").all(pdfPath);
   },
 };
 

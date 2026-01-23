@@ -1,14 +1,61 @@
-appId: com.nessei.sitelink
+# Auth Login Flow
+# Logs in an existing user
+# Ends on the Projects screen
+#
+# Environment variables:
+#   TEST_EMAIL - User's email (default: test@example.com)
+#   TEST_PASSWORD - User's password (default: password123)
+#
+# Prerequisites:
+#   - Backend running (bun dev:network)
+#   - User must already exist (run auth-signup.yaml first if fresh DB)
+
+appId: host.exp.exponent
 ---
-- launchApp
+- launchApp:
+    clearState: true
+
+# Enter Expo dev server URL manually
+- tapOn: 'Enter URL manually'
+- inputText: 'exp://192.168.2.13:8081'
+- tapOn: 'Connect'
+- waitForAnimationToEnd
+
+# Dismiss Expo account login prompt if it appears (tap X at top right)
+- runFlow:
+    when:
+      visible: 'Log in or create an account'
+    commands:
+      - tapOn:
+          point: '91%,7%'
+      - waitForAnimationToEnd
+
+# Dismiss Expo developer menu if it appears (tap outside the bottom sheet)
+- runFlow:
+    when:
+      visible: 'This is the developer menu'
+    commands:
+      - tapOn:
+          point: '50%,20%'
+      - waitForAnimationToEnd
+
+# Should be on login screen
 - assertVisible: 'Sign In'
+
+# Fill login form
 - tapOn:
     id: 'email-input'
-- inputText: 'test@example.com'
+- inputText: ${TEST_EMAIL:-test@example.com}
 - tapOn:
     id: 'password-input'
-- inputText: 'password123'
+- inputText: ${TEST_PASSWORD:-password123}
+
+# Submit login
 - tapOn:
     id: 'signin-button'
 - waitForAnimationToEnd
-- assertVisible: 'Plans'
+
+# Verify we're on the Projects screen
+- extendedWaitUntil:
+    visible: 'Projects'
+    timeout: 10000

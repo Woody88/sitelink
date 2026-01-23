@@ -1,0 +1,40 @@
+[
+  {
+    "id": "det-3-0",
+    "sheet_index": 3,
+    "class_name": "title",
+    "bbox": {
+      "x1": 2067,
+      "y1": 9431,
+      "x2": 2240,
+      "y2": 9465
+    },
+    "confidence": 0.2832821309566498,
+    "ocr_text": "STUB COL",
+    "ocr_confidence": 0.9628456830978394,
+    "identifier": "STUB",
+    "view_sheet": "COL",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-0.png"
+  },
+  {
+    "id": "det-3-1",
+    "sheet_index": 3,
+    "class_name": "title",
+    "bbox": {
+      "x1": 13607,
+      "y1": 4953,
+      "x2": 13760,
+      "y2": 4989
+    },
+    "confidence": 0.25570639967918396,
+    "ocr_text": "11/28/2022",
+    "ocr_confidence": 0.9990604519844055,
+    "identifier": "11",
+    "view_sheet": "2022",
+    "standard": "auto",
+    "needs_review": true,
+    "crop_path": "crops/det-3-1.png"
+  }
+]
