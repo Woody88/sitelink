@@ -1,0 +1,7 @@
+{
+  "target_f1": 0.98,
+  "plateau_threshold": 0.005,
+  "plateau_iterations": 3,
+  "overfitting_threshold": 0.05,
+  "max_iterations": 10
+}

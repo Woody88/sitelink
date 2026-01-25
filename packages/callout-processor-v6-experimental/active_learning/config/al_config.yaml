@@ -1,0 +1,40 @@
+# Active Learning Configuration for YOLO-26 -> YOLOE-26 upgrade
+
+# Model Configuration
+model:
+  baseline: yolo26n.pt              # Current YOLO-26-nano (5.3 MB, 96.5% F1)
+  target: yoloe-26n-seg.pt          # Target YOLOE-26-nano with prompts
+  type: yoloe-26-nano               # Using YOLOE-26 (NOT YOLOv8!)
+
+# Active Learning Parameters
+active_learning:
+  max_samples_per_iteration: 20
+  require_human_review: true
+  target_f1: 0.98
+  plateau_threshold: 0.005
+  max_iterations: 10
+
+# Sampling Strategy
+sampling_strategy:
+  class_balance_weight: 0.3
+  size_diversity_weight: 0.3
+  spatial_diversity_weight: 0.2
+  uncertainty_weight: 0.2
+
+# Training Configuration
+training:
+  strategy: fine_tune
+  base_lr: 0.001
+  lr_decay_factor: 0.5
+  epochs_base: 150
+  epochs_increment: 100
+  patience: 20
+  imgsz: 2560
+  batch: 2
+
+# Text Prompts (initial - will be refined per iteration)
+prompts:
+  source: prompts/ca_ncs.json
+  detail: "A detail callout circle with horizontal line dividing it. Above the line is a number identifier. Below the line is an alphanumeric sheet reference like A1 or B2."
+  elevation: "An elevation indicator symbol with solid circle and solid black triangle marker attached to indicate viewing direction"
+  title: "A small circular callout symbol at bottom or corner of enlarged detail drawing, contains reference number"

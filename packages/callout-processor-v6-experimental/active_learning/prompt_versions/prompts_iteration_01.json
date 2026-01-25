@@ -1,0 +1,13 @@
+{
+  "iteration": 1,
+  "timestamp": "2026-01-23T13:21:26.471801",
+  "prompts": {
+    "detail": "A circular callout symbol with a thin black outline and white or light fill. Contains a number (1-99), or number with sheet reference separated by slash or horizontal dividing line (3/A5, 1/A6). The circle is clean and distinct with NO triangles or other attachments.",
+    "elevation": "A circular callout symbol with EXACTLY ONE solid black triangle attached to the circle's edge, pointing in the viewing direction. Circle has thin black outline with white fill, divided horizontally by a line. Contains a number (1-99) or single letter from restricted set (A, B, E, F, G, K, M, N, Q, W, Y, Z - excluding high false-positive letters) above the dividing line, with optional sheet reference below in format '2/X2'.",
+    "section": "A circular callout symbol with EXACTLY TWO solid black triangles attached to the circle's edge. Triangles are positioned either top+bottom OR left+right to indicate the section cut line direction. Circle has thin black outline, white fill, and horizontal dividing line.",
+    "title": "A small circular callout symbol appearing at the bottom or corner of an enlarged detail drawing box. Circle has thin black outline with white fill, contains a reference number (1-99) or letter (A-Z) that corresponds to a detail callout elsewhere on the sheet. Often accompanied by text labels such as detail name, scale information (SCALE: 1:50, 1:20), or drawing title."
+  },
+  "refinement_notes": {
+    "source": "auto-loaded for training"
+  }
+}
