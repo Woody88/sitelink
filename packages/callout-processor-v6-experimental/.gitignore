@@ -1,0 +1,81 @@
+# YOLO model files (downloaded automatically by Ultralytics)
+*.pt
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Test output
+test_output/*.png
+test_output/*.jpg
+test_output/*.json
+
+# Virtual environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+
+# Large files (archived)
+mobileclip2_b.ts
+*.zip
+
+# Archive directories
+archive_*/
+
+# Dataset directories (tracked separately)
+dataset_combined/
+dataset_combined_from_zips/
+dataset_temp/
+dataset_v6/
+
+# Dataset images (uploaded to R2, keep only config)
+dataset_v8_combined/train/images/
+dataset_v8_combined/train/labels/
+dataset_v8_combined/valid/images/
+dataset_v8_combined/valid/labels/
+!dataset_v8_combined/data.yaml
+
+# Node modules
+node_modules/
+
+# Wrangler
+.wrangler/
+
+# Training runs
+runs/detect/*
+!runs/detect/active_learning/
+
+# Active learning - exclude all generated files and training data
+active_learning/iterations/
+active_learning/iterations*/
+active_learning/metrics/
+active_learning/new_pdfs_assessment/
+active_learning/roboflow_upload_images/
+active_learning/datasets/*/train/
+active_learning/datasets/*/valid/
+active_learning/datasets/*/test/
+active_learning/error_analysis/
+active_learning/logs/
+
+# Keep only essential config and top-level docs
+!active_learning/README.md
+!active_learning/config/al_config.yaml
+!active_learning/datasets/*/data.yaml
+!active_learning/datasets/*/README.*

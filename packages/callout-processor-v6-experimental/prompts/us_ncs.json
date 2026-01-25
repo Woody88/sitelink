@@ -1,0 +1,165 @@
+{
+  "standard": "us_ncs",
+  "description": "United States National CAD Standard (NCS) callout detection prompts",
+  "callout_types": {
+    "detail": {
+      "name": "Detail Callout",
+      "text_prompt": "A small detail indicator symbol per NCS 01 42 00-020. MUST be a circle (or rectangle/hexagon) with a HORIZONTAL DIVIDING LINE through the middle. The horizontal line is the KEY DISTINGUISHING FEATURE. Symbol diameter/width is small and compact: 0.3-0.8 inches (20-60 pixels at 150 DPI). Inside the circle is a simple alphanumeric identifier (like '3', 'D2', '15') ABOVE the horizontal dividing line, with an optional sheet reference BELOW the line (format: 'A-201', 'S4.1', 'A-512'). CRITICAL: The symbol has NO TRIANGLES - if it has a triangle, it's an elevation callout, NOT a detail callout. The horizontal divider line separates the detail number from the sheet reference, appearing like a fraction. May have a thin leader line or arrow pointing to the detail location. Appears on plan views to reference enlarged details. Size constraint: bounding box should be compact (20-60 pixels width/height), NOT large text areas or dimension annotations.",
+      "visual_characteristics": [
+        "Circle, rectangle, or hexagon outline",
+        "MUST have horizontal dividing line through middle (KEY FEATURE)",
+        "NO triangles (triangles indicate elevation callouts)",
+        "Detail identifier ABOVE horizontal line",
+        "Sheet reference BELOW horizontal line (A-201, S4.1, A-512 format)",
+        "Appears like a fraction: 'D2' over 'A-512'",
+        "May have thin leader line or diagonal arrow",
+        "Compact size (20-60 pixels at 150 DPI)"
+      ],
+      "false_positives_to_exclude": [
+        "Plain circles WITHOUT horizontal divider (slab types, grid markers, room numbers)",
+        "Circles with only single alphanumeric (like 'S6', '7', 'B') - these are slab/grid markers",
+        "Dimension text (measurements like 12'-6\", 3/4\")",
+        "Title block text",
+        "Text annotations (NORTH, SCALE, NOTE, TYP, EQ)",
+        "Elevation callouts (have triangles)",
+        "Section indicators (have cutting plane lines)"
+      ]
+    },
+    "elevation": {
+      "name": "Elevation Callout",
+      "text_prompt": "A compact elevation indicator symbol with a solid black triangle pointing in the viewing direction. The symbol is small (0.3-0.8 inches, 20-60 pixels at 150 DPI). Two types exist: Type 1 is a solid triangle with text near its base showing detail number and sheet reference separated by '/'. Type 2 is a circle with a triangle attached where the triangle points stick out from the circle edge; inside the circle is a horizontal line with detail number above and sheet reference below (like a fraction). CRITICAL distinguishing feature: MUST have a visible solid triangle. If no triangle is present, it is NOT an elevation - it's a different callout type. The triangle is the key identifier. Compact size, not large areas. May have a thin leader line pointing to the elevation location. Format examples: '2/A-201', 'A4' over 'A-201'.",
+      "visual_characteristics": [
+        "MUST have a solid black triangle (key identifier)",
+        "Triangle points in viewing direction",
+        "Compact size (0.3-0.8 inches, 20-60 pixels at 150 DPI)",
+        "Type 1: Triangle only with '/' separator for detail/sheet number",
+        "Type 2: Circle with triangle points sticking out, horizontal line inside (fraction format)",
+        "Detail number and sheet reference (e.g., '2/A-201', 'A4' over 'A-201')",
+        "May have thin leader line",
+        "Based on NCS 01 42 00-027/028/029"
+      ],
+      "false_positives_to_exclude": [
+        "Plain circles without triangles (detail callouts)",
+        "Section indicators with cutting plane lines",
+        "Arrow symbols for flow diagrams",
+        "Directional indicators without circles",
+        "Grid markers",
+        "Dashed circle detail callouts"
+      ]
+    },
+    "section": {
+      "name": "Section Callout",
+      "text_prompt": "A section indicator symbol per NCS 01 42 00-077/078. Consists of a solid circle (12.7mm or 1/2 inch diameter) attached to a cutting plane line (break line showing where the section cut occurs). Circle has thin black outline, white fill, and horizontal dividing line. Contains a section identifier (letter or alphanumeric like 'B3', 'A2') above the line, with sheet reference below in format 'B3/A-303' or 'A2/S-401'. The circle is positioned at the end of the cutting plane line and shows the direction from which to view the section. The cutting plane line itself is a break line that cuts through the building/object. Based on US NCS standard 01 42 00-077/078. Sheet references follow NCS discipline+number format (A-303, S-401, etc.).",
+      "visual_characteristics": [
+        "Solid circular outline (12.7mm/1/2 inch diameter)",
+        "Horizontal dividing line inside circle",
+        "Attached to cutting plane line (break line with section cut)",
+        "Section identifier above line (B3, A2, etc.)",
+        "Sheet reference below line (A-303, S-401 format)",
+        "Circle shows viewing direction for the section",
+        "Based on NCS 01 42 00-077/078"
+      ],
+      "false_positives_to_exclude": [
+        "Elevation indicators with triangle markers",
+        "Plain detail circles without cutting plane lines",
+        "Arrow symbols",
+        "Directional flow indicators",
+        "Dashed circle detail callouts"
+      ]
+    },
+    "title": {
+      "name": "Title Callout",
+      "text_prompt": "A very small circular callout symbol, much smaller than regular detail callouts. Circle diameter is only 0.2-0.4 inches (15-35 pixels at 150 DPI). Appears INSIDE or immediately adjacent to an enlarged detail drawing box boundary, typically at the top-left or bottom-left corner of that detail box. Contains only a simple reference number (1-9) or letter (A-Z) that matches a detail callout on the main plan. The circle is thin-outlined, standalone, and compact. CRITICAL: This is NOT the large sheet title block with drawing name and sheet number - those are much larger rectangular areas. This is a tiny circle marker within individual detail enlargements. Size constraint: bounding box must be very small (15-35 pixels), NOT large title blocks or text areas exceeding 100 pixels in any dimension.",
+      "visual_characteristics": [
+        "Small circular outline",
+        "Located at bottom/corner of detail drawing boxes",
+        "Contains reference number or letter matching detail callout",
+        "Usually near text labels (detail name, scale)",
+        "Smaller than typical plan callouts (0.25-0.5 inches)"
+      ],
+      "false_positives_to_exclude": [
+        "Detail callouts on main plan view",
+        "Section/elevation markers",
+        "Title block text",
+        "Sheet numbers in title blocks"
+      ]
+    }
+  },
+  "global_filters": {
+    "exclude_patterns": [
+      "NORTH",
+      "SCALE",
+      "TYP",
+      "SIM",
+      "REF",
+      "SEE",
+      "NOTE",
+      "DIM",
+      "SIZE",
+      "MIN",
+      "MAX",
+      "APPROX",
+      "VARIES",
+      "ABOVE",
+      "BELOW",
+      "BEYOND",
+      "OVERALL",
+      "EXIST",
+      "WINDOW",
+      "DOOR",
+      "WALL",
+      "FLOOR",
+      "CEILING",
+      "STAIR",
+      "ROOM",
+      "BATH",
+      "KITCHEN",
+      "POST",
+      "BEAM",
+      "HEADER",
+      "JOIST",
+      "RAFTER",
+      "RIDGE",
+      "VALLEY",
+      "TRUSS",
+      "STEEL",
+      "CONC",
+      "WOOD",
+      "METAL",
+      "ALUM",
+      "PROP",
+      "FUTURE",
+      "OPTION",
+      "ALT",
+      "VERIFY",
+      "VER",
+      "FIELD CHECK"
+    ],
+    "exclude_rules": [
+      "Any circle containing only words with 3+ consecutive letters",
+      "Circles with dimension text (measurements with fractions or units like 2-1/2\", 16'-0\")",
+      "Circles positioned within title blocks",
+      "Grid reference markers (single letters along grid lines)",
+      "Circles without clear geometric precision (freehand drawn)"
+    ]
+  },
+  "sheet_reference_format": {
+    "pattern": "[DISCIPLINE][NUMBER]",
+    "discipline_codes": {
+      "S": "Structural",
+      "A": "Architectural",
+      "M": "Mechanical",
+      "E": "Electrical",
+      "P": "Plumbing",
+      "C": "Civil",
+      "L": "Landscape"
+    },
+    "examples": [
+      "S5.1",
+      "A-201",
+      "S-501",
+      "M-301",
+      "E-101"
+    ]
+  }
+}
