@@ -55,6 +55,7 @@ export interface YOLOExtractionOptions {
   confThreshold?: number; // Default: 0.25
   standard?: 'auto' | 'pspc' | 'ncs';
   validate?: boolean;
+  useGemini?: boolean;   // Use Gemini Flash 2 for text extraction (requires OPENROUTER_API_KEY)
 }
 
 function mapClassToLabel(className: string): string {
@@ -77,6 +78,7 @@ export async function runYOLOPipeline(
     confThreshold = 0.25, // v5 optimal confidence
     standard = 'auto',
     validate = false,
+    useGemini = false,
   } = options;
 
   if (!existsSync(PYTHON_API)) {
@@ -121,6 +123,15 @@ export async function runYOLOPipeline(
 
       if (!validate) {
         args.push('--no-filters');
+      }
+
+      if (useGemini) {
+        const apiKey = process.env.OPENROUTER_API_KEY;
+        if (!apiKey) {
+          console.error('OPENROUTER_API_KEY environment variable required for Gemini extraction');
+          return null;
+        }
+        args.push('--gemini', '--openrouter-key', apiKey);
       }
 
       await $`${args}`.quiet();
@@ -375,6 +386,7 @@ export async function detectOnSheet(
     confThreshold = 0.25, // v5 optimal confidence
     standard = 'auto',
     validate = true,
+    useGemini = false,
   } = options;
 
   if (!existsSync(PYTHON_API)) {
@@ -389,6 +401,9 @@ export async function detectOnSheet(
   mkdirSync(outputDir, { recursive: true });
 
   console.log(`Running YOLO v6 Iteration 5 detection on sheet ${sheet.sheet_number}...`);
+  if (useGemini) {
+    console.log('  Using Gemini Flash 2 for text extraction');
+  }
 
   try {
     // Downsample to 72 DPI for detection (model was trained on 72 DPI)
@@ -412,6 +427,14 @@ export async function detectOnSheet(
 
     if (!validate) {
       args.push('--no-filters');
+    }
+
+    if (useGemini) {
+      const apiKey = process.env.OPENROUTER_API_KEY;
+      if (!apiKey) {
+        throw new Error('OPENROUTER_API_KEY environment variable required for Gemini extraction');
+      }
+      args.push('--gemini', '--openrouter-key', apiKey);
     }
 
     await $`${args}`.quiet();
