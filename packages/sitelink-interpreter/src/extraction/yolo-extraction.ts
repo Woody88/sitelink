@@ -211,6 +211,7 @@ export async function extractWithYOLO(
     confThreshold = 0.25,
     standard = 'auto',
     validate = false,
+    useGemini = false,
   } = options;
 
   const result = {
@@ -229,6 +230,9 @@ export async function extractWithYOLO(
   const allSheets = sheets.getByPdf(pdfPath);
 
   console.log(`Running YOLO v6 Iteration 5 detection on ${allSheets.length} sheets...`);
+  if (useGemini) {
+    console.log('  Using Gemini Flash 2 for text extraction');
+  }
 
   // Run detection on each sheet using pre-rendered images
   for (let i = 0; i < allSheets.length; i++) {
@@ -264,6 +268,14 @@ export async function extractWithYOLO(
 
     if (!validate) {
       args.push('--no-filters');
+    }
+
+    if (useGemini) {
+      const apiKey = process.env.OPENROUTER_API_KEY;
+      if (!apiKey) {
+        throw new Error('OPENROUTER_API_KEY environment variable required for Gemini extraction');
+      }
+      args.push('--gemini', '--openrouter-key', apiKey);
     }
 
     await $`${args}`.quiet();
