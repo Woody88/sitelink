@@ -58,19 +58,76 @@ async function getImageDimensions(imagePath: string): Promise<{ width: number; h
 }
 
 const SHEET_NUMBER_EXTRACTOR = join(import.meta.dir, "extract_sheet_number.py");
+const SHEET_INFO_GEMINI_EXTRACTOR = join(import.meta.dir, "extract_sheet_info_gemini.py");
 
-async function parseSheetNumber(pageNumber: number, imagePath: string): Promise<string> {
+interface SheetInfo {
+  sheet_number: string;
+  sheet_title: string | null;
+}
+
+interface GeminiResult {
+  sheet_number: string | null;
+  sheet_title: string | null;
+  error?: string;
+}
+
+async function extractSheetInfoBatch(imagePaths: string[]): Promise<SheetInfo[]> {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  const results: SheetInfo[] = [];
+
+  if (apiKey && imagePaths.length > 0) {
+    try {
+      console.log(`  Extracting sheet info with Gemini (${imagePaths.length} pages, batched)...`);
+      const args = [...imagePaths, '--openrouter-key', apiKey];
+      const output = await $`python ${SHEET_INFO_GEMINI_EXTRACTOR} ${args}`.quiet().text();
+      const parsed = JSON.parse(output) as GeminiResult[];
+
+      for (let i = 0; i < imagePaths.length; i++) {
+        const pageNumber = i + 1;
+        const geminiResult = parsed[i];
+
+        if (geminiResult && (geminiResult.sheet_number || geminiResult.sheet_title)) {
+          results.push({
+            sheet_number: geminiResult.sheet_number ?? `Sheet-${pageNumber}`,
+            sheet_title: geminiResult.sheet_title ?? null,
+          });
+        } else {
+          results.push(await fallbackToOCR(pageNumber, imagePaths[i]!));
+        }
+      }
+
+      const successCount = parsed.filter(r => r.sheet_number || r.sheet_title).length;
+      console.log(`  Gemini extracted ${successCount}/${imagePaths.length} sheets`);
+      return results;
+    } catch (error) {
+      console.warn(`  Gemini batch extraction failed: ${error}`);
+    }
+  }
+
+  console.log(`  Falling back to OCR extraction...`);
+  for (let i = 0; i < imagePaths.length; i++) {
+    results.push(await fallbackToOCR(i + 1, imagePaths[i]!));
+  }
+  return results;
+}
+
+async function fallbackToOCR(pageNumber: number, imagePath: string): Promise<SheetInfo> {
   try {
     const result = await $`python ${SHEET_NUMBER_EXTRACTOR} ${imagePath}`.quiet().text();
     const parsed = JSON.parse(result);
     if (parsed.sheet_number) {
-      console.log(`    Extracted sheet number: ${parsed.sheet_number}`);
-      return parsed.sheet_number;
+      return {
+        sheet_number: parsed.sheet_number,
+        sheet_title: null,
+      };
     }
   } catch (error) {
-    console.warn(`    OCR extraction failed for page ${pageNumber}: ${error}`);
+    // Silent fallback
   }
-  return `Sheet-${pageNumber}`;
+  return {
+    sheet_number: `Sheet-${pageNumber}`,
+    sheet_title: null,
+  };
 }
 
 export async function ingestPdf(pdfPath: string): Promise<IngestionResult> {
@@ -95,19 +152,21 @@ export async function ingestPdf(pdfPath: string): Promise<IngestionResult> {
     const images = await convertPdfToImages(pdfPath, OUTPUT_DIR);
     console.log(`Converted to ${images.length} PNG images`);
 
+    const sheetInfos = await extractSheetInfoBatch(images);
+
     for (let i = 0; i < images.length; i++) {
       const imagePath = images[i]!;
       const pageNumber = i + 1;
+      const sheetInfo = sheetInfos[i]!;
 
       const dimensions = await getImageDimensions(imagePath);
-      const sheetNumber = await parseSheetNumber(pageNumber, imagePath);
 
       const sheet = sheets.insert({
         pdf_path: pdfPath,
         page_number: pageNumber,
-        sheet_number: sheetNumber,
+        sheet_number: sheetInfo.sheet_number,
         sheet_type: null,
-        sheet_title: null,
+        sheet_title: sheetInfo.sheet_title,
         image_path: imagePath,
         width: dimensions.width,
         height: dimensions.height,
@@ -115,7 +174,8 @@ export async function ingestPdf(pdfPath: string): Promise<IngestionResult> {
       });
 
       result.sheets.push(sheet);
-      console.log(`  Sheet ${pageNumber}: ${sheetNumber ?? "Unknown"} (${dimensions.width}x${dimensions.height})`);
+      const titleSuffix = sheetInfo.sheet_title ? ` - ${sheetInfo.sheet_title}` : '';
+      console.log(`  Sheet ${pageNumber}: ${sheetInfo.sheet_number}${titleSuffix} (${dimensions.width}x${dimensions.height})`);
     }
 
     console.log(`\nIngestion complete: ${result.sheets.length} sheets processed`);

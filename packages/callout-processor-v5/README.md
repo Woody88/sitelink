@@ -96,7 +96,23 @@ python src/api_detect.py --pdf plan.pdf --page 1 --output ./output \
 # With environment variable
 export OPENROUTER_API_KEY="sk-or-v1-..."
 python src/api_detect.py --pdf plan.pdf --page 1 --output ./output --gemini
+
+# With high-resolution image for better accuracy (recommended)
+# Detection runs on 72 DPI, but Gemini crops are taken from the 150 DPI original
+python src/api_detect.py --image downsampled-72dpi.png --output ./output \
+  --gemini --openrouter-key "sk-or-v1-..." \
+  --hires-image original-150dpi.png
 ```
+
+#### High-Resolution Crops
+
+When using `--hires-image`, Gemini receives crops from the high-resolution image:
+- YOLO detection runs on 72 DPI image (model requirement)
+- Bounding boxes are scaled to 150 DPI coordinates
+- Crops are taken from the 150 DPI image (2x larger text)
+- Tight bbox crops with no padding to avoid surrounding text confusion
+
+This significantly reduces hallucinations by giving Gemini clearer, larger text to read.
 
 #### Performance
 
