@@ -22,7 +22,9 @@ Output:
 """
 
 import argparse
+import base64
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -82,6 +84,116 @@ LEADER_TEXT_ROI_H = 50   # height of text ROI at line endpoint
 CIRCLE_MIN_RADIUS = 20   # minimum circle radius in pixels (at 72 DPI)
 CIRCLE_MAX_RADIUS = 80   # maximum circle radius in pixels
 CIRCLE_SEARCH_EXPAND = 50  # pixels to expand search area beyond bbox
+
+# OpenRouter API for Gemini
+OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
+GEMINI_MODEL = "google/gemini-2.0-flash-001"
+
+
+def extract_callouts_with_gemini(
+    crop_images: list[tuple[int, np.ndarray]],
+    api_key: str,
+    batch_size: int = 10
+) -> dict[int, tuple[str | None, str | None]]:
+    """
+    Extract identifier and target_sheet from callout crops using Gemini Flash 2.
+
+    Args:
+        crop_images: List of (detection_idx, crop_image) tuples
+        api_key: OpenRouter API key
+        batch_size: Number of images to process per API call
+
+    Returns:
+        Dict mapping detection_idx to (identifier, target_sheet)
+    """
+    import httpx
+
+    results = {}
+
+    # Process in batches
+    for batch_start in range(0, len(crop_images), batch_size):
+        batch = crop_images[batch_start:batch_start + batch_size]
+
+        # Build the prompt with all images in the batch
+        content = []
+
+        # Add instruction text
+        content.append({
+            "type": "text",
+            "text": """Analyze these construction plan callout symbols. Each image shows a CROPPED region with ONE main callout in the CENTER.
+
+The callout is a circular bubble (often with triangular pointers) containing:
+- Top half: Detail identifier (e.g., "1", "10", "A2", "T5") - usually 1-2 characters
+- Bottom half: Sheet reference (e.g., "S2.0", "S20", "A-546") - usually starts with a letter
+
+IMPORTANT: Focus on the callout bubble CLOSEST TO THE CENTER of each image. Ignore any other callouts or text visible at the edges.
+
+Return a JSON array with one object per image in order:
+[
+  {"idx": 0, "identifier": "10", "target_sheet": "S2.0"},
+  {"idx": 1, "identifier": "5", "target_sheet": "S20"},
+  ...
+]
+
+If you cannot read a value, use null. Only return the JSON array, no other text."""
+        })
+
+        # Add each image
+        for i, (det_idx, crop) in enumerate(batch):
+            # Convert numpy array to base64 PNG
+            _, buffer = cv2.imencode('.png', crop)
+            img_base64 = base64.b64encode(buffer).decode('utf-8')
+
+            content.append({
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/png;base64,{img_base64}"
+                }
+            })
+
+        # Make API request
+        try:
+            response = httpx.post(
+                OPENROUTER_API_URL,
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": GEMINI_MODEL,
+                    "messages": [
+                        {"role": "user", "content": content}
+                    ],
+                    "max_tokens": 2000,
+                    "temperature": 0,
+                },
+                timeout=60.0
+            )
+            response.raise_for_status()
+
+            result_json = response.json()
+            answer = result_json["choices"][0]["message"]["content"]
+
+            # Parse the JSON response
+            # Extract JSON array from response (might have markdown code blocks)
+            json_match = re.search(r'\[[\s\S]*\]', answer)
+            if json_match:
+                parsed = json.loads(json_match.group())
+                for i, item in enumerate(parsed):
+                    if i < len(batch):
+                        det_idx = batch[i][0]
+                        results[det_idx] = (
+                            item.get("identifier"),
+                            item.get("target_sheet")
+                        )
+
+        except Exception as e:
+            print(f"Gemini API error: {e}", file=sys.stderr)
+            # Mark all in batch as failed
+            for det_idx, _ in batch:
+                results[det_idx] = (None, None)
+
+    return results
 
 
 def find_and_ocr_callout_circle(
@@ -1188,6 +1300,9 @@ def main():
                         help="Enable smart text region detection (default: enabled)")
     parser.add_argument("--no-smart-text", action="store_true",
                         help="Disable smart text region detection")
+    parser.add_argument("--gemini", action="store_true",
+                        help="Use Gemini Flash 2 for callout text extraction (requires API key)")
+    parser.add_argument("--openrouter-key", help="OpenRouter API key (or set OPENROUTER_API_KEY env var)")
 
     args = parser.parse_args()
 
@@ -1224,39 +1339,73 @@ def main():
     use_smart_text = args.smart_text and not args.no_smart_text
     print(f"Smart text detection: {'enabled' if use_smart_text else 'disabled'}", file=sys.stderr)
 
+    # Check Gemini settings
+    gemini_api_key = None
+    if args.gemini:
+        gemini_api_key = args.openrouter_key or os.environ.get("OPENROUTER_API_KEY")
+        if not gemini_api_key:
+            print("Error: --gemini requires API key via --openrouter-key or OPENROUTER_API_KEY env var",
+                  file=sys.stderr)
+            sys.exit(1)
+        print("Gemini extraction: enabled", file=sys.stderr)
+
     # Save results
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Run detection
+    # Run detection (without OCR if using Gemini)
     print("Running detection...", file=sys.stderr)
     detections = detect_callouts(
         image,
         model,
         conf=args.conf,
         use_filters=not args.no_filters,
-        enable_ocr=not args.no_ocr,
+        enable_ocr=not args.no_ocr and not args.gemini,  # Skip OCR if using Gemini
         smart_text=use_smart_text,
         debug_dir=output_dir if not args.no_ocr else None
     )
 
     print(f"Found {len(detections)} callouts", file=sys.stderr)
 
-    # Save debug crops if OCR was enabled
-    if not args.no_ocr:
-        debug_dir = output_dir / "debug_crops"
-        debug_dir.mkdir(exist_ok=True)
+    # Save debug crops and optionally run Gemini extraction
+    debug_dir = output_dir / "debug_crops"
+    debug_dir.mkdir(exist_ok=True)
+    crop_images = []  # For Gemini batch processing
 
+    for i, det in enumerate(detections):
+        x, y, w, h = det['bbox']
+        x, y, w, h = int(x), int(y), int(w), int(h)
+
+        # Get crop for debug/Gemini
+        _, _, debug_crop = ocr_crop(image, x, y, w, h, return_debug=True)
+        if debug_crop is not None:
+            debug_path = debug_dir / f"crop_{i}_{det['class']}_conf{det['confidence']:.2f}.png"
+            cv2.imwrite(str(debug_path), debug_crop)
+            print(f"  Saved debug crop: {debug_path}", file=sys.stderr)
+
+            if args.gemini:
+                crop_images.append((i, debug_crop))
+
+    # Run Gemini extraction if enabled
+    if args.gemini and crop_images:
+        print(f"Running Gemini extraction on {len(crop_images)} crops...", file=sys.stderr)
+        gemini_results = extract_callouts_with_gemini(crop_images, gemini_api_key, batch_size=10)
+
+        # Update detections with Gemini results
         for i, det in enumerate(detections):
-            x, y, w, h = det['bbox']
-            x, y, w, h = int(x), int(y), int(w), int(h)
+            if i in gemini_results:
+                identifier, target_sheet = gemini_results[i]
+                det['identifier'] = identifier
+                det['target_sheet'] = target_sheet
+                det['ocr_text'] = f"{identifier or ''} / {target_sheet or ''}".strip(' /')
+                det['ocr_confidence'] = 1.0 if identifier or target_sheet else 0.0
+            else:
+                det['identifier'] = None
+                det['target_sheet'] = None
+                det['ocr_text'] = None
+                det['ocr_confidence'] = 0.0
 
-            # Re-run OCR with debug flag to get crop
-            _, _, debug_crop = ocr_crop(image, x, y, w, h, return_debug=True)
-            if debug_crop is not None:
-                debug_path = debug_dir / f"crop_{i}_{det['class']}_conf{det['confidence']:.2f}.png"
-                cv2.imwrite(str(debug_path), debug_crop)
-                print(f"  Saved debug crop: {debug_path}", file=sys.stderr)
+        print(f"Gemini extraction complete", file=sys.stderr)
 
     output_file = output_dir / "detections.json"
     with open(output_file, 'w') as f:
