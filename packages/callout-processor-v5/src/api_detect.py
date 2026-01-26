@@ -275,33 +275,71 @@ def find_and_ocr_callout_circle(
                 identifier = None
                 target_sheet = None
 
-                # Sheet reference pattern: letter followed by number (S2.0, S20, A-546)
-                # Must start with a letter to be a valid sheet reference
-                sheet_ref_pattern = re.compile(r'^[A-Z]\d+\.?\d*$|^[A-Z]-\d+$')
+                # Sheet reference pattern: typically S + number (S2.0, S20) or letter-number (A-546)
+                # More specific to avoid matching detail numbers like T8, A2
+                sheet_ref_pattern = re.compile(
+                    r'^S\d+\.?\d*$|'    # S2.0, S20, S1.0 (most common)
+                    r'^[A-Z]-\d+$|'     # A-546, B-123
+                    r'^[A-Z]\d{2,}$'    # Must have 2+ digits if just letter+number (A12, not A2)
+                )
 
-                if len(corrected_texts) >= 2:
-                    # Two-line format: identifier on top, sheet reference below
-                    # First text is always the identifier
-                    identifier = corrected_texts[0].replace(' ', '')
+                # Detail number pattern: typically short (1-3 chars), number or letter+single digit
+                # Examples: 1, 10, 18, A, B, A2, T8, etc.
+                detail_num_pattern = re.compile(r'^\d{1,2}$|^[A-Z]$|^[A-Z]\d$')
 
-                    # Find the sheet reference - look for text matching sheet pattern
-                    # Prefer the second text, but check all texts after the first
-                    for t in corrected_texts[1:]:
-                        clean_t = t.replace(' ', '')
-                        if sheet_ref_pattern.match(clean_t):
-                            target_sheet = clean_t
-                            break
+                # Filter out noise - text that's clearly not callout content
+                def is_valid_callout_text(t):
+                    clean = t.replace(' ', '')
+                    if len(clean) > 10:  # Too long to be callout text
+                        return False
+                    if len(clean) < 1:
+                        return False
+                    # Filter common noise patterns
+                    noise_patterns = ['SDF', 'SDR', 'USOF', 'FROS', 'EXTE', 'ENTOF']
+                    if clean in noise_patterns:
+                        return False
+                    return True
 
-                    # If no sheet pattern found, use second text if it looks numeric
-                    if target_sheet is None and len(corrected_texts) >= 2:
-                        second_text = corrected_texts[1].replace(' ', '')
-                        # Accept if it's at least 2 chars and contains a digit
-                        if len(second_text) >= 2 and any(c.isdigit() for c in second_text):
-                            target_sheet = second_text
+                # Filter texts to only valid callout content
+                valid_texts = [t for t in corrected_texts if is_valid_callout_text(t)]
 
-                elif len(corrected_texts) == 1:
-                    # Single line - try to parse as identifier
-                    text = corrected_texts[0].replace(' ', '')
+                if len(valid_texts) >= 2:
+                    first_text = valid_texts[0].replace(' ', '')
+
+                    # Check if first text looks like a sheet reference (S2.0, S20)
+                    # If so, the order might be reversed or it's capturing wrong text
+                    if sheet_ref_pattern.match(first_text):
+                        # First text is sheet ref - look for detail number in other texts
+                        target_sheet = first_text
+                        for t in valid_texts[1:]:
+                            clean_t = t.replace(' ', '')
+                            if detail_num_pattern.match(clean_t):
+                                identifier = clean_t
+                                break
+                        # If no detail number found, check if second text is numeric
+                        if identifier is None and len(valid_texts) >= 2:
+                            second = valid_texts[1].replace(' ', '')
+                            if second.isdigit() or (len(second) <= 3 and any(c.isdigit() for c in second)):
+                                identifier = second
+                    else:
+                        # Normal case: first text is identifier
+                        identifier = first_text
+
+                        # Find sheet reference in remaining texts
+                        for t in valid_texts[1:]:
+                            clean_t = t.replace(' ', '')
+                            if sheet_ref_pattern.match(clean_t):
+                                target_sheet = clean_t
+                                break
+
+                        # Fallback: use second text if it looks like a sheet ref
+                        if target_sheet is None and len(valid_texts) >= 2:
+                            second_text = valid_texts[1].replace(' ', '')
+                            if len(second_text) >= 2 and any(c.isdigit() for c in second_text):
+                                target_sheet = second_text
+
+                elif len(valid_texts) == 1:
+                    text = valid_texts[0].replace(' ', '')
                     # Check if it looks like a sheet reference
                     if sheet_ref_pattern.match(text):
                         target_sheet = text
