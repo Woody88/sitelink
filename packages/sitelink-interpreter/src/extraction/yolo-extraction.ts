@@ -4,9 +4,9 @@ import { join, basename } from "path";
 import { sheets, entities, detectionRuns, type Sheet, type Entity } from "../db/index.ts";
 
 const PYTHON_API = join(import.meta.dir, "../../../callout-processor-v5/src/api_detect.py");
-// v5 model: 96.5% P/R on Canadian, 97.1% P / 95.4% R combined (Canadian + US)
+// v6 iteration 5 model: YOLOv8n, 96.6% mAP50, 88.8% mAP50-95
 // Trained with SAHI tiling, 72 DPI, 2048px tiles
-const YOLO_MODEL = join(import.meta.dir, "../../../callout-processor-v5/runs/detect/v5_combined2/weights/best.pt");
+const YOLO_MODEL = join(import.meta.dir, "../../../callout-processor-v6-experimental/weights/best.pt");
 const OUTPUT_DIR = join(import.meta.dir, "../../output/yolo-extractions");
 
 interface YOLODetection {
@@ -61,7 +61,6 @@ function mapClassToLabel(className: string): string {
   const mapping: Record<string, string> = {
     detail: "detail_callout",
     elevation: "elevation_callout",
-    section: "section_cut",
     title: "title_callout",
   };
   return mapping[className] ?? className;
@@ -97,7 +96,7 @@ export async function runYOLOPipeline(
     mkdirSync(OUTPUT_DIR, { recursive: true });
   }
 
-  console.log(`Running YOLO v5 detection on ${pdfPath}...`);
+  console.log(`Running YOLO v6 Iteration 5 detection on ${pdfPath}...`);
   console.log(`  DPI: ${dpi}, Tile Size: ${tileSize}, Overlap: ${overlap}, Conf: ${confThreshold}`);
 
   try {
@@ -167,7 +166,7 @@ export async function runYOLOPipeline(
 
     const summary: PipelineSummary = {
       pdf_path: pdfPath,
-      model: 'v5_combined2',
+      model: 'v6_iteration5',
       dpi,
       standard,
       total_sheets: numPages,
@@ -181,7 +180,7 @@ export async function runYOLOPipeline(
     const summaryPath = join(outputDir, 'summary.json');
     writeFileSync(summaryPath, JSON.stringify(summary, null, 2));
 
-    console.log(`v5 detection complete: ${summary.total_detections} detections across ${summary.total_sheets} sheets`);
+    console.log(`v6 iteration 5 detection complete: ${summary.total_detections} detections across ${summary.total_sheets} sheets`);
     return summary;
   } catch (error) {
     console.error(`YOLO pipeline failed: ${error}`);
@@ -218,7 +217,7 @@ export async function extractWithYOLO(
 
   const allSheets = sheets.getByPdf(pdfPath);
 
-  console.log(`Running YOLO v5 detection on ${allSheets.length} sheets...`);
+  console.log(`Running YOLO v6 Iteration 5 detection on ${allSheets.length} sheets...`);
 
   // Run detection on each sheet using pre-rendered images
   for (let i = 0; i < allSheets.length; i++) {
@@ -234,9 +233,15 @@ export async function extractWithYOLO(
     console.log(`  Detecting on sheet ${i + 1}/${allSheets.length}...`);
 
     // Downsample to 72 DPI for detection (model was trained on 72 DPI)
-    // Images from ingestion are 150 DPI (7200x5400) but model expects 72 DPI (3456x2592)
+    // Images from ingestion are at 150 DPI, need to scale to 72 DPI
+    const DISPLAY_DPI = 150;
+    const DETECTION_DPI = 72;
+    const scaleFactor = DETECTION_DPI / DISPLAY_DPI;
+    const targetWidth = Math.round((sheet.width ?? 7200) * scaleFactor);
+    const targetHeight = Math.round((sheet.height ?? 5400) * scaleFactor);
+
     const downsampledPath = join(sheetOutputDir, 'downsampled-72dpi.png');
-    await $`python -c "from PIL import Image; img = Image.open('${sheet.image_path}'); downsampled = img.resize((3456, 2592), Image.Resampling.LANCZOS); downsampled.save('${downsampledPath}')"`.quiet();
+    await $`python -c "from PIL import Image; img = Image.open('${sheet.image_path}'); downsampled = img.resize((${targetWidth}, ${targetHeight}), Image.Resampling.LANCZOS); downsampled.save('${downsampledPath}')"`.quiet();
 
     // Use downsampled image for detection
     const args = [
@@ -271,20 +276,26 @@ export async function extractWithYOLO(
       continue;
     }
 
-    // v5 format: {detections: [{bbox: [x,y,w,h], class: string, confidence: number}]}
+    // v6 format with OCR: {detections: [{bbox, class, confidence, ocr_text, identifier, target_sheet}]}
     const detectionsFile = JSON.parse(readFileSync(detectionsPath, 'utf-8')) as {
       detections: Array<{
         bbox: number[];
         class: string;
         confidence: number;
+        ocr_text: string | null;
+        ocr_confidence: number;
+        identifier: string | null;
+        target_sheet: string | null;
       }>;
     };
 
     totalDetections += detectionsFile.detections.length;
 
-    // Scale factor: detection was on 72 DPI (3456x2592), but we need coords for display resolution
-    const scaleX = (sheet.width ?? 7200) / 3456;
-    const scaleY = (sheet.height ?? 5400) / 2592;
+    // Scale factor: detection was on 72 DPI, display is at 150 DPI
+    // Simply multiply by the DPI ratio to convert coordinates
+    const DISPLAY_DPI = 150;
+    const DETECTION_DPI = 72;
+    const scaleFactor = DISPLAY_DPI / DETECTION_DPI;
 
     for (const det of detectionsFile.detections) {
       const classLabel = mapClassToLabel(det.class);
@@ -295,29 +306,29 @@ export async function extractWithYOLO(
       }
 
       // Convert [x, y, w, h] to [x1, y1, x2, y2] and scale up to display resolution
-      const x1 = ((det.bbox[0] ?? 0) * scaleX);
-      const y1 = ((det.bbox[1] ?? 0) * scaleY);
-      const x2 = (((det.bbox[0] ?? 0) + (det.bbox[2] ?? 0)) * scaleX);
-      const y2 = (((det.bbox[1] ?? 0) + (det.bbox[3] ?? 0)) * scaleY);
+      const x1 = ((det.bbox[0] ?? 0) * scaleFactor);
+      const y1 = ((det.bbox[1] ?? 0) * scaleFactor);
+      const x2 = (((det.bbox[0] ?? 0) + (det.bbox[2] ?? 0)) * scaleFactor);
+      const y2 = (((det.bbox[1] ?? 0) + (det.bbox[3] ?? 0)) * scaleFactor);
 
       const entity = entities.insert({
         sheet_id: sheet.id,
         class_label: classLabel,
-        ocr_text: null,  // v5 doesn't include OCR
+        ocr_text: det.ocr_text,
         confidence: det.confidence,
         bbox_x1: x1 as number,
         bbox_y1: y1 as number,
         bbox_x2: x2 as number,
         bbox_y2: y2 as number,
-        identifier: null,
-        target_sheet: null,
+        identifier: det.identifier,
+        target_sheet: det.target_sheet,
         triangle_count: null,
         triangle_positions: null,
         yolo_confidence: det.confidence,
-        ocr_confidence: null,
-        detection_method: 'yolo_v5',
+        ocr_confidence: det.ocr_confidence,
+        detection_method: 'yolo_v6_iter5',
         standard,
-        raw_ocr_text: null,
+        raw_ocr_text: det.ocr_text,
         crop_image_path: null,
         needs_review: det.confidence < 0.7 ? 1 : 0,
         reviewed: 0,
@@ -332,7 +343,7 @@ export async function extractWithYOLO(
   // Create detection run record
   const run = detectionRuns.insert({
     pdf_path: pdfPath,
-    model_version: 'v5_combined2',
+    model_version: 'v6_iteration5',
     parameters_json: JSON.stringify({
       dpi: 72,
       tileSize: 2048,
@@ -345,7 +356,7 @@ export async function extractWithYOLO(
   });
   result.runId = run.id;
 
-  console.log(`v5 detection complete: ${totalDetections} detections across ${allSheets.length} sheets`);
+  console.log(`v6 iteration 5 detection complete: ${totalDetections} detections across ${allSheets.length} sheets`);
 
   console.log(`Inserted ${result.entities.length} entities from YOLO pipeline`);
   return result;
@@ -377,15 +388,24 @@ export async function detectOnSheet(
   const outputDir = join(OUTPUT_DIR, `sheet-${sheetId}`);
   mkdirSync(outputDir, { recursive: true });
 
-  console.log(`Running YOLO v5 detection on sheet ${sheet.sheet_number}...`);
+  console.log(`Running YOLO v6 Iteration 5 detection on sheet ${sheet.sheet_number}...`);
 
   try {
-    const imagePath = sheet.image_path;
+    // Downsample to 72 DPI for detection (model was trained on 72 DPI)
+    // Images from ingestion are at 150 DPI, need to scale to 72 DPI
+    const DISPLAY_DPI = 150;
+    const DETECTION_DPI = 72;
+    const scaleFactor = DETECTION_DPI / DISPLAY_DPI;
+    const targetWidth = Math.round((sheet.width ?? 7200) * scaleFactor);
+    const targetHeight = Math.round((sheet.height ?? 5400) * scaleFactor);
 
-    // Run v5 detection using api_detect.py
+    const downsampledPath = join(outputDir, 'downsampled-72dpi.png');
+    await $`python -c "from PIL import Image; img = Image.open('${sheet.image_path}'); downsampled = img.resize((${targetWidth}, ${targetHeight}), Image.Resampling.LANCZOS); downsampled.save('${downsampledPath}')"`.quiet();
+
+    // Run v5 detection using api_detect.py on downsampled image
     const args = [
       'python', PYTHON_API,
-      '--image', imagePath,
+      '--image', downsampledPath,
       '--output', outputDir,
       '--conf', String(confThreshold),
     ];
@@ -401,45 +421,52 @@ export async function detectOnSheet(
       return [];
     }
 
-    // v5 format: {detections: [{bbox: [x,y,w,h], class: string, confidence: number}]}
+    // v6 format with OCR: {detections: [{bbox, class, confidence, ocr_text, identifier, target_sheet}]}
     const detectionsFile = JSON.parse(readFileSync(detectionsPath, 'utf-8')) as {
       detections: Array<{
         bbox: number[];  // [x, y, w, h]
         class: string;
         confidence: number;
+        ocr_text: string | null;
+        ocr_confidence: number;
+        identifier: string | null;
+        target_sheet: string | null;
       }>;
     };
 
     const detections = detectionsFile.detections;
 
+    // Scale factor to convert 72 DPI coords back to 150 DPI display coords
+    const upscaleFactor = DISPLAY_DPI / DETECTION_DPI;
+
     const newEntities: Entity[] = [];
 
     for (const det of detections) {
-      // Convert [x, y, w, h] to [x1, y1, x2, y2]
-      const x1 = det.bbox[0] ?? 0;
-      const y1 = det.bbox[1] ?? 0;
-      const x2 = (det.bbox[0] ?? 0) + (det.bbox[2] ?? 0);
-      const y2 = (det.bbox[1] ?? 0) + (det.bbox[3] ?? 0);
+      // Convert [x, y, w, h] to [x1, y1, x2, y2] and scale to display resolution
+      const x1 = (det.bbox[0] ?? 0) * upscaleFactor;
+      const y1 = (det.bbox[1] ?? 0) * upscaleFactor;
+      const x2 = ((det.bbox[0] ?? 0) + (det.bbox[2] ?? 0)) * upscaleFactor;
+      const y2 = ((det.bbox[1] ?? 0) + (det.bbox[3] ?? 0)) * upscaleFactor;
 
       const entity = entities.insert({
         sheet_id: sheetId,
         class_label: mapClassToLabel(det.class),
-        ocr_text: null,  // v5 doesn't include OCR in detections
+        ocr_text: det.ocr_text,
         confidence: det.confidence,
         bbox_x1: x1 as number,
         bbox_y1: y1 as number,
         bbox_x2: x2 as number,
         bbox_y2: y2 as number,
-        identifier: null,
-        target_sheet: null,
+        identifier: det.identifier,
+        target_sheet: det.target_sheet,
         triangle_count: null,
         triangle_positions: null,
         yolo_confidence: det.confidence,
-        ocr_confidence: null,
-        detection_method: 'yolo_v5',
+        ocr_confidence: det.ocr_confidence,
+        detection_method: 'yolo_v6_iter5',
         standard,
-        raw_ocr_text: null,
-        crop_image_path: null,  // v5 api_detect doesn't save crops
+        raw_ocr_text: det.ocr_text,
+        crop_image_path: null,
         needs_review: det.confidence < 0.7 ? 1 : 0,
         reviewed: 0,
         reviewed_by: null,
