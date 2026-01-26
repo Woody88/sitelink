@@ -70,6 +70,47 @@ See full directory structure in main README above.
 - ✅ Post-processing filters (96.5% precision)
 - ✅ Multi-standard support (Canadian + US plans)
 - ✅ Three callout classes (detail, elevation, title)
+- ✅ **Gemini Flash 2 text extraction** (100% accuracy vs 51% OCR)
+
+## Text Extraction
+
+### Option 1: OCR-based (Default)
+Uses PaddleOCR with circle detection and position-based classification.
+- **Accuracy:** ~51% identifier, ~77% sheet reference
+- **Speed:** Fast (local processing)
+- **Cost:** Free
+
+### Option 2: Gemini Flash 2 (Recommended)
+Uses Google's Gemini Flash 2 via OpenRouter API for visual text extraction.
+- **Accuracy:** ~100% identifier, ~100% sheet reference
+- **Speed:** ~2.2s per batch of 10 images (~235ms per callout)
+- **Cost:** ~$0.001 per callout (OpenRouter pricing)
+
+#### Usage
+
+```bash
+# With API key argument
+python src/api_detect.py --pdf plan.pdf --page 1 --output ./output \
+  --gemini --openrouter-key "sk-or-v1-..."
+
+# With environment variable
+export OPENROUTER_API_KEY="sk-or-v1-..."
+python src/api_detect.py --pdf plan.pdf --page 1 --output ./output --gemini
+```
+
+#### Performance
+
+| Page Size | Callouts | Gemini Time | Total Time |
+|-----------|----------|-------------|------------|
+| Light     | ~20      | ~5s         | ~15s       |
+| Medium    | ~50      | ~12s        | ~25s       |
+| Dense     | ~100     | ~25s        | ~40s       |
+
+#### API Key
+
+Get an OpenRouter API key at: https://openrouter.ai/keys
+
+The Gemini Flash 2 model (`google/gemini-2.0-flash-001`) is very cost-effective at ~$0.10 per 1M input tokens.
 
 ## Critical Parameters
 
