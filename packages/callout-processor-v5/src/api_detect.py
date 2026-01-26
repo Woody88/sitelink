@@ -120,22 +120,35 @@ def extract_callouts_with_gemini(
         # Add instruction text
         content.append({
             "type": "text",
-            "text": """Analyze these construction plan callout symbols. Each image shows a CROPPED region with ONE main callout in the CENTER.
+            "text": """Extract detail number and sheet reference from construction plan callout bubbles.
 
-The callout is a circular bubble (often with triangular pointers) containing:
-- Top half: Detail identifier (e.g., "1", "10", "A2", "T5") - usually 1-2 characters
-- Bottom half: Sheet reference (e.g., "S2.0", "S20", "A-546") - usually starts with a letter
+CALLOUT STRUCTURE:
+Each callout is a CIRCLE with a horizontal dividing line:
+- TOP HALF: Detail number (ALWAYS a simple number like 1, 5, 10, 18 - just digits, nothing else)
+- BOTTOM HALF: Sheet reference following standard format
 
-IMPORTANT: Focus on the callout bubble CLOSEST TO THE CENTER of each image. Ignore any other callouts or text visible at the edges.
+SHEET REFERENCE FORMAT (NCS/UDS Standard):
+Valid patterns:
+- "S2.0" or "S1.0" (discipline + sheet type + decimal)
+- "S20" or "A10" (discipline + two digits)
+- "A-101" or "S-201" (discipline-hyphen-three digits)
+The first character is ALWAYS a letter (A=Architectural, S=Structural, M=Mechanical, E=Electrical, C=Civil)
+Must contain at least one digit after the letter.
 
-Return a JSON array with one object per image in order:
+STRICT RULES:
+1. Detail number: ONLY digits (1-99). If you see letters, it's NOT a detail number - return null
+2. Sheet reference: MUST start with a letter and contain digits. Random text like "SDF", "FROS", "OTS" is NOT valid - return null
+3. Focus ONLY on the circular callout bubble in the CENTER of each image
+4. Ignore all surrounding text, labels, and notes - they are NOT part of the callout
+
+Return JSON array:
 [
   {"idx": 0, "identifier": "10", "target_sheet": "S2.0"},
   {"idx": 1, "identifier": "5", "target_sheet": "S20"},
   ...
 ]
 
-If you cannot read a value, use null. Only return the JSON array, no other text."""
+Return null for any value that doesn't match the rules above. Only return the JSON array."""
         })
 
         # Add each image
@@ -174,6 +187,29 @@ If you cannot read a value, use null. Only return the JSON array, no other text.
             result_json = response.json()
             answer = result_json["choices"][0]["message"]["content"]
 
+            # Validation functions
+            def is_valid_identifier(val):
+                """Detail number must be digits only (1-99)"""
+                if not val:
+                    return False
+                val = str(val).strip()
+                return val.isdigit() and 1 <= int(val) <= 99
+
+            def is_valid_sheet_ref(val):
+                """Sheet reference: letter + digits, e.g., S2.0, A-101, S20"""
+                if not val:
+                    return False
+                val = str(val).strip().upper()
+                # Must start with letter, contain at least one digit
+                if not val or not val[0].isalpha():
+                    return False
+                if not any(c.isdigit() for c in val):
+                    return False
+                # Valid patterns: A-101, S2.0, S20, AD101
+                if re.match(r'^[A-Z]{1,2}-?\d+\.?\d*$', val):
+                    return True
+                return False
+
             # Parse the JSON response
             # Extract JSON array from response (might have markdown code blocks)
             json_match = re.search(r'\[[\s\S]*\]', answer)
@@ -182,10 +218,21 @@ If you cannot read a value, use null. Only return the JSON array, no other text.
                 for i, item in enumerate(parsed):
                     if i < len(batch):
                         det_idx = batch[i][0]
-                        results[det_idx] = (
-                            item.get("identifier"),
-                            item.get("target_sheet")
-                        )
+                        identifier = item.get("identifier")
+                        target_sheet = item.get("target_sheet")
+
+                        # Validate and clean
+                        if identifier and is_valid_identifier(identifier):
+                            identifier = str(identifier).strip()
+                        else:
+                            identifier = None
+
+                        if target_sheet and is_valid_sheet_ref(target_sheet):
+                            target_sheet = str(target_sheet).strip().upper()
+                        else:
+                            target_sheet = None
+
+                        results[det_idx] = (identifier, target_sheet)
 
         except Exception as e:
             print(f"Gemini API error: {e}", file=sys.stderr)
