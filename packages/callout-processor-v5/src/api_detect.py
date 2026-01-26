@@ -232,120 +232,134 @@ def find_and_ocr_callout_circle(
         circle_binary = cv2.resize(circle_binary, None, fx=scale_factor, fy=scale_factor,
                                    interpolation=cv2.INTER_CUBIC)
 
-    # Run OCR
+    # --- POSITION-BASED CLASSIFICATION ---
+    # OCR the whole circle, sort text by Y position
+    # Top text = identifier, bottom text = sheet reference
+    # Use pattern matching only for ambiguous single-text cases
+
     try:
         ocr = get_ocr()
-        # Use det=True to detect text boxes within the circle
         result = ocr.ocr(circle_binary, det=True, cls=True)
 
         if result and result[0]:
-            # Collect all text lines with their positions
-            text_lines = []
+            # Collect all text boxes with Y position
+            text_boxes = []  # (y_center, text, conf)
+
             for line in result[0]:
                 bbox = line[0]
-                text = line[1][0]
+                text = line[1][0].strip()
                 conf = line[1][1]
-                # Get vertical position (y center of text box)
+
+                if not text:
+                    continue
+
+                # Get vertical center of text box
                 y_center = (bbox[0][1] + bbox[2][1]) / 2
-                text_lines.append((y_center, text, conf))
+                text_boxes.append((y_center, text, conf))
 
-            if text_lines:
-                # Sort by vertical position (top to bottom)
-                text_lines.sort(key=lambda x: x[0])
+            if not text_boxes:
+                return None, 0.0, None, None
 
-                # Combine texts (top line is identifier, bottom is sheet reference)
-                texts = [t[1] for t in text_lines]
-                confs = [t[2] for t in text_lines]
+            # Sort by Y position (top to bottom)
+            text_boxes.sort(key=lambda x: x[0])
 
-                combined_text = ' / '.join(texts).strip()
-                avg_conf = sum(confs) / len(confs) if confs else 0.0
+            # Common OCR error corrections
+            def fix_ocr_errors(text: str) -> str:
+                if text is None:
+                    return None
+                text = text.replace('$', 'S')  # $ often misread for S
+                text = text.replace('§', 'S')  # § often misread for S
+                text = re.sub(r'^0([A-Z])', r'O\1', text)  # Leading 0 before letter -> O
+                return text.strip().upper()
 
-                # Common OCR error corrections
-                def fix_ocr_errors(text: str) -> str:
-                    text = text.replace('$', 'S')  # $ often misread for S
-                    text = text.replace('§', 'S')  # § often misread for S
-                    text = re.sub(r'^0([A-Z])', r'O\1', text)  # Leading 0 before letter -> O
-                    return text
+            # Clean up text (remove noise)
+            def is_valid_callout_text(text):
+                if not text:
+                    return False
+                clean = text.replace(' ', '')
+                # Filter out clearly invalid text
+                if len(clean) > 10 or len(clean) < 1:
+                    return False
+                # Filter common noise patterns from surrounding drawing
+                noise = ['SDF', 'SDR', 'USOF', 'FROS', 'EXTE', 'ENTOF', 'IOF',
+                         'DES', 'FRU', 'FAOSTSLAS', 'ERANGLE', '00X7X8']
+                if clean in noise:
+                    return False
+                return True
 
-                # Apply OCR corrections to all texts for display
-                corrected_texts = [fix_ocr_errors(t.strip().upper()) for t in texts]
-                combined_text = ' / '.join(corrected_texts).strip()
+            # Filter to valid texts only
+            valid_texts = []
+            for y, text, conf in text_boxes:
+                fixed = fix_ocr_errors(text)
+                if is_valid_callout_text(fixed):
+                    valid_texts.append((y, fixed.replace(' ', ''), conf))
 
-                # Parse the callout format
-                identifier = None
-                target_sheet = None
+            # Build display text from all OCR results (before filtering)
+            display_texts = [fix_ocr_errors(t[1]) for t in text_boxes]
+            combined_text = ' / '.join(display_texts) if display_texts else None
 
-                # Sheet reference pattern: typically S + number (S2.0, S20) or letter-number (A-546)
-                # More specific to avoid matching detail numbers like T8, A2
-                sheet_ref_pattern = re.compile(
-                    r'^S\d+\.?\d*$|'    # S2.0, S20, S1.0 (most common)
-                    r'^[A-Z]-\d+$|'     # A-546, B-123
-                    r'^[A-Z]\d{2,}$'    # Must have 2+ digits if just letter+number (A12, not A2)
-                )
+            # Calculate average confidence
+            confs = [t[2] for t in text_boxes if t[2] > 0]
+            avg_conf = sum(confs) / len(confs) if confs else 0.0
 
-                # Detail number pattern: typically short (1-3 chars), number or letter+single digit
-                # Examples: 1, 10, 18, A, B, A2, T8, etc.
-                detail_num_pattern = re.compile(r'^\d{1,2}$|^[A-Z]$|^[A-Z]\d$')
+            # Classify based on position
+            identifier = None
+            target_sheet = None
 
-                # Filter out noise - text that's clearly not callout content
-                def is_valid_callout_text(t):
-                    clean = t.replace(' ', '')
-                    if len(clean) > 10:  # Too long to be callout text
-                        return False
-                    if len(clean) < 1:
-                        return False
-                    # Filter common noise patterns
-                    noise_patterns = ['SDF', 'SDR', 'USOF', 'FROS', 'EXTE', 'ENTOF']
-                    if clean in noise_patterns:
-                        return False
-                    return True
+            # Sheet reference pattern: S + digits (S2.0, S20) or letter-dash-digits (A-546)
+            def is_sheet_pattern(text):
+                return bool(re.match(r'^S\d', text) or re.match(r'^[A-Z]-\d', text))
 
-                # Filter texts to only valid callout content
-                valid_texts = [t for t in corrected_texts if is_valid_callout_text(t)]
+            # Identifier pattern: short alphanumeric (1-3 chars) that's not a sheet ref
+            # Valid: numbers (1, 10, 18), letter+digit (T1, A2), or single letter (A, B)
+            # Invalid: two-letter combos without digits (SN, US, EX) - likely noise
+            def is_identifier_pattern(text):
+                if len(text) > 3:
+                    return False
+                if is_sheet_pattern(text):
+                    return False
+                # Two letters without any digit is usually noise
+                if len(text) == 2 and text.isalpha():
+                    return False
+                # Must be alphanumeric
+                return bool(re.match(r'^[A-Z0-9]{1,3}$', text))
 
-                if len(valid_texts) >= 2:
-                    first_text = valid_texts[0].replace(' ', '')
+            if len(valid_texts) >= 2:
+                top_text = valid_texts[0][1]
+                bottom_text = valid_texts[-1][1]
 
-                    # Check if first text looks like a sheet reference (S2.0, S20)
-                    # If so, the order might be reversed or it's capturing wrong text
-                    if sheet_ref_pattern.match(first_text):
-                        # First text is sheet ref - look for detail number in other texts
-                        target_sheet = first_text
-                        for t in valid_texts[1:]:
-                            clean_t = t.replace(' ', '')
-                            if detail_num_pattern.match(clean_t):
-                                identifier = clean_t
-                                break
-                        # If no detail number found, check if second text is numeric
-                        if identifier is None and len(valid_texts) >= 2:
-                            second = valid_texts[1].replace(' ', '')
-                            if second.isdigit() or (len(second) <= 3 and any(c.isdigit() for c in second)):
-                                identifier = second
-                    else:
-                        # Normal case: first text is identifier
-                        identifier = first_text
+                # Check if positions might be swapped
+                # (top looks like sheet ref AND bottom looks like identifier)
+                if is_sheet_pattern(top_text) and is_identifier_pattern(bottom_text):
+                    # Swap: bottom is identifier, top is sheet ref
+                    identifier = bottom_text
+                    target_sheet = top_text
+                elif is_sheet_pattern(bottom_text) and is_identifier_pattern(top_text):
+                    # Normal order: top is identifier, bottom is sheet ref
+                    identifier = top_text
+                    target_sheet = bottom_text
+                elif is_sheet_pattern(top_text) and not is_sheet_pattern(bottom_text):
+                    # Top is clearly a sheet ref, bottom is unknown
+                    # Only take top as sheet, no identifier
+                    target_sheet = top_text
+                elif is_sheet_pattern(bottom_text) and not is_identifier_pattern(top_text):
+                    # Bottom is clearly a sheet ref, top is unknown
+                    # Only take bottom as sheet, no identifier
+                    target_sheet = bottom_text
+                else:
+                    # Fallback to position-based (top = identifier, bottom = sheet)
+                    identifier = top_text
+                    target_sheet = bottom_text
 
-                        # Find sheet reference in remaining texts
-                        for t in valid_texts[1:]:
-                            clean_t = t.replace(' ', '')
-                            if sheet_ref_pattern.match(clean_t):
-                                target_sheet = clean_t
-                                break
+            elif len(valid_texts) == 1:
+                # Single text: use pattern to decide
+                text = valid_texts[0][1]
+                if is_sheet_pattern(text):
+                    target_sheet = text
+                else:
+                    identifier = text
 
-                        # Fallback: use second text if it looks like a sheet ref
-                        if target_sheet is None and len(valid_texts) >= 2:
-                            second_text = valid_texts[1].replace(' ', '')
-                            if len(second_text) >= 2 and any(c.isdigit() for c in second_text):
-                                target_sheet = second_text
-
-                elif len(valid_texts) == 1:
-                    text = valid_texts[0].replace(' ', '')
-                    # Check if it looks like a sheet reference
-                    if sheet_ref_pattern.match(text):
-                        target_sheet = text
-                    else:
-                        identifier = text
-
+            if combined_text:
                 return combined_text, avg_conf, identifier, target_sheet
 
     except Exception as e:
