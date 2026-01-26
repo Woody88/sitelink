@@ -94,7 +94,7 @@ const server = Bun.serve({
             const yoloResult = await extractWithYOLO(pdfPath, {});
             totalEntities = yoloResult.entities.length;
             needsReview = yoloResult.summary?.needs_review ?? 0;
-            console.log(`  Found ${totalEntities} entities (YOLO v5)`);
+            console.log(`  Found ${totalEntities} entities (YOLO v6 Iteration 5)`);
           } else {
             const extractionResults = await extractAll(pdfPath);
             totalEntities = extractionResults.reduce((sum, r) => sum + r.entities.length, 0);
@@ -211,7 +211,7 @@ const server = Bun.serve({
 
           const options: YOLOExtractionOptions = optionsJson
             ? JSON.parse(optionsJson)
-            : {};
+            : { useGemini: true };  // Default to Gemini for better text extraction
 
           const uploadsDir = join(import.meta.dir, "../../uploads");
           if (!existsSync(uploadsDir)) {
