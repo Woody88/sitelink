@@ -58,7 +58,6 @@ interface Provenance {
 const CLASS_COLORS: Record<string, string> = {
   detail_callout: "#22c55e",
   elevation_callout: "#3b82f6",
-  section_cut: "#f97316",
   title_callout: "#a855f7",
 };
 
@@ -292,16 +291,19 @@ function App() {
     if (!canvas || !selectedSheet) return;
 
     const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / scale;
-    const y = (e.clientY - rect.top) / scale;
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
 
-    const maxWidth = 900;
-    const maxHeight = 600;
-    const imgScale = Math.min(maxWidth / selectedSheet.width, maxHeight / selectedSheet.height);
+    // Use same dimensions as drawSheetWithCallouts
+    const maxWidth = 1400;
+    const maxHeight = 900;
+    const imgScale = Math.min(maxWidth / selectedSheet.width, maxHeight / selectedSheet.height) * scale;
 
+    // Convert canvas coordinates to image coordinates
     const imgX = x / imgScale;
     const imgY = y / imgScale;
 
+    // Find clicked entity
     for (const entity of entities) {
       if (imgX >= entity.bbox_x1 && imgX <= entity.bbox_x2 &&
           imgY >= entity.bbox_y1 && imgY <= entity.bbox_y2) {
@@ -441,7 +443,9 @@ function App() {
                 }`}
               >
                 <div className="font-medium">{sheet.sheet_number}</div>
-                <div className="text-xs text-gray-400">{sheet.sheet_type || "Sheet"}</div>
+                <div className="text-xs text-gray-400 truncate" title={sheet.sheet_title || sheet.sheet_type || "Sheet"}>
+                  {sheet.sheet_title || sheet.sheet_type || "Sheet"}
+                </div>
               </button>
             ))}
           </div>
@@ -497,14 +501,45 @@ function App() {
           {selectedEntity && provenance ? (
             <div className="bg-gray-800 rounded-lg p-4 space-y-4">
               <div>
-                <div className="text-3xl font-mono font-bold text-yellow-400">
-                  {selectedEntity.ocr_text || "?"}
+                <div className="text-sm font-semibold text-gray-400 mb-2">
+                  {selectedEntity.class_label.replace(/_/g, " ").toUpperCase()}
                 </div>
-                <div className="text-sm text-gray-400 mt-1">
-                  {selectedEntity.class_label.replace(/_/g, " ")}
-                </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  Sheet {selectedEntity.sheet_number} at ({selectedEntity.bbox_x1}, {selectedEntity.bbox_y1})
+
+                {selectedEntity.identifier && (
+                  <div className="mb-3">
+                    <div className="text-xs text-gray-500">Detail Number:</div>
+                    <div className="text-2xl font-mono font-bold text-green-400">
+                      {selectedEntity.identifier}
+                    </div>
+                  </div>
+                )}
+
+                {selectedEntity.target_sheet && (
+                  <div className="mb-3">
+                    <div className="text-xs text-gray-500">Sheet Reference:</div>
+                    <div className="text-2xl font-mono font-bold text-blue-400">
+                      {selectedEntity.target_sheet}
+                    </div>
+                  </div>
+                )}
+
+                {selectedEntity.ocr_text && !selectedEntity.identifier && !selectedEntity.target_sheet && (
+                  <div className="mb-3">
+                    <div className="text-xs text-gray-500">OCR Text:</div>
+                    <div className="text-2xl font-mono font-bold text-yellow-400">
+                      {selectedEntity.ocr_text}
+                    </div>
+                  </div>
+                )}
+
+                {!selectedEntity.ocr_text && !selectedEntity.identifier && !selectedEntity.target_sheet && (
+                  <div className="text-2xl font-mono font-bold text-gray-500">
+                    No text detected
+                  </div>
+                )}
+
+                <div className="text-xs text-gray-500 mt-3">
+                  Sheet {selectedEntity.sheet_number} at ({Math.round(selectedEntity.bbox_x1)}, {Math.round(selectedEntity.bbox_y1)})
                 </div>
               </div>
 

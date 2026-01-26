@@ -1350,6 +1350,7 @@ def main():
     parser.add_argument("--gemini", action="store_true",
                         help="Use Gemini Flash 2 for callout text extraction (requires API key)")
     parser.add_argument("--openrouter-key", help="OpenRouter API key (or set OPENROUTER_API_KEY env var)")
+    parser.add_argument("--hires-image", help="High-resolution image for Gemini crops (e.g., 150 DPI original)")
 
     args = parser.parse_args()
 
@@ -1419,11 +1420,23 @@ def main():
     debug_dir.mkdir(exist_ok=True)
     crop_images = []  # For Gemini batch processing
 
+    # Load high-resolution image for Gemini if provided
+    hires_image = None
+    hires_scale = 1.0
+    if args.gemini and args.hires_image:
+        hires_image = cv2.imread(args.hires_image)
+        if hires_image is not None:
+            # Calculate scale factor (hires / detection image)
+            hires_scale = hires_image.shape[1] / image.shape[1]
+            print(f"Using high-res image for Gemini: {hires_image.shape[1]}x{hires_image.shape[0]} (scale: {hires_scale:.2f}x)", file=sys.stderr)
+        else:
+            print(f"Warning: Could not load high-res image from {args.hires_image}", file=sys.stderr)
+
     for i, det in enumerate(detections):
         x, y, w, h = det['bbox']
         x, y, w, h = int(x), int(y), int(w), int(h)
 
-        # Get crop for debug/Gemini
+        # Get crop for debug (from detection image)
         _, _, debug_crop = ocr_crop(image, x, y, w, h, return_debug=True)
         if debug_crop is not None:
             debug_path = debug_dir / f"crop_{i}_{det['class']}_conf{det['confidence']:.2f}.png"
@@ -1431,7 +1444,32 @@ def main():
             print(f"  Saved debug crop: {debug_path}", file=sys.stderr)
 
             if args.gemini:
-                crop_images.append((i, debug_crop))
+                # Use high-res image for Gemini if available
+                if hires_image is not None:
+                    # Scale bbox to high-res coordinates
+                    hx = int(x * hires_scale)
+                    hy = int(y * hires_scale)
+                    hw = int(w * hires_scale)
+                    hh = int(h * hires_scale)
+                    # Crop exactly at bbox - YOLO already provides tight bounds
+                    img_h, img_w = hires_image.shape[:2]
+                    hx1, hy1 = max(0, hx), max(0, hy)
+                    hx2, hy2 = min(img_w, hx + hw), min(img_h, hy + hh)
+                    hires_crop = hires_image[hy1:hy2, hx1:hx2].copy()
+                    if hires_crop.size > 0:
+                        # Save hires crop for debugging
+                        hires_debug_path = debug_dir / f"hires_crop_{i}_{det['class']}.png"
+                        cv2.imwrite(str(hires_debug_path), hires_crop)
+                        crop_images.append((i, hires_crop))
+                    else:
+                        crop_images.append((i, debug_crop))
+                else:
+                    # Crop exactly at bbox from detection image
+                    img_h, img_w = image.shape[:2]
+                    x1, y1 = max(0, x), max(0, y)
+                    x2, y2 = min(img_w, x + w), min(img_h, y + h)
+                    tight_crop = image[y1:y2, x1:x2].copy()
+                    crop_images.append((i, tight_crop if tight_crop.size > 0 else debug_crop))
 
     # Run Gemini extraction if enabled
     if args.gemini and crop_images:

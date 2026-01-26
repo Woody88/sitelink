@@ -276,6 +276,8 @@ export async function extractWithYOLO(
         throw new Error('OPENROUTER_API_KEY environment variable required for Gemini extraction');
       }
       args.push('--gemini', '--openrouter-key', apiKey);
+      // Pass original 150 DPI image for high-resolution Gemini crops
+      args.push('--hires-image', sheet.image_path);
     }
 
     await $`${args}`.quiet();
@@ -447,6 +449,8 @@ export async function detectOnSheet(
         throw new Error('OPENROUTER_API_KEY environment variable required for Gemini extraction');
       }
       args.push('--gemini', '--openrouter-key', apiKey);
+      // Pass original 150 DPI image for high-resolution Gemini crops
+      args.push('--hires-image', sheet.image_path);
     }
 
     await $`${args}`.quiet();

@@ -176,10 +176,14 @@ const server = Bun.serve({
         }
 
         try {
-          const body = await req.json().catch(() => ({})) as YOLOExtractionOptions;
+          const body = await req.json().catch(() => ({})) as Partial<YOLOExtractionOptions>;
+          const options: YOLOExtractionOptions = {
+            useGemini: true,  // Default to Gemini for better text extraction
+            ...body,
+          };
 
           console.log(`\n=== Running YOLO detection on sheet ${sheet.sheet_number} ===`);
-          const newEntities = await detectOnSheet(req.params.id, body);
+          const newEntities = await detectOnSheet(req.params.id, options);
 
           return Response.json({
             success: true,
