@@ -260,10 +260,6 @@ def find_and_ocr_callout_circle(
                 combined_text = ' / '.join(texts).strip()
                 avg_conf = sum(confs) / len(confs) if confs else 0.0
 
-                # Parse the callout format
-                identifier = None
-                target_sheet = None
-
                 # Common OCR error corrections
                 def fix_ocr_errors(text: str) -> str:
                     text = text.replace('$', 'S')  # $ often misread for S
@@ -271,27 +267,46 @@ def find_and_ocr_callout_circle(
                     text = re.sub(r'^0([A-Z])', r'O\1', text)  # Leading 0 before letter -> O
                     return text
 
-                if len(texts) >= 2:
+                # Apply OCR corrections to all texts for display
+                corrected_texts = [fix_ocr_errors(t.strip().upper()) for t in texts]
+                combined_text = ' / '.join(corrected_texts).strip()
+
+                # Parse the callout format
+                identifier = None
+                target_sheet = None
+
+                # Sheet reference pattern: letter followed by number (S2.0, S20, A-546)
+                # Must start with a letter to be a valid sheet reference
+                sheet_ref_pattern = re.compile(r'^[A-Z]\d+\.?\d*$|^[A-Z]-\d+$')
+
+                if len(corrected_texts) >= 2:
                     # Two-line format: identifier on top, sheet reference below
-                    top_text = fix_ocr_errors(texts[0].strip().upper())
-                    bottom_text = fix_ocr_errors(texts[-1].strip().upper())
+                    # First text is always the identifier
+                    identifier = corrected_texts[0].replace(' ', '')
 
-                    # Top is the identifier (e.g., "A2", "C2", "12", "A5,C5")
-                    identifier = top_text.replace(' ', '').replace(',', ',')
+                    # Find the sheet reference - look for text matching sheet pattern
+                    # Prefer the second text, but check all texts after the first
+                    for t in corrected_texts[1:]:
+                        clean_t = t.replace(' ', '')
+                        if sheet_ref_pattern.match(clean_t):
+                            target_sheet = clean_t
+                            break
 
-                    # Bottom is the sheet reference (e.g., "A-546", "S2.0")
-                    sheet_text = bottom_text.replace(' ', '')
-                    # Match common sheet reference patterns
-                    if re.match(r'[A-Z]?-?\d+\.?\d*', sheet_text):
-                        target_sheet = sheet_text
-                elif len(texts) == 1:
+                    # If no sheet pattern found, use second text if it looks numeric
+                    if target_sheet is None and len(corrected_texts) >= 2:
+                        second_text = corrected_texts[1].replace(' ', '')
+                        # Accept if it's at least 2 chars and contains a digit
+                        if len(second_text) >= 2 and any(c.isdigit() for c in second_text):
+                            target_sheet = second_text
+
+                elif len(corrected_texts) == 1:
                     # Single line - try to parse as identifier
-                    text = fix_ocr_errors(texts[0].strip().upper())
-                    # Check if it looks like a sheet reference (has hyphen with numbers)
-                    if re.match(r'[A-Z]-\d+', text):
+                    text = corrected_texts[0].replace(' ', '')
+                    # Check if it looks like a sheet reference
+                    if sheet_ref_pattern.match(text):
                         target_sheet = text
                     else:
-                        identifier = text.replace(' ', '')
+                        identifier = text
 
                 return combined_text, avg_conf, identifier, target_sheet
 
