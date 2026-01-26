@@ -209,9 +209,11 @@ const server = Bun.serve({
             return Response.json({ error: "No PDF file provided" }, { status: 400 });
           }
 
-          const options: YOLOExtractionOptions = optionsJson
-            ? JSON.parse(optionsJson)
-            : { useGemini: true };  // Default to Gemini for better text extraction
+          const parsedOptions = optionsJson ? JSON.parse(optionsJson) : {};
+          const options: YOLOExtractionOptions = {
+            useGemini: true,  // Default to Gemini for better text extraction
+            ...parsedOptions,
+          };
 
           const uploadsDir = join(import.meta.dir, "../../uploads");
           if (!existsSync(uploadsDir)) {
