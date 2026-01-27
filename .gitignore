@@ -39,3 +39,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # Model weights
 apps/backend/container/weights/
 *.pt
+
+# GroundingDINO weights
+packages/callout-processor-v5/weights/*.pth
