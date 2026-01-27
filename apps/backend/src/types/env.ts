@@ -32,6 +32,7 @@ export interface Env extends Cloudflare.Env {
 	R2_BUCKET: R2Bucket;
 
 	// Queues for PDF processing pipeline
+	R2_NOTIFICATION_QUEUE: Queue;
 	IMAGE_GENERATION_QUEUE: Queue;
 	METADATA_EXTRACTION_QUEUE: Queue;
 	CALLOUT_DETECTION_QUEUE: Queue;

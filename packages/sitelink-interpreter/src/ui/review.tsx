@@ -24,7 +24,6 @@ interface Entity {
 const CLASS_LABELS = [
   "detail_callout",
   "elevation_callout",
-  "section_cut",
   "title_callout",
   "not_a_callout",
 ];

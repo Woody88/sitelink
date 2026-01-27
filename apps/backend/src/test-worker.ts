@@ -6,6 +6,7 @@ import { DurableObject } from "cloudflare:workers";
 export interface TestEnv {
 	DB: D1Database;
 	R2_BUCKET: R2Bucket;
+	R2_NOTIFICATION_QUEUE: Queue;
 	IMAGE_GENERATION_QUEUE: Queue;
 	METADATA_EXTRACTION_QUEUE: Queue;
 	CALLOUT_DETECTION_QUEUE: Queue;

@@ -7,6 +7,41 @@ import type {
 } from "./types";
 import { getR2Path } from "./types";
 
+async function emitProgressEvent(
+	env: Env,
+	organizationId: string,
+	planId: string,
+	stage: string,
+	progress: number,
+	message: string,
+): Promise<void> {
+	try {
+		const liveStoreStub = env.LIVESTORE_CLIENT_DO.get(
+			env.LIVESTORE_CLIENT_DO.idFromName(organizationId),
+		);
+
+		await liveStoreStub.fetch(
+			"http://internal/commit?storeId=" + organizationId,
+			{
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					eventName: "planProcessingProgress",
+					data: {
+						planId,
+						stage,
+						progress,
+						message,
+						updatedAt: Date.now(),
+					},
+				}),
+			},
+		);
+	} catch (error) {
+		console.warn(`[Progress] LiveStore emit failed:`, error);
+	}
+}
+
 export async function handleImageGenerationQueue(
 	batch: MessageBatch<ImageGenerationJob>,
 	env: Env,
@@ -16,7 +51,15 @@ export async function handleImageGenerationQueue(
 		console.log(`[ImageGeneration] Processing plan ${job.planId}`);
 
 		try {
-			// Get PlanCoordinator DO for this plan
+			await emitProgressEvent(
+				env,
+				job.organizationId,
+				job.planId,
+				"image_generation",
+				0,
+				"Starting image generation...",
+			);
+
 			const coordinatorId = env.PLAN_COORDINATOR_DO.idFromName(job.planId);
 			const coordinator = env.PLAN_COORDINATOR_DO.get(coordinatorId);
 
@@ -91,8 +134,18 @@ export async function handleImageGenerationQueue(
 				totalSheets: result.totalPages,
 			});
 
-			// Render each page and upload PNG to R2
-			for (const sheet of result.sheets) {
+			await emitProgressEvent(
+				env,
+				job.organizationId,
+				job.planId,
+				"image_generation",
+				10,
+				`Rendering ${result.totalPages} pages...`,
+			);
+
+			for (let i = 0; i < result.sheets.length; i++) {
+				const sheet = result.sheets[i];
+				const pageProgress = Math.round(10 + (i / result.sheets.length) * 15);
 				// Call container to render this specific page as PNG
 				const renderResponse = await container.fetch(
 					"http://container/render-page",
@@ -190,6 +243,18 @@ export async function handleMetadataExtractionQueue(
 		console.log(`[MetadataExtraction] Processing sheet ${job.sheetId}`);
 
 		try {
+			const metadataProgress = Math.round(
+				25 + ((job.sheetNumber - 1) / job.totalSheets) * 25,
+			);
+			await emitProgressEvent(
+				env,
+				job.organizationId,
+				job.planId,
+				"metadata_extraction",
+				metadataProgress,
+				`Extracting metadata from sheet ${job.sheetNumber}/${job.totalSheets}...`,
+			);
+
 			const coordinatorId = env.PLAN_COORDINATOR_DO.idFromName(job.planId);
 			const coordinator = env.PLAN_COORDINATOR_DO.get(coordinatorId);
 
@@ -323,6 +388,15 @@ export async function handleCalloutDetectionQueue(
 		console.log(`[CalloutDetection] Processing sheet ${job.sheetId}`);
 
 		try {
+			await emitProgressEvent(
+				env,
+				job.organizationId,
+				job.planId,
+				"callout_detection",
+				50,
+				`Detecting callouts on sheet ${job.sheetNumber || job.sheetId}...`,
+			);
+
 			const coordinatorId = env.PLAN_COORDINATOR_DO.idFromName(job.planId);
 			const coordinator = env.PLAN_COORDINATOR_DO.get(coordinatorId);
 
@@ -463,6 +537,15 @@ export async function handleTileGenerationQueue(
 		console.log(`[TileGeneration] Processing sheet ${job.sheetId}`);
 
 		try {
+			await emitProgressEvent(
+				env,
+				job.organizationId,
+				job.planId,
+				"tile_generation",
+				75,
+				`Generating tiles for sheet ${job.sheetId}...`,
+			);
+
 			const coordinatorId = env.PLAN_COORDINATOR_DO.idFromName(job.planId);
 			const coordinator = env.PLAN_COORDINATOR_DO.get(coordinatorId);
 

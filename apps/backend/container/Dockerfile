@@ -9,6 +9,8 @@ RUN apt-get update && apt-get install -y \
     libvips-tools \
     tesseract-ocr \
     libtesseract-dev \
+    libgl1 \
+    libglib2.0-0 \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -23,6 +25,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
+
+# Copy YOLO model weights
+COPY weights/ ./weights/
 
 EXPOSE 3001
 

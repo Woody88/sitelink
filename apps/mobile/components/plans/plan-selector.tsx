@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import { type Sheet, type SheetFolder, useSheets } from "@/hooks/use-sheets";
 import { cn } from "@/lib/utils";
@@ -308,6 +309,17 @@ export function PlanSelector({
 													</Pressable>
 												);
 											})}
+											{folder.status === "processing" &&
+												folder.sheets.length === 0 &&
+												Array.from({ length: 4 }).map((_, i) => (
+													<View key={i} className="mb-4 w-[48%]">
+														<Skeleton className="aspect-[3/2] rounded-xl" />
+														<View className="mt-2 items-center gap-1">
+															<Skeleton className="h-4 w-12" />
+															<Skeleton className="h-3 w-20" />
+														</View>
+													</View>
+												))}
 										</View>
 									) : (
 										<View className="gap-1">
@@ -336,9 +348,23 @@ export function PlanSelector({
 													</Pressable>
 												);
 											})}
+											{folder.status === "processing" &&
+												folder.sheets.length === 0 &&
+												Array.from({ length: 3 }).map((_, i) => (
+													<View
+														key={i}
+														className="flex-row items-center gap-4 px-2 py-3"
+													>
+														<Skeleton className="size-10 rounded-lg" />
+														<View className="flex-1 gap-1">
+															<Skeleton className="h-4 w-16" />
+															<Skeleton className="h-3 w-32" />
+														</View>
+													</View>
+												))}
 										</View>
 									)}
-									{folder.sheets.length === 0 && (
+									{folder.sheets.length === 0 && folder.status !== "processing" && (
 										<View className="items-center justify-center py-8">
 											<Text className="text-muted-foreground text-sm italic">
 												No plans in this folder
