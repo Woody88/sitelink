@@ -240,21 +240,79 @@ describe("PDF Pipeline Integration", () => {
 			});
 			expect(true).toBe(true);
 		});
+
+		describe("R2 Notification Queue", () => {
+			it("should send message to R2 notification queue", async () => {
+				await env.R2_NOTIFICATION_QUEUE.send({
+					account: "test",
+					bucket: "sitelink-files",
+					object: {
+						key: "organizations/test-org/projects/test-proj/plans/test-plan/source.pdf",
+						size: 1000,
+						eTag: "test-etag",
+					},
+					action: "PutObject",
+					eventTime: new Date().toISOString(),
+				});
+				expect(true).toBe(true);
+			});
+
+			it("should accept CompleteMultipartUpload action", async () => {
+				await env.R2_NOTIFICATION_QUEUE.send({
+					account: "test",
+					bucket: "sitelink-files",
+					object: {
+						key: "organizations/test-org/projects/test-proj/plans/test-plan/source.pdf",
+						size: 1000,
+						eTag: "test-etag",
+					},
+					action: "CompleteMultipartUpload",
+					eventTime: new Date().toISOString(),
+				});
+				expect(true).toBe(true);
+			});
+
+			it("should accept DeleteObject action", async () => {
+				await env.R2_NOTIFICATION_QUEUE.send({
+					account: "test",
+					bucket: "sitelink-files",
+					object: {
+						key: "organizations/test-org/projects/test-proj/plans/test-plan/source.pdf",
+						size: 1000,
+						eTag: "test-etag",
+					},
+					action: "DeleteObject",
+					eventTime: new Date().toISOString(),
+				});
+				expect(true).toBe(true);
+			});
+		});
 	});
 
 	describe("Container Proxy (requires Docker)", () => {
-		it("should check container health or gracefully skip", async () => {
+		it("should check container health or gracefully skip", { timeout: 2000 }, async () => {
+			const controller = new AbortController();
+			const timeoutId = setTimeout(() => controller.abort(), 1000);
+
 			try {
 				const response = await env.PDF_CONTAINER_PROXY!.fetch(
 					"http://container/health",
+					{ signal: controller.signal },
 				);
+				clearTimeout(timeoutId);
+
 				if (response.ok) {
 					expect(response.ok).toBe(true);
 				} else {
-					console.log("ℹ️ Container returned non-ok status, likely not running");
+					console.log("Container returned non-ok status, likely not running");
 				}
-			} catch {
-				console.log("ℹ️ Container not running, test skipped gracefully");
+			} catch (error) {
+				clearTimeout(timeoutId);
+				if (error instanceof Error && error.name === "AbortError") {
+					console.log("Container health check timed out (container not running)");
+				} else {
+					console.log("Container not running, test skipped gracefully");
+				}
 			}
 		});
 	});

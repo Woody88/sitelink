@@ -19,6 +19,31 @@ describe("LiveStore Events - Pipeline Processing", () => {
 	let mockPdfProcessorContainer: any;
 	let fetchCallHistory: Array<{ url: string; init: RequestInit }>;
 
+	function findEventByName(eventName: string) {
+		for (const call of fetchCallHistory) {
+			if (call.init.body) {
+				const payload = JSON.parse(call.init.body as string);
+				if (payload.eventName === eventName) {
+					return { call, payload };
+				}
+			}
+		}
+		return null;
+	}
+
+	function findLastEventByName(eventName: string) {
+		for (let i = fetchCallHistory.length - 1; i >= 0; i--) {
+			const call = fetchCallHistory[i];
+			if (call.init.body) {
+				const payload = JSON.parse(call.init.body as string);
+				if (payload.eventName === eventName) {
+					return { call, payload };
+				}
+			}
+		}
+		return null;
+	}
+
 	beforeEach(() => {
 		fetchCallHistory = [];
 
@@ -48,6 +73,7 @@ describe("LiveStore Events - Pipeline Processing", () => {
 		};
 
 		mockPdfProcessorContainer = {
+			startAndWaitForPorts: vi.fn(async () => {}),
 			fetch: vi.fn(async (url: string, _init?: RequestInit) => {
 				if (url.includes("/extract-metadata")) {
 					return Response.json({
@@ -91,7 +117,10 @@ describe("LiveStore Events - Pipeline Processing", () => {
 				idFromName: vi.fn((name: string) => ({ toString: () => name })),
 			} as any,
 			R2_BUCKET: mockR2Bucket,
-			PDF_PROCESSOR_CONTAINER: mockPdfProcessorContainer,
+			PDF_PROCESSOR: {
+				get: vi.fn(() => mockPdfProcessorContainer),
+				idFromName: vi.fn((name: string) => ({ toString: () => name })),
+			} as any,
 		};
 	});
 
@@ -126,13 +155,13 @@ describe("LiveStore Events - Pipeline Processing", () => {
 
 			await handleMetadataExtractionQueue(batch, mockEnv as Env);
 
-			expect(fetchCallHistory.length).toBe(1);
-			const eventCall = fetchCallHistory[0];
-			expect(eventCall.url).toBe("http://internal/commit");
-			expect(eventCall.init.method).toBe("POST");
+			const result = findEventByName("sheetMetadataExtracted");
+			expect(result).not.toBeNull();
+			const { call: eventCall, payload } = result!;
 
-			const payload = JSON.parse(eventCall.init.body as string);
-			expect(payload.event).toBe("sheetMetadataExtracted");
+			expect(eventCall.url).toMatch(/^http:\/\/internal\/commit\?storeId=/);
+			expect(eventCall.init.method).toBe("POST");
+			expect(payload.eventName).toBe("sheetMetadataExtracted");
 			expect(payload.data.sheetId).toBe("sheet-123");
 			expect(payload.data.planId).toBe("plan-456");
 			expect(payload.data.sheetNumber).toBe("A-101");
@@ -166,7 +195,9 @@ describe("LiveStore Events - Pipeline Processing", () => {
 
 			await handleMetadataExtractionQueue(batch, mockEnv as Env);
 
-			const payload = JSON.parse(fetchCallHistory[0].init.body as string);
+			const result = findEventByName("sheetMetadataExtracted");
+			expect(result).not.toBeNull();
+			const { payload } = result!;
 			expect(typeof payload.data.extractedAt).toBe("number");
 			expect(payload.data.extractedAt).toBeGreaterThan(0);
 		});
@@ -233,7 +264,9 @@ describe("LiveStore Events - Pipeline Processing", () => {
 
 			await handleMetadataExtractionQueue(batch, mockEnv as Env);
 
-			const payload = JSON.parse(fetchCallHistory[0].init.body as string);
+			const result = findEventByName("sheetMetadataExtracted");
+			expect(result).not.toBeNull();
+			const { payload } = result!;
 			expect(payload.data.sheetTitle).toBeUndefined();
 			expect(payload.data.discipline).toBeUndefined();
 		});
@@ -265,10 +298,11 @@ describe("LiveStore Events - Pipeline Processing", () => {
 
 			await handleCalloutDetectionQueue(batch, mockEnv as Env);
 
-			expect(fetchCallHistory.length).toBe(1);
-			const payload = JSON.parse(fetchCallHistory[0].init.body as string);
+			const result = findEventByName("sheetCalloutsDetected");
+			expect(result).not.toBeNull();
+			const { payload } = result!;
 
-			expect(payload.event).toBe("sheetCalloutsDetected");
+			expect(payload.eventName).toBe("sheetCalloutsDetected");
 			expect(payload.data.sheetId).toBe("sheet-123");
 			expect(payload.data.planId).toBe("plan-456");
 			expect(Array.isArray(payload.data.markers)).toBe(true);
@@ -301,7 +335,9 @@ describe("LiveStore Events - Pipeline Processing", () => {
 
 			await handleCalloutDetectionQueue(batch, mockEnv as Env);
 
-			const payload = JSON.parse(fetchCallHistory[0].init.body as string);
+			const result = findEventByName("sheetCalloutsDetected");
+			expect(result).not.toBeNull();
+			const { payload } = result!;
 			const marker = payload.data.markers[0];
 
 			expect(typeof marker.id).toBe("string");
@@ -339,7 +375,9 @@ describe("LiveStore Events - Pipeline Processing", () => {
 
 			await handleCalloutDetectionQueue(batch, mockEnv as Env);
 
-			const payload = JSON.parse(fetchCallHistory[0].init.body as string);
+			const result = findEventByName("sheetCalloutsDetected");
+			expect(result).not.toBeNull();
+			const { payload } = result!;
 			expect(typeof payload.data.detectedAt).toBe("number");
 			expect(payload.data.detectedAt).toBeGreaterThan(0);
 		});
@@ -385,7 +423,9 @@ describe("LiveStore Events - Pipeline Processing", () => {
 
 			await handleCalloutDetectionQueue(batch, mockEnv as Env);
 
-			const payload = JSON.parse(fetchCallHistory[0].init.body as string);
+			const result = findEventByName("sheetCalloutsDetected");
+			expect(result).not.toBeNull();
+			const { payload } = result!;
 			const marker = payload.data.markers[0];
 
 			expect(marker.targetSheetRef).toBeUndefined();
@@ -419,10 +459,11 @@ describe("LiveStore Events - Pipeline Processing", () => {
 
 			await handleTileGenerationQueue(batch, mockEnv as Env);
 
-			expect(fetchCallHistory.length).toBe(1);
-			const payload = JSON.parse(fetchCallHistory[0].init.body as string);
+			const result = findEventByName("sheetTilesGenerated");
+			expect(result).not.toBeNull();
+			const { payload } = result!;
 
-			expect(payload.event).toBe("sheetTilesGenerated");
+			expect(payload.eventName).toBe("sheetTilesGenerated");
 			expect(payload.data.sheetId).toBe("sheet-123");
 			expect(payload.data.planId).toBe("plan-456");
 			expect(typeof payload.data.localPmtilesPath).toBe("string");
@@ -454,7 +495,9 @@ describe("LiveStore Events - Pipeline Processing", () => {
 
 			await handleTileGenerationQueue(batch, mockEnv as Env);
 
-			const payload = JSON.parse(fetchCallHistory[0].init.body as string);
+			const result = findEventByName("sheetTilesGenerated");
+			expect(result).not.toBeNull();
+			const { payload } = result!;
 
 			expect(typeof payload.data.minZoom).toBe("number");
 			expect(typeof payload.data.maxZoom).toBe("number");
@@ -486,7 +529,9 @@ describe("LiveStore Events - Pipeline Processing", () => {
 
 			await handleTileGenerationQueue(batch, mockEnv as Env);
 
-			const payload = JSON.parse(fetchCallHistory[0].init.body as string);
+			const result = findEventByName("sheetTilesGenerated");
+			expect(result).not.toBeNull();
+			const { payload } = result!;
 
 			expect(typeof payload.data.generatedAt).toBe("number");
 			expect(payload.data.generatedAt).toBeGreaterThan(0);
@@ -550,8 +595,10 @@ describe("LiveStore Events - Pipeline Processing", () => {
 
 			await handleMetadataExtractionQueue(batch, mockEnv as Env);
 
-			const eventCall = fetchCallHistory[0];
-			expect(eventCall.url).toBe("http://internal/commit");
+			const result = findEventByName("sheetMetadataExtracted");
+			expect(result).not.toBeNull();
+			const { call: eventCall } = result!;
+			expect(eventCall.url).toMatch(/^http:\/\/internal\/commit\?storeId=/);
 			expect(eventCall.init.method).toBe("POST");
 			expect(eventCall.init.headers?.["Content-Type"]).toBe("application/json");
 		});
@@ -624,7 +671,8 @@ describe("LiveStore Events - Pipeline Processing", () => {
 
 			await handleMetadataExtractionQueue(batch, mockEnv as Env);
 
-			expect(fetchCallHistory.length).toBe(0);
+			const result = findEventByName("sheetMetadataExtracted");
+			expect(result).toBeNull();
 			expect(batch.messages[0].retry).toHaveBeenCalled();
 		});
 	});
@@ -658,9 +706,9 @@ describe("LiveStore Events - Pipeline Processing", () => {
 
 				await handleMetadataExtractionQueue(batch, mockEnv as Env);
 
-				const payload = JSON.parse(
-					fetchCallHistory[fetchCallHistory.length - 1].init.body as string,
-				);
+				const result = findLastEventByName("sheetMetadataExtracted");
+				expect(result).not.toBeNull();
+				const { payload } = result!;
 				if (i === 0) {
 					timestampsBefore.push(payload.data.extractedAt);
 				} else {
@@ -715,7 +763,9 @@ describe("LiveStore Events - Pipeline Processing", () => {
 
 			await handleMetadataExtractionQueue(batch, mockEnv as Env);
 
-			const payload = JSON.parse(fetchCallHistory[0].init.body as string);
+			const result = findEventByName("sheetMetadataExtracted");
+			expect(result).not.toBeNull();
+			const { payload } = result!;
 			const requiredFields = [
 				"sheetId",
 				"planId",
@@ -753,7 +803,9 @@ describe("LiveStore Events - Pipeline Processing", () => {
 
 			await handleCalloutDetectionQueue(batch, mockEnv as Env);
 
-			const payload = JSON.parse(fetchCallHistory[0].init.body as string);
+			const result = findEventByName("sheetCalloutsDetected");
+			expect(result).not.toBeNull();
+			const { payload } = result!;
 			const requiredFields = [
 				"sheetId",
 				"planId",
@@ -791,7 +843,9 @@ describe("LiveStore Events - Pipeline Processing", () => {
 
 			await handleTileGenerationQueue(batch, mockEnv as Env);
 
-			const payload = JSON.parse(fetchCallHistory[0].init.body as string);
+			const result = findEventByName("sheetTilesGenerated");
+			expect(result).not.toBeNull();
+			const { payload } = result!;
 			const requiredFields = [
 				"sheetId",
 				"planId",
