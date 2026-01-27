@@ -29,6 +29,10 @@
 	"queues": {
 		"producers": [
 			{
+				"binding": "R2_NOTIFICATION_QUEUE",
+				"queue": "sitelink-r2-notifications-test"
+			},
+			{
 				"binding": "IMAGE_GENERATION_QUEUE",
 				"queue": "sitelink-image-generation-test"
 			},

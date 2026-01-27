@@ -30,6 +30,10 @@
 	"queues": {
 		"producers": [
 			{
+				"binding": "R2_NOTIFICATION_QUEUE",
+				"queue": "sitelink-r2-notifications"
+			},
+			{
 				"binding": "IMAGE_GENERATION_QUEUE",
 				"queue": "sitelink-image-generation"
 			},
@@ -47,6 +51,12 @@
 			}
 		],
 		"consumers": [
+			{
+				"queue": "sitelink-r2-notifications",
+				"max_batch_size": 1,
+				"max_retries": 3,
+				"dead_letter_queue": "sitelink-processing-dlq"
+			},
 			{
 				"queue": "sitelink-image-generation",
 				"max_batch_size": 1,

@@ -4,9 +4,11 @@ import {
 	handleCalloutDetectionQueue,
 	handleImageGenerationQueue,
 	handleMetadataExtractionQueue,
+	handleR2NotificationQueue,
 	handleTileGenerationQueue,
 	PdfProcessor,
 	PlanCoordinator,
+	simulateR2Notification,
 	uploadPdfAndTriggerPipeline,
 } from "./processing";
 import { LiveStoreClientDO } from "./sync/client-do";
@@ -260,6 +262,35 @@ export default {
 			return Response.json({ planId, state });
 		}
 
+		// Test endpoint to simulate R2 notification for existing PDF
+		if (
+			url.pathname === "/api/test/simulate-r2-notification" &&
+			request.method === "POST"
+		) {
+			try {
+				const body = (await request.json()) as {
+					pdfPath: string;
+					fileSize?: number;
+				};
+
+				if (!body.pdfPath) {
+					return Response.json(
+						{ error: "Missing pdfPath" },
+						{ status: 400 },
+					);
+				}
+
+				await simulateR2Notification(env, body.pdfPath, body.fileSize || 0);
+
+				return Response.json({
+					success: true,
+					message: `Simulated R2 notification sent for ${body.pdfPath}`,
+				});
+			} catch (error) {
+				return Response.json({ error: String(error) }, { status: 500 });
+			}
+		}
+
 		// Test endpoint to upload PDF and auto-trigger pipeline (no auth, for local dev)
 		if (url.pathname === "/api/test/upload-pdf" && request.method === "POST") {
 			try {
@@ -429,6 +460,9 @@ export default {
 		const queueName = (batch as any).queue;
 
 		switch (queueName) {
+			case "sitelink-r2-notifications":
+				await handleR2NotificationQueue(batch as any, env);
+				break;
 			case "sitelink-image-generation":
 				await handleImageGenerationQueue(batch as any, env);
 				break;
@@ -443,7 +477,6 @@ export default {
 				break;
 			default:
 				console.error(`Unknown queue: ${queueName}`);
-				// Ack all messages to prevent infinite retries
 				for (const message of batch.messages) {
 					message.ack();
 				}

@@ -909,14 +909,16 @@ def detect_callouts_cvllm(image_data: bytes, valid_sheets: list, sheet_id: str) 
 
 
 @app.route('/detect-callouts', methods=['POST'])
-def detect_callouts():
+def detect_callouts_endpoint():
     """
-    Detect callout markers using LLM (with CV shape detection fallback)
+    Detect callout markers using YOLO v6n model with Gemini text extraction.
     Headers: X-Sheet-Id, X-Plan-Id, X-Sheet-Number, X-Valid-Sheet-Numbers
     Body: PNG binary data
     Returns: {"markers": [...], "unmatchedCount": N}
     """
     try:
+        from detect_yolo import detect_callouts_yolo
+
         sheet_id = request.headers.get('X-Sheet-Id')
         plan_id = request.headers.get('X-Plan-Id')
         sheet_number = request.headers.get('X-Sheet-Number', '')
@@ -929,7 +931,6 @@ def detect_callouts():
         if not image_data:
             return jsonify({"error": "No image data provided"}), 400
 
-        # Parse valid sheet numbers
         try:
             valid_sheets = json.loads(valid_sheets_json)
         except:
@@ -937,25 +938,21 @@ def detect_callouts():
 
         print(f"[Callouts] Processing sheet {sheet_id} (number: {sheet_number})")
         print(f"[Callouts] Valid sheet numbers: {valid_sheets}")
+
         config = get_openrouter_config()
         api_key = config['api_key']
         print(f"[Callouts] API key configured: {bool(api_key)}")
 
-        # Use CV+LLM hybrid detection (shape detection + batch validation)
-        if api_key:
-            result = detect_callouts_cvllm(image_data, valid_sheets, sheet_id)
-            if result is not None:
-                print(f"[Callouts] CV+LLM returned {len(result.get('markers', []))} markers")
-                return jsonify(result)
+        result = detect_callouts_yolo(
+            image_data=image_data,
+            valid_sheets=valid_sheets,
+            sheet_id=sheet_id,
+            api_key=api_key,
+            use_gemini=bool(api_key)
+        )
 
-        # Fallback: no API key or CV+LLM failed
-        print(f"[Callouts] No detection available for {sheet_id} (no API key)")
-        markers = []
-
-        return jsonify({
-            "markers": markers,
-            "unmatchedCount": len(markers)  # All need review since no LLM
-        })
+        print(f"[Callouts] YOLO returned {len(result.get('markers', []))} markers")
+        return jsonify(result)
 
     except Exception as e:
         print(f"[Callouts] Error: {e}")
