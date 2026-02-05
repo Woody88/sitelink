@@ -1,0 +1,1364 @@
+[
+  {
+    "pdf": "/home/woodson/Code/projects/sitelink/docs/plans/ca/examples/4-Structural-Drawings.pdf",
+    "pages": {
+      "0": {
+        "image_size": [
+          7200,
+          5400
+        ],
+        "total_detections": 49,
+        "sitelink_detections": 33,
+        "class_counts": {
+          "Plain Text": 19,
+          "Title": 15,
+          "Table": 4,
+          "Figure": 7,
+          "Abandoned Text": 3,
+          "Figure Caption": 1
+        },
+        "sitelink_counts": {
+          "notes_block": 11,
+          "title_candidate": 15,
+          "schedule_table": 4,
+          "detail_viewport_candidate": 3
+        },
+        "detections": [
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.9277916550636292,
+            "bbox": [
+              2104.911865234375,
+              4484.32080078125,
+              2902.55908203125,
+              5217.00244140625
+            ],
+            "sitelink_class": "notes_block"
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.9020206332206726,
+            "bbox": [
+              1140.628662109375,
+              2889.53173828125,
+              2000.673828125,
+              3903.10302734375
+            ],
+            "sitelink_class": "notes_block"
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.8952847719192505,
+            "bbox": [
+              1151.7772216796875,
+              2820.035400390625,
+              1654.1871337890625,
+              2868.186279296875
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.8840320110321045,
+            "bbox": [
+              259.7024230957031,
+              2225.5634765625,
+              1070.7191162109375,
+              2841.5908203125
+            ],
+            "sitelink_class": "notes_block"
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.851894199848175,
+            "bbox": [
+              1140.6390380859375,
+              1671.69677734375,
+              1994.9599609375,
+              2780.2490234375
+            ],
+            "sitelink_class": "notes_block"
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.7951084971427917,
+            "bbox": [
+              1153.1600341796875,
+              1619.429931640625,
+              1485.984375,
+              1664.872802734375
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.7918552160263062,
+            "bbox": [
+              276.0525817871094,
+              2874.861572265625,
+              518.1038208007812,
+              2921.32763671875
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.7799310684204102,
+            "bbox": [
+              2106.328369140625,
+              4430.25634765625,
+              2794.3759765625,
+              4475.85986328125
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 5,
+            "class_name": "Table",
+            "confidence": 0.7686957120895386,
+            "bbox": [
+              301.2396545410156,
+              1601.712890625,
+              958.533935546875,
+              2021.0489501953125
+            ],
+            "sitelink_class": "schedule_table"
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.7240345478057861,
+            "bbox": [
+              1154.668701171875,
+              3974.819091796875,
+              1850.1851806640625,
+              4076.072021484375
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.7166832089424133,
+            "bbox": [
+              267.6929016113281,
+              3578.9638671875,
+              1070.477294921875,
+              5318.0361328125
+            ],
+            "sitelink_class": "notes_block"
+          },
+          {
+            "class_id": 3,
+            "class_name": "Figure",
+            "confidence": 0.7059183120727539,
+            "bbox": [
+              2177.072265625,
+              3634.035400390625,
+              2902.759033203125,
+              4340.97216796875
+            ],
+            "sitelink_class": "detail_viewport_candidate"
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.6785569190979004,
+            "bbox": [
+              344.2320251464844,
+              3379.060546875,
+              1053.9375,
+              3442.705078125
+            ]
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.6608071327209473,
+            "bbox": [
+              1150.8704833984375,
+              4502.02294921875,
+              1354.00634765625,
+              4542.3427734375
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.659207284450531,
+            "bbox": [
+              1143.7486572265625,
+              4571.44482421875,
+              1998.00927734375,
+              5304.39453125
+            ],
+            "sitelink_class": "notes_block"
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.6415345072746277,
+            "bbox": [
+              3228.556640625,
+              3195.2998046875,
+              3505.409423828125,
+              3241.68359375
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.6363883018493652,
+            "bbox": [
+              2139.981689453125,
+              2205.353759765625,
+              2383.679931640625,
+              2241.57861328125
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 5,
+            "class_name": "Table",
+            "confidence": 0.5992996096611023,
+            "bbox": [
+              4149.8798828125,
+              2941.9462890625,
+              4816.70703125,
+              3221.795654296875
+            ],
+            "sitelink_class": "schedule_table"
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.5865498781204224,
+            "bbox": [
+              281.32745361328125,
+              2934.694091796875,
+              1067.8846435546875,
+              3317.143310546875
+            ],
+            "sitelink_class": "notes_block"
+          },
+          {
+            "class_id": 2,
+            "class_name": "Abandoned Text",
+            "confidence": 0.578618049621582,
+            "bbox": [
+              3815.818603515625,
+              1464.119873046875,
+              4550.93896484375,
+              1524.92138671875
+            ]
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.52342689037323,
+            "bbox": [
+              280.9063720703125,
+              3509.3310546875,
+              632.4971923828125,
+              3554.33984375
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 2,
+            "class_name": "Abandoned Text",
+            "confidence": 0.5222005248069763,
+            "bbox": [
+              6723.06396484375,
+              56.26552963256836,
+              7066.58740234375,
+              391.3854675292969
+            ]
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.519658088684082,
+            "bbox": [
+              266.1183166503906,
+              2169.104248046875,
+              586.6627197265625,
+              2216.376220703125
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.512543797492981,
+            "bbox": [
+              2134.784423828125,
+              2245.7802734375,
+              2853.582763671875,
+              2495.490966796875
+            ],
+            "sitelink_class": "notes_block"
+          },
+          {
+            "class_id": 3,
+            "class_name": "Figure",
+            "confidence": 0.47806552052497864,
+            "bbox": [
+              233.6963653564453,
+              108.20085144042969,
+              6711.9296875,
+              1506.6256103515625
+            ]
+          },
+          {
+            "class_id": 5,
+            "class_name": "Table",
+            "confidence": 0.44745591282844543,
+            "bbox": [
+              3959.3662109375,
+              2603.016357421875,
+              5037.37744140625,
+              2893.53271484375
+            ],
+            "sitelink_class": "schedule_table"
+          },
+          {
+            "class_id": 5,
+            "class_name": "Table",
+            "confidence": 0.4403856098651886,
+            "bbox": [
+              3791.391357421875,
+              1740.597900390625,
+              5212.28662109375,
+              2466.252197265625
+            ],
+            "sitelink_class": "schedule_table"
+          },
+          {
+            "class_id": 3,
+            "class_name": "Figure",
+            "confidence": 0.42495816946029663,
+            "bbox": [
+              2137.664794921875,
+              1806.99365234375,
+              2781.959228515625,
+              1932.3807373046875
+            ],
+            "sitelink_class": "detail_viewport_candidate"
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.41338464617729187,
+            "bbox": [
+              1148.4951171875,
+              4085.24755859375,
+              1992.992919921875,
+              4495.140625
+            ],
+            "sitelink_class": "notes_block"
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.4075012803077698,
+            "bbox": [
+              2136.870361328125,
+              2573.3798828125,
+              2577.78515625,
+              2951.39892578125
+            ],
+            "sitelink_class": "notes_block"
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.401109904050827,
+            "bbox": [
+              281.77972412109375,
+              3322.850341796875,
+              565.6275024414062,
+              3367.575439453125
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.3913782238960266,
+            "bbox": [
+              2125.6162109375,
+              3027.86962890625,
+              2890.104248046875,
+              3540.89599609375
+            ],
+            "sitelink_class": "notes_block"
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.3422757387161255,
+            "bbox": [
+              2136.3759765625,
+              2964.0068359375,
+              2427.29052734375,
+              3007.01318359375
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.3373868465423584,
+            "bbox": [
+              2137.551025390625,
+              1966.1888427734375,
+              2672.306396484375,
+              2007.5223388671875
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.33196547627449036,
+            "bbox": [
+              2138.548828125,
+              1683.235107421875,
+              2520.461181640625,
+              1727.254150390625
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.323376327753067,
+            "bbox": [
+              2141.33837890625,
+              2521.629150390625,
+              2449.10498046875,
+              2563.024169921875
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 3,
+            "class_name": "Figure",
+            "confidence": 0.315276175737381,
+            "bbox": [
+              3014.466552734375,
+              3260.840087890625,
+              3715.5615234375,
+              3782.17431640625
+            ],
+            "sitelink_class": "detail_viewport_candidate"
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.3000238835811615,
+            "bbox": [
+              6676.81640625,
+              4099.66259765625,
+              7051.2041015625,
+              4145.96630859375
+            ]
+          },
+          {
+            "class_id": 4,
+            "class_name": "Figure Caption",
+            "confidence": 0.29738524556159973,
+            "bbox": [
+              3016.334228515625,
+              1605.9984130859375,
+              3436.674072265625,
+              1650.37158203125
+            ]
+          },
+          {
+            "class_id": 3,
+            "class_name": "Figure",
+            "confidence": 0.24735233187675476,
+            "bbox": [
+              3014.911865234375,
+              1666.2596435546875,
+              3713.805419921875,
+              3118.5380859375
+            ]
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.2382885217666626,
+            "bbox": [
+              281.77972412109375,
+              3322.850341796875,
+              565.6275024414062,
+              3367.575439453125
+            ]
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.23546765744686127,
+            "bbox": [
+              2137.916259765625,
+              1746.4285888671875,
+              2523.51416015625,
+              1784.920166015625
+            ]
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.22974692285060883,
+            "bbox": [
+              273.9433288574219,
+              4123.474609375,
+              891.9053344726562,
+              4301.52490234375
+            ]
+          },
+          {
+            "class_id": 2,
+            "class_name": "Abandoned Text",
+            "confidence": 0.2273690402507782,
+            "bbox": [
+              6647.11865234375,
+              38.382625579833984,
+              7095.75732421875,
+              5365.3388671875
+            ]
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.2249337136745453,
+            "bbox": [
+              1158.1806640625,
+              4086.658203125,
+              1985.8739013671875,
+              4256.18310546875
+            ]
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.2206801325082779,
+            "bbox": [
+              2138.548828125,
+              1683.235107421875,
+              2520.461181640625,
+              1727.254150390625
+            ]
+          },
+          {
+            "class_id": 3,
+            "class_name": "Figure",
+            "confidence": 0.21929968893527985,
+            "bbox": [
+              6662.9169921875,
+              3931.587646484375,
+              7073.9072265625,
+              4092.213623046875
+            ]
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.20898641645908356,
+            "bbox": [
+              280.9063720703125,
+              3509.3310546875,
+              632.4971923828125,
+              3554.33984375
+            ]
+          },
+          {
+            "class_id": 3,
+            "class_name": "Figure",
+            "confidence": 0.2055739164352417,
+            "bbox": [
+              2130.548583984375,
+              2011.0379638671875,
+              2649.66748046875,
+              2175.276611328125
+            ]
+          }
+        ],
+        "sitelink_detections_filtered": [
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.9277916550636292,
+            "bbox": [
+              2104.911865234375,
+              4484.32080078125,
+              2902.55908203125,
+              5217.00244140625
+            ],
+            "sitelink_class": "notes_block"
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.9020206332206726,
+            "bbox": [
+              1140.628662109375,
+              2889.53173828125,
+              2000.673828125,
+              3903.10302734375
+            ],
+            "sitelink_class": "notes_block"
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.8952847719192505,
+            "bbox": [
+              1151.7772216796875,
+              2820.035400390625,
+              1654.1871337890625,
+              2868.186279296875
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.8840320110321045,
+            "bbox": [
+              259.7024230957031,
+              2225.5634765625,
+              1070.7191162109375,
+              2841.5908203125
+            ],
+            "sitelink_class": "notes_block"
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.851894199848175,
+            "bbox": [
+              1140.6390380859375,
+              1671.69677734375,
+              1994.9599609375,
+              2780.2490234375
+            ],
+            "sitelink_class": "notes_block"
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.7951084971427917,
+            "bbox": [
+              1153.1600341796875,
+              1619.429931640625,
+              1485.984375,
+              1664.872802734375
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.7918552160263062,
+            "bbox": [
+              276.0525817871094,
+              2874.861572265625,
+              518.1038208007812,
+              2921.32763671875
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.7799310684204102,
+            "bbox": [
+              2106.328369140625,
+              4430.25634765625,
+              2794.3759765625,
+              4475.85986328125
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 5,
+            "class_name": "Table",
+            "confidence": 0.7686957120895386,
+            "bbox": [
+              301.2396545410156,
+              1601.712890625,
+              958.533935546875,
+              2021.0489501953125
+            ],
+            "sitelink_class": "schedule_table"
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.7240345478057861,
+            "bbox": [
+              1154.668701171875,
+              3974.819091796875,
+              1850.1851806640625,
+              4076.072021484375
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.7166832089424133,
+            "bbox": [
+              267.6929016113281,
+              3578.9638671875,
+              1070.477294921875,
+              5318.0361328125
+            ],
+            "sitelink_class": "notes_block"
+          },
+          {
+            "class_id": 3,
+            "class_name": "Figure",
+            "confidence": 0.7059183120727539,
+            "bbox": [
+              2177.072265625,
+              3634.035400390625,
+              2902.759033203125,
+              4340.97216796875
+            ],
+            "sitelink_class": "detail_viewport_candidate"
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.6608071327209473,
+            "bbox": [
+              1150.8704833984375,
+              4502.02294921875,
+              1354.00634765625,
+              4542.3427734375
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.659207284450531,
+            "bbox": [
+              1143.7486572265625,
+              4571.44482421875,
+              1998.00927734375,
+              5304.39453125
+            ],
+            "sitelink_class": "notes_block"
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.6415345072746277,
+            "bbox": [
+              3228.556640625,
+              3195.2998046875,
+              3505.409423828125,
+              3241.68359375
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.6363883018493652,
+            "bbox": [
+              2139.981689453125,
+              2205.353759765625,
+              2383.679931640625,
+              2241.57861328125
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 5,
+            "class_name": "Table",
+            "confidence": 0.5992996096611023,
+            "bbox": [
+              4149.8798828125,
+              2941.9462890625,
+              4816.70703125,
+              3221.795654296875
+            ],
+            "sitelink_class": "schedule_table"
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.5865498781204224,
+            "bbox": [
+              281.32745361328125,
+              2934.694091796875,
+              1067.8846435546875,
+              3317.143310546875
+            ],
+            "sitelink_class": "notes_block"
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.52342689037323,
+            "bbox": [
+              280.9063720703125,
+              3509.3310546875,
+              632.4971923828125,
+              3554.33984375
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.519658088684082,
+            "bbox": [
+              266.1183166503906,
+              2169.104248046875,
+              586.6627197265625,
+              2216.376220703125
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.512543797492981,
+            "bbox": [
+              2134.784423828125,
+              2245.7802734375,
+              2853.582763671875,
+              2495.490966796875
+            ],
+            "sitelink_class": "notes_block"
+          },
+          {
+            "class_id": 5,
+            "class_name": "Table",
+            "confidence": 0.44745591282844543,
+            "bbox": [
+              3959.3662109375,
+              2603.016357421875,
+              5037.37744140625,
+              2893.53271484375
+            ],
+            "sitelink_class": "schedule_table"
+          },
+          {
+            "class_id": 5,
+            "class_name": "Table",
+            "confidence": 0.4403856098651886,
+            "bbox": [
+              3791.391357421875,
+              1740.597900390625,
+              5212.28662109375,
+              2466.252197265625
+            ],
+            "sitelink_class": "schedule_table"
+          },
+          {
+            "class_id": 3,
+            "class_name": "Figure",
+            "confidence": 0.42495816946029663,
+            "bbox": [
+              2137.664794921875,
+              1806.99365234375,
+              2781.959228515625,
+              1932.3807373046875
+            ],
+            "sitelink_class": "detail_viewport_candidate"
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.41338464617729187,
+            "bbox": [
+              1148.4951171875,
+              4085.24755859375,
+              1992.992919921875,
+              4495.140625
+            ],
+            "sitelink_class": "notes_block"
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.4075012803077698,
+            "bbox": [
+              2136.870361328125,
+              2573.3798828125,
+              2577.78515625,
+              2951.39892578125
+            ],
+            "sitelink_class": "notes_block"
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.401109904050827,
+            "bbox": [
+              281.77972412109375,
+              3322.850341796875,
+              565.6275024414062,
+              3367.575439453125
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.3913782238960266,
+            "bbox": [
+              2125.6162109375,
+              3027.86962890625,
+              2890.104248046875,
+              3540.89599609375
+            ],
+            "sitelink_class": "notes_block"
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.3422757387161255,
+            "bbox": [
+              2136.3759765625,
+              2964.0068359375,
+              2427.29052734375,
+              3007.01318359375
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.3373868465423584,
+            "bbox": [
+              2137.551025390625,
+              1966.1888427734375,
+              2672.306396484375,
+              2007.5223388671875
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.33196547627449036,
+            "bbox": [
+              2138.548828125,
+              1683.235107421875,
+              2520.461181640625,
+              1727.254150390625
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.323376327753067,
+            "bbox": [
+              2141.33837890625,
+              2521.629150390625,
+              2449.10498046875,
+              2563.024169921875
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 3,
+            "class_name": "Figure",
+            "confidence": 0.315276175737381,
+            "bbox": [
+              3014.466552734375,
+              3260.840087890625,
+              3715.5615234375,
+              3782.17431640625
+            ],
+            "sitelink_class": "detail_viewport_candidate"
+          }
+        ]
+      },
+      "1": {
+        "image_size": [
+          7200,
+          5400
+        ],
+        "total_detections": 2,
+        "sitelink_detections": 0,
+        "class_counts": {
+          "Figure": 1,
+          "Abandoned Text": 1
+        },
+        "sitelink_counts": {},
+        "detections": [
+          {
+            "class_id": 3,
+            "class_name": "Figure",
+            "confidence": 0.7394999861717224,
+            "bbox": [
+              442.14434814453125,
+              17.75836944580078,
+              6526.984375,
+              5363.1357421875
+            ]
+          },
+          {
+            "class_id": 2,
+            "class_name": "Abandoned Text",
+            "confidence": 0.20166225731372833,
+            "bbox": [
+              6646.306640625,
+              14.841842651367188,
+              7101.16015625,
+              5362.837890625
+            ]
+          }
+        ],
+        "sitelink_detections_filtered": []
+      },
+      "2": {
+        "image_size": [
+          7200,
+          5400
+        ],
+        "total_detections": 1,
+        "sitelink_detections": 0,
+        "class_counts": {
+          "Figure": 1
+        },
+        "sitelink_counts": {},
+        "detections": [
+          {
+            "class_id": 3,
+            "class_name": "Figure",
+            "confidence": 0.6290158629417419,
+            "bbox": [
+              339.02349853515625,
+              24.54371452331543,
+              7084.615234375,
+              5400.0
+            ]
+          }
+        ],
+        "sitelink_detections_filtered": []
+      }
+    }
+  },
+  {
+    "pdf": "/home/woodson/Code/projects/sitelink/docs/plans/us/examples/structural/dwl/ATTACHMENT_11_STRUCTURAL.pdf",
+    "pages": {
+      "0": {
+        "image_size": [
+          6300,
+          4500
+        ],
+        "total_detections": 7,
+        "sitelink_detections": 4,
+        "class_counts": {
+          "Title": 1,
+          "Table": 1,
+          "Plain Text": 5
+        },
+        "sitelink_counts": {
+          "title_candidate": 1,
+          "schedule_table": 1,
+          "notes_block": 2
+        },
+        "detections": [
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.5239101052284241,
+            "bbox": [
+              202.02999877929688,
+              2305.65576171875,
+              519.30029296875,
+              2354.140869140625
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 5,
+            "class_name": "Table",
+            "confidence": 0.4948055148124695,
+            "bbox": [
+              495.0995788574219,
+              184.18316650390625,
+              6282.23046875,
+              4463.03271484375
+            ],
+            "sitelink_class": "schedule_table"
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.42804959416389465,
+            "bbox": [
+              214.49755859375,
+              2380.0419921875,
+              1222.8436279296875,
+              2514.177001953125
+            ],
+            "sitelink_class": "notes_block"
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.35765352845191956,
+            "bbox": [
+              242.5881805419922,
+              2752.156982421875,
+              1224.405029296875,
+              2852.65478515625
+            ],
+            "sitelink_class": "notes_block"
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.30472004413604736,
+            "bbox": [
+              238.09634399414062,
+              2629.417724609375,
+              1217.7265625,
+              2727.92724609375
+            ]
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.2743704915046692,
+            "bbox": [
+              237.62770080566406,
+              2536.526123046875,
+              1183.6656494140625,
+              2603.989501953125
+            ]
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.22311921417713165,
+            "bbox": [
+              249.5048828125,
+              2876.884521484375,
+              1221.6932373046875,
+              2946.04345703125
+            ]
+          }
+        ],
+        "sitelink_detections_filtered": [
+          {
+            "class_id": 0,
+            "class_name": "Title",
+            "confidence": 0.5239101052284241,
+            "bbox": [
+              202.02999877929688,
+              2305.65576171875,
+              519.30029296875,
+              2354.140869140625
+            ],
+            "sitelink_class": "title_candidate"
+          },
+          {
+            "class_id": 5,
+            "class_name": "Table",
+            "confidence": 0.4948055148124695,
+            "bbox": [
+              495.0995788574219,
+              184.18316650390625,
+              6282.23046875,
+              4463.03271484375
+            ],
+            "sitelink_class": "schedule_table"
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.42804959416389465,
+            "bbox": [
+              214.49755859375,
+              2380.0419921875,
+              1222.8436279296875,
+              2514.177001953125
+            ],
+            "sitelink_class": "notes_block"
+          },
+          {
+            "class_id": 1,
+            "class_name": "Plain Text",
+            "confidence": 0.35765352845191956,
+            "bbox": [
+              242.5881805419922,
+              2752.156982421875,
+              1224.405029296875,
+              2852.65478515625
+            ],
+            "sitelink_class": "notes_block"
+          }
+        ]
+      },
+      "1": {
+        "image_size": [
+          6300,
+          4500
+        ],
+        "total_detections": 2,
+        "sitelink_detections": 1,
+        "class_counts": {
+          "Figure": 1,
+          "Abandoned Text": 1
+        },
+        "sitelink_counts": {
+          "detail_viewport_candidate": 1
+        },
+        "detections": [
+          {
+            "class_id": 3,
+            "class_name": "Figure",
+            "confidence": 0.8896443843841553,
+            "bbox": [
+              923.9100952148438,
+              856.4243774414062,
+              4786.0673828125,
+              3693.841796875
+            ],
+            "sitelink_class": "detail_viewport_candidate"
+          },
+          {
+            "class_id": 2,
+            "class_name": "Abandoned Text",
+            "confidence": 0.43107038736343384,
+            "bbox": [
+              5771.548828125,
+              19.153976440429688,
+              6145.8603515625,
+              4422.12548828125
+            ]
+          }
+        ],
+        "sitelink_detections_filtered": [
+          {
+            "class_id": 3,
+            "class_name": "Figure",
+            "confidence": 0.8896443843841553,
+            "bbox": [
+              923.9100952148438,
+              856.4243774414062,
+              4786.0673828125,
+              3693.841796875
+            ],
+            "sitelink_class": "detail_viewport_candidate"
+          }
+        ]
+      },
+      "5": {
+        "image_size": [
+          6300,
+          4500
+        ],
+        "total_detections": 5,
+        "sitelink_detections": 1,
+        "class_counts": {
+          "Figure": 1,
+          "Figure Caption": 2,
+          "Table": 1,
+          "Abandoned Text": 1
+        },
+        "sitelink_counts": {
+          "schedule_table": 1
+        },
+        "detections": [
+          {
+            "class_id": 3,
+            "class_name": "Figure",
+            "confidence": 0.8694025874137878,
+            "bbox": [
+              405.1883850097656,
+              55.72407150268555,
+              6130.4091796875,
+              4356.921875
+            ]
+          },
+          {
+            "class_id": 4,
+            "class_name": "Figure Caption",
+            "confidence": 0.36468639969825745,
+            "bbox": [
+              466.1202087402344,
+              1046.6346435546875,
+              1602.0225830078125,
+              1125.7352294921875
+            ]
+          },
+          {
+            "class_id": 5,
+            "class_name": "Table",
+            "confidence": 0.3193987011909485,
+            "bbox": [
+              2557.376220703125,
+              134.56983947753906,
+              3442.916259765625,
+              835.3616333007812
+            ],
+            "sitelink_class": "schedule_table"
+          },
+          {
+            "class_id": 4,
+            "class_name": "Figure Caption",
+            "confidence": 0.29379796981811523,
+            "bbox": [
+              1745.2352294921875,
+              1015.72802734375,
+              2205.881591796875,
+              1070.9920654296875
+            ]
+          },
+          {
+            "class_id": 2,
+            "class_name": "Abandoned Text",
+            "confidence": 0.20306427776813507,
+            "bbox": [
+              5788.4287109375,
+              34.84876251220703,
+              6146.35205078125,
+              4419.39404296875
+            ]
+          }
+        ],
+        "sitelink_detections_filtered": [
+          {
+            "class_id": 5,
+            "class_name": "Table",
+            "confidence": 0.3193987011909485,
+            "bbox": [
+              2557.376220703125,
+              134.56983947753906,
+              3442.916259765625,
+              835.3616333007812
+            ],
+            "sitelink_class": "schedule_table"
+          }
+        ]
+      }
+    }
+  }
+]
