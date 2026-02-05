@@ -26,3 +26,6 @@ PyMuPDF>=1.23.0
 
 # Additional utilities
 tqdm>=4.65.0
+
+# DocLayout-YOLO for document layout detection (POC)
+doclayout-yolo>=0.0.2
