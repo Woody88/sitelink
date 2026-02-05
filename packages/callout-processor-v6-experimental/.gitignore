@@ -79,3 +79,28 @@ active_learning/logs/
 !active_learning/config/al_config.yaml
 !active_learning/datasets/*/data.yaml
 !active_learning/datasets/*/README.*
+
+# Rendered pages for annotation (generated from PDFs, uploaded to Roboflow)
+rendered_pages/
+
+# DocLayout fine-tuning datasets (downloaded from Roboflow)
+datasets/
+
+# DocLayout training runs
+runs/layout/
+
+# Eval output
+eval_doclayout_finetune_results/
+
+# Reference crops (generated)
+reference_crops/
+
+# POC results (already documented)
+poc_yoloe_layout_results/
+
+# Misc generated files
+*.log
+discord_bot.sh
+comparison_output.png
+test_structural*.png
+training_title_example.jpg

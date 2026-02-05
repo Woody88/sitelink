@@ -1,8 +1,11 @@
+> **⚠️ DEPRECATED**: This document has been superseded by [05-ai-features.md](./05-ai-features.md).
+> See [README.md](./README.md) for the current documentation index.
+
 # SiteLink Plan Assistant PRD
 
 ## Product Requirements Document
 
-**Version:** 1.0  
+**Version:** 1.0
 **Date:** January 2026
 
 ---
@@ -427,8 +430,10 @@ Acceptance Criteria:
 **FR-13: Offline AI**
 
 - For simple queries: rule-based responses from extracted data
-- For complex queries: queue for when online, or use on-device LLM
+- For complex queries: queue for when online (on-device LLM is not viable - see 04-architecture.md Section 3.4)
 - Always show extracted data immediately, AI synthesis when available
+
+> **SUPERSEDED:** The "on-device LLM" option mentioned above was evaluated and rejected. See [04-architecture.md](./04-architecture.md) Section 3.4 for rationale (8-15s latency, 2-4GB model size, battery drain). The actual approach uses template-based responses for offline, cloud LLM for complex queries.
 
 ---
 
