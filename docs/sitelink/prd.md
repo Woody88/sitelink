@@ -1,8 +1,16 @@
+> **⚠️ DEPRECATED**: This document has been superseded by the modular PRD structure.
+> See [README.md](./README.md) for the current documentation index.
+> - Vision & Market → [01-vision.md](./01-vision.md)
+> - Users & Personas → [02-users.md](./02-users.md)
+> - Product & Features → [03-product.md](./03-product.md)
+> - Architecture → [04-architecture.md](./04-architecture.md)
+> - AI Features → [05-ai-features.md](./05-ai-features.md)
+
 # SiteLink: Complete Product Requirements Document
 
-**Version:** 1.0  
-**Date:** January 2, 2026  
-**Platform:** Mobile-first (iOS & Android via Expo)  
+**Version:** 1.0
+**Date:** January 2, 2026
+**Platform:** Mobile-first (iOS & Android via Expo)
 **Target:** Small-to-mid construction contractors
 
 ---

@@ -1,5 +1,18 @@
 Use 'bd' for task tracking
 
+## Product Documentation
+
+**SiteLink PRDs and product specs are in `docs/sitelink/`**
+
+Start with [docs/sitelink/README.md](./docs/sitelink/README.md) for the documentation index:
+- `01-vision.md` - Market thesis, competitive positioning, value proposition
+- `02-users.md` - User personas, workflows, jobs-to-be-done
+- `03-product.md` - Feature specifications, screens, flows
+- `04-architecture.md` - Technical architecture, processing pipeline, offline model
+- `05-ai-features.md` - Plan Assistant, extraction pipeline, query system
+
+For implementation tracking, see beads tickets referenced in the README.
+
 ## Required Documentation References
 
 Agents MUST use these documentation sources when working with the following technologies:

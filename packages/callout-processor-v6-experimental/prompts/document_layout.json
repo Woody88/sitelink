@@ -1,0 +1,51 @@
+{
+  "standard": "document_layout",
+  "description": "Document layout region detection prompts for construction drawings. Detects schedule tables, notes blocks, legend boxes, and detail viewports.",
+  "callout_types": {
+    "schedule_table": {
+      "name": "Schedule Table",
+      "text_prompt": "A structured table or schedule on a construction drawing. Contains rows and columns with data such as sizes, quantities, materials, or specifications. Has a header row with column labels. Examples include Footing Schedule, Beam Schedule, Bearing Plate Schedule, Rebar Schedule, Column Schedule, Lintel Schedule. The table has clear grid lines forming cells. Located in the drawing area, not in the title block.",
+      "visual_characteristics": [
+        "Rectangular grid with rows and columns",
+        "Header row with column labels",
+        "Cell borders forming a grid pattern",
+        "Contains alphanumeric data in cells",
+        "Located on drawing sheet, not in title block",
+        "May have a title above the table"
+      ]
+    },
+    "notes_block": {
+      "name": "Notes Block",
+      "text_prompt": "A block of written notes or specifications text on a construction drawing. Contains multiple lines of text describing general notes, structural notes, concrete notes, foundation notes, or special requirements. Text is left-aligned in a dense paragraph or numbered list format. Located in an area separate from the actual drawing graphics.",
+      "visual_characteristics": [
+        "Dense block of small text",
+        "Multiple lines of text, often numbered",
+        "Left-aligned paragraph or list format",
+        "Located separate from drawing graphics",
+        "May have a heading like GENERAL NOTES or STRUCTURAL NOTES"
+      ]
+    },
+    "legend_box": {
+      "name": "Legend Box",
+      "text_prompt": "A legend or key box on a construction drawing that explains symbols, abbreviations, line types, or hatching patterns used in the drawing. Contains symbol samples paired with text descriptions. May be titled LEGEND, KEY, SYMBOL LEGEND, or ABBREVIATIONS. Has a border or box around it separating it from the drawing content.",
+      "visual_characteristics": [
+        "Bordered or boxed region",
+        "Contains symbol samples paired with text descriptions",
+        "Title such as LEGEND, KEY, SYMBOL LEGEND",
+        "Organized in rows: symbol on left, description on right",
+        "Located in corner or margin area of the drawing"
+      ]
+    },
+    "detail_viewport": {
+      "name": "Detail Viewport",
+      "text_prompt": "An enlarged detail drawing or viewport on a construction structural drawing. Shows a zoomed-in view of a specific construction connection, joint, or assembly. Has a border box around it and a title underneath with a scale indicator. Contains detailed dimensions and annotations showing how components connect.",
+      "visual_characteristics": [
+        "Bordered rectangular area with drawing inside",
+        "Title underneath with detail name and scale",
+        "Shows enlarged construction details",
+        "Contains dimension lines and annotations",
+        "Typically 200-800 pixels in each dimension"
+      ]
+    }
+  }
+}

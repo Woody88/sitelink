@@ -14,10 +14,19 @@ Output:
         {
           "bbox": [x, y, w, h],
           "class": "detail|elevation|title",
-          "confidence": 0.87
+          "confidence": 0.87,
+          "model": "callout_yolo26n"
         },
         ...
       ]
+    }
+
+    When --layout is enabled, layout region detections are appended:
+    {
+      "bbox": [x, y, w, h],
+      "class": "schedule_table|notes_block|legend_box",
+      "confidence": 0.85,
+      "model": "doclayout_yolo"
     }
 """
 
@@ -47,6 +56,8 @@ CONF_THRESHOLD = 0.25
 IOU_THRESHOLD = 0.5
 
 CLASS_NAMES = ["detail", "elevation", "title"]
+
+LAYOUT_CLASS_NAMES = ["schedule_table", "notes_block", "legend_box"]
 
 
 def render_pdf_page(pdf_path: str, page_num: int, dpi: int = DPI) -> cv2.Mat:
@@ -87,7 +98,7 @@ def detect_callouts(
     Returns:
         List of detections in format:
         [
-          {"bbox": [x,y,w,h], "class": "detail", "confidence": 0.87},
+          {"bbox": [x,y,w,h], "class": "detail", "confidence": 0.87, "model": "callout_yolo26n"},
           ...
         ]
     """
@@ -123,7 +134,8 @@ def detect_callouts(
                         float(y2_global - y1_global)
                     ],
                     'class': class_name,
-                    'confidence': conf_score
+                    'confidence': conf_score,
+                    'model': 'callout_yolo26n'
                 })
 
     # Merge overlapping detections
@@ -151,6 +163,8 @@ def main():
                         help=f"Confidence threshold (default: {CONF_THRESHOLD})")
     parser.add_argument("--no-filters", action="store_true",
                         help="Disable post-processing filters")
+    parser.add_argument("--layout", action="store_true",
+                        help="Also run DocLayout-YOLO for layout region detection")
 
     args = parser.parse_args()
 
@@ -183,8 +197,8 @@ def main():
 
     print(f"Image size: {image.shape[1]}x{image.shape[0]}", file=sys.stderr)
 
-    # Run detection
-    print("Running detection...", file=sys.stderr)
+    # Run callout detection
+    print("Running callout detection...", file=sys.stderr)
     detections = detect_callouts(
         image,
         model,
@@ -193,6 +207,26 @@ def main():
     )
 
     print(f"Found {len(detections)} callouts", file=sys.stderr)
+
+    # Run layout detection if requested
+    if args.layout:
+        print("Running DocLayout-YOLO layout detection...", file=sys.stderr)
+        try:
+            from doclayout_detect import detect_layout_regions
+
+            layout_detections = detect_layout_regions(
+                image,
+                conf=args.conf,
+                iou=IOU_THRESHOLD,
+            )
+            print(f"Found {len(layout_detections)} layout regions", file=sys.stderr)
+            detections.extend(layout_detections)
+        except ImportError as e:
+            print(f"Warning: Could not import doclayout_detect: {e}", file=sys.stderr)
+            print("Layout detection skipped. Install doclayout-yolo package.", file=sys.stderr)
+        except FileNotFoundError as e:
+            print(f"Warning: {e}", file=sys.stderr)
+            print("Layout detection skipped.", file=sys.stderr)
 
     # Save results
     output_dir = Path(args.output)
@@ -204,15 +238,20 @@ def main():
 
     print(f"Saved detections to {output_file}", file=sys.stderr)
 
+    # Build class summary across both model types
+    all_class_names = CLASS_NAMES + (LAYOUT_CLASS_NAMES if args.layout else [])
+    by_class = {
+        cls: sum(1 for d in detections if d['class'] == cls)
+        for cls in all_class_names
+    }
+    by_class = {k: v for k, v in by_class.items() if v > 0}
+
     # Print summary to stdout (parseable by TypeScript)
     print(json.dumps({
         "success": True,
         "detections_count": len(detections),
         "output_file": str(output_file),
-        "by_class": {
-            cls: sum(1 for d in detections if d['class'] == cls)
-            for cls in CLASS_NAMES
-        }
+        "by_class": by_class
     }))
 
 
