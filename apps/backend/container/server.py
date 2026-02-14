@@ -1179,5 +1179,106 @@ def generate_tiles():
         traceback.print_exc()
         return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500
 
+@app.route('/detect-layout', methods=['POST'])
+def detect_layout_endpoint():
+    """
+    Detect layout regions (schedule, notes, legend) using DocLayout-YOLO.
+    Headers: X-Sheet-Id, X-Plan-Id
+    Body: PNG binary data
+    Returns: {"regions": [{"class": "schedule"|"notes"|"legend", "bbox": [x, y, w, h], "confidence": float}]}
+    """
+    try:
+        sheet_id = request.headers.get('X-Sheet-Id')
+        plan_id = request.headers.get('X-Plan-Id')
+
+        if not sheet_id:
+            return jsonify({"error": "Missing X-Sheet-Id header"}), 400
+
+        image_data = request.get_data()
+        if not image_data:
+            return jsonify({"error": "No image data provided"}), 400
+
+        print(f"[Layout] Processing sheet {sheet_id} ({len(image_data)} bytes)")
+
+        # Decode image to get dimensions for normalization
+        nparr = np.frombuffer(image_data, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        if img is None:
+            return jsonify({"error": "Failed to decode image"}), 400
+
+        img_h, img_w = img.shape[:2]
+        print(f"[Layout] Image dimensions: {img_w}x{img_h}")
+
+        # Lazy-load DocLayout-YOLO model
+        global _doclayout_model
+        if _doclayout_model is None:
+            print("[Layout] Loading DocLayout-YOLO model...")
+            os.environ["HF_HUB_ENABLE_XET_DOWNLOAD"] = "0"
+            from doclayout_yolo import YOLOv10
+            model_path = os.path.join(os.path.dirname(__file__), "weights", "doclayout_construction_v1.pt")
+            if not os.path.exists(model_path):
+                return jsonify({"error": f"DocLayout model not found at {model_path}"}), 500
+            _doclayout_model = YOLOv10(model_path)
+            print("[Layout] DocLayout-YOLO model loaded")
+
+        # Run inference
+        results = _doclayout_model.predict(
+            img,
+            imgsz=1024,
+            conf=0.25,
+            iou=0.5,
+            verbose=False,
+        )
+
+        doclayout_class_names = ["schedule_table", "notes_block", "legend_box"]
+        class_name_map = {
+            "schedule_table": "schedule",
+            "notes_block": "notes",
+            "legend_box": "legend",
+        }
+
+        regions = []
+        for r in results:
+            boxes = r.boxes
+            for i in range(len(boxes)):
+                box = boxes[i]
+                x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+                conf_score = float(box.conf[0])
+                cls_id = int(box.cls[0])
+
+                if cls_id < 0 or cls_id >= len(doclayout_class_names):
+                    continue
+
+                raw_class = doclayout_class_names[cls_id]
+                region_class = class_name_map[raw_class]
+
+                # Normalize bbox to 0-1
+                nx = float(x1) / img_w
+                ny = float(y1) / img_h
+                nw = float(x2 - x1) / img_w
+                nh = float(y2 - y1) / img_h
+
+                regions.append({
+                    "class": region_class,
+                    "bbox": [nx, ny, nw, nh],
+                    "confidence": conf_score,
+                })
+
+        print(f"[Layout] Found {len(regions)} layout regions")
+        for region in regions:
+            print(f"  {region['class']}: conf={region['confidence']:.2f} bbox={[round(v, 3) for v in region['bbox']]}")
+
+        return jsonify({"regions": regions})
+
+    except Exception as e:
+        print(f"[Layout] Error: {e}")
+        traceback.print_exc()
+        return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500
+
+
+# Global DocLayout-YOLO model (lazy-loaded)
+_doclayout_model = None
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=3001, debug=False)
