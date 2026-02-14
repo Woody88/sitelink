@@ -2,6 +2,7 @@ import {
 	type LucideIcon,
 	Maximize,
 	RotateCcw,
+	ScanLine,
 	ZoomIn,
 	ZoomOut,
 } from "lucide-react-native";
@@ -24,6 +25,8 @@ interface ViewerControlsProps {
 	onZoomOut: () => void;
 	onZoomToFit: () => void;
 	onReset?: () => void;
+	showRegions?: boolean;
+	onToggleRegions?: () => void;
 	className?: string;
 }
 
@@ -41,6 +44,8 @@ export function ViewerControls({
 	onZoomOut,
 	onZoomToFit,
 	onReset,
+	showRegions,
+	onToggleRegions,
 	className,
 }: ViewerControlsProps) {
 	const canZoomIn = zoom < maxZoom * 0.95;
@@ -90,6 +95,17 @@ export function ViewerControls({
 					</>
 				)}
 			</View>
+
+			{onToggleRegions && (
+				<View className="overflow-hidden rounded-2xl bg-black/60 backdrop-blur-md">
+					<ControlButton
+						icon={ScanLine}
+						onPress={onToggleRegions}
+						accessibilityLabel={showRegions ? "Hide region overlays" : "Show region overlays"}
+						dimmed={!showRegions}
+					/>
+				</View>
+			)}
 		</View>
 	);
 }
@@ -98,6 +114,7 @@ interface ControlButtonProps {
 	icon: LucideIcon;
 	onPress: () => void;
 	disabled?: boolean;
+	dimmed?: boolean;
 	accessibilityLabel: string;
 }
 
@@ -105,6 +122,7 @@ function ControlButton({
 	icon: IconComponent,
 	onPress,
 	disabled,
+	dimmed,
 	accessibilityLabel,
 }: ControlButtonProps) {
 	const scale = useSharedValue(1);
@@ -132,7 +150,7 @@ function ControlButton({
 			style={animatedStyle}
 			className={cn(
 				"h-12 w-12 items-center justify-center",
-				disabled && "opacity-40",
+				(disabled || dimmed) && "opacity-40",
 			)}
 		>
 			<Icon as={IconComponent} className="size-5 text-white" />
