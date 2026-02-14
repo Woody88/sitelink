@@ -130,9 +130,18 @@ All extraction runs in the cloud during PDF upload. The mobile device never runs
 
 **Purpose:** Automatically detect callout symbols (section markers, detail bubbles, elevation markers) and link them to target sheets.
 
-**Technology:** YOLOv11n custom-trained model (YOLO-26n, iteration-5)
+**Technology:** YOLOv11n custom-trained model (YOLO-26n)
 
-**Performance Metrics (from callout-processor-v6-experimental):**
+**Current Model: 4-class model (grid_bubble_v15)**
+
+| Metric | Overall | Detail | Elevation | Title | Grid Bubble |
+|--------|---------|--------|-----------|-------|-------------|
+| Recall | 95.98% | - | - | - | - |
+| Precision | 95.03% | - | - | - | - |
+| mAP50 | 96.48% | - | - | - | - |
+| mAP50-95 | 89.32% | - | - | - | - |
+
+**Previous Model (3-class, iteration-5):**
 
 | Metric | Overall | Detail | Elevation | Title |
 |--------|---------|--------|-----------|-------|
@@ -140,14 +149,13 @@ All extraction runs in the cloud during PDF upload. The mobile device never runs
 | Precision | 88.6% | 87.7% | 95.2% | 84.1% |
 | mAP50 | 94.5% | - | - | - |
 
-**What Gets Detected (3 classes implemented):**
+**What Gets Detected (4 classes):**
 - **detail** - Small circular/rectangular callouts with text/numbers (e.g., detail bubbles referencing other sheets)
 - **elevation** - Similar to detail markers, typically found on elevation views
 - **title** - Larger rectangular boxes containing detail titles
+- **grid_bubble** - Circles at sheet edges containing single letters (A, B, C) or numbers (1, 2, 3) for the grid coordinate system
 
-**Planned (not yet implemented):**
-- Section callouts
-- Grid bubbles
+> **Note:** Grid bubble detections are stored during processing but the grid coordinate UI (element-to-grid association, "What's at F/5?" queries) is deferred to Phase 2. See [Phase 2 Enhancements](#phase-2-enhancements-planned).
 
 **Processing Location:** Cloud (GPU-accelerated worker)
 
@@ -162,7 +170,7 @@ All extraction runs in the cloud during PDF upload. The mobile device never runs
 
 ### 3.2 YOLO Element Label Detection
 
-> **Status: Planned** - Not yet implemented. See beads tickets `sitelink-3r0` (implementation spec) and `sitelink-d3w` (planning). Research complete in `sitelink-j1q` (closed).
+> **Status: Phase 2** - Research and implementation spec complete. Deferred to Phase 2 (after Plan Info feature ships). See beads tickets `sitelink-3r0` (implementation spec, closed) and `sitelink-d3w` (planning). Research complete in `sitelink-j1q` (closed).
 
 **Purpose:** Detect element type labels on plan sheets (FOOTING TYPE F1, PIER TYPE P1, etc.) and associate them with grid locations.
 
@@ -217,18 +225,26 @@ All extraction runs in the cloud during PDF upload. The mobile device never runs
 
 ### 3.4 Grid System Detection
 
+> **Status: Detection complete, UI deferred to Phase 2.** Grid bubbles are detected by the 4-class YOLO callout model (96.48% mAP50) and stored during processing. The grid coordinate system UI (building coordinate lookup, element-to-grid association, "What's at F/5?" queries) is deferred to Phase 2. See [Phase 2 Enhancements](#phase-2-enhancements-planned).
+
 **Purpose:** Build coordinate system from grid bubbles to enable grid-based queries.
 
-**Technology:** OpenCV circle detection + OCR
+**Technology:** YOLO grid_bubble detection (Phase 1) + post-processing coordinate system (Phase 2)
 
 **Processing Location:** Cloud (~2 sec/page)
 
-**Detection Process:**
-1. Find circles at sheet edges (HoughCircles, filtered by position)
-2. OCR single characters inside circles
-3. Classify: horizontal labels (letters A, B, C) vs vertical (numbers 1, 2, 3)
-4. Handle non-standard grids (1x, 2x, AA, BB, etc.)
-5. Build coordinate lookup table
+**Phase 1 (Current) - Detection & Storage:**
+1. YOLO detects grid_bubble bounding boxes on each sheet
+2. LLM extracts single character from cropped bubble image
+3. Grid bubble records stored with label, position, confidence
+4. Data syncs to device via LiveStore (available for Phase 2)
+
+**Phase 2 (Planned) - Coordinate System:**
+1. Classify: horizontal labels (letters A, B, C) vs vertical (numbers 1, 2, 3)
+2. Interpolate grid lines between detected bubbles
+3. Handle non-standard grids (1x, 2x, AA, BB, etc.)
+4. Build coordinate lookup table
+5. Associate elements with nearest grid intersection
 
 **Output:** Grid line records with:
 - Label (A, B, 1, 2, AA, etc.)
@@ -236,13 +252,96 @@ All extraction runs in the cloud during PDF upload. The mobile device never runs
 - Pixel position on sheet
 - Confidence score
 
-### 3.5 Schedule Detection and Extraction
+### 3.5 Document Layout Region Classification
 
-> **Status: Planned** - Not yet implemented. This is a high-value feature for structural contractors but requires significant table detection work.
+> **Status: Complete** - DocLayout-YOLO fine-tuned on construction drawings. Model: `weights/doclayout_construction_v1.pt` (225 MB).
 
-**Purpose:** Parse schedule tables (footing, pier, column, beam) into structured data.
+**Performance Metrics:**
 
-**Technology:** Table detection + OCR + structured parsing
+| Metric | Value |
+|--------|-------|
+| mAP50 | 96.8% |
+| mAP50-95 | 94.9% |
+| Precision | 93.9% |
+| Recall | 95.3% |
+
+**Dataset:** 507 train / 144 valid / 76 test images (460 annotations across 312 base images, augmented to 727)
+
+**Purpose:** Detect and classify layout regions on structural drawings to enable targeted extraction of schedules, notes, and legends.
+
+**Technology:** DocLayout-YOLO (fine-tuned from DocStructBench weights on construction drawings)
+
+**Processing Location:** Cloud (~2 sec/page)
+
+#### Region Class Definitions (US NCS & Canadian CSA/RAIC Standards)
+
+These definitions align with the US National CAD Standard (NCS) Uniform Drawing System and Canadian CSA B78.2 / RAIC standards:
+
+| Class | Definition | Key Identifier |
+|-------|------------|----------------|
+| **schedule** | Tabular list of multiple items of the same type with their properties | Rows = different instances; Columns = properties |
+| **notes** | Text blocks containing specifications, instructions, or requirements | Prose/paragraphs, may include abbreviation lists |
+| **legend** | Visual key showing graphical symbols (hatches, patterns, line types) and their meanings | GRAPHIC → MEANING mapping |
+
+#### Annotation Guidelines
+
+**SCHEDULE** - Annotate when:
+- Table explicitly titled "SCHEDULE" (e.g., "FOOTING SCHEDULE", "BEAM SCHEDULE")
+- Table lists multiple instances of the same item type with properties
+- Has structured columns (MARK, SIZE, REINFORCING, etc.)
+
+**DO NOT** annotate as schedule:
+- Design criteria boxes (single item specs)
+- Connection detail tables
+- Abbreviation lists
+- Drawing indexes
+
+**NOTES** - Annotate when:
+- Text block titled "NOTES" (e.g., "GENERAL NOTES", "CONCRETE NOTES")
+- Prose/paragraph format with specifications or instructions
+- Abbreviation lists (TEXT → TEXT mapping, no graphics)
+- Drawing lists/indexes
+
+**DO NOT** annotate as notes:
+- Single-line labels
+- Dimension text
+- Title blocks
+
+**LEGEND** - Annotate when:
+- Shows graphical symbols/patterns with their meanings
+- Titled "LEGEND" (e.g., "SLAB LEGEND", "DECK LEGEND", "SYMBOL LEGEND")
+- Contains hatch patterns, line types, or symbols with explanations
+
+**DO NOT** annotate as legend:
+- Abbreviation lists (these are notes - TEXT → TEXT, not GRAPHIC → TEXT)
+- Drawing indexes/lists
+- Schedule tables
+
+#### Examples by Region Type
+
+| Example | Class | Reason |
+|---------|-------|--------|
+| "FOOTING SCHEDULE" with F1, F2, F3 rows | schedule | Multiple items + properties |
+| "SLAB & DECK LEGEND" with hatch patterns | legend | Graphics → meanings |
+| "GENERAL NOTES" text block | notes | Text instructions |
+| "ABBREVIATIONS" list | notes | TEXT → TEXT (no graphics) |
+| "DRAWING INDEX" | notes | Text list (no graphics) |
+| "STRUCTURAL SYMBOL LEGEND" | legend | Symbols → meanings |
+| "COMPOSITE BEAM CRITERIA" box | notes (or skip) | Single item specs, not multiple instances |
+
+**Output:** Region detection records with:
+- Region class (schedule, notes, legend)
+- Bounding box coordinates
+- Confidence score
+- Sheet reference
+
+### 3.6 Schedule Extraction
+
+> **Status: Next Up** - DocLayout detection complete (3.5). LLM prompt design and testing required.
+
+**Purpose:** Parse detected schedule regions (footing, pier, column, beam) into structured data.
+
+**Technology:** DocLayout-YOLO region detection → crop → LLM structured extraction (Gemini Flash)
 
 **Processing Location:** Cloud (~5 sec/page)
 
@@ -264,9 +363,13 @@ All extraction runs in the cloud during PDF upload. The mobile device never runs
 - Bounding box of source row
 - Confidence score
 
-### 3.6 General Notes Extraction
+### 3.7 Notes Extraction
 
-**Purpose:** Extract project context from notes sections for AI query responses.
+> **Status: Next Up** - DocLayout detection complete (3.5). LLM prompt design and testing required.
+
+**Purpose:** Extract project context from detected notes regions for AI query responses.
+
+**Technology:** DocLayout-YOLO region detection → crop → LLM text extraction (Gemini Flash)
 
 **Processing Location:** Cloud (~3 sec/page for S0.x sheets)
 
@@ -285,6 +388,416 @@ All extraction runs in the cloud during PDF upload. The mobile device never runs
 - Full extracted text
 - Source sheet reference
 - Confidence score
+
+### 3.8 Legend Region Display
+
+> **Status: Next Up** - DocLayout detection complete (3.5). No LLM extraction needed.
+
+**Purpose:** Make legend regions discoverable and viewable without hunting through sheets.
+
+**Technology:** DocLayout-YOLO region detection → high-res image crop (no LLM extraction)
+
+**Processing Location:** Cloud (crop generation only, ~1 sec/page)
+
+**Rationale:** Legends contain graphical symbols (hatch patterns, line types) that are difficult to represent as structured text. Showing a high-res crop of the detected region delivers 80% of the value for 10% of the effort. Structured legend extraction may be added later if demand warrants.
+
+**Output:** Legend region records with:
+- Region bounding box
+- High-res image crop URL (stored in R2)
+- Source sheet reference
+- Confidence score
+
+### 3.9 End-to-End Pipeline Sequence
+
+The complete processing pipeline runs in the cloud during PDF upload. The mobile device receives only structured results.
+
+```
+PDF Upload (Device → Cloud)
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────┐
+│ Stage 1: Sheet Splitting & Image Generation          ~5 sec │
+│ Split PDF → individual sheet images (PNG at 72 DPI)         │
+│ Store images in R2                                          │
+└────────────────────────────┬────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────┐
+│ Stage 2: Metadata Extraction                        ~10 sec │
+│ Crop title block region → LLM (Gemini Flash) extraction     │
+│ Output: sheet_number, sheet_title, discipline               │
+│ Build sheet registry (known sheet numbers for validation)   │
+│ Fallback: Tesseract OCR + regex patterns                    │
+└────────────────────────────┬────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────┐
+│ Stage 3: Tile Generation                           ~30s/pg  │
+│ pyvips dzsave (layout='google') → PMTiles conversion        │
+│ Tiles uploaded to R2, downloaded to device on demand         │
+└────────────────────────────┬────────────────────────────────┘
+         │
+    ┌────┴─────────────────────────┐
+    │ Stages 4 & 5 run in PARALLEL │
+    ├──────────────┬───────────────┤
+    ▼              ▼               │
+┌─────────────┐ ┌─────────────┐   │
+│  Stage 4:   │ │  Stage 5:   │   │
+│  Callout    │ │  DocLayout  │   │
+│  Detection  │ │  Detection  │   │
+│             │ │             │   │
+│  YOLO 4-cls │ │ DocLayout-  │   │
+│  (5.5 MB)   │ │ YOLO(225MB) │   │
+│             │ │             │   │
+│  Classes:   │ │  Classes:   │   │
+│  • detail   │ │  • schedule │   │
+│  • elevation│ │  • notes    │   │
+│  • title    │ │  • legend   │   │
+│  • grid_    │ │             │   │
+│    bubble   │ │  96.8%mAP50 │   │
+│             │ │             │   │
+│  96.5%mAP50 │ │             │   │
+└──────┬──────┘ └──────┬──────┘   │
+       │               │          │
+       ▼               ▼          │
+┌─────────────┐ ┌─────────────┐   │
+│  Stage 4b:  │ │  Stage 5b:  │   │
+│  Callout    │ │  Region     │   │
+│  Content    │ │  Content    │   │
+│  Extraction │ │  Extraction │   │
+│             │ │             │   │
+│  Crop bbox  │ │  Schedule:  │   │
+│  → LLM     │ │   Crop→LLM  │   │
+│  Extracts:  │ │   →JSON     │   │
+│  detail_num │ │             │   │
+│  sheet_ref  │ │  Notes:     │   │
+│             │ │   Crop→LLM  │   │
+│  Validate   │ │   →text     │   │
+│  against    │ │             │   │
+│  sheet      │ │  Legend:    │   │
+│  registry   │ │   Crop→R2  │   │
+│             │ │   (image    │   │
+│             │ │    only)    │   │
+└──────┬──────┘ └──────┬──────┘   │
+       │               │          │
+       └───────┬───────┘          │
+               │                  │
+               ▼                  │
+┌─────────────────────────────────┘
+│
+▼
+┌─────────────────────────────────────────────────────────────┐
+│ Stage 6: Synthesis & Linking                                │
+│                                                             │
+│ Cross-Sheet Links:                                          │
+│  Callout "3/A7" on sheet A2.0 → detail 3 on sheet A7       │
+│                                                             │
+│ Contextual Data Storage:                                    │
+│  Schedule entries indexed by mark for quick retrieval       │
+│  Notes content stored and associated with sheets            │
+│  Legend image crops stored in R2 with region metadata        │
+│  Grid bubble detections stored for Phase 2                  │
+│                                                             │
+│ Confidence Scoring:                                         │
+│  High confidence → auto-linked                              │
+│  Low confidence → flagged for manual review                 │
+└────────────────────────────┬────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────┐
+│ Stage 7: Storage & Sync to Device                           │
+│                                                             │
+│ Server: Cloudflare D1 database                              │
+│  • callouts (source → target with bbox, confidence)         │
+│  • layout_regions (schedule/notes/legend with bbox)         │
+│  • schedule_entries (mark, properties, source sheet)        │
+│  • notes_content (extracted text, source sheet)             │
+│  • grid_bubbles (label, position — stored for Phase 2)      │
+│                                                             │
+│ Mobile: LiveStore (local-first, event sourced)              │
+│  • All data syncs for offline access                        │
+│  • <100ms query response from local SQLite                  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 3A. Plan Info Feature (Discovery UI)
+
+The Plan Info feature surfaces extracted plan intelligence to users through a discovery-oriented interface. Instead of requiring users to hunt through sheets for schedules, notes, and legends, SiteLink presents what it found in an organized, browseable view.
+
+### 3A.1 Competitive Differentiator
+
+| Capability | Fieldwire | PlanGrid | SiteLink |
+|------------|-----------|----------|----------|
+| Auto-link callouts | Yes | Yes | Yes (96.5% mAP50) |
+| Schedule extraction | Manual | Manual | **Automated via LLM** |
+| Notes extraction | Manual | Manual | **Automated via LLM** |
+| Legend discovery | Manual | Manual | **Auto-detected regions** |
+| Offline access to extracted data | N/A | N/A | **Yes (LiveStore)** |
+
+### 3A.2 User Journeys
+
+**Journey 1: Carlos needs footing specs (browse path)**
+
+```
+Carlos opens SiteLink
+         │
+         ▼
+┌─────────────────────────────────────────────┐
+│  Plans Tab                                  │
+│  ────────────────────────────────────────── │
+│  [  Sheets  ] [● Plan Info ]               │
+│                    ▲                         │
+│              Carlos taps                     │
+│              "Plan Info"                     │
+└──────────────────┬──────────────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────────────┐
+│  Plan Info View                             │
+│  ────────────────────────────────────────── │
+│  SCHEDULES (4)                              │
+│  ┌────────────────────────────────────┐     │
+│  │  Footing Schedule         S0.0  > │     │
+│  │  Pier Schedule            S0.0  > │ ◄── Carlos taps
+│  │  Beam Schedule            S5.0  > │     │
+│  │  Column Schedule          S5.0  > │     │
+│  └────────────────────────────────────┘     │
+│                                             │
+│  NOTES (2)                                  │
+│  ┌────────────────────────────────────┐     │
+│  │  General Notes            S0.0  > │     │
+│  │  Concrete Notes           S0.1  > │     │
+│  └────────────────────────────────────┘     │
+│                                             │
+│  LEGENDS (2)                                │
+│  ┌────────────────────────────────────┐     │
+│  │  Slab & Deck Legend       S0.0  > │     │
+│  │  Symbol Legend            S0.1  > │     │
+│  └────────────────────────────────────┘     │
+└──────────────────┬──────────────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────────────┐
+│  Footing Schedule                           │
+│  ────────────────────────────────────────── │
+│  Sheet S0.0 · 94% confidence                │
+│                                             │
+│  ┌──────┬──────────────┬───────────────┐    │
+│  │ Mark │ Size         │ Reinforcing   │    │
+│  ├──────┼──────────────┼───────────────┤    │
+│  │  F1  │ 1500x1500x300│ 4-15M E.W.   │    │
+│  │  F2  │ 2000x2000x400│ 6-20M E.W.   │ ◄── Carlos finds F2
+│  │  F3  │ 1200x1200x250│ 4-15M E.W.   │    │
+│  └──────┴──────────────┴───────────────┘    │
+│                                             │
+│  Tap a row for full details                 │
+│  [View on Sheet]                            │
+└──────────────────┬──────────────────────────┘
+                   │
+                   ▼ (optional)
+┌─────────────────────────────────────────────┐
+│  Footing F2 (Detail View)                   │
+│  ────────────────────────────────────────── │
+│  Size: 2000 x 2000 x 400 mm                │
+│  Reinforcing: 6-20M E.W.                   │
+│  Top of Footing: -1200                      │
+│  Notes: Provide dowels per detail 3/S5.0    │
+│                                             │
+│  Source: Footing Schedule, Sheet S0.0       │
+│  Confidence: 94%                            │
+│                                             │
+│  [View on Sheet] → navigates to S0.0,      │
+│  zooms to schedule region, highlights bbox  │
+└─────────────────────────────────────────────┘
+
+TIME: ~15 seconds (vs 5-8 minutes manual)
+```
+
+**Journey 2: Mike checks project notes**
+
+```
+Mike opens Plan Info → NOTES section
+         │
+         ▼
+┌─────────────────────────────────────────────┐
+│  General Notes                              │
+│  ────────────────────────────────────────── │
+│  Sheet S0.0                                 │
+│                                             │
+│  1. All concrete shall be 4000 PSI minimum  │
+│     28-day strength unless noted otherwise. │
+│                                             │
+│  2. Reinforcing steel shall be ASTM A615    │
+│     Grade 60.                               │
+│                                             │
+│  3. Minimum concrete cover: 3" for footings,│
+│     1.5" for columns and beams.             │
+│                                             │
+│  [View on Sheet]                            │
+└─────────────────────────────────────────────┘
+
+TIME: ~10 seconds (vs 2-5 minutes finding notes sheet)
+```
+
+**Journey 3: Worker checks legend (image crop, no extraction)**
+
+```
+Worker opens Plan Info → LEGENDS section
+         │
+         ▼
+┌─────────────────────────────────────────────┐
+│  Slab & Deck Legend                         │
+│  ────────────────────────────────────────── │
+│  Sheet S0.0                                 │
+│                                             │
+│  ┌───────────────────────────────────┐      │
+│  │                                   │      │
+│  │   [High-res image crop of the     │      │
+│  │    legend region as detected      │      │
+│  │    by DocLayout-YOLO]             │      │
+│  │                                   │      │
+│  │   Pinch to zoom supported         │      │
+│  │                                   │      │
+│  └───────────────────────────────────┘      │
+│                                             │
+│  [View on Sheet]                            │
+└─────────────────────────────────────────────┘
+```
+
+**Journey 4: On-sheet discovery (secondary path)**
+
+```
+User viewing sheet S0.0 (cover sheet)
+         │
+         ▼
+┌─────────────────────────────────────────────┐
+│  Sheet S0.0 - Cover Sheet                   │
+│  ────────────────────────────────────────── │
+│                                             │
+│  ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐                    │
+│  │ FOOTING SCHEDULE    │ ◄── Dashed overlay │
+│  │ (tappable region)   │     on detected    │
+│  └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘     schedule region │
+│                                             │
+│  ○ ○ ○  (callout markers as before)         │
+│                                             │
+│  ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐                    │
+│  │ GENERAL NOTES       │ ◄── Dashed overlay │
+│  │ (tappable region)   │     on detected    │
+│  └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘     notes region   │
+│                                             │
+│  User taps schedule region                  │
+│         │                                   │
+│         ▼                                   │
+│  ┌────────────────────────────────────┐     │
+│  │  Bottom Sheet: Footing Schedule    │     │
+│  │  (same data as Plan Info view)     │     │
+│  │                                    │     │
+│  │  F1 │ 1500x1500 │ 4-15M E.W.     │     │
+│  │  F2 │ 2000x2000 │ 6-20M E.W.     │     │
+│  │  [See Full Schedule]               │     │
+│  └────────────────────────────────────┘     │
+└─────────────────────────────────────────────┘
+```
+
+### 3A.3 Plan Info Data Model
+
+```sql
+-- Layout regions detected by DocLayout-YOLO
+CREATE TABLE layout_regions (
+  id TEXT PRIMARY KEY,
+  sheet_id TEXT NOT NULL REFERENCES sheets(id),
+  region_class TEXT NOT NULL,    -- "schedule", "notes", "legend"
+  region_title TEXT,             -- "Footing Schedule", "General Notes"
+
+  -- Position (normalized 0-1)
+  x REAL NOT NULL,
+  y REAL NOT NULL,
+  width REAL NOT NULL,
+  height REAL NOT NULL,
+
+  -- Content
+  extracted_content TEXT,        -- JSON (schedules) or text (notes)
+  crop_image_url TEXT,           -- R2 URL for legend image crops
+
+  confidence REAL NOT NULL,
+  created_at INTEGER NOT NULL
+);
+
+-- Schedule entries (parsed from schedule regions)
+CREATE TABLE schedule_entries (
+  id TEXT PRIMARY KEY,
+  region_id TEXT NOT NULL REFERENCES layout_regions(id),
+  sheet_id TEXT NOT NULL REFERENCES sheets(id),
+
+  schedule_type TEXT NOT NULL,   -- "footing", "pier", "column", "beam"
+  mark TEXT NOT NULL,            -- "F1", "P1", "C2"
+  properties TEXT NOT NULL,      -- JSON: {size, reinforcing, notes, ...}
+
+  confidence REAL NOT NULL,
+  created_at INTEGER NOT NULL
+);
+
+-- Grid bubbles (detected, stored for Phase 2)
+CREATE TABLE grid_bubbles (
+  id TEXT PRIMARY KEY,
+  sheet_id TEXT NOT NULL REFERENCES sheets(id),
+
+  label TEXT NOT NULL,           -- "A", "B", "1", "2"
+  axis TEXT,                     -- "horizontal", "vertical" (Phase 2)
+
+  -- Position (normalized 0-1)
+  x REAL NOT NULL,
+  y REAL NOT NULL,
+  width REAL NOT NULL,
+  height REAL NOT NULL,
+
+  confidence REAL NOT NULL,
+  created_at INTEGER NOT NULL
+);
+```
+
+### 3A.4 Implementation Priority
+
+| Priority | Feature | Extraction Method | Status |
+|----------|---------|-------------------|--------|
+| **P0** | Schedule extraction (footing, beam first) | LLM on cropped region | Next Up |
+| **P0** | Notes extraction | LLM on cropped region | Next Up |
+| **P0** | Plan Info browse UI | Mobile screens | Next Up |
+| **P1** | Legend image crop display | Image crop only (no LLM) | Next Up |
+| **P1** | On-sheet region overlays | Extends marker system | Next Up |
+| **P1** | Search integration with extracted content | Index schedule/notes text | Next Up |
+
+---
+
+## Phase 2 Enhancements (Planned)
+
+The following features are **fully researched and specced** but deferred to Phase 2 to focus on Plan Info first.
+
+### Grid Coordinate System UI
+- **What:** Tap grid intersection → see all elements at that location
+- **Depends on:** Grid bubble detections (stored in Phase 1), element label detection
+- **Spec:** sitelink-3r0, sitelink-d3w
+- **Scope:** Build coordinate lookup from stored grid bubbles, interpolate grid lines, associate elements
+
+### Element Label Detection & Tap
+- **What:** Tap element label (F2) on plan → see schedule entry popup
+- **Depends on:** New YOLO classes (footing_label, pier_label, column_label), grid system
+- **Spec:** sitelink-3r0 (full implementation spec)
+- **Scope:** Train new YOLO classes, LLM text extraction, grid association, tap UI
+
+### Plan Assistant (AI Voice Queries)
+- **What:** "What's at F/5?" → aggregated answer with provenance
+- **Depends on:** Grid system, element detection, schedule extraction
+- **Spec:** Section 4 of this document
+- **Scope:** Intent classification, data retrieval, template responses (offline), LLM responses (online)
+
+### Schedule-to-Element Linking
+- **What:** Tap F2 on plan → jump to F2 row in schedule, and vice versa
+- **Depends on:** Element label detection, schedule extraction
+- **Scope:** Cross-reference schedule marks with detected element labels on plan sheets
 
 ---
 

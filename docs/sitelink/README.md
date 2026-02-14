@@ -80,27 +80,43 @@ We compete on simplicity and price, not features.
 
 **Status: TBD** - Pricing structure will be finalized closer to launch. Current competitive positioning uses $79/month for comparison purposes. Final pricing (flat vs tiered) depends on feature costs, market testing, and go-to-market strategy.
 
-### Detection Metrics (Clarified)
+### Detection Metrics
 
-**Current Model: YOLO-26n (iteration-5)**
+**Callout Model: YOLO-26n (4-class, grid_bubble_v15)**
 
-Implemented callout classes:
-| Class | Recall | Precision |
-|-------|--------|-----------|
-| detail | 90.7% | 87.7% |
-| elevation | 93.8% | 95.2% |
-| title | 90.5% | 84.1% |
-| **Overall** | **91.8%** | **88.6%** |
+| Metric | Value |
+|--------|-------|
+| mAP50 | 96.48% |
+| Precision | 95.03% |
+| Recall | 95.98% |
+| Classes | detail, elevation, title, grid_bubble |
 
-**Element Labels & Schedules: Not Yet Implemented**
+**Document Layout Model: DocLayout-YOLO (fine-tuned)**
 
-Research complete - see beads tickets:
-- `sitelink-j1q` (closed): Research findings, multi-model validated
-- `sitelink-3r0`: Full implementation spec for new YOLO classes
-- `sitelink-d3w`: Implementation planning (blocked by 3r0)
+| Metric | Value |
+|--------|-------|
+| mAP50 | 96.8% |
+| Precision | 93.9% |
+| Recall | 95.3% |
+| Classes | schedule, notes, legend |
 
-New classes to train: `grid_bubble`, `footing_schedule`, `footing_label`, etc.
-Pipeline: YOLO detects bbox → LLM extracts text (consistent with callouts).
+**Current Focus: Plan Info Feature**
+- Schedule extraction via LLM (crop detected regions → structured JSON)
+- Notes extraction via LLM (crop → text)
+- Legend display via image crop (no LLM needed)
+- Plan Info browse UI in mobile app
+
+**Phase 2 (Deferred):**
+- Grid coordinate system UI (grid bubbles detected and stored, UI deferred)
+- Element label detection (footing_label, pier_label, column_label)
+- Plan Assistant voice queries
+- Schedule-to-element tap linking
+
+Research and specs complete - see beads tickets:
+- `sitelink-j1q` (closed): Element label research findings
+- `sitelink-3r0` (closed): Detection classes implementation spec
+- `sitelink-bg8` (closed): Grid bubble training (96.48% mAP50)
+- `sitelink-ws0` (closed): DocLayout-YOLO fine-tuning (96.8% mAP50)
 
 ---
 
@@ -121,15 +137,21 @@ When updating these documents:
 |------|--------|
 | Jan 2026 | Initial modular structure created from merged PRDs |
 | Feb 2026 | Clarified detection metrics (91.8% recall on 3 classes). Added element label research (sitelink-j1q, multi-model validated). Created implementation spec (sitelink-3r0) for new YOLO classes. Confirmed: YOLO + LLM pipeline, tap-based interaction, schedule parsing as differentiator. |
+| Feb 2026 | Updated to 4-class callout model (96.48% mAP50, includes grid_bubble). DocLayout-YOLO complete (96.8% mAP50). Added Plan Info feature spec (schedule/notes/legend browse UI). Defined end-to-end pipeline with parallel dual-model detection. Phase 2 defined: grid UI, element tap, Plan Assistant voice. |
 
 ## Related Beads Tickets
 
 For implementation context, see these tickets:
 
+### Completed
 | Ticket | Description | Status |
 |--------|-------------|--------|
-| sitelink-j1q | Element label detection research | Closed (complete) |
-| sitelink-3r0 | Detection classes enumeration & implementation spec | Open |
-| sitelink-d3w | Implementation planning | Open (blocked by 3r0) |
+| sitelink-j1q | Element label detection research | Closed |
+| sitelink-3r0 | Detection classes enumeration & implementation spec | Closed |
+| sitelink-bg8 | Grid bubble YOLO training (96.48% mAP50) | Closed |
+| sitelink-ws0 | DocLayout-YOLO fine-tuning (96.8% mAP50) | Closed |
 
-Run `bd show <ticket-id>` for full details.
+### Current Focus: Plan Info Feature
+See beads tickets for implementation work (created from pipeline planning session).
+
+Run `bd show <ticket-id>` for full details. Run `bd ready` for available work.
