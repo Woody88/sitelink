@@ -19,6 +19,7 @@ import {
 	ScrollView,
 	View,
 } from "react-native";
+import { PlanInfoView } from "@/components/plans/plan-info-view";
 import { type Plan, PlanSelector } from "@/components/plans/plan-selector";
 import { PlanViewer } from "@/components/plans/viewer";
 import {
@@ -28,13 +29,17 @@ import {
 } from "@/components/ui/collapsible";
 import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Text } from "@/components/ui/text";
 import { type Sheet, useSheets } from "@/hooks/use-sheets";
 import { cn } from "@/lib/utils";
 
+type PlansTab = "sheets" | "plan-info";
+
 export default function PlansScreen() {
 	const { id: projectId } = useLocalSearchParams<{ id: string }>();
 	const folders = useSheets(projectId!);
+	const [plansTab, setPlansTab] = React.useState<PlansTab>("sheets");
 	const [searchQuery, setSearchQuery] = React.useState("");
 	const [viewMode, setViewMode] = React.useState<"grid" | "list">("list");
 	const hasInitialized = React.useRef(false);
@@ -124,6 +129,21 @@ export default function PlansScreen() {
 
 	return (
 		<View className="bg-background flex-1">
+			{/* Plans sub-tab: Sheets / Plan Info */}
+			<View className="items-center py-2">
+				<SegmentedControl
+					options={["Sheets", "Plan Info"]}
+					selectedIndex={plansTab === "sheets" ? 0 : 1}
+					onIndexChange={(index) =>
+						setPlansTab(index === 0 ? "sheets" : "plan-info")
+					}
+				/>
+			</View>
+
+			{plansTab === "plan-info" ? (
+				<PlanInfoView />
+			) : (
+			<>
 			{/* Search and Toggle Header */}
 			<View className="gap-4 px-4 py-3">
 				<View className="flex-row items-center gap-2">
@@ -337,6 +357,8 @@ export default function PlansScreen() {
 						</Collapsible>
 					))}
 			</ScrollView>
+			</>
+			)}
 
 			{/* Plan Selector Modal */}
 			<Modal
