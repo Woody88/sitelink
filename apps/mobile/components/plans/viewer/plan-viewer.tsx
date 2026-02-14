@@ -21,6 +21,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
+import { useLayoutRegions } from "@/hooks/use-layout-regions";
 import { useMarkers } from "@/hooks/use-markers";
 import {
 	type CalloutMarker,
@@ -33,7 +34,7 @@ import { createAppStoreOptions } from "@/lib/store-config";
 import { useSheetPmtilesSync } from "@/services/file-sync-service";
 import { MarkerDetailSheet } from "./marker-detail-sheet";
 import OpenSeadragonViewer from "./openseadragon-viewer";
-import PMTilesViewer from "./pmtiles-viewer";
+import PMTilesViewer, { type LayoutRegionOverlay } from "./pmtiles-viewer";
 import { SheetInfoBar } from "./sheet-info-bar";
 import { ViewerControls } from "./viewer-controls";
 
@@ -108,6 +109,9 @@ export function PlanViewer({
 	// Query markers from LiveStore for the current sheet
 	const liveMarkers = useMarkers(sheetId);
 
+	// Query layout regions for the current sheet
+	const layoutRegions = useLayoutRegions(sheetId);
+
 	// Use LiveStore markers, falling back to internal markers state
 	const markers = liveMarkers.length > 0 ? liveMarkers : internalMarkers;
 
@@ -119,6 +123,7 @@ export function PlanViewer({
 		React.useState<CalloutMarker | null>(null);
 	const [imageDataUrl, setImageDataUrl] = React.useState<string | null>(null);
 	const [retryCount, setRetryCount] = React.useState(0);
+	const [showRegions, setShowRegions] = React.useState(true);
 	const controlsOpacity = useSharedValue(1);
 
 	const { sessionToken, userId } = useSessionContext();
@@ -318,6 +323,30 @@ export function PlanViewer({
 		);
 	}, [userId, store, sheetId]);
 
+	const handleRegionPress = React.useCallback(
+		async (region: LayoutRegionOverlay) => {
+			await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+			const regionLabel =
+				region.regionClass === "schedule"
+					? "Schedule"
+					: region.regionClass === "notes"
+						? "Notes"
+						: "Legend";
+			Alert.alert(
+				regionLabel,
+				region.regionTitle
+					? `${region.regionTitle}\n\nDetail screen coming soon.`
+					: `Detected ${regionLabel.toLowerCase()} region.\n\nDetail screen coming soon.`,
+			);
+		},
+		[],
+	);
+
+	const handleToggleRegions = React.useCallback(() => {
+		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+		setShowRegions((prev) => !prev);
+	}, []);
+
 	const controlsAnimatedStyle = useAnimatedStyle(() => ({
 		opacity: controlsOpacity.value,
 		pointerEvents: controlsOpacity.value > 0.5 ? "auto" : "none",
@@ -344,6 +373,9 @@ export function PlanViewer({
 						onViewerStateChange={handleViewerStateChange}
 						onReady={handleViewerReady}
 						onError={handleViewerError}
+						regions={layoutRegions}
+						showRegions={showRegions}
+						onRegionPress={handleRegionPress}
 					/>
 				) : (
 					imageDataUrl && (
@@ -469,6 +501,8 @@ export function PlanViewer({
 						onZoomIn={handleZoomIn}
 						onZoomOut={handleZoomOut}
 						onZoomToFit={handleZoomToFit}
+						showRegions={showRegions}
+						onToggleRegions={handleToggleRegions}
 					/>
 
 					{/* Add marker button */}

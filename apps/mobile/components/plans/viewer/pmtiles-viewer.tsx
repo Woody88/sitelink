@@ -15,6 +15,17 @@ export interface CalloutMarker {
 	needsReview?: boolean;
 }
 
+export interface LayoutRegionOverlay {
+	id: string;
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+	regionClass: "schedule" | "notes" | "legend";
+	regionTitle: string;
+	confidence: number;
+}
+
 export interface ViewerState {
 	zoom: number;
 	minZoom: number;
@@ -33,6 +44,9 @@ interface PMTilesViewerProps {
 	onViewerStateChange?: (state: ViewerState) => Promise<void>;
 	onReady?: () => Promise<void>;
 	onError?: (error: string) => Promise<void>;
+	regions?: LayoutRegionOverlay[];
+	showRegions?: boolean;
+	onRegionPress?: (region: LayoutRegionOverlay) => Promise<void>;
 }
 
 interface PMTilesMetadata {
@@ -53,11 +67,15 @@ export default function PMTilesViewer({
 	onViewerStateChange,
 	onReady,
 	onError,
+	regions = [],
+	showRegions = true,
+	onRegionPress,
 }: PMTilesViewerProps) {
 	const containerRef = React.useRef<HTMLDivElement>(null);
 	const viewerRef = React.useRef<OpenSeadragon.Viewer | null>(null);
 	const pmtilesRef = React.useRef<PMTiles | null>(null);
 	const markerOverlaysRef = React.useRef<Map<string, HTMLElement>>(new Map());
+	const regionOverlaysRef = React.useRef<Map<string, HTMLElement>>(new Map());
 	const imageDimensionsRef = React.useRef<{
 		width: number;
 		height: number;
@@ -288,6 +306,7 @@ export default function PMTilesViewer({
 			}
 			pmtilesRef.current = null;
 			markerOverlaysRef.current.clear();
+			regionOverlaysRef.current.clear();
 			setIsViewerReady(false);
 		};
 	}, [pmtilesUrl, imageWidth, imageHeight, onReady, onError, onViewerStateChange]);
@@ -415,6 +434,88 @@ export default function PMTilesViewer({
 		});
 	}, [markers, selectedMarkerId, onMarkerPress, isViewerReady]);
 
+	React.useEffect(() => {
+		const viewer = viewerRef.current;
+		if (!viewer) return;
+
+		regionOverlaysRef.current.forEach((overlay) => {
+			viewer.removeOverlay(overlay);
+		});
+		regionOverlaysRef.current.clear();
+
+		if (!showRegions || regions.length === 0) return;
+
+		const dimensions = imageDimensionsRef.current;
+		if (!dimensions) return;
+
+		const aspectRatio = dimensions.height / dimensions.width;
+
+		const REGION_LABELS: Record<string, string> = {
+			schedule: "Schedule",
+			notes: "Notes",
+			legend: "Legend",
+		};
+
+		regions.forEach((region) => {
+			const el = document.createElement("div");
+			el.className = "region-overlay";
+			el.style.cssText = `
+				position: relative;
+				width: 100%;
+				height: 100%;
+				border: 2px dashed #8B5CF6;
+				background-color: rgba(139, 92, 246, 0.15);
+				cursor: pointer;
+				box-sizing: border-box;
+				transition: background-color 0.2s;
+			`;
+
+			const labelEl = document.createElement("div");
+			labelEl.style.cssText = `
+				position: absolute;
+				top: 4px;
+				left: 4px;
+				background-color: rgba(139, 92, 246, 0.85);
+				color: white;
+				padding: 2px 8px;
+				border-radius: 4px;
+				font-size: 11px;
+				font-weight: 600;
+				white-space: nowrap;
+				pointer-events: none;
+			`;
+			labelEl.textContent = REGION_LABELS[region.regionClass] || region.regionClass;
+			el.appendChild(labelEl);
+
+			el.addEventListener("mouseenter", () => {
+				el.style.backgroundColor = "rgba(139, 92, 246, 0.25)";
+			});
+
+			el.addEventListener("mouseleave", () => {
+				el.style.backgroundColor = "rgba(139, 92, 246, 0.15)";
+			});
+
+			el.addEventListener("click", (e) => {
+				e.stopPropagation();
+				if (onRegionPress) {
+					onRegionPress(region);
+				}
+			});
+
+			const vpX = region.x;
+			const vpY = region.y * aspectRatio;
+			const vpW = region.width;
+			const vpH = region.height * aspectRatio;
+
+			viewer.addOverlay({
+				element: el,
+				location: new OpenSeadragon.Rect(vpX, vpY, vpW, vpH),
+			});
+
+			regionOverlaysRef.current.set(region.id, el);
+		});
+	}, [regions, showRegions, onRegionPress, isViewerReady]);
+
 	return (
 		<>
 			<style>
@@ -439,6 +540,9 @@ export default function PMTilesViewer({
             -webkit-touch-callout: none !important;
           }
           .marker-overlay {
+            touch-action: manipulation;
+          }
+          .region-overlay {
             touch-action: manipulation;
           }
         `}
