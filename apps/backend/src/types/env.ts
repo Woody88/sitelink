@@ -9,37 +9,38 @@
  * This file extends those types with additional custom properties
  */
 
-import type { PdfProcessor } from "../processing/pdf-processor-container";
-import type { PlanCoordinator } from "../processing/plan-coordinator";
+import type { PdfProcessor } from "../processing/pdf-processor-container"
+import type { PlanCoordinator } from "../processing/plan-coordinator"
 
 export interface Env extends Cloudflare.Env {
-	// Environment variables (set via wrangler.toml or secrets)
-	SESSION_SECRET?: string;
-	GOOGLE_CLIENT_ID?: string;
-	GOOGLE_CLIENT_SECRET?: string;
-	GITHUB_CLIENT_ID?: string;
-	GITHUB_CLIENT_SECRET?: string;
+  // Environment variables (set via wrangler.toml or secrets)
+  SESSION_SECRET?: string
+  GOOGLE_CLIENT_ID?: string
+  GOOGLE_CLIENT_SECRET?: string
+  GITHUB_CLIENT_ID?: string
+  GITHUB_CLIENT_SECRET?: string
 
-	// OpenRouter API for LLM-based callout detection
-	OPENROUTER_API_KEY?: string;
-	OPENROUTER_MODEL?: string;
+  // OpenRouter API for LLM-based callout detection
+  OPENROUTER_API_KEY?: string
+  OPENROUTER_MODEL?: string
 
-	// Durable Objects for PDF processing
-	PLAN_COORDINATOR_DO: DurableObjectNamespace<PlanCoordinator>;
-	LIVESTORE_CLIENT_DO: DurableObjectNamespace;
+  // Durable Objects for PDF processing
+  PLAN_COORDINATOR_DO: DurableObjectNamespace<PlanCoordinator>
+  LIVESTORE_CLIENT_DO: DurableObjectNamespace
 
-	// R2 Storage
-	R2_BUCKET: R2Bucket;
+  // R2 Storage
+  R2_BUCKET: R2Bucket
 
-	// Queues for PDF processing pipeline
-	R2_NOTIFICATION_QUEUE: Queue;
-	IMAGE_GENERATION_QUEUE: Queue;
-	METADATA_EXTRACTION_QUEUE: Queue;
-	CALLOUT_DETECTION_QUEUE: Queue;
-	TILE_GENERATION_QUEUE: Queue;
+  // Queues for PDF processing pipeline
+  R2_NOTIFICATION_QUEUE: Queue
+  IMAGE_GENERATION_QUEUE: Queue
+  METADATA_EXTRACTION_QUEUE: Queue
+  CALLOUT_DETECTION_QUEUE: Queue
+  DOCLAYOUT_DETECTION_QUEUE: Queue
+  TILE_GENERATION_QUEUE: Queue
 
-	// Cloudflare Container for VIPS/Python processing
-	PDF_PROCESSOR: DurableObjectNamespace<PdfProcessor>;
+  // Cloudflare Container for VIPS/Python processing
+  PDF_PROCESSOR: DurableObjectNamespace<PdfProcessor>
 }
 
 /**
@@ -47,75 +48,75 @@ export interface Env extends Cloudflare.Env {
  * Extended with user information from auth validation
  */
 export interface SyncContext {
-	// Original payload from client
-	payload: {
-		authToken: string;
-		[key: string]: any;
-	};
+  // Original payload from client
+  payload: {
+    authToken: string
+    [key: string]: any
+  }
 
-	// User information added by validateSyncPayload
-	userId?: string;
-	userEmail?: string;
+  // User information added by validateSyncPayload
+  userId?: string
+  userEmail?: string
 
-	// Request context
-	request: Request;
-	env: Env;
+  // Request context
+  request: Request
+  env: Env
 }
 
 /**
  * Better Auth Session
  */
 export interface Session {
-	id: string;
-	token: string;
-	userId: string;
-	expiresAt: number;
-	ipAddress?: string;
-	userAgent?: string;
-	user: {
-		id: string;
-		email: string;
-		name?: string;
-		image?: string;
-		emailVerified: boolean;
-	};
+  id: string
+  token: string
+  userId: string
+  expiresAt: number
+  ipAddress?: string
+  userAgent?: string
+  user: {
+    id: string
+    email: string
+    name?: string
+    image?: string
+    emailVerified: boolean
+  }
 }
 
 /**
  * LiveStore Event with metadata
  */
 export interface EventWithMetadata<T = any> {
-	id: string;
-	type: string;
-	data: T;
-	timestamp: number;
-	userId?: string;
-	storeId: string;
+  id: string
+  type: string
+  data: T
+  timestamp: number
+  userId?: string
+  storeId: string
 }
 
 /**
  * Push message from client
  */
 export interface PushMessage {
-	type: "push";
-	batch: EventWithMetadata[];
-	authToken: string;
+  type: "push"
+  batch: EventWithMetadata[]
+  authToken: string
 }
 
 /**
  * Pull message from client
  */
 export interface PullMessage {
-	type: "pull";
-	since?: string; // Last event ID
-	authToken: string;
+  type: "pull"
+  since?: string // Last event ID
+  authToken: string
 }
 
 /**
  * Authorization check result
  */
 export interface AuthorizationResult {
-	allowed: boolean;
-	reason?: string;
-	userId: string;
+  allowed: boolean
+  reason?: string
+  userId: string
 }

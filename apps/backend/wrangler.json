@@ -1,133 +1,143 @@
 {
-	"name": "sitelink-backend",
-	"main": "src/index.ts",
-	"compatibility_date": "2024-12-01",
-	"compatibility_flags": ["nodejs_compat"],
-	"rules": [
-		{
-			"type": "CompiledWasm",
-			"globs": ["**/*.wasm"],
-			"fallthrough": true
-		}
-	],
-	"define": {
-		"process.env.NODE_ENV": "\"production\""
-	},
-	"logpush": false,
-	"d1_databases": [
-		{
-			"binding": "DB",
-			"database_name": "sitelink-db",
-			"database_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-		}
-	],
-	"r2_buckets": [
-		{
-			"binding": "R2_BUCKET",
-			"bucket_name": "sitelink-files"
-		}
-	],
-	"queues": {
-		"producers": [
-			{
-				"binding": "R2_NOTIFICATION_QUEUE",
-				"queue": "sitelink-r2-notifications"
-			},
-			{
-				"binding": "IMAGE_GENERATION_QUEUE",
-				"queue": "sitelink-image-generation"
-			},
-			{
-				"binding": "METADATA_EXTRACTION_QUEUE",
-				"queue": "sitelink-metadata-extraction"
-			},
-			{
-				"binding": "CALLOUT_DETECTION_QUEUE",
-				"queue": "sitelink-callout-detection"
-			},
-			{
-				"binding": "TILE_GENERATION_QUEUE",
-				"queue": "sitelink-tile-generation"
-			}
-		],
-		"consumers": [
-			{
-				"queue": "sitelink-r2-notifications",
-				"max_batch_size": 1,
-				"max_retries": 3,
-				"dead_letter_queue": "sitelink-processing-dlq"
-			},
-			{
-				"queue": "sitelink-image-generation",
-				"max_batch_size": 1,
-				"max_retries": 3,
-				"dead_letter_queue": "sitelink-processing-dlq"
-			},
-			{
-				"queue": "sitelink-metadata-extraction",
-				"max_batch_size": 5,
-				"max_retries": 3,
-				"dead_letter_queue": "sitelink-processing-dlq"
-			},
-			{
-				"queue": "sitelink-callout-detection",
-				"max_batch_size": 1,
-				"max_retries": 3,
-				"dead_letter_queue": "sitelink-processing-dlq"
-			},
-			{
-				"queue": "sitelink-tile-generation",
-				"max_batch_size": 1,
-				"max_retries": 3,
-				"dead_letter_queue": "sitelink-processing-dlq"
-			}
-		]
-	},
-	"durable_objects": {
-		"bindings": [
-			{
-				"name": "SYNC_BACKEND_DO",
-				"class_name": "SyncBackendDO",
-				"script_name": "sitelink-backend"
-			},
-			{
-				"name": "LIVESTORE_CLIENT_DO",
-				"class_name": "LiveStoreClientDO",
-				"script_name": "sitelink-backend"
-			},
-			{
-				"name": "PLAN_COORDINATOR_DO",
-				"class_name": "PlanCoordinator",
-				"script_name": "sitelink-backend"
-			},
-			{
-				"name": "PDF_PROCESSOR",
-				"class_name": "PdfProcessor"
-			}
-		]
-	},
-	"containers": [
-		{
-			"class_name": "PdfProcessor",
-			"image": "./container/Dockerfile",
-			"max_instances": 5
-		}
-	],
-	"migrations": [
-		{
-			"tag": "v1",
-			"new_sqlite_classes": ["SyncBackendDO", "LiveStoreClientDO"]
-		},
-		{
-			"tag": "v2",
-			"new_sqlite_classes": ["PlanCoordinator"]
-		},
-		{
-			"tag": "v3",
-			"new_sqlite_classes": ["PdfProcessor"]
-		}
-	],
-	"observability": {
-		"enabled": true
-	}
+  "name": "sitelink-backend",
+  "main": "src/index.ts",
+  "compatibility_date": "2024-12-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "rules": [
+    {
+      "type": "CompiledWasm",
+      "globs": ["**/*.wasm"],
+      "fallthrough": true
+    }
+  ],
+  "define": {
+    "process.env.NODE_ENV": "\"production\""
+  },
+  "logpush": false,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "sitelink-db",
+      "database_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "R2_BUCKET",
+      "bucket_name": "sitelink-files"
+    }
+  ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "R2_NOTIFICATION_QUEUE",
+        "queue": "sitelink-r2-notifications"
+      },
+      {
+        "binding": "IMAGE_GENERATION_QUEUE",
+        "queue": "sitelink-image-generation"
+      },
+      {
+        "binding": "METADATA_EXTRACTION_QUEUE",
+        "queue": "sitelink-metadata-extraction"
+      },
+      {
+        "binding": "CALLOUT_DETECTION_QUEUE",
+        "queue": "sitelink-callout-detection"
+      },
+      {
+        "binding": "DOCLAYOUT_DETECTION_QUEUE",
+        "queue": "sitelink-doclayout-detection"
+      },
+      {
+        "binding": "TILE_GENERATION_QUEUE",
+        "queue": "sitelink-tile-generation"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "sitelink-r2-notifications",
+        "max_batch_size": 1,
+        "max_retries": 3,
+        "dead_letter_queue": "sitelink-processing-dlq"
+      },
+      {
+        "queue": "sitelink-image-generation",
+        "max_batch_size": 1,
+        "max_retries": 3,
+        "dead_letter_queue": "sitelink-processing-dlq"
+      },
+      {
+        "queue": "sitelink-metadata-extraction",
+        "max_batch_size": 5,
+        "max_retries": 3,
+        "dead_letter_queue": "sitelink-processing-dlq"
+      },
+      {
+        "queue": "sitelink-callout-detection",
+        "max_batch_size": 1,
+        "max_retries": 3,
+        "dead_letter_queue": "sitelink-processing-dlq"
+      },
+      {
+        "queue": "sitelink-doclayout-detection",
+        "max_batch_size": 1,
+        "max_retries": 3,
+        "dead_letter_queue": "sitelink-processing-dlq"
+      },
+      {
+        "queue": "sitelink-tile-generation",
+        "max_batch_size": 1,
+        "max_retries": 3,
+        "dead_letter_queue": "sitelink-processing-dlq"
+      }
+    ]
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "SYNC_BACKEND_DO",
+        "class_name": "SyncBackendDO",
+        "script_name": "sitelink-backend"
+      },
+      {
+        "name": "LIVESTORE_CLIENT_DO",
+        "class_name": "LiveStoreClientDO",
+        "script_name": "sitelink-backend"
+      },
+      {
+        "name": "PLAN_COORDINATOR_DO",
+        "class_name": "PlanCoordinator",
+        "script_name": "sitelink-backend"
+      },
+      {
+        "name": "PDF_PROCESSOR",
+        "class_name": "PdfProcessor"
+      }
+    ]
+  },
+  "containers": [
+    {
+      "class_name": "PdfProcessor",
+      "image": "./container/Dockerfile",
+      "max_instances": 5
+    }
+  ],
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["SyncBackendDO", "LiveStoreClientDO"]
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["PlanCoordinator"]
+    },
+    {
+      "tag": "v3",
+      "new_sqlite_classes": ["PdfProcessor"]
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
 }
