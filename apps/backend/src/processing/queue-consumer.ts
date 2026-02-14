@@ -563,9 +563,12 @@ export async function handleTileGenerationQueue(
 				throw new Error(`Image not found at ${imagePath}`);
 			}
 
-			// Send image to container for PMTiles generation (VIPS)
+			// Send image to container for PMTiles generation (pyvips → MBTiles → PMTiles)
 			const containerId = env.PDF_PROCESSOR.idFromName(job.planId);
 			const container = env.PDF_PROCESSOR.get(containerId);
+
+			await container.startAndWaitForPorts();
+
 			const response = await container.fetch(
 				"http://container/generate-tiles",
 				{
@@ -587,8 +590,16 @@ export async function handleTileGenerationQueue(
 				);
 			}
 
+			// Read zoom levels from response headers (set by container based on image dimensions)
+			const minZoom = parseInt(response.headers.get("X-Min-Zoom") ?? "0", 10);
+			const maxZoom = parseInt(response.headers.get("X-Max-Zoom") ?? "5", 10);
+
 			// Container returns PMTiles file as binary
 			const pmtilesData = await response.arrayBuffer();
+
+			console.log(
+				`[TileGeneration] Received PMTiles: ${pmtilesData.byteLength} bytes, zoom ${minZoom}-${maxZoom}`,
+			);
 
 			// Upload to R2
 			const pmtilesPath = getR2Path(
@@ -623,9 +634,9 @@ export async function handleTileGenerationQueue(
 								sheetId: job.sheetId,
 								planId: job.planId,
 								localPmtilesPath: pmtilesPath,
-								remotePmtilesPath: `https://r2.sitelink.dev/${pmtilesPath}`,
-								minZoom: 0,
-								maxZoom: 8,
+								remotePmtilesPath: `/api/r2/${pmtilesPath}`,
+								minZoom,
+								maxZoom,
 								generatedAt: Date.now(),
 							},
 						}),
@@ -639,7 +650,9 @@ export async function handleTileGenerationQueue(
 			}
 
 			message.ack();
-			console.log(`[TileGeneration] Completed sheet ${job.sheetId}`);
+			console.log(
+				`[TileGeneration] Completed sheet ${job.sheetId} (${pmtilesData.byteLength} bytes, zoom ${minZoom}-${maxZoom})`,
+			);
 		} catch (error) {
 			console.error(`[TileGeneration] Failed for sheet ${job.sheetId}:`, error);
 			message.retry();
