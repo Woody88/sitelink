@@ -150,14 +150,18 @@ Tab Bar Specifications:
 +-------------------------------------------------------------+
 ```
 
-**Plans Tab Header (includes project selector)**
+**Plans Tab Header (includes project selector + segmented control)**
 ```
 +-------------------------------------------------------------+
 | Riverside Apartments v                         [Search] [=] |
 | ----------------------------------------------------------- |
+| [  Sheets  ] [ Plan Info ]            <- Segmented control    |
+| ----------------------------------------------------------- |
 | [ARCH] [ELEC] [STRC] [MECH] [PLMB] [ALL]   <- Discipline    |
 +-------------------------------------------------------------+
 ```
+
+> **Plan Info segment** shows extracted plan intelligence (schedules, notes, legends). Discipline filter chips only appear when "Sheets" segment is active. See Section 3.2.7.
 
 **Camera Header (minimal)**
 ```
@@ -421,6 +425,201 @@ Photos at this callout (7):
 - [ ] Issue photos clearly marked
 - [ ] Voice notes playable inline
 - [ ] Generate RFI button shown if issue photos present
+
+#### 3.2.7 Plan Info View (Extracted Intelligence)
+
+> Accessible via "Plan Info" segment in Plans tab workspace header.
+
+**Purpose:** Surface extracted plan intelligence (schedules, notes, legends) in a browseable discovery interface. Replaces manual hunting through sheets for this information.
+
+**Layout:**
+```
++-------------------------------------------------------------+
+| Riverside Apartments v                         [Search] [=] |
+| ----------------------------------------------------------- |
+| [  Sheets  ] [● Plan Info ]                                  |
++-------------------------------------------------------------+
+|                                                             |
+|  SCHEDULES (4)                                              |
+|  +-------------------------------------------------------+  |
+|  |  Footing Schedule                          S0.0   >  |  |
+|  |  Pier Schedule                             S0.0   >  |  |
+|  |  Beam Schedule                             S5.0   >  |  |
+|  |  Column Schedule                           S5.0   >  |  |
+|  +-------------------------------------------------------+  |
+|                                                             |
+|  NOTES (2)                                                  |
+|  +-------------------------------------------------------+  |
+|  |  General Notes                             S0.0   >  |  |
+|  |  Concrete Notes                            S0.1   >  |  |
+|  +-------------------------------------------------------+  |
+|                                                             |
+|  LEGENDS (2)                                                |
+|  +-------------------------------------------------------+  |
+|  |  Slab & Deck Legend                        S0.0   >  |  |
+|  |  Symbol Legend                             S0.1   >  |  |
+|  +-------------------------------------------------------+  |
+|                                                             |
++-------------------------------------------------------------+
+```
+
+**Sections:**
+- **Schedules**: Detected schedule tables with extracted structured data. Tap to view parsed rows.
+- **Notes**: Detected notes sections with extracted text content. Tap to read.
+- **Legends**: Detected legend regions shown as high-res image crops. Tap to view zoomed.
+
+**Empty State:**
+```
+Plan Info
+
+No plan intelligence detected yet.
+
+This project's plans haven't been processed
+for schedules, notes, and legends.
+
+[Processing happens automatically on upload]
+```
+
+**Acceptance Criteria:**
+- [ ] Sections show count badges
+- [ ] Items show source sheet number
+- [ ] Sections collapse if empty
+- [ ] Pull to refresh
+- [ ] Works offline (data synced via LiveStore)
+
+#### 3.2.8 Schedule Detail Screen
+
+**Layout:**
+```
++-------------------------------------------------------------+
+| < Plan Info     Footing Schedule              [View Source]  |
+| ----------------------------------------------------------- |
+| Sheet S0.0 · 94% confidence                                 |
+|                                                             |
+| +------+--------------+----------------+---+                |
+| | Mark | Size         | Reinforcing    | > |                |
+| +------+--------------+----------------+---+                |
+| |  F1  | 1500x1500x300| 4-15M E.W.    | > |                |
+| |  F2  | 2000x2000x400| 6-20M E.W.    | > |                |
+| |  F3  | 1200x1200x250| 4-15M E.W.    | > |                |
+| +------+--------------+----------------+---+                |
+|                                                             |
+| Tap a row for full details                                  |
+|                                                             |
+| [View on Sheet]                                             |
++-------------------------------------------------------------+
+```
+
+**Row Detail (Bottom Sheet):**
+```
++-------------------------------------------------------------+
+|  Footing F2                                                 |
+|  -----------------------------------------------------------+
+|  Size: 2000 x 2000 x 400 mm                                |
+|  Reinforcing: 6-20M E.W.                                   |
+|  Top of Footing: -1200                                      |
+|  Notes: Provide dowels per detail 3/S5.0                    |
+|                                                             |
+|  Source: Footing Schedule, Sheet S0.0                       |
+|  Confidence: 94%                                            |
+|                                                             |
+|  [View on Sheet]                                            |
++-------------------------------------------------------------+
+```
+
+**Actions:**
+| Button | Behavior |
+|--------|----------|
+| View Source (header) | Navigate to sheet, zoom to schedule region, highlight |
+| Row tap | Open row detail bottom sheet |
+| View on Sheet (row detail) | Navigate to sheet, zoom to specific row |
+
+**Acceptance Criteria:**
+- [ ] Table renders with correct columns from LLM extraction
+- [ ] Confidence indicator shown (green >=90%, yellow 80-89%, orange <80%)
+- [ ] "View on Sheet" navigates and highlights source region
+- [ ] Works offline
+
+#### 3.2.9 Notes Detail Screen
+
+**Layout:**
+```
++-------------------------------------------------------------+
+| < Plan Info     General Notes                 [View Source]  |
+| ----------------------------------------------------------- |
+| Sheet S0.0                                                   |
+|                                                             |
+| 1. All concrete shall be 4000 PSI minimum 28-day            |
+|    strength unless noted otherwise.                         |
+|                                                             |
+| 2. Reinforcing steel shall be ASTM A615 Grade 60.          |
+|                                                             |
+| 3. Minimum concrete cover: 3" for footings, 1.5" for       |
+|    columns and beams.                                       |
+|                                                             |
+| 4. All splices shall be 40 bar diameters minimum            |
+|    unless noted otherwise.                                  |
+|                                                             |
+| [View on Sheet]                                             |
++-------------------------------------------------------------+
+```
+
+**Acceptance Criteria:**
+- [ ] Text renders with numbered list formatting
+- [ ] Scrollable for long notes sections
+- [ ] "View on Sheet" navigates and highlights source region
+- [ ] Copy text action available
+
+#### 3.2.10 Legend Detail Screen
+
+**Layout:**
+```
++-------------------------------------------------------------+
+| < Plan Info   Slab & Deck Legend              [View Source]  |
+| ----------------------------------------------------------- |
+| Sheet S0.0                                                   |
+|                                                             |
+| +-------------------------------------------------------+   |
+| |                                                       |   |
+| |  [High-resolution image crop of legend region]        |   |
+| |                                                       |   |
+| |  Pinch to zoom · Double-tap to fit                    |   |
+| |                                                       |   |
+| +-------------------------------------------------------+   |
+|                                                             |
+| [View on Sheet]                                             |
++-------------------------------------------------------------+
+```
+
+**Acceptance Criteria:**
+- [ ] High-res crop loads from R2
+- [ ] Pinch-to-zoom and double-tap zoom supported
+- [ ] "View on Sheet" navigates and highlights source region
+- [ ] Image cached for offline access
+
+#### 3.2.11 On-Sheet Region Overlays
+
+When viewing a sheet that contains detected layout regions (schedules, notes, legends), tappable region overlays appear alongside existing callout markers.
+
+**Visual Distinction from Callout Markers:**
+| Element | Callout Markers | Region Overlays |
+|---------|-----------------|-----------------|
+| Shape | Solid circle (32pt) | Dashed rectangle |
+| Color | Blue (#2563EB) | Purple (#8B5CF6) at 15% opacity |
+| Border | None | 2pt dashed purple |
+| Tap target | 48pt | Full region bbox |
+| Label | Callout reference | Region type ("Schedule", "Notes") |
+
+**Behavior:**
+- Tap region overlay → bottom sheet with extracted content (same as Plan Info detail)
+- Region overlays visible at zoom levels where the region is large enough to tap (>40pt)
+- Can be toggled on/off via viewer controls
+
+**Acceptance Criteria:**
+- [ ] Region overlays visually distinct from callout markers
+- [ ] Tap opens bottom sheet with content
+- [ ] Overlays scale appropriately with zoom
+- [ ] Toggle available in viewer controls
 
 ---
 
@@ -1260,7 +1459,7 @@ Padding: 16pt
 
 | Category | Features |
 |----------|----------|
-| **Plan Viewing** | Sheet list, pan/zoom viewer, callout markers, callout navigation, discipline filters |
+| **Plan Viewing** | Sheet list, pan/zoom viewer, callout markers, callout navigation, discipline filters, Plan Info (schedules, notes, legends) |
 | **Photo Documentation** | Capture with callout link, issue toggle, photo timeline per callout |
 | **Voice Notes** | Recording, playback, transcription (Pro+) |
 | **Search** | Plan text search (Pro+), sheet filtering |

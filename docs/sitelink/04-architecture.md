@@ -179,24 +179,56 @@ PDF Upload (Device → Cloud)
          │
          ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ Stage 8: Callout Detection (YOLO)                                 ~5 sec/pg │
+│ Stage 8a: Callout Detection (YOLO 4-class)                        ~5 sec/pg │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ WHERE:  Processing worker (YOLO model)                                      │
+│ WHERE:  Processing worker (YOLO v8n, 5.5 MB)                               │
 │ INPUT:  Sheet image                                                         │
-│ OUTPUT: Callout markers with source → target sheet links                    │
-│ SYNC:   callouts table → LiveStore                                          │
+│ OUTPUT: Callout markers (detail, elevation, title, grid_bubble)             │
+│         with source → target sheet links                                    │
+│ SYNC:   callouts + grid_bubbles tables → LiveStore                          │
 │                                                                              │
-│ NOTE:   YOLO runs in CLOUD, not on device. Results sync to device.          │
+│ NOTE:   4-class model detects grid bubbles. Grid bubbles stored for         │
+│         Phase 2 coordinate system. Grid UI is deferred.                     │
+│         YOLO runs in CLOUD, not on device. Results sync to device.          │
 └─────────────────────────────────────────────────────────────────────────────┘
          │
-         ▼
+    ┌────┴──── Stages 8a and 8b run in PARALLEL ────┐
+    │                                                │
+    ▼                                                ▼
+┌────────────────────────────────────┐ ┌────────────────────────────────────┐
+│ Stage 8b: Document Layout          │ │ (Stage 8a: Callout Detection       │
+│ Region Detection                   │ │  continues in parallel)            │
+│ (DocLayout-YOLO)          ~2 sec/pg│ └────────────────────────────────────┘
+├────────────────────────────────────┤
+│ WHERE:  Processing worker          │
+│         (DocLayout-YOLO, 225 MB)   │
+│ INPUT:  Sheet image                │
+│ OUTPUT: Layout regions:            │
+│         schedule, notes, legend    │
+│         with bounding boxes        │
+│ SYNC:   layout_regions → LiveStore │
+│                                    │
+│ Performance: 96.8% mAP50          │
+└────────────────┬───────────────────┘
+                 │
+                 ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ Stage 9: General Notes Extraction                                  ~3 sec/pg│
+│ Stage 9: Region Content Extraction (LLM)                          ~5 sec/pg │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ WHERE:  Processing worker                                                   │
-│ INPUT:  OCR results from cover sheets (S0.x)                                │
-│ OUTPUT: Parsed notes (concrete specs, steel notes, general notes)           │
-│ SYNC:   project_context table → LiveStore                                   │
+│ WHERE:  Processing worker (Gemini Flash via OpenRouter)                      │
+│ INPUT:  Cropped region images from Stage 8b detections                      │
+│                                                                              │
+│ SCHEDULE regions:                                                            │
+│   → LLM extracts structured JSON: {mark, size, reinforcing, properties}     │
+│   → SYNC: schedule_entries table → LiveStore                                │
+│                                                                              │
+│ NOTES regions:                                                               │
+│   → LLM extracts text content as structured list                            │
+│   → SYNC: notes_content stored in layout_regions → LiveStore                │
+│                                                                              │
+│ LEGEND regions:                                                              │
+│   → NO LLM extraction. High-res image crop stored in R2.                    │
+│   → SYNC: crop_image_url stored in layout_regions → LiveStore               │
 └─────────────────────────────────────────────────────────────────────────────┘
          │
          ▼
@@ -454,17 +486,47 @@ CREATE TABLE schedule_entries (
 );
 
 -- ============================================================
--- GRID LINES (detected in cloud)
+-- GRID BUBBLES (detected by YOLO 4-class model in cloud)
+-- Stored for Phase 2 coordinate system UI
 -- ============================================================
-CREATE TABLE grid_lines (
+CREATE TABLE grid_bubbles (
   id TEXT PRIMARY KEY,
   sheet_id TEXT NOT NULL REFERENCES sheets(id),
 
   label TEXT NOT NULL,         -- "A", "B", "1", "2"
-  axis TEXT NOT NULL,          -- "horizontal", "vertical"
-  position REAL NOT NULL,      -- Pixel position on sheet
+  axis TEXT,                   -- "horizontal", "vertical" (Phase 2)
 
-  confidence REAL,
+  -- Position (normalized 0-1)
+  x REAL NOT NULL,
+  y REAL NOT NULL,
+  width REAL NOT NULL,
+  height REAL NOT NULL,
+
+  confidence REAL NOT NULL,
+  created_at INTEGER NOT NULL
+);
+
+-- ============================================================
+-- LAYOUT REGIONS (detected by DocLayout-YOLO in cloud)
+-- ============================================================
+CREATE TABLE layout_regions (
+  id TEXT PRIMARY KEY,
+  sheet_id TEXT NOT NULL REFERENCES sheets(id),
+
+  region_class TEXT NOT NULL,  -- "schedule", "notes", "legend"
+  region_title TEXT,           -- "Footing Schedule", "General Notes"
+
+  -- Position (normalized 0-1)
+  x REAL NOT NULL,
+  y REAL NOT NULL,
+  width REAL NOT NULL,
+  height REAL NOT NULL,
+
+  -- Content (depends on region_class)
+  extracted_content TEXT,      -- JSON (schedules) or text (notes) or NULL (legends)
+  crop_image_url TEXT,         -- R2 URL for legend image crops
+
+  confidence REAL NOT NULL,
   created_at INTEGER NOT NULL
 );
 
