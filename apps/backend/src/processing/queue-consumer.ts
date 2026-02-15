@@ -426,6 +426,15 @@ export async function handleCalloutDetectionQueue(
           needsReview: boolean
         }>
         unmatchedCount?: number
+        grid_bubbles?: Array<{
+          class: string
+          label: string
+          x: number
+          y: number
+          width: number
+          height: number
+          confidence: number
+        }>
       }
 
       // Ensure markers is always an array and convert null to undefined for Schema.optional
@@ -467,6 +476,49 @@ export async function handleCalloutDetectionQueue(
         })
       } catch (liveStoreError) {
         console.warn(`[CalloutDetection] LiveStore emit failed for ${job.sheetId}:`, liveStoreError)
+      }
+
+      // Emit grid bubbles event (non-critical, don't fail pipeline)
+      if (result.grid_bubbles && result.grid_bubbles.length > 0) {
+        try {
+          const { nanoid } = await import("@livestore/livestore")
+          const bubbles = result.grid_bubbles.map((b) => ({
+            id: nanoid(),
+            label: b.label || "",
+            x: b.x,
+            y: b.y,
+            width: b.width,
+            height: b.height,
+            confidence: b.confidence,
+            createdAt: Date.now(),
+          }))
+
+          const liveStoreStub = env.LIVESTORE_CLIENT_DO.get(
+            env.LIVESTORE_CLIENT_DO.idFromName(job.organizationId),
+          )
+
+          await liveStoreStub.fetch("http://internal/commit?storeId=" + job.organizationId, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              eventName: "sheetGridBubblesDetected",
+              data: {
+                sheetId: job.sheetId,
+                bubbles,
+                detectedAt: Date.now(),
+              },
+            }),
+          })
+
+          console.log(
+            `[CalloutDetection] Emitted ${bubbles.length} grid bubbles for ${job.sheetId}`,
+          )
+        } catch (gridBubbleError) {
+          console.warn(
+            `[CalloutDetection] Grid bubble event failed for ${job.sheetId}:`,
+            gridBubbleError,
+          )
+        }
       }
 
       message.ack()

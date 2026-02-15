@@ -13,7 +13,7 @@ import httpx
 import numpy as np
 from ultralytics import YOLO
 
-MODEL_PATH = Path(__file__).parent / "weights" / "callout_detector.pt"
+MODEL_PATH = Path(__file__).parent / "weights" / "callout_detector_v2.pt"
 
 # Critical parameters - must match training config
 DETECTION_DPI = 72  # Model was trained on 72 DPI images
@@ -23,7 +23,7 @@ OVERLAP = 0.2       # SAHI overlap
 CONF_THRESHOLD = 0.25  # v5/v6 optimal confidence
 IOU_THRESHOLD = 0.5
 
-CLASS_NAMES = ["detail", "elevation", "title"]
+CLASS_NAMES = ["detail", "elevation", "title", "grid_bubble"]
 
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 GEMINI_MODEL = "google/gemini-2.0-flash-001"
@@ -394,8 +394,12 @@ def detect_callouts_yolo(
     merged = merge_detections(all_detections, iou_threshold=IOU_THRESHOLD)
     print(f"[YOLO] After NMS: {len(merged)}")
 
-    filtered = apply_all_filters(merged)
-    print(f"[YOLO] After filters: {len(filtered)}")
+    # Separate grid_bubble detections before applying callout-specific filters
+    callout_detections = [d for d in merged if d['class'] != 'grid_bubble']
+    grid_bubble_detections = [d for d in merged if d['class'] == 'grid_bubble']
+
+    filtered = apply_all_filters(callout_detections)
+    print(f"[YOLO] After filters: {len(filtered)} callouts, {len(grid_bubble_detections)} grid bubbles")
 
     # Scale factor to convert 72 DPI coords back to original resolution
     upscale_factor = 1.0 / scale_factor if scale_factor != 1.0 else 1.0
@@ -461,12 +465,27 @@ def detect_callouts_yolo(
 
         print(f"[YOLO] Gemini extraction complete")
 
+    # Build grid_bubbles list with normalized coordinates
+    grid_bubbles = []
+    for det in grid_bubble_detections:
+        x, y, bw, bh = det['bbox']
+        grid_bubbles.append({
+            "class": "grid_bubble",
+            "label": "",
+            "x": float(x) / w,
+            "y": float(y) / h,
+            "width": float(bw) / w,
+            "height": float(bh) / h,
+            "confidence": det['confidence'],
+        })
+
     matched = sum(1 for m in markers if m.get('targetSheetRef'))
     unmatched = len(markers) - matched
 
-    print(f"[YOLO] Final: {len(markers)} markers, {matched} matched, {unmatched} unmatched")
+    print(f"[YOLO] Final: {len(markers)} markers, {matched} matched, {unmatched} unmatched, {len(grid_bubbles)} grid bubbles")
 
     return {
         "markers": markers,
-        "unmatchedCount": unmatched
+        "unmatchedCount": unmatched,
+        "grid_bubbles": grid_bubbles
     }

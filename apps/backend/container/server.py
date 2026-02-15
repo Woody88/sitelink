@@ -951,8 +951,13 @@ def detect_callouts_endpoint():
             use_gemini=bool(api_key)
         )
 
-        print(f"[Callouts] YOLO returned {len(result.get('markers', []))} markers")
-        return jsonify(result)
+        grid_bubbles = result.get('grid_bubbles', [])
+        print(f"[Callouts] YOLO returned {len(result.get('markers', []))} markers, {len(grid_bubbles)} grid bubbles")
+        return jsonify({
+            "markers": result.get("markers", []),
+            "unmatchedCount": result.get("unmatchedCount", 0),
+            "grid_bubbles": grid_bubbles,
+        })
 
     except Exception as e:
         print(f"[Callouts] Error: {e}")
