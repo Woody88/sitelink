@@ -13,7 +13,9 @@ describe("PlanCoordinator State Management", () => {
 			generatedImages: [],
 			extractedMetadata: [],
 			validSheets: [],
+			sheetNumberMap: {},
 			detectedCallouts: [],
+			detectedLayouts: [],
 			generatedTiles: [],
 			status: "image_generation",
 			createdAt: Date.now(),
@@ -30,7 +32,9 @@ describe("PlanCoordinator State Management", () => {
 			expect(coordinatorState.generatedImages).toHaveLength(0);
 			expect(coordinatorState.extractedMetadata).toHaveLength(0);
 			expect(coordinatorState.validSheets).toHaveLength(0);
+			expect(coordinatorState.sheetNumberMap).toEqual({});
 			expect(coordinatorState.detectedCallouts).toHaveLength(0);
+			expect(coordinatorState.detectedLayouts).toHaveLength(0);
 			expect(coordinatorState.generatedTiles).toHaveLength(0);
 		});
 
@@ -90,7 +94,15 @@ describe("PlanCoordinator State Management", () => {
 			expect(coordinatorState.validSheets).toHaveLength(1);
 		});
 
-		it("should transition to callout_detection when all metadata extracted", () => {
+		it("should track sheet number map", () => {
+			coordinatorState.extractedMetadata.push("sheet-0");
+			coordinatorState.validSheets.push("sheet-0");
+			coordinatorState.sheetNumberMap["sheet-0"] = "A1";
+
+			expect(coordinatorState.sheetNumberMap["sheet-0"]).toBe("A1");
+		});
+
+		it("should transition to parallel_detection when all metadata extracted", () => {
 			coordinatorState.extractedMetadata = ["sheet-0", "sheet-1", "sheet-2"];
 			coordinatorState.validSheets = ["sheet-0", "sheet-2"];
 
@@ -99,33 +111,117 @@ describe("PlanCoordinator State Management", () => {
 					coordinatorState.totalSheets &&
 				coordinatorState.status === "metadata_extraction"
 			) {
-				coordinatorState.status = "callout_detection";
+				coordinatorState.status = "parallel_detection";
 			}
 
-			expect(coordinatorState.status).toBe("callout_detection");
+			expect(coordinatorState.status).toBe("parallel_detection");
 		});
 	});
 
-	describe("Callout Detection Phase", () => {
+	describe("Parallel Detection Phase", () => {
 		beforeEach(() => {
 			coordinatorState.generatedImages = ["sheet-0", "sheet-1", "sheet-2"];
 			coordinatorState.extractedMetadata = ["sheet-0", "sheet-1", "sheet-2"];
 			coordinatorState.validSheets = ["sheet-0", "sheet-2"];
-			coordinatorState.status = "callout_detection";
+			coordinatorState.sheetNumberMap = { "sheet-0": "A1", "sheet-2": "S1" };
+			coordinatorState.status = "parallel_detection";
 		});
 
-		it("should track detected callouts for valid sheets", () => {
+		it("should track detected callouts in parallel_detection status", () => {
 			coordinatorState.detectedCallouts.push("sheet-0");
 			expect(coordinatorState.detectedCallouts).toHaveLength(1);
+			expect(coordinatorState.status).toBe("parallel_detection");
 		});
 
-		it("should transition to tile_generation when all callouts detected", () => {
+		it("should track detected layouts in parallel_detection status", () => {
+			coordinatorState.detectedLayouts.push("sheet-0");
+			expect(coordinatorState.detectedLayouts).toHaveLength(1);
+			expect(coordinatorState.status).toBe("parallel_detection");
+		});
+
+		it("should NOT transition to tile_generation when only callouts complete", () => {
 			coordinatorState.detectedCallouts = ["sheet-0", "sheet-2"];
+			coordinatorState.detectedLayouts = ["sheet-0"];
+
+			const calloutsComplete =
+				coordinatorState.detectedCallouts.length ===
+				coordinatorState.validSheets.length;
+			const layoutsComplete =
+				coordinatorState.detectedLayouts.length ===
+				coordinatorState.validSheets.length;
 
 			if (
+				calloutsComplete &&
+				layoutsComplete &&
+				coordinatorState.status === "parallel_detection"
+			) {
+				coordinatorState.status = "tile_generation";
+			}
+
+			expect(coordinatorState.status).toBe("parallel_detection");
+		});
+
+		it("should NOT transition to tile_generation when only layouts complete", () => {
+			coordinatorState.detectedCallouts = ["sheet-0"];
+			coordinatorState.detectedLayouts = ["sheet-0", "sheet-2"];
+
+			const calloutsComplete =
 				coordinatorState.detectedCallouts.length ===
-					coordinatorState.validSheets.length &&
-				coordinatorState.status === "callout_detection"
+				coordinatorState.validSheets.length;
+			const layoutsComplete =
+				coordinatorState.detectedLayouts.length ===
+				coordinatorState.validSheets.length;
+
+			if (
+				calloutsComplete &&
+				layoutsComplete &&
+				coordinatorState.status === "parallel_detection"
+			) {
+				coordinatorState.status = "tile_generation";
+			}
+
+			expect(coordinatorState.status).toBe("parallel_detection");
+		});
+
+		it("should transition to tile_generation when BOTH callouts AND layouts complete", () => {
+			coordinatorState.detectedCallouts = ["sheet-0", "sheet-2"];
+			coordinatorState.detectedLayouts = ["sheet-0", "sheet-2"];
+
+			const calloutsComplete =
+				coordinatorState.detectedCallouts.length ===
+				coordinatorState.validSheets.length;
+			const layoutsComplete =
+				coordinatorState.detectedLayouts.length ===
+				coordinatorState.validSheets.length;
+
+			if (
+				calloutsComplete &&
+				layoutsComplete &&
+				coordinatorState.status === "parallel_detection"
+			) {
+				coordinatorState.status = "tile_generation";
+			}
+
+			expect(coordinatorState.status).toBe("tile_generation");
+		});
+
+		it("should handle layout detection failure gracefully (still allow tile gen)", () => {
+			coordinatorState.detectedCallouts = ["sheet-0", "sheet-2"];
+			// Layout detection fails but coordinator still reports layouts as "detected"
+			// because the error handler in handleDocLayoutDetectionQueue still notifies coordinator
+			coordinatorState.detectedLayouts = ["sheet-0", "sheet-2"];
+
+			const calloutsComplete =
+				coordinatorState.detectedCallouts.length ===
+				coordinatorState.validSheets.length;
+			const layoutsComplete =
+				coordinatorState.detectedLayouts.length ===
+				coordinatorState.validSheets.length;
+
+			if (
+				calloutsComplete &&
+				layoutsComplete &&
+				coordinatorState.status === "parallel_detection"
 			) {
 				coordinatorState.status = "tile_generation";
 			}
@@ -140,6 +236,7 @@ describe("PlanCoordinator State Management", () => {
 			coordinatorState.extractedMetadata = ["sheet-0", "sheet-1", "sheet-2"];
 			coordinatorState.validSheets = ["sheet-0", "sheet-2"];
 			coordinatorState.detectedCallouts = ["sheet-0", "sheet-2"];
+			coordinatorState.detectedLayouts = ["sheet-0", "sheet-2"];
 			coordinatorState.status = "tile_generation";
 		});
 
@@ -176,7 +273,7 @@ describe("PlanCoordinator State Management", () => {
 			const statuses: PlanCoordinatorState["status"][] = [
 				"image_generation",
 				"metadata_extraction",
-				"callout_detection",
+				"parallel_detection",
 				"tile_generation",
 			];
 
@@ -224,6 +321,24 @@ describe("PlanCoordinator State Management", () => {
 				100;
 			expect(progress).toBe(100);
 		});
+
+		it("should track parallel detection progress separately", () => {
+			coordinatorState.validSheets = ["sheet-0", "sheet-2"];
+			coordinatorState.detectedCallouts = ["sheet-0"];
+			coordinatorState.detectedLayouts = ["sheet-0", "sheet-2"];
+
+			const calloutProgress =
+				(coordinatorState.detectedCallouts.length /
+					coordinatorState.validSheets.length) *
+				100;
+			const layoutProgress =
+				(coordinatorState.detectedLayouts.length /
+					coordinatorState.validSheets.length) *
+				100;
+
+			expect(calloutProgress).toBe(50);
+			expect(layoutProgress).toBe(100);
+		});
 	});
 
 	describe("State Transitions", () => {
@@ -231,7 +346,7 @@ describe("PlanCoordinator State Management", () => {
 			const expectedOrder = [
 				"image_generation",
 				"metadata_extraction",
-				"callout_detection",
+				"parallel_detection",
 				"tile_generation",
 				"complete",
 			];
@@ -242,7 +357,7 @@ describe("PlanCoordinator State Management", () => {
 			state = "metadata_extraction";
 			transitions.push(state);
 
-			state = "callout_detection";
+			state = "parallel_detection";
 			transitions.push(state);
 
 			state = "tile_generation";
@@ -255,13 +370,13 @@ describe("PlanCoordinator State Management", () => {
 		});
 
 		it("should not transition backwards in normal flow", () => {
-			coordinatorState.status = "callout_detection";
+			coordinatorState.status = "parallel_detection";
 
 			const canTransitionBack = (newStatus: PlanCoordinatorState["status"]) => {
 				const order = [
 					"image_generation",
 					"metadata_extraction",
-					"callout_detection",
+					"parallel_detection",
 					"tile_generation",
 					"complete",
 				];
@@ -286,6 +401,7 @@ describe("PlanCoordinator HTTP Interface", () => {
 			"/sheetImageGenerated",
 			"/sheetMetadataExtracted",
 			"/sheetCalloutsDetected",
+			"/sheetLayoutDetected",
 			"/sheetTilesGenerated",
 			"/markFailed",
 		];
@@ -301,6 +417,7 @@ describe("PlanCoordinator HTTP Interface", () => {
 			{ path: "/sheetImageGenerated", method: "POST" },
 			{ path: "/sheetMetadataExtracted", method: "POST" },
 			{ path: "/sheetCalloutsDetected", method: "POST" },
+			{ path: "/sheetLayoutDetected", method: "POST" },
 			{ path: "/sheetTilesGenerated", method: "POST" },
 			{ path: "/markFailed", method: "POST" },
 		];

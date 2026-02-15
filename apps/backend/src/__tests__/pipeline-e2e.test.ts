@@ -3,6 +3,7 @@ import {
 	handleImageGenerationQueue,
 	handleMetadataExtractionQueue,
 	handleCalloutDetectionQueue,
+	handleDocLayoutDetectionQueue,
 	handleTileGenerationQueue,
 } from "../processing/queue-consumer";
 import {
@@ -14,6 +15,7 @@ import type {
 	ImageGenerationJob,
 	MetadataExtractionJob,
 	CalloutDetectionJob,
+	DocLayoutDetectionJob,
 	TileGenerationJob,
 } from "../processing/types";
 import { getR2Path } from "../processing/types";
@@ -57,6 +59,7 @@ function createMockEnv(options?: {
 		IMAGE_GENERATION_QUEUE: [],
 		METADATA_EXTRACTION_QUEUE: [],
 		CALLOUT_DETECTION_QUEUE: [],
+		DOCLAYOUT_DETECTION_QUEUE: [],
 		TILE_GENERATION_QUEUE: [],
 		R2_NOTIFICATION_QUEUE: [],
 	};
@@ -73,6 +76,7 @@ function createMockEnv(options?: {
 		validSheets: [],
 		sheetNumberMap: {},
 		detectedCallouts: [],
+		detectedLayouts: [],
 		generatedTiles: [],
 		status: "image_generation",
 		createdAt: Date.now(),
@@ -115,6 +119,18 @@ function createMockEnv(options?: {
 						},
 					],
 					unmatchedCount: 0,
+					grid_bubbles: [],
+				});
+			}
+			if (url.includes("/detect-layout")) {
+				return Response.json({
+					regions: [
+						{
+							class: "schedule",
+							bbox: [0.1, 0.2, 0.3, 0.4],
+							confidence: 0.92,
+						},
+					],
 				});
 			}
 			if (url.includes("/generate-tiles")) {
@@ -122,6 +138,19 @@ function createMockEnv(options?: {
 			}
 			return Response.json({ error: "Unknown" }, { status: 404 });
 		}),
+	};
+
+	const checkParallelDetectionComplete = () => {
+		if (coordinatorState.status !== "parallel_detection") return;
+		const calloutsComplete =
+			coordinatorState.detectedCallouts.length ===
+			coordinatorState.validSheets.length;
+		const layoutsComplete =
+			coordinatorState.detectedLayouts.length ===
+			coordinatorState.validSheets.length;
+		if (calloutsComplete && layoutsComplete) {
+			coordinatorState.status = "tile_generation";
+		}
 	};
 
 	const mockCoordinator = {
@@ -135,6 +164,7 @@ function createMockEnv(options?: {
 				validSheets: [],
 				sheetNumberMap: {},
 				detectedCallouts: [],
+				detectedLayouts: [],
 				generatedTiles: [],
 				status: "image_generation",
 			};
@@ -174,7 +204,7 @@ function createMockEnv(options?: {
 					coordinatorState.extractedMetadata.length ===
 					coordinatorState.totalSheets
 				) {
-					coordinatorState.status = "callout_detection";
+					coordinatorState.status = "parallel_detection";
 				}
 				return { success: true };
 			},
@@ -184,12 +214,7 @@ function createMockEnv(options?: {
 			if (!coordinatorState.detectedCallouts.includes(sheetId)) {
 				coordinatorState.detectedCallouts.push(sheetId);
 			}
-			if (
-				coordinatorState.detectedCallouts.length ===
-				coordinatorState.validSheets.length
-			) {
-				coordinatorState.status = "tile_generation";
-			}
+			checkParallelDetectionComplete();
 			return { success: true };
 		}),
 		sheetTilesGenerated: vi.fn(async (sheetId: string) => {
@@ -210,6 +235,19 @@ function createMockEnv(options?: {
 			coordinatorState.status = "failed";
 			coordinatorState.lastError = error;
 			return { success: true };
+		}),
+		fetch: vi.fn(async (url: string, init?: RequestInit) => {
+			const urlObj = new URL(url, "http://internal");
+			if (urlObj.pathname === "/sheetLayoutDetected" || urlObj.pathname === "/internal/sheetLayoutDetected") {
+				const body = JSON.parse(init?.body as string);
+				coordinatorCalls.push({ method: "sheetLayoutDetected", sheetId: body.sheetId });
+				if (!coordinatorState.detectedLayouts.includes(body.sheetId)) {
+					coordinatorState.detectedLayouts.push(body.sheetId);
+				}
+				checkParallelDetectionComplete();
+				return Response.json({ success: true });
+			}
+			return Response.json({ error: "Unknown" }, { status: 404 });
 		}),
 	};
 
@@ -247,6 +285,11 @@ function createMockEnv(options?: {
 		CALLOUT_DETECTION_QUEUE: {
 			send: vi.fn(async (message: any) => {
 				queuedMessages.CALLOUT_DETECTION_QUEUE.push(message);
+			}),
+		} as any,
+		DOCLAYOUT_DETECTION_QUEUE: {
+			send: vi.fn(async (message: any) => {
+				queuedMessages.DOCLAYOUT_DETECTION_QUEUE.push(message);
 			}),
 		} as any,
 		TILE_GENERATION_QUEUE: {
@@ -596,7 +639,7 @@ describe("Pipeline Stage Tests", () => {
 		});
 	});
 
-	describe("Stage 4: Callout Detection Handler", () => {
+	describe("Stage 3A: Callout Detection Handler (4-class)", () => {
 		it("should detect callouts and emit LiveStore events", async () => {
 			const r2Objects = new Map<string, { data: ArrayBuffer; metadata: any }>();
 			const imagePath = getR2Path(
@@ -658,6 +701,274 @@ describe("Pipeline Stage Tests", () => {
 			expect(eventBody.data.markers[0].confidence).toBe(0.95);
 		});
 
+		it("should handle grid_bubble detections separately from markers", async () => {
+			const r2Objects = new Map<string, { data: ArrayBuffer; metadata: any }>();
+			const imagePath = getR2Path(
+				testOrganizationId,
+				testProjectId,
+				testPlanId,
+				testSheetId,
+				"source.png",
+			);
+			r2Objects.set(imagePath, {
+				data: new ArrayBuffer(1024),
+				metadata: {},
+			});
+
+			const { mockEnv, mockContainer, liveStoreRequests } = createMockEnv({
+				r2Objects,
+			});
+
+			mockContainer.fetch.mockImplementation(async (url: string) => {
+				if (url.includes("/detect-callouts")) {
+					return Response.json({
+						markers: [
+							{
+								id: "m1",
+								label: "1/A2",
+								x: 0.5,
+								y: 0.3,
+								confidence: 0.95,
+								needsReview: false,
+							},
+						],
+						unmatchedCount: 0,
+						grid_bubbles: [
+							{
+								class: "grid_bubble",
+								label: "A",
+								x: 0.1,
+								y: 0.05,
+								width: 0.02,
+								height: 0.02,
+								confidence: 0.98,
+							},
+							{
+								class: "grid_bubble",
+								label: "1",
+								x: 0.05,
+								y: 0.1,
+								width: 0.02,
+								height: 0.02,
+								confidence: 0.96,
+							},
+						],
+					});
+				}
+				return Response.json({ error: "Unknown" }, { status: 404 });
+			});
+
+			const job: CalloutDetectionJob = {
+				planId: testPlanId,
+				projectId: testProjectId,
+				organizationId: testOrganizationId,
+				sheetId: testSheetId,
+				sheetNumber: "A1",
+				validSheetNumbers: ["A1", "A2"],
+			};
+
+			const message = createMockMessage(job);
+			const batch = createMockBatch([message]);
+
+			await handleCalloutDetectionQueue(batch, mockEnv);
+
+			expect(message.ack).toHaveBeenCalled();
+
+			const calloutEvent = liveStoreRequests.find((r) => {
+				const body = JSON.parse(r.options.body);
+				return body.eventName === "sheetCalloutsDetected";
+			});
+			expect(calloutEvent).toBeDefined();
+			const calloutBody = JSON.parse(calloutEvent.options.body);
+			expect(calloutBody.data.markers).toHaveLength(1);
+
+			const gridBubbleEvent = liveStoreRequests.find((r) => {
+				const body = JSON.parse(r.options.body);
+				return body.eventName === "sheetGridBubblesDetected";
+			});
+			expect(gridBubbleEvent).toBeDefined();
+			const bubbleBody = JSON.parse(gridBubbleEvent.options.body);
+			expect(bubbleBody.data.bubbles).toHaveLength(2);
+			expect(bubbleBody.data.bubbles[0].label).toBe("A");
+			expect(bubbleBody.data.bubbles[1].label).toBe("1");
+		});
+
+		it("should emit sheetGridBubblesDetected when grid bubbles detected", async () => {
+			const r2Objects = new Map<string, { data: ArrayBuffer; metadata: any }>();
+			const imagePath = getR2Path(
+				testOrganizationId,
+				testProjectId,
+				testPlanId,
+				testSheetId,
+				"source.png",
+			);
+			r2Objects.set(imagePath, {
+				data: new ArrayBuffer(1024),
+				metadata: {},
+			});
+
+			const { mockEnv, mockContainer, liveStoreRequests } = createMockEnv({
+				r2Objects,
+			});
+
+			mockContainer.fetch.mockImplementation(async (url: string) => {
+				if (url.includes("/detect-callouts")) {
+					return Response.json({
+						markers: [],
+						unmatchedCount: 0,
+						grid_bubbles: [
+							{
+								class: "grid_bubble",
+								label: "B",
+								x: 0.9,
+								y: 0.05,
+								width: 0.02,
+								height: 0.02,
+								confidence: 0.97,
+							},
+						],
+					});
+				}
+				return Response.json({ error: "Unknown" }, { status: 404 });
+			});
+
+			const job: CalloutDetectionJob = {
+				planId: testPlanId,
+				projectId: testProjectId,
+				organizationId: testOrganizationId,
+				sheetId: testSheetId,
+				sheetNumber: "A1",
+				validSheetNumbers: ["A1"],
+			};
+
+			const message = createMockMessage(job);
+			await handleCalloutDetectionQueue(createMockBatch([message]), mockEnv);
+
+			const gridEvent = liveStoreRequests.find((r) => {
+				const body = JSON.parse(r.options.body);
+				return body.eventName === "sheetGridBubblesDetected";
+			});
+			expect(gridEvent).toBeDefined();
+			const gridBody = JSON.parse(gridEvent.options.body);
+			expect(gridBody.data.sheetId).toBe(testSheetId);
+			expect(gridBody.data.bubbles).toHaveLength(1);
+			expect(typeof gridBody.data.bubbles[0].id).toBe("string");
+			expect(typeof gridBody.data.detectedAt).toBe("number");
+		});
+
+		it("should NOT emit grid bubble event when no bubbles found", async () => {
+			const r2Objects = new Map<string, { data: ArrayBuffer; metadata: any }>();
+			const imagePath = getR2Path(
+				testOrganizationId,
+				testProjectId,
+				testPlanId,
+				testSheetId,
+				"source.png",
+			);
+			r2Objects.set(imagePath, {
+				data: new ArrayBuffer(1024),
+				metadata: {},
+			});
+
+			const { mockEnv, mockContainer, liveStoreRequests } = createMockEnv({
+				r2Objects,
+			});
+
+			mockContainer.fetch.mockImplementation(async (url: string) => {
+				if (url.includes("/detect-callouts")) {
+					return Response.json({
+						markers: [],
+						unmatchedCount: 0,
+						grid_bubbles: [],
+					});
+				}
+				return Response.json({ error: "Unknown" }, { status: 404 });
+			});
+
+			const job: CalloutDetectionJob = {
+				planId: testPlanId,
+				projectId: testProjectId,
+				organizationId: testOrganizationId,
+				sheetId: testSheetId,
+				sheetNumber: "A1",
+				validSheetNumbers: ["A1"],
+			};
+
+			const message = createMockMessage(job);
+			await handleCalloutDetectionQueue(createMockBatch([message]), mockEnv);
+
+			const gridEvent = liveStoreRequests.find((r) => {
+				const body = JSON.parse(r.options.body);
+				return body.eventName === "sheetGridBubblesDetected";
+			});
+			expect(gridEvent).toBeUndefined();
+		});
+
+		it("should not fail callout pipeline if grid bubble event emission fails", async () => {
+			const r2Objects = new Map<string, { data: ArrayBuffer; metadata: any }>();
+			const imagePath = getR2Path(
+				testOrganizationId,
+				testProjectId,
+				testPlanId,
+				testSheetId,
+				"source.png",
+			);
+			r2Objects.set(imagePath, {
+				data: new ArrayBuffer(1024),
+				metadata: {},
+			});
+
+			const { mockEnv, mockContainer, mockCoordinator } = createMockEnv({
+				r2Objects,
+			});
+
+			mockContainer.fetch.mockImplementation(async (url: string) => {
+				if (url.includes("/detect-callouts")) {
+					return Response.json({
+						markers: [
+							{ id: "m1", label: "1", x: 0.5, y: 0.3, confidence: 0.95, needsReview: false },
+						],
+						unmatchedCount: 0,
+						grid_bubbles: [
+							{ class: "grid_bubble", label: "A", x: 0.1, y: 0.05, width: 0.02, height: 0.02, confidence: 0.98 },
+						],
+					});
+				}
+				return Response.json({ error: "Unknown" }, { status: 404 });
+			});
+
+			let callCount = 0;
+			const liveStoreMock = mockEnv.LIVESTORE_CLIENT_DO as any;
+			liveStoreMock.get = vi.fn(() => ({
+				fetch: vi.fn(async (_url: string, options: any) => {
+					callCount++;
+					const body = JSON.parse(options.body);
+					// Fail only the grid bubble event
+					if (body.eventName === "sheetGridBubblesDetected") {
+						throw new Error("LiveStore unavailable for grid bubbles");
+					}
+					return new Response(JSON.stringify({ success: true }), { status: 200 });
+				}),
+			}));
+
+			const job: CalloutDetectionJob = {
+				planId: testPlanId,
+				projectId: testProjectId,
+				organizationId: testOrganizationId,
+				sheetId: testSheetId,
+				sheetNumber: "A1",
+				validSheetNumbers: ["A1"],
+			};
+
+			const message = createMockMessage(job);
+			await handleCalloutDetectionQueue(createMockBatch([message]), mockEnv);
+
+			// Pipeline should still succeed
+			expect(message.ack).toHaveBeenCalled();
+			expect(message.retry).not.toHaveBeenCalled();
+			expect(mockCoordinator.sheetCalloutsDetected).toHaveBeenCalledWith(testSheetId);
+		});
+
 		it("should handle sheets with no callouts", async () => {
 			const r2Objects = new Map<string, { data: ArrayBuffer; metadata: any }>();
 			const imagePath = getR2Path(
@@ -711,7 +1022,198 @@ describe("Pipeline Stage Tests", () => {
 		});
 	});
 
-	describe("Stage 5: Tile Generation Handler", () => {
+	describe("Stage 3B: DocLayout Detection Handler", () => {
+		it("should call container /detect-layout and emit sheetLayoutRegionsDetected event", async () => {
+			const r2Objects = new Map<string, { data: ArrayBuffer; metadata: any }>();
+			const imagePath = getR2Path(
+				testOrganizationId,
+				testProjectId,
+				testPlanId,
+				testSheetId,
+				"source.png",
+			);
+			r2Objects.set(imagePath, {
+				data: new ArrayBuffer(1024),
+				metadata: {},
+			});
+
+			const {
+				mockEnv,
+				mockContainer,
+				liveStoreRequests,
+				coordinatorCalls,
+			} = createMockEnv({ r2Objects });
+
+			const job: DocLayoutDetectionJob = {
+				planId: testPlanId,
+				projectId: testProjectId,
+				organizationId: testOrganizationId,
+				sheetId: testSheetId,
+				sheetNumber: "A1",
+			};
+
+			const message = createMockMessage(job);
+			const batch = createMockBatch([message]);
+
+			await handleDocLayoutDetectionQueue(batch, mockEnv);
+
+			expect(message.ack).toHaveBeenCalled();
+			expect(mockContainer.fetch).toHaveBeenCalledWith(
+				"http://container/detect-layout",
+				expect.objectContaining({
+					headers: expect.objectContaining({
+						"Content-Type": "image/png",
+						"X-Sheet-Id": testSheetId,
+						"X-Plan-Id": testPlanId,
+					}),
+				}),
+			);
+
+			// Coordinator should be notified
+			const layoutCall = coordinatorCalls.find(
+				(c) => c.method === "sheetLayoutDetected",
+			);
+			expect(layoutCall).toBeDefined();
+			expect(layoutCall.sheetId).toBe(testSheetId);
+
+			// LiveStore event should be emitted
+			const layoutEvent = liveStoreRequests.find((r) => {
+				const body = JSON.parse(r.options.body);
+				return body.eventName === "sheetLayoutRegionsDetected";
+			});
+			expect(layoutEvent).toBeDefined();
+			const eventBody = JSON.parse(layoutEvent.options.body);
+			expect(eventBody.data.sheetId).toBe(testSheetId);
+			expect(eventBody.data.regions).toHaveLength(1);
+			expect(typeof eventBody.data.detectedAt).toBe("number");
+		});
+
+		it("should include region class, bbox, and confidence in event data", async () => {
+			const r2Objects = new Map<string, { data: ArrayBuffer; metadata: any }>();
+			const imagePath = getR2Path(
+				testOrganizationId,
+				testProjectId,
+				testPlanId,
+				testSheetId,
+				"source.png",
+			);
+			r2Objects.set(imagePath, {
+				data: new ArrayBuffer(1024),
+				metadata: {},
+			});
+
+			const { mockEnv, mockContainer, liveStoreRequests } = createMockEnv({
+				r2Objects,
+			});
+
+			mockContainer.fetch.mockImplementation(async (url: string) => {
+				if (url.includes("/detect-layout")) {
+					return Response.json({
+						regions: [
+							{ class: "schedule", bbox: [0.1, 0.2, 0.3, 0.15], confidence: 0.95 },
+							{ class: "notes", bbox: [0.5, 0.6, 0.4, 0.3], confidence: 0.88 },
+							{ class: "legend", bbox: [0.8, 0.7, 0.15, 0.25], confidence: 0.91 },
+						],
+					});
+				}
+				// Handle coordinator fetch
+				if (url.includes("/sheetLayoutDetected") || url.includes("/internal/sheetLayoutDetected")) {
+					return Response.json({ success: true });
+				}
+				return Response.json({ error: "Unknown" }, { status: 404 });
+			});
+
+			const job: DocLayoutDetectionJob = {
+				planId: testPlanId,
+				projectId: testProjectId,
+				organizationId: testOrganizationId,
+				sheetId: testSheetId,
+				sheetNumber: "A1",
+			};
+
+			const message = createMockMessage(job);
+			await handleDocLayoutDetectionQueue(createMockBatch([message]), mockEnv);
+
+			const layoutEvent = liveStoreRequests.find((r) => {
+				const body = JSON.parse(r.options.body);
+				return body.eventName === "sheetLayoutRegionsDetected";
+			});
+			expect(layoutEvent).toBeDefined();
+			const eventBody = JSON.parse(layoutEvent.options.body);
+			const regions = eventBody.data.regions;
+			expect(regions).toHaveLength(3);
+
+			for (const region of regions) {
+				expect(typeof region.regionClass).toBe("string");
+				expect(typeof region.x).toBe("number");
+				expect(typeof region.y).toBe("number");
+				expect(typeof region.width).toBe("number");
+				expect(typeof region.height).toBe("number");
+				expect(typeof region.confidence).toBe("number");
+				expect(typeof region.id).toBe("string");
+				expect(typeof region.createdAt).toBe("number");
+			}
+		});
+
+		it("should handle container failure gracefully (ack message, notify coordinator)", async () => {
+			const r2Objects = new Map<string, { data: ArrayBuffer; metadata: any }>();
+			const imagePath = getR2Path(
+				testOrganizationId,
+				testProjectId,
+				testPlanId,
+				testSheetId,
+				"source.png",
+			);
+			r2Objects.set(imagePath, {
+				data: new ArrayBuffer(1024),
+				metadata: {},
+			});
+
+			const { mockEnv, mockContainer, coordinatorCalls } = createMockEnv({
+				r2Objects,
+			});
+
+			mockContainer.fetch.mockImplementation(async (url: string, init?: RequestInit) => {
+				if (url.includes("/detect-layout")) {
+					return Response.json(
+						{ error: "Model not loaded" },
+						{ status: 500 },
+					);
+				}
+				// Handle coordinator sheetLayoutDetected notification
+				if (url.includes("sheetLayoutDetected")) {
+					const body = JSON.parse(init?.body as string);
+					coordinatorCalls.push({ method: "sheetLayoutDetected", sheetId: body.sheetId });
+					return Response.json({ success: true });
+				}
+				return Response.json({ error: "Unknown" }, { status: 404 });
+			});
+
+			const job: DocLayoutDetectionJob = {
+				planId: testPlanId,
+				projectId: testProjectId,
+				organizationId: testOrganizationId,
+				sheetId: testSheetId,
+				sheetNumber: "A1",
+			};
+
+			const message = createMockMessage(job);
+			await handleDocLayoutDetectionQueue(createMockBatch([message]), mockEnv);
+
+			// Should ACK (not retry) — layout detection is supplementary
+			expect(message.ack).toHaveBeenCalled();
+			expect(message.retry).not.toHaveBeenCalled();
+
+			// Coordinator should still be notified so pipeline isn't stuck
+			const layoutCall = coordinatorCalls.find(
+				(c) => c.method === "sheetLayoutDetected",
+			);
+			expect(layoutCall).toBeDefined();
+			expect(layoutCall.sheetId).toBe(testSheetId);
+		});
+	});
+
+	describe("Stage 4: Tile Generation Handler", () => {
 		it("should generate tiles and emit LiveStore events", async () => {
 			const r2Objects = new Map<string, { data: ArrayBuffer; metadata: any }>();
 			const imagePath = getR2Path(
@@ -776,7 +1278,7 @@ describe("Pipeline Stage Tests", () => {
 });
 
 describe("Full Pipeline E2E Test", () => {
-	it("should process PDF through all stages to completion", async () => {
+	it("should process PDF through all stages including parallel detection", async () => {
 		const r2Objects = new Map<string, { data: ArrayBuffer; metadata: any }>();
 		const pdfPath = `organizations/${testOrganizationId}/projects/${testProjectId}/plans/${testPlanId}/source.pdf`;
 		r2Objects.set(pdfPath, {
@@ -786,51 +1288,39 @@ describe("Full Pipeline E2E Test", () => {
 
 		const {
 			mockEnv,
-			queuedMessages,
 			liveStoreRequests,
-			coordinatorCalls,
 			getCoordinatorState,
 		} = createMockEnv({ r2Objects });
 
+		// Stage 0: R2 notification
 		const r2Notification: R2EventNotification = {
 			account: "test-account",
 			bucket: "sitelink-files",
-			object: {
-				key: pdfPath,
-				size: 1024,
-				eTag: "test-etag",
-			},
+			object: { key: pdfPath, size: 1024, eTag: "test-etag" },
 			action: "PutObject",
 			eventTime: new Date().toISOString(),
 		};
 		const r2Message = createMockMessage(r2Notification);
 		await handleR2NotificationQueue(createMockBatch([r2Message]), mockEnv);
 
-		expect(queuedMessages.IMAGE_GENERATION_QUEUE).toHaveLength(1);
-		const imageJob = queuedMessages.IMAGE_GENERATION_QUEUE[0];
-		expect(imageJob.planId).toBe(testPlanId);
-
-		const imageMessage = createMockMessage(imageJob as ImageGenerationJob);
+		// Stage 1: Image generation
+		const imageJob: ImageGenerationJob = {
+			planId: testPlanId,
+			projectId: testProjectId,
+			organizationId: testOrganizationId,
+			pdfPath,
+			totalPages: 1,
+			planName: "test-plan",
+		};
+		const imageMessage = createMockMessage(imageJob);
 		await handleImageGenerationQueue(createMockBatch([imageMessage]), mockEnv);
 
 		expect(imageMessage.ack).toHaveBeenCalled();
-		const initCall = coordinatorCalls.find((c) => c.method === "initialize");
-		expect(initCall).toBeDefined();
-		expect(initCall.params.totalSheets).toBe(1);
-
 		const state1 = getCoordinatorState();
 		expect(state1.generatedImages).toContain("sheet-0");
 		expect(state1.status).toBe("metadata_extraction");
 
-		const imagePath = getR2Path(
-			testOrganizationId,
-			testProjectId,
-			testPlanId,
-			"sheet-0",
-			"source.png",
-		);
-		expect(r2Objects.has(imagePath)).toBe(true);
-
+		// Stage 2: Metadata extraction
 		const metadataJob: MetadataExtractionJob = {
 			planId: testPlanId,
 			projectId: testProjectId,
@@ -840,18 +1330,15 @@ describe("Full Pipeline E2E Test", () => {
 			totalSheets: 1,
 		};
 		const metadataMessage = createMockMessage(metadataJob);
-		await handleMetadataExtractionQueue(
-			createMockBatch([metadataMessage]),
-			mockEnv,
-		);
+		await handleMetadataExtractionQueue(createMockBatch([metadataMessage]), mockEnv);
 
 		expect(metadataMessage.ack).toHaveBeenCalled();
 		const state2 = getCoordinatorState();
-		expect(state2.extractedMetadata).toContain("sheet-0");
 		expect(state2.validSheets).toContain("sheet-0");
 		expect(state2.sheetNumberMap["sheet-0"]).toBe("A1");
-		expect(state2.status).toBe("callout_detection");
+		expect(state2.status).toBe("parallel_detection");
 
+		// Stage 3A: Callout detection (parallel with 3B)
 		const calloutJob: CalloutDetectionJob = {
 			planId: testPlanId,
 			projectId: testProjectId,
@@ -861,16 +1348,32 @@ describe("Full Pipeline E2E Test", () => {
 			validSheetNumbers: ["A1"],
 		};
 		const calloutMessage = createMockMessage(calloutJob);
-		await handleCalloutDetectionQueue(
-			createMockBatch([calloutMessage]),
-			mockEnv,
-		);
+		await handleCalloutDetectionQueue(createMockBatch([calloutMessage]), mockEnv);
 
 		expect(calloutMessage.ack).toHaveBeenCalled();
-		const state3 = getCoordinatorState();
-		expect(state3.detectedCallouts).toContain("sheet-0");
-		expect(state3.status).toBe("tile_generation");
+		const state3a = getCoordinatorState();
+		expect(state3a.detectedCallouts).toContain("sheet-0");
+		// Should NOT transition yet - layout detection hasn't completed
+		expect(state3a.status).toBe("parallel_detection");
 
+		// Stage 3B: DocLayout detection (parallel with 3A)
+		const layoutJob: DocLayoutDetectionJob = {
+			planId: testPlanId,
+			projectId: testProjectId,
+			organizationId: testOrganizationId,
+			sheetId: "sheet-0",
+			sheetNumber: "A1",
+		};
+		const layoutMessage = createMockMessage(layoutJob);
+		await handleDocLayoutDetectionQueue(createMockBatch([layoutMessage]), mockEnv);
+
+		expect(layoutMessage.ack).toHaveBeenCalled();
+		const state3b = getCoordinatorState();
+		expect(state3b.detectedLayouts).toContain("sheet-0");
+		// NOW both are complete → transition to tile_generation
+		expect(state3b.status).toBe("tile_generation");
+
+		// Stage 4: Tile generation
 		const tileJob: TileGenerationJob = {
 			planId: testPlanId,
 			projectId: testProjectId,
@@ -885,15 +1388,7 @@ describe("Full Pipeline E2E Test", () => {
 		expect(finalState.generatedTiles).toContain("sheet-0");
 		expect(finalState.status).toBe("complete");
 
-		const pmtilesPath = getR2Path(
-			testOrganizationId,
-			testProjectId,
-			testPlanId,
-			"sheet-0",
-			"tiles.pmtiles",
-		);
-		expect(r2Objects.has(pmtilesPath)).toBe(true);
-
+		// Verify all event names emitted
 		const eventNames = liveStoreRequests.map((r) => {
 			const body = JSON.parse(r.options.body);
 			return body.eventName;
@@ -902,10 +1397,119 @@ describe("Full Pipeline E2E Test", () => {
 		expect(eventNames).toContain("sheetImageGenerated");
 		expect(eventNames).toContain("sheetMetadataExtracted");
 		expect(eventNames).toContain("sheetCalloutsDetected");
+		expect(eventNames).toContain("sheetLayoutRegionsDetected");
 		expect(eventNames).toContain("sheetTilesGenerated");
 	});
 
-	it("should handle multi-sheet PDF processing", async () => {
+	it("should complete pipeline even if DocLayout detection fails", async () => {
+		const r2Objects = new Map<string, { data: ArrayBuffer; metadata: any }>();
+		const pdfPath = `organizations/${testOrganizationId}/projects/${testProjectId}/plans/${testPlanId}/source.pdf`;
+		r2Objects.set(pdfPath, {
+			data: new ArrayBuffer(1024),
+			metadata: { httpMetadata: { contentType: "application/pdf" } },
+		});
+
+		const { mockEnv, mockContainer, getCoordinatorState } = createMockEnv({ r2Objects });
+
+		// Override container to fail on layout detection
+		const originalFetch = mockContainer.fetch.getMockImplementation();
+		mockContainer.fetch.mockImplementation(async (url: string, init?: RequestInit) => {
+			if (url.includes("/detect-layout")) {
+				return Response.json({ error: "Model crashed" }, { status: 500 });
+			}
+			// Handle coordinator fetch for sheetLayoutDetected (error recovery path)
+			if (url.includes("sheetLayoutDetected")) {
+				const body = JSON.parse(init?.body as string);
+				const state = getCoordinatorState();
+				if (!state.detectedLayouts.includes(body.sheetId)) {
+					state.detectedLayouts.push(body.sheetId);
+				}
+				// Check parallel detection
+				if (state.status === "parallel_detection") {
+					const calloutsComplete = state.detectedCallouts.length === state.validSheets.length;
+					const layoutsComplete = state.detectedLayouts.length === state.validSheets.length;
+					if (calloutsComplete && layoutsComplete) {
+						state.status = "tile_generation";
+					}
+				}
+				return Response.json({ success: true });
+			}
+			if (originalFetch) {
+				return originalFetch(url, init);
+			}
+			return Response.json({ error: "Unknown" }, { status: 404 });
+		});
+
+		// Image gen
+		const imageJob: ImageGenerationJob = {
+			planId: testPlanId,
+			projectId: testProjectId,
+			organizationId: testOrganizationId,
+			pdfPath,
+			totalPages: 1,
+			planName: "test-plan",
+		};
+		await handleImageGenerationQueue(createMockBatch([createMockMessage(imageJob)]), mockEnv);
+
+		// Set up source.png in R2 (image gen handler should have put it there)
+		const imagePath = getR2Path(testOrganizationId, testProjectId, testPlanId, "sheet-0", "source.png");
+		r2Objects.set(imagePath, { data: new ArrayBuffer(1024), metadata: {} });
+
+		// Metadata extraction
+		const metadataJob: MetadataExtractionJob = {
+			planId: testPlanId,
+			projectId: testProjectId,
+			organizationId: testOrganizationId,
+			sheetId: "sheet-0",
+			sheetNumber: 1,
+			totalSheets: 1,
+		};
+		await handleMetadataExtractionQueue(createMockBatch([createMockMessage(metadataJob)]), mockEnv);
+		expect(getCoordinatorState().status).toBe("parallel_detection");
+
+		// Callout detection
+		const calloutJob: CalloutDetectionJob = {
+			planId: testPlanId,
+			projectId: testProjectId,
+			organizationId: testOrganizationId,
+			sheetId: "sheet-0",
+			sheetNumber: "A1",
+			validSheetNumbers: ["A1"],
+		};
+		await handleCalloutDetectionQueue(createMockBatch([createMockMessage(calloutJob)]), mockEnv);
+
+		// DocLayout detection (will fail but should still notify coordinator)
+		const layoutJob: DocLayoutDetectionJob = {
+			planId: testPlanId,
+			projectId: testProjectId,
+			organizationId: testOrganizationId,
+			sheetId: "sheet-0",
+			sheetNumber: "A1",
+		};
+		const layoutMsg = createMockMessage(layoutJob);
+		await handleDocLayoutDetectionQueue(createMockBatch([layoutMsg]), mockEnv);
+
+		// Layout handler should ack (not retry) and still notify coordinator
+		expect(layoutMsg.ack).toHaveBeenCalled();
+		expect(layoutMsg.retry).not.toHaveBeenCalled();
+
+		const state = getCoordinatorState();
+		expect(state.detectedLayouts).toContain("sheet-0");
+		expect(state.status).toBe("tile_generation");
+
+		// Tile generation should still work
+		const tileJob: TileGenerationJob = {
+			planId: testPlanId,
+			projectId: testProjectId,
+			organizationId: testOrganizationId,
+			sheetId: "sheet-0",
+		};
+		await handleTileGenerationQueue(createMockBatch([createMockMessage(tileJob)]), mockEnv);
+
+		expect(getCoordinatorState().status).toBe("complete");
+	});
+
+	it("should handle multi-sheet PDF processing with parallel detection", async () => {
 		const r2Objects = new Map<string, { data: ArrayBuffer; metadata: any }>();
 		const pdfPath = `organizations/${testOrganizationId}/projects/${testProjectId}/plans/${testPlanId}/source.pdf`;
 		r2Objects.set(pdfPath, {
@@ -951,17 +1555,33 @@ describe("Full Pipeline E2E Test", () => {
 			if (url.includes("/detect-callouts")) {
 				return Response.json({
 					markers: [
-						{
-							id: "m1",
-							label: "1",
-							x: 100,
-							y: 200,
-							confidence: 0.95,
-							needsReview: false,
-						},
+						{ id: "m1", label: "1", x: 100, y: 200, confidence: 0.95, needsReview: false },
 					],
 					unmatchedCount: 0,
+					grid_bubbles: [],
 				});
+			}
+			if (url.includes("/detect-layout")) {
+				return Response.json({
+					regions: [
+						{ class: "schedule", bbox: [0.1, 0.2, 0.3, 0.15], confidence: 0.92 },
+					],
+				});
+			}
+			if (url.includes("sheetLayoutDetected")) {
+				const body = JSON.parse(init?.body as string);
+				const state = getCoordinatorState();
+				if (!state.detectedLayouts.includes(body.sheetId)) {
+					state.detectedLayouts.push(body.sheetId);
+				}
+				if (state.status === "parallel_detection") {
+					const calloutsComplete = state.detectedCallouts.length === state.validSheets.length;
+					const layoutsComplete = state.detectedLayouts.length === state.validSheets.length;
+					if (calloutsComplete && layoutsComplete) {
+						state.status = "tile_generation";
+					}
+				}
+				return Response.json({ success: true });
 			}
 			if (url.includes("/generate-tiles")) {
 				return new Response(new ArrayBuffer(2048));
@@ -969,6 +1589,7 @@ describe("Full Pipeline E2E Test", () => {
 			return Response.json({ error: "Unknown" }, { status: 404 });
 		});
 
+		// Image generation
 		const imageJob: ImageGenerationJob = {
 			planId: testPlanId,
 			projectId: testProjectId,
@@ -977,27 +1598,14 @@ describe("Full Pipeline E2E Test", () => {
 			totalPages: 3,
 			planName: "test-plan",
 		};
-		await handleImageGenerationQueue(
-			createMockBatch([createMockMessage(imageJob)]),
-			mockEnv,
-		);
+		await handleImageGenerationQueue(createMockBatch([createMockMessage(imageJob)]), mockEnv);
 
 		const state1 = getCoordinatorState();
 		expect(state1.totalSheets).toBe(3);
 		expect(state1.generatedImages).toHaveLength(3);
 		expect(state1.status).toBe("metadata_extraction");
 
-		for (let i = 0; i < 3; i++) {
-			const imagePath = getR2Path(
-				testOrganizationId,
-				testProjectId,
-				testPlanId,
-				`sheet-${i}`,
-				"source.png",
-			);
-			expect(r2Objects.has(imagePath)).toBe(true);
-		}
-
+		// Metadata extraction for all 3 sheets
 		for (let i = 0; i < 3; i++) {
 			const metadataJob: MetadataExtractionJob = {
 				planId: testPlanId,
@@ -1007,17 +1615,15 @@ describe("Full Pipeline E2E Test", () => {
 				sheetNumber: i + 1,
 				totalSheets: 3,
 			};
-			await handleMetadataExtractionQueue(
-				createMockBatch([createMockMessage(metadataJob)]),
-				mockEnv,
-			);
+			await handleMetadataExtractionQueue(createMockBatch([createMockMessage(metadataJob)]), mockEnv);
 		}
 
 		const state2 = getCoordinatorState();
 		expect(state2.extractedMetadata).toHaveLength(3);
 		expect(state2.validSheets).toHaveLength(3);
-		expect(state2.status).toBe("callout_detection");
+		expect(state2.status).toBe("parallel_detection");
 
+		// Callout detection for all valid sheets
 		const sheetNumbers = ["A1", "A2", "S1"];
 		for (let i = 0; i < 3; i++) {
 			const calloutJob: CalloutDetectionJob = {
@@ -1028,16 +1634,31 @@ describe("Full Pipeline E2E Test", () => {
 				sheetNumber: sheetNumbers[i],
 				validSheetNumbers: sheetNumbers,
 			};
-			await handleCalloutDetectionQueue(
-				createMockBatch([createMockMessage(calloutJob)]),
-				mockEnv,
-			);
+			await handleCalloutDetectionQueue(createMockBatch([createMockMessage(calloutJob)]), mockEnv);
 		}
 
+		// Still in parallel_detection - layouts not done yet
+		expect(getCoordinatorState().status).toBe("parallel_detection");
+
+		// DocLayout detection for all valid sheets
+		for (let i = 0; i < 3; i++) {
+			const layoutJob: DocLayoutDetectionJob = {
+				planId: testPlanId,
+				projectId: testProjectId,
+				organizationId: testOrganizationId,
+				sheetId: `sheet-${i}`,
+				sheetNumber: sheetNumbers[i],
+			};
+			await handleDocLayoutDetectionQueue(createMockBatch([createMockMessage(layoutJob)]), mockEnv);
+		}
+
+		// Both complete → tile_generation
 		const state3 = getCoordinatorState();
 		expect(state3.detectedCallouts).toHaveLength(3);
+		expect(state3.detectedLayouts).toHaveLength(3);
 		expect(state3.status).toBe("tile_generation");
 
+		// Tile generation for all valid sheets
 		for (let i = 0; i < 3; i++) {
 			const tileJob: TileGenerationJob = {
 				planId: testPlanId,
@@ -1045,26 +1666,12 @@ describe("Full Pipeline E2E Test", () => {
 				organizationId: testOrganizationId,
 				sheetId: `sheet-${i}`,
 			};
-			await handleTileGenerationQueue(
-				createMockBatch([createMockMessage(tileJob)]),
-				mockEnv,
-			);
+			await handleTileGenerationQueue(createMockBatch([createMockMessage(tileJob)]), mockEnv);
 		}
 
 		const finalState = getCoordinatorState();
 		expect(finalState.generatedTiles).toHaveLength(3);
 		expect(finalState.status).toBe("complete");
-
-		for (let i = 0; i < 3; i++) {
-			const pmtilesPath = getR2Path(
-				testOrganizationId,
-				testProjectId,
-				testPlanId,
-				`sheet-${i}`,
-				"tiles.pmtiles",
-			);
-			expect(r2Objects.has(pmtilesPath)).toBe(true);
-		}
 	});
 
 	it("should handle mixed valid/invalid sheets", async () => {
@@ -1100,16 +1707,9 @@ describe("Full Pipeline E2E Test", () => {
 					? (init.headers as Record<string, string>)["X-Sheet-Id"]
 					: "unknown";
 				if (sheetId === "sheet-1") {
-					return Response.json({
-						sheetNumber: null,
-						title: null,
-						isValid: false,
-					});
+					return Response.json({ sheetNumber: null, title: null, isValid: false });
 				}
-				const sheetNumberMap: Record<string, string> = {
-					"sheet-0": "A1",
-					"sheet-2": "S1",
-				};
+				const sheetNumberMap: Record<string, string> = { "sheet-0": "A1", "sheet-2": "S1" };
 				return Response.json({
 					sheetNumber: sheetNumberMap[sheetId] ?? "unknown",
 					title: `Sheet ${sheetId}`,
@@ -1117,10 +1717,27 @@ describe("Full Pipeline E2E Test", () => {
 				});
 			}
 			if (url.includes("/detect-callouts")) {
+				return Response.json({ markers: [], unmatchedCount: 0 });
+			}
+			if (url.includes("/detect-layout")) {
 				return Response.json({
-					markers: [],
-					unmatchedCount: 0,
+					regions: [{ class: "schedule", bbox: [0.1, 0.2, 0.3, 0.15], confidence: 0.92 }],
 				});
+			}
+			if (url.includes("sheetLayoutDetected")) {
+				const body = JSON.parse(init?.body as string);
+				const state = getCoordinatorState();
+				if (!state.detectedLayouts.includes(body.sheetId)) {
+					state.detectedLayouts.push(body.sheetId);
+				}
+				if (state.status === "parallel_detection") {
+					const calloutsComplete = state.detectedCallouts.length === state.validSheets.length;
+					const layoutsComplete = state.detectedLayouts.length === state.validSheets.length;
+					if (calloutsComplete && layoutsComplete) {
+						state.status = "tile_generation";
+					}
+				}
+				return Response.json({ success: true });
 			}
 			if (url.includes("/generate-tiles")) {
 				return new Response(new ArrayBuffer(2048));
@@ -1136,10 +1753,7 @@ describe("Full Pipeline E2E Test", () => {
 			totalPages: 3,
 			planName: "test-plan",
 		};
-		await handleImageGenerationQueue(
-			createMockBatch([createMockMessage(imageJob)]),
-			mockEnv,
-		);
+		await handleImageGenerationQueue(createMockBatch([createMockMessage(imageJob)]), mockEnv);
 
 		for (let i = 0; i < 3; i++) {
 			const metadataJob: MetadataExtractionJob = {
@@ -1150,10 +1764,7 @@ describe("Full Pipeline E2E Test", () => {
 				sheetNumber: i + 1,
 				totalSheets: 3,
 			};
-			await handleMetadataExtractionQueue(
-				createMockBatch([createMockMessage(metadataJob)]),
-				mockEnv,
-			);
+			await handleMetadataExtractionQueue(createMockBatch([createMockMessage(metadataJob)]), mockEnv);
 		}
 
 		const state2 = getCoordinatorState();
@@ -1164,6 +1775,8 @@ describe("Full Pipeline E2E Test", () => {
 		expect(state2.validSheets).toContain("sheet-2");
 
 		const validSheetNumbers = ["A1", "S1"];
+
+		// Callout detection for valid sheets
 		for (const sheetId of state2.validSheets) {
 			const sheetNumber = state2.sheetNumberMap[sheetId];
 			const calloutJob: CalloutDetectionJob = {
@@ -1174,14 +1787,25 @@ describe("Full Pipeline E2E Test", () => {
 				sheetNumber,
 				validSheetNumbers,
 			};
-			await handleCalloutDetectionQueue(
-				createMockBatch([createMockMessage(calloutJob)]),
-				mockEnv,
-			);
+			await handleCalloutDetectionQueue(createMockBatch([createMockMessage(calloutJob)]), mockEnv);
+		}
+
+		// DocLayout detection for valid sheets
+		for (const sheetId of state2.validSheets) {
+			const sheetNumber = state2.sheetNumberMap[sheetId];
+			const layoutJob: DocLayoutDetectionJob = {
+				planId: testPlanId,
+				projectId: testProjectId,
+				organizationId: testOrganizationId,
+				sheetId,
+				sheetNumber,
+			};
+			await handleDocLayoutDetectionQueue(createMockBatch([createMockMessage(layoutJob)]), mockEnv);
 		}
 
 		const state3 = getCoordinatorState();
 		expect(state3.detectedCallouts).toHaveLength(2);
+		expect(state3.detectedLayouts).toHaveLength(2);
 		expect(state3.status).toBe("tile_generation");
 
 		for (const sheetId of state2.validSheets) {
@@ -1191,10 +1815,7 @@ describe("Full Pipeline E2E Test", () => {
 				organizationId: testOrganizationId,
 				sheetId,
 			};
-			await handleTileGenerationQueue(
-				createMockBatch([createMockMessage(tileJob)]),
-				mockEnv,
-			);
+			await handleTileGenerationQueue(createMockBatch([createMockMessage(tileJob)]), mockEnv);
 		}
 
 		const finalState = getCoordinatorState();

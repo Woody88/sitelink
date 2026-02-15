@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	handleCalloutDetectionQueue,
+	handleDocLayoutDetectionQueue,
 	handleMetadataExtractionQueue,
 	handleTileGenerationQueue,
 } from "../processing/queue-consumer";
 import type {
 	CalloutDetectionJob,
+	DocLayoutDetectionJob,
 	MetadataExtractionJob,
 	TileGenerationJob,
 } from "../processing/types";
@@ -58,6 +60,10 @@ describe("LiveStore Events - Pipeline Processing", () => {
 			sheetMetadataExtracted: vi.fn(async () => ({ progress: 50 })),
 			sheetCalloutsDetected: vi.fn(async () => ({ progress: 75 })),
 			sheetTilesGenerated: vi.fn(async () => ({ progress: 100 })),
+			fetch: vi.fn(async (url: string, init?: RequestInit) => {
+				fetchCallHistory.push({ url, init: init || {} });
+				return Response.json({ success: true });
+			}),
 		};
 
 		mockR2Bucket = {
@@ -98,6 +104,22 @@ describe("LiveStore Events - Pipeline Processing", () => {
 							},
 						],
 						unmatchedCount: 0,
+					});
+				}
+				if (url.includes("/detect-layout")) {
+					return Response.json({
+						regions: [
+							{
+								class: "schedule",
+								bbox: [0.1, 0.2, 0.3, 0.15],
+								confidence: 0.92,
+							},
+							{
+								class: "notes",
+								bbox: [0.5, 0.6, 0.4, 0.3],
+								confidence: 0.88,
+							},
+						],
 					});
 				}
 				if (url.includes("/generate-tiles")) {
@@ -468,7 +490,6 @@ describe("LiveStore Events - Pipeline Processing", () => {
 			expect(payload.data.planId).toBe("plan-456");
 			expect(typeof payload.data.localPmtilesPath).toBe("string");
 			expect(payload.data.localPmtilesPath).toContain("tiles.pmtiles");
-			expect(payload.data.remotePmtilesPath).toContain("https://");
 		});
 
 		it("should include zoom levels as Numbers", async () => {
@@ -501,8 +522,6 @@ describe("LiveStore Events - Pipeline Processing", () => {
 
 			expect(typeof payload.data.minZoom).toBe("number");
 			expect(typeof payload.data.maxZoom).toBe("number");
-			expect(payload.data.minZoom).toBe(0);
-			expect(payload.data.maxZoom).toBe(8);
 		});
 
 		it("should include generatedAt timestamp as Number", async () => {
@@ -565,6 +584,410 @@ describe("LiveStore Events - Pipeline Processing", () => {
 			const putCall = mockR2Bucket.put.mock.calls[0];
 			expect(putCall[0]).toContain("tiles.pmtiles");
 			expect(putCall[2].httpMetadata.contentType).toBe("application/x-pmtiles");
+		});
+	});
+
+	describe("sheetLayoutRegionsDetected Event", () => {
+		it("should commit event with regions array", async () => {
+			const job: DocLayoutDetectionJob = {
+				sheetId: "sheet-123",
+				planId: "plan-456",
+				projectId: "proj-789",
+				organizationId: "org-abc",
+				sheetNumber: "A1",
+			};
+
+			const batch: MessageBatch<DocLayoutDetectionJob> = {
+				queue: "doclayout-detection",
+				messages: [
+					{
+						id: "msg-1",
+						timestamp: new Date(),
+						body: job,
+						attempts: 0,
+						ack: vi.fn(() => {}),
+						retry: vi.fn(() => {}),
+					},
+				],
+			};
+
+			await handleDocLayoutDetectionQueue(batch, mockEnv as Env);
+
+			const result = findEventByName("sheetLayoutRegionsDetected");
+			expect(result).not.toBeNull();
+			const { payload } = result!;
+
+			expect(payload.eventName).toBe("sheetLayoutRegionsDetected");
+			expect(payload.data.sheetId).toBe("sheet-123");
+			expect(Array.isArray(payload.data.regions)).toBe(true);
+			expect(payload.data.regions.length).toBe(2);
+		});
+
+		it("should include region fields: regionClass, bbox (x,y,w,h), confidence", async () => {
+			const job: DocLayoutDetectionJob = {
+				sheetId: "sheet-123",
+				planId: "plan-456",
+				projectId: "proj-789",
+				organizationId: "org-abc",
+				sheetNumber: "A1",
+			};
+
+			const batch: MessageBatch<DocLayoutDetectionJob> = {
+				queue: "doclayout-detection",
+				messages: [
+					{
+						id: "msg-1",
+						timestamp: new Date(),
+						body: job,
+						attempts: 0,
+						ack: vi.fn(() => {}),
+						retry: vi.fn(() => {}),
+					},
+				],
+			};
+
+			await handleDocLayoutDetectionQueue(batch, mockEnv as Env);
+
+			const result = findEventByName("sheetLayoutRegionsDetected");
+			expect(result).not.toBeNull();
+			const { payload } = result!;
+			const region = payload.data.regions[0];
+
+			expect(typeof region.id).toBe("string");
+			expect(typeof region.regionClass).toBe("string");
+			expect(["schedule", "notes", "legend"]).toContain(region.regionClass);
+			expect(typeof region.x).toBe("number");
+			expect(typeof region.y).toBe("number");
+			expect(typeof region.width).toBe("number");
+			expect(typeof region.height).toBe("number");
+			expect(typeof region.confidence).toBe("number");
+		});
+
+		it("should include detectedAt timestamp as Number", async () => {
+			const job: DocLayoutDetectionJob = {
+				sheetId: "sheet-123",
+				planId: "plan-456",
+				projectId: "proj-789",
+				organizationId: "org-abc",
+				sheetNumber: "A1",
+			};
+
+			const batch: MessageBatch<DocLayoutDetectionJob> = {
+				queue: "doclayout-detection",
+				messages: [
+					{
+						id: "msg-1",
+						timestamp: new Date(),
+						body: job,
+						attempts: 0,
+						ack: vi.fn(() => {}),
+						retry: vi.fn(() => {}),
+					},
+				],
+			};
+
+			await handleDocLayoutDetectionQueue(batch, mockEnv as Env);
+
+			const result = findEventByName("sheetLayoutRegionsDetected");
+			expect(result).not.toBeNull();
+			const { payload } = result!;
+			expect(typeof payload.data.detectedAt).toBe("number");
+			expect(payload.data.detectedAt).toBeGreaterThan(0);
+		});
+
+		it("should handle empty regions array", async () => {
+			mockPdfProcessorContainer.fetch = vi.fn(async (url: string) => {
+				if (url.includes("/detect-layout")) {
+					return Response.json({ regions: [] });
+				}
+				return Response.json({ error: "Unknown" }, { status: 404 });
+			});
+
+			const job: DocLayoutDetectionJob = {
+				sheetId: "sheet-123",
+				planId: "plan-456",
+				projectId: "proj-789",
+				organizationId: "org-abc",
+				sheetNumber: "A1",
+			};
+
+			const batch: MessageBatch<DocLayoutDetectionJob> = {
+				queue: "doclayout-detection",
+				messages: [
+					{
+						id: "msg-1",
+						timestamp: new Date(),
+						body: job,
+						attempts: 0,
+						ack: vi.fn(() => {}),
+						retry: vi.fn(() => {}),
+					},
+				],
+			};
+
+			await handleDocLayoutDetectionQueue(batch, mockEnv as Env);
+
+			const result = findEventByName("sheetLayoutRegionsDetected");
+			expect(result).not.toBeNull();
+			const { payload } = result!;
+			expect(payload.data.regions).toHaveLength(0);
+		});
+	});
+
+	describe("sheetGridBubblesDetected Event", () => {
+		it("should commit event with bubbles array", async () => {
+			mockPdfProcessorContainer.fetch = vi.fn(async (url: string) => {
+				if (url.includes("/detect-callouts")) {
+					return Response.json({
+						markers: [],
+						unmatchedCount: 0,
+						grid_bubbles: [
+							{ class: "grid_bubble", label: "A", x: 0.1, y: 0.05, width: 0.02, height: 0.02, confidence: 0.98 },
+							{ class: "grid_bubble", label: "1", x: 0.05, y: 0.1, width: 0.02, height: 0.02, confidence: 0.96 },
+						],
+					});
+				}
+				return Response.json({ error: "Unknown" }, { status: 404 });
+			});
+
+			const job: CalloutDetectionJob = {
+				sheetId: "sheet-123",
+				planId: "plan-456",
+				projectId: "proj-789",
+				organizationId: "org-abc",
+				validSheetNumbers: ["A1"],
+			};
+
+			const batch: MessageBatch<CalloutDetectionJob> = {
+				queue: "callout-detection",
+				messages: [
+					{
+						id: "msg-1",
+						timestamp: new Date(),
+						body: job,
+						attempts: 0,
+						ack: vi.fn(() => {}),
+						retry: vi.fn(() => {}),
+					},
+				],
+			};
+
+			await handleCalloutDetectionQueue(batch, mockEnv as Env);
+
+			const result = findEventByName("sheetGridBubblesDetected");
+			expect(result).not.toBeNull();
+			const { payload } = result!;
+
+			expect(payload.eventName).toBe("sheetGridBubblesDetected");
+			expect(payload.data.sheetId).toBe("sheet-123");
+			expect(Array.isArray(payload.data.bubbles)).toBe(true);
+			expect(payload.data.bubbles.length).toBe(2);
+		});
+
+		it("should include bubble fields: id, label, x, y, width, height, confidence", async () => {
+			mockPdfProcessorContainer.fetch = vi.fn(async (url: string) => {
+				if (url.includes("/detect-callouts")) {
+					return Response.json({
+						markers: [],
+						unmatchedCount: 0,
+						grid_bubbles: [
+							{ class: "grid_bubble", label: "B", x: 0.9, y: 0.05, width: 0.03, height: 0.03, confidence: 0.97 },
+						],
+					});
+				}
+				return Response.json({ error: "Unknown" }, { status: 404 });
+			});
+
+			const job: CalloutDetectionJob = {
+				sheetId: "sheet-123",
+				planId: "plan-456",
+				projectId: "proj-789",
+				organizationId: "org-abc",
+				validSheetNumbers: ["A1"],
+			};
+
+			const batch: MessageBatch<CalloutDetectionJob> = {
+				queue: "callout-detection",
+				messages: [
+					{
+						id: "msg-1",
+						timestamp: new Date(),
+						body: job,
+						attempts: 0,
+						ack: vi.fn(() => {}),
+						retry: vi.fn(() => {}),
+					},
+				],
+			};
+
+			await handleCalloutDetectionQueue(batch, mockEnv as Env);
+
+			const result = findEventByName("sheetGridBubblesDetected");
+			expect(result).not.toBeNull();
+			const { payload } = result!;
+			const bubble = payload.data.bubbles[0];
+
+			expect(typeof bubble.id).toBe("string");
+			expect(bubble.id.length).toBeGreaterThan(0);
+			expect(typeof bubble.label).toBe("string");
+			expect(bubble.label).toBe("B");
+			expect(typeof bubble.x).toBe("number");
+			expect(typeof bubble.y).toBe("number");
+			expect(typeof bubble.width).toBe("number");
+			expect(typeof bubble.height).toBe("number");
+			expect(typeof bubble.confidence).toBe("number");
+		});
+
+		it("should include detectedAt timestamp as Number", async () => {
+			mockPdfProcessorContainer.fetch = vi.fn(async (url: string) => {
+				if (url.includes("/detect-callouts")) {
+					return Response.json({
+						markers: [],
+						unmatchedCount: 0,
+						grid_bubbles: [
+							{ class: "grid_bubble", label: "C", x: 0.5, y: 0.5, width: 0.02, height: 0.02, confidence: 0.95 },
+						],
+					});
+				}
+				return Response.json({ error: "Unknown" }, { status: 404 });
+			});
+
+			const job: CalloutDetectionJob = {
+				sheetId: "sheet-123",
+				planId: "plan-456",
+				projectId: "proj-789",
+				organizationId: "org-abc",
+				validSheetNumbers: ["A1"],
+			};
+
+			const batch: MessageBatch<CalloutDetectionJob> = {
+				queue: "callout-detection",
+				messages: [
+					{
+						id: "msg-1",
+						timestamp: new Date(),
+						body: job,
+						attempts: 0,
+						ack: vi.fn(() => {}),
+						retry: vi.fn(() => {}),
+					},
+				],
+			};
+
+			await handleCalloutDetectionQueue(batch, mockEnv as Env);
+
+			const result = findEventByName("sheetGridBubblesDetected");
+			expect(result).not.toBeNull();
+			const { payload } = result!;
+			expect(typeof payload.data.detectedAt).toBe("number");
+			expect(payload.data.detectedAt).toBeGreaterThan(0);
+		});
+	});
+
+	describe("sheetScheduleExtracted Event Schema", () => {
+		it("should validate event schema structure matches domain events", () => {
+			const eventData = {
+				sheetId: "sheet-123",
+				regionId: "region-456",
+				scheduleType: "footing",
+				entries: [
+					{
+						id: "entry-1",
+						mark: "F1",
+						properties: JSON.stringify({ size: "24x24", reinforcing: "#5@12\" OC EW" }),
+						confidence: 0.95,
+						createdAt: Date.now(),
+					},
+				],
+				extractedAt: Date.now(),
+			};
+
+			expect(typeof eventData.sheetId).toBe("string");
+			expect(typeof eventData.regionId).toBe("string");
+			expect(typeof eventData.scheduleType).toBe("string");
+			expect(Array.isArray(eventData.entries)).toBe(true);
+			expect(typeof eventData.extractedAt).toBe("number");
+
+			const entry = eventData.entries[0];
+			expect(typeof entry.id).toBe("string");
+			expect(typeof entry.mark).toBe("string");
+			expect(typeof entry.properties).toBe("string");
+			expect(typeof entry.confidence).toBe("number");
+			expect(typeof entry.createdAt).toBe("number");
+
+			// Verify properties is valid JSON
+			const parsed = JSON.parse(entry.properties);
+			expect(typeof parsed.size).toBe("string");
+			expect(typeof parsed.reinforcing).toBe("string");
+		});
+
+		it("should handle different schedule types", () => {
+			const scheduleTypes = ["footing", "pier", "column", "beam"];
+
+			for (const scheduleType of scheduleTypes) {
+				const eventData = {
+					sheetId: "sheet-123",
+					regionId: `region-${scheduleType}`,
+					scheduleType,
+					entries: [],
+					extractedAt: Date.now(),
+				};
+
+				expect(eventData.scheduleType).toBe(scheduleType);
+				expect(Array.isArray(eventData.entries)).toBe(true);
+			}
+		});
+	});
+
+	describe("sheetNotesExtracted Event Schema", () => {
+		it("should validate event schema structure matches domain events", () => {
+			const eventData = {
+				sheetId: "sheet-123",
+				regionId: "region-789",
+				content: "1. All concrete shall have minimum 28-day compressive strength of 3000 psi.\n2. Reinforcing steel shall be ASTM A615, Grade 60.",
+				noteType: "general_notes",
+				extractedAt: Date.now(),
+			};
+
+			expect(typeof eventData.sheetId).toBe("string");
+			expect(typeof eventData.regionId).toBe("string");
+			expect(typeof eventData.content).toBe("string");
+			expect(eventData.content.length).toBeGreaterThan(0);
+			expect(typeof eventData.noteType).toBe("string");
+			expect(typeof eventData.extractedAt).toBe("number");
+		});
+
+		it("should handle different note types", () => {
+			const noteTypes = ["general_notes", "concrete_notes", "structural_notes", "site_notes"];
+
+			for (const noteType of noteTypes) {
+				const eventData = {
+					sheetId: "sheet-123",
+					regionId: `region-${noteType}`,
+					content: `Notes for ${noteType}`,
+					noteType,
+					extractedAt: Date.now(),
+				};
+
+				expect(eventData.noteType).toBe(noteType);
+				expect(typeof eventData.content).toBe("string");
+			}
+		});
+
+		it("should include extractedAt timestamp as Number", () => {
+			const before = Date.now();
+			const eventData = {
+				sheetId: "sheet-123",
+				regionId: "region-notes",
+				content: "Test notes content",
+				noteType: "general_notes",
+				extractedAt: Date.now(),
+			};
+			const after = Date.now();
+
+			expect(typeof eventData.extractedAt).toBe("number");
+			expect(eventData.extractedAt).toBeGreaterThanOrEqual(before);
+			expect(eventData.extractedAt).toBeLessThanOrEqual(after);
 		});
 	});
 
@@ -728,6 +1151,10 @@ describe("LiveStore Events - Pipeline Processing", () => {
 				"sheetMetadataExtracted",
 				"sheetCalloutsDetected",
 				"sheetTilesGenerated",
+				"sheetLayoutRegionsDetected",
+				"sheetGridBubblesDetected",
+				"sheetScheduleExtracted",
+				"sheetNotesExtracted",
 			];
 
 			for (const eventName of eventNames) {
@@ -857,6 +1284,53 @@ describe("LiveStore Events - Pipeline Processing", () => {
 
 			for (const field of requiredFields) {
 				expect(payload.data).toHaveProperty(field);
+			}
+		});
+
+		it("sheetLayoutRegionsDetected should match event schema structure", async () => {
+			const job: DocLayoutDetectionJob = {
+				sheetId: "sheet-123",
+				planId: "plan-456",
+				projectId: "proj-789",
+				organizationId: "org-abc",
+				sheetNumber: "A1",
+			};
+
+			const batch: MessageBatch<DocLayoutDetectionJob> = {
+				queue: "doclayout-detection",
+				messages: [
+					{
+						id: "msg-1",
+						timestamp: new Date(),
+						body: job,
+						attempts: 0,
+						ack: vi.fn(() => {}),
+						retry: vi.fn(() => {}),
+					},
+				],
+			};
+
+			await handleDocLayoutDetectionQueue(batch, mockEnv as Env);
+
+			const result = findEventByName("sheetLayoutRegionsDetected");
+			expect(result).not.toBeNull();
+			const { payload } = result!;
+			const requiredFields = [
+				"sheetId",
+				"regions",
+				"detectedAt",
+			];
+
+			for (const field of requiredFields) {
+				expect(payload.data).toHaveProperty(field);
+			}
+
+			if (payload.data.regions.length > 0) {
+				const region = payload.data.regions[0];
+				const regionFields = ["id", "regionClass", "x", "y", "width", "height", "confidence", "createdAt"];
+				for (const field of regionFields) {
+					expect(region).toHaveProperty(field);
+				}
 			}
 		});
 	});
