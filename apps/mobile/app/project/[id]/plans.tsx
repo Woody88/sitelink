@@ -21,6 +21,7 @@ import {
 } from "react-native";
 import { PlanInfoView } from "@/components/plans/plan-info-view";
 import { type Plan, PlanSelector } from "@/components/plans/plan-selector";
+import { ScheduleDetailScreen } from "@/components/plans/schedule-detail-screen";
 import { PlanViewer } from "@/components/plans/viewer";
 import {
 	Collapsible,
@@ -31,6 +32,7 @@ import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Text } from "@/components/ui/text";
+import type { LayoutRegion, ScheduleEntry } from "@/hooks/use-plan-info";
 import { type Sheet, useSheets } from "@/hooks/use-sheets";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +50,11 @@ export default function PlansScreen() {
 	const [selectedPlan, setSelectedPlan] = React.useState<Plan | null>(null);
 	const [selectedSheet, setSelectedSheet] = React.useState<Sheet | null>(null);
 	const [isViewerVisible, setIsViewerVisible] = React.useState(false);
+	const [scheduleDetail, setScheduleDetail] = React.useState<{
+		region: LayoutRegion;
+		entries: ScheduleEntry[];
+		sheetNumber: string;
+	} | null>(null);
 
 	React.useEffect(() => {
 		if (folders.length > 0 && !hasInitialized.current) {
@@ -141,7 +148,14 @@ export default function PlansScreen() {
 			</View>
 
 			{plansTab === "plan-info" ? (
-				<PlanInfoView />
+				<PlanInfoView
+					onRegionPress={(region, entries, sheetNumber) => {
+						if (region.regionClass === "schedule" && entries) {
+							Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+							setScheduleDetail({ region, entries, sheetNumber });
+						}
+					}}
+				/>
 			) : (
 			<>
 			{/* Search and Toggle Header */}
@@ -373,6 +387,34 @@ export default function PlansScreen() {
 					onClose={() => setIsSelectorVisible(false)}
 					showCloseButton
 				/>
+			</Modal>
+
+			{/* Schedule Detail Modal */}
+			<Modal
+				visible={scheduleDetail != null}
+				animationType="slide"
+				presentationStyle="fullScreen"
+				onRequestClose={() => setScheduleDetail(null)}
+				statusBarTranslucent
+			>
+				{scheduleDetail && (
+					<ScheduleDetailScreen
+						region={scheduleDetail.region}
+						entries={scheduleDetail.entries}
+						sheetNumber={scheduleDetail.sheetNumber}
+						onBack={() => setScheduleDetail(null)}
+						onViewOnSheet={(sheetId) => {
+							setScheduleDetail(null);
+							const allSheets = folders.flatMap((f) => f.sheets);
+							const sheet = allSheets.find((s) => s.id === sheetId);
+							if (sheet) {
+								setSelectedPlan(sheetToplan(sheet));
+								setSelectedSheet(sheet);
+								setIsViewerVisible(true);
+							}
+						}}
+					/>
+				)}
 			</Modal>
 
 			{/* Full-screen Plan Viewer */}
