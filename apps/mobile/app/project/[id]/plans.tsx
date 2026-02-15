@@ -23,6 +23,7 @@ import { PlanInfoView } from "@/components/plans/plan-info-view";
 import { type Plan, PlanSelector } from "@/components/plans/plan-selector";
 import { LegendDetailScreen } from "@/components/plans/legend-detail-screen";
 import { NotesDetailScreen } from "@/components/plans/notes-detail-screen";
+import { PlanSearchResults } from "@/components/plans/plan-search-results";
 import { ScheduleDetailScreen } from "@/components/plans/schedule-detail-screen";
 import { PlanViewer } from "@/components/plans/viewer";
 import {
@@ -35,6 +36,7 @@ import { Input } from "@/components/ui/input";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Text } from "@/components/ui/text";
 import type { LayoutRegion, ScheduleEntry } from "@/hooks/use-plan-info";
+import { usePlanSearch } from "@/hooks/use-plan-search";
 import { type Sheet, useSheets } from "@/hooks/use-sheets";
 import { cn } from "@/lib/utils";
 
@@ -45,6 +47,8 @@ export default function PlansScreen() {
 	const folders = useSheets(projectId!);
 	const [plansTab, setPlansTab] = React.useState<PlansTab>("sheets");
 	const [searchQuery, setSearchQuery] = React.useState("");
+	const searchResults = usePlanSearch(projectId!, searchQuery);
+	const isSearchActive = searchQuery.trim().length >= 2;
 	const [viewMode, setViewMode] = React.useState<"grid" | "list">("list");
 	const hasInitialized = React.useRef(false);
 	const [expandedFolders, setExpandedFolders] = React.useState<string[]>([]);
@@ -146,7 +150,89 @@ export default function PlansScreen() {
 
 	return (
 		<View className="bg-background flex-1">
-			{/* Plans sub-tab: Sheets / Plan Info */}
+			{/* Search bar - always visible */}
+			<View className="px-4 py-3">
+				<View className="flex-row items-center gap-2">
+					<View className="relative flex-1">
+						<View className="absolute top-2.5 left-3 z-10">
+							<Icon as={Search} className="text-muted-foreground size-4" />
+						</View>
+						<Input
+							placeholder="Search plans"
+							value={searchQuery}
+							onChangeText={setSearchQuery}
+							className="bg-muted/40 h-10 rounded-xl border-transparent pl-10"
+						/>
+						<Pressable
+							className="active:bg-muted/20 absolute top-2.5 right-3 z-10 rounded p-0.5"
+							onPress={() => setIsSelectorVisible(true)}
+						>
+							<Icon as={Maximize2} className="text-muted-foreground size-4" />
+						</Pressable>
+					</View>
+
+					{!isSearchActive && plansTab === "sheets" && (
+						<View className="bg-muted/20 flex-row rounded-xl p-1">
+							<Pressable
+								onPress={() => setViewMode("grid")}
+								className={cn(
+									"rounded-lg p-1.5",
+									viewMode === "grid"
+										? "bg-background shadow-sm"
+										: "bg-transparent",
+								)}
+							>
+								<Icon
+									as={LayoutGrid}
+									className={cn(
+										"size-4",
+										viewMode === "grid"
+											? "text-foreground"
+											: "text-muted-foreground",
+									)}
+								/>
+							</Pressable>
+							<Pressable
+								onPress={() => setViewMode("list")}
+								className={cn(
+									"rounded-lg p-1.5",
+									viewMode === "list"
+										? "bg-background shadow-sm"
+										: "bg-transparent",
+								)}
+							>
+								<Icon
+									as={List}
+									className={cn(
+										"size-4",
+										viewMode === "list"
+											? "text-foreground"
+											: "text-muted-foreground",
+									)}
+								/>
+							</Pressable>
+						</View>
+					)}
+				</View>
+			</View>
+
+			{isSearchActive ? (
+				<PlanSearchResults
+					results={searchResults}
+					query={searchQuery}
+					onSheetPress={(sheet) => {
+						handleOpenPlan(sheetToplan(sheet), sheet);
+					}}
+					onSchedulePress={(region, entries, sheetNumber) => {
+						setScheduleDetail({ region, entries, sheetNumber });
+					}}
+					onNotesPress={(region, sheetNumber) => {
+						setNotesDetail({ region, sheetNumber });
+					}}
+				/>
+			) : (
+			<>
+			{/* Segmented control */}
 			<View className="items-center py-2">
 				<SegmentedControl
 					options={["Sheets", "Plan Info"]}
@@ -171,72 +257,6 @@ export default function PlansScreen() {
 					}}
 				/>
 			) : (
-			<>
-			{/* Search and Toggle Header */}
-			<View className="gap-4 px-4 py-3">
-				<View className="flex-row items-center gap-2">
-					<View className="relative flex-1">
-						<View className="absolute top-2.5 left-3 z-10">
-							<Icon as={Search} className="text-muted-foreground size-4" />
-						</View>
-						<Input
-							placeholder="Search plans"
-							value={searchQuery}
-							onChangeText={setSearchQuery}
-							className="bg-muted/40 h-10 rounded-xl border-transparent pl-10"
-						/>
-						{/* Magnifying glass/QR scanner placeholder */}
-						<Pressable
-							className="active:bg-muted/20 absolute top-2.5 right-3 z-10 rounded p-0.5"
-							onPress={() => setIsSelectorVisible(true)}
-						>
-							<Icon as={Maximize2} className="text-muted-foreground size-4" />
-						</Pressable>
-					</View>
-
-					<View className="bg-muted/20 flex-row rounded-xl p-1">
-						<Pressable
-							onPress={() => setViewMode("grid")}
-							className={cn(
-								"rounded-lg p-1.5",
-								viewMode === "grid"
-									? "bg-background shadow-sm"
-									: "bg-transparent",
-							)}
-						>
-							<Icon
-								as={LayoutGrid}
-								className={cn(
-									"size-4",
-									viewMode === "grid"
-										? "text-foreground"
-										: "text-muted-foreground",
-								)}
-							/>
-						</Pressable>
-						<Pressable
-							onPress={() => setViewMode("list")}
-							className={cn(
-								"rounded-lg p-1.5",
-								viewMode === "list"
-									? "bg-background shadow-sm"
-									: "bg-transparent",
-							)}
-						>
-							<Icon
-								as={List}
-								className={cn(
-									"size-4",
-									viewMode === "list"
-										? "text-foreground"
-										: "text-muted-foreground",
-								)}
-							/>
-						</Pressable>
-					</View>
-				</View>
-			</View>
-
 			<ScrollView className="flex-1" contentContainerClassName="px-4 pb-8">
 				{isLoading && (
 					<View className="flex-1 items-center justify-center py-20">
@@ -254,8 +274,8 @@ export default function PlansScreen() {
 							No Plans Yet
 						</Text>
 						<Text className="text-muted-foreground px-8 text-center text-sm">
-							Plans and sheets will appear here once they're uploaded to this
-							project
+							Plans and sheets will appear here once they&apos;re uploaded to
+							this project
 						</Text>
 					</View>
 				)}
@@ -385,6 +405,7 @@ export default function PlansScreen() {
 						</Collapsible>
 					))}
 			</ScrollView>
+			)}
 			</>
 			)}
 
