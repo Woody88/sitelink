@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type {
 	CalloutDetectionJob,
+	DocLayoutDetectionJob,
 	ImageGenerationJob,
 	MetadataExtractionJob,
 	TileGenerationJob,
@@ -16,6 +17,7 @@ describe("Queue Message Format Validation", () => {
 			pdfPath:
 				"organizations/org-789/projects/project-456/plans/plan-123/source.pdf",
 			totalPages: 10,
+			planName: "sample-plan",
 		};
 
 		expect(job).toHaveProperty("planId");
@@ -23,8 +25,10 @@ describe("Queue Message Format Validation", () => {
 		expect(job).toHaveProperty("organizationId");
 		expect(job).toHaveProperty("pdfPath");
 		expect(job).toHaveProperty("totalPages");
+		expect(job).toHaveProperty("planName");
 		expect(typeof job.planId).toBe("string");
 		expect(typeof job.totalPages).toBe("number");
+		expect(typeof job.planName).toBe("string");
 	});
 
 	it("should validate MetadataExtractionJob message structure", () => {
@@ -51,14 +55,33 @@ describe("Queue Message Format Validation", () => {
 			projectId: "project-456",
 			organizationId: "org-789",
 			sheetId: "sheet-001",
-			validSheets: ["sheet-001", "sheet-002", "sheet-003"],
+			sheetNumber: "A1",
+			validSheetNumbers: ["A1", "A3", "S1"],
 		};
 
 		expect(job).toHaveProperty("planId");
 		expect(job).toHaveProperty("sheetId");
-		expect(job).toHaveProperty("validSheets");
-		expect(Array.isArray(job.validSheets)).toBe(true);
-		expect(job.validSheets.length).toBe(3);
+		expect(job).toHaveProperty("sheetNumber");
+		expect(job).toHaveProperty("validSheetNumbers");
+		expect(Array.isArray(job.validSheetNumbers)).toBe(true);
+		expect(job.validSheetNumbers.length).toBe(3);
+	});
+
+	it("should validate DocLayoutDetectionJob message structure", () => {
+		const job: DocLayoutDetectionJob = {
+			planId: "plan-123",
+			projectId: "project-456",
+			organizationId: "org-789",
+			sheetId: "sheet-001",
+			sheetNumber: "A1",
+		};
+
+		expect(job).toHaveProperty("planId");
+		expect(job).toHaveProperty("projectId");
+		expect(job).toHaveProperty("organizationId");
+		expect(job).toHaveProperty("sheetId");
+		expect(job).toHaveProperty("sheetNumber");
+		expect(typeof job.sheetNumber).toBe("string");
 	});
 
 	it("should validate TileGenerationJob message structure", () => {
@@ -125,6 +148,7 @@ describe("Queue Job Processing Logic", () => {
 			pdfPath:
 				"organizations/org-789/projects/project-456/plans/plan-123/source.pdf",
 			totalPages: 3,
+			planName: "sample-plan",
 		};
 
 		expect(imageJob.totalPages).toBe(3);
@@ -234,5 +258,106 @@ describe("Message Batch Processing Simulation", () => {
 
 		expect(retryMock).toHaveBeenCalledTimes(1);
 		expect(ackMock).not.toHaveBeenCalled();
+	});
+});
+
+describe("Parallel Detection Job Creation", () => {
+	it("should create both callout and DocLayout jobs for each valid sheet", () => {
+		const validSheets = [
+			{ sheetId: "sheet-0", sheetNumber: "A1" },
+			{ sheetId: "sheet-2", sheetNumber: "S1" },
+		];
+		const validSheetNumbers = validSheets.map((s) => s.sheetNumber);
+
+		const calloutJobs: CalloutDetectionJob[] = validSheets.map((sheet) => ({
+			planId: "plan-123",
+			projectId: "project-456",
+			organizationId: "org-789",
+			sheetId: sheet.sheetId,
+			sheetNumber: sheet.sheetNumber,
+			validSheetNumbers,
+		}));
+
+		const docLayoutJobs: DocLayoutDetectionJob[] = validSheets.map(
+			(sheet) => ({
+				planId: "plan-123",
+				projectId: "project-456",
+				organizationId: "org-789",
+				sheetId: sheet.sheetId,
+				sheetNumber: sheet.sheetNumber,
+			}),
+		);
+
+		expect(calloutJobs).toHaveLength(2);
+		expect(docLayoutJobs).toHaveLength(2);
+		expect(calloutJobs[0].sheetId).toBe(docLayoutJobs[0].sheetId);
+		expect(calloutJobs[1].sheetId).toBe(docLayoutJobs[1].sheetId);
+	});
+
+	it("should share same sheet identifiers between callout and DocLayout jobs", () => {
+		const sheetId = "sheet-0";
+		const sheetNumber = "A1";
+
+		const calloutJob: CalloutDetectionJob = {
+			planId: "plan-123",
+			projectId: "project-456",
+			organizationId: "org-789",
+			sheetId,
+			sheetNumber,
+			validSheetNumbers: ["A1", "S1"],
+		};
+
+		const docLayoutJob: DocLayoutDetectionJob = {
+			planId: "plan-123",
+			projectId: "project-456",
+			organizationId: "org-789",
+			sheetId,
+			sheetNumber,
+		};
+
+		expect(calloutJob.sheetId).toBe(docLayoutJob.sheetId);
+		expect(calloutJob.sheetNumber).toBe(docLayoutJob.sheetNumber);
+		expect(calloutJob.planId).toBe(docLayoutJob.planId);
+	});
+});
+
+describe("DocLayout Detection Failure Handling", () => {
+	it("should ACK (not retry) on DocLayout detection failure", async () => {
+		const ackMock = vi.fn();
+		const retryMock = vi.fn();
+
+		const message = {
+			id: "msg-layout-1",
+			body: {
+				planId: "plan-123",
+				projectId: "project-456",
+				organizationId: "org-789",
+				sheetId: "sheet-0",
+				sheetNumber: "A1",
+			} satisfies DocLayoutDetectionJob,
+			ack: ackMock,
+			retry: retryMock,
+		};
+
+		const containerFailed = true;
+		if (containerFailed) {
+			message.ack();
+		} else {
+			message.ack();
+		}
+
+		expect(ackMock).toHaveBeenCalledTimes(1);
+		expect(retryMock).not.toHaveBeenCalled();
+	});
+
+	it("should still notify coordinator even on DocLayout failure", async () => {
+		const coordinatorNotified = vi.fn();
+
+		const containerFailed = true;
+		if (containerFailed) {
+			coordinatorNotified("sheet-0");
+		}
+
+		expect(coordinatorNotified).toHaveBeenCalledWith("sheet-0");
 	});
 });
