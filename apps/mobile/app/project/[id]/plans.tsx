@@ -21,6 +21,8 @@ import {
 } from "react-native";
 import { PlanInfoView } from "@/components/plans/plan-info-view";
 import { type Plan, PlanSelector } from "@/components/plans/plan-selector";
+import { LegendDetailScreen } from "@/components/plans/legend-detail-screen";
+import { NotesDetailScreen } from "@/components/plans/notes-detail-screen";
 import { ScheduleDetailScreen } from "@/components/plans/schedule-detail-screen";
 import { PlanViewer } from "@/components/plans/viewer";
 import {
@@ -53,6 +55,14 @@ export default function PlansScreen() {
 	const [scheduleDetail, setScheduleDetail] = React.useState<{
 		region: LayoutRegion;
 		entries: ScheduleEntry[];
+		sheetNumber: string;
+	} | null>(null);
+	const [notesDetail, setNotesDetail] = React.useState<{
+		region: LayoutRegion;
+		sheetNumber: string;
+	} | null>(null);
+	const [legendDetail, setLegendDetail] = React.useState<{
+		region: LayoutRegion;
 		sheetNumber: string;
 	} | null>(null);
 
@@ -150,9 +160,13 @@ export default function PlansScreen() {
 			{plansTab === "plan-info" ? (
 				<PlanInfoView
 					onRegionPress={(region, entries, sheetNumber) => {
+						Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 						if (region.regionClass === "schedule" && entries) {
-							Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 							setScheduleDetail({ region, entries, sheetNumber });
+						} else if (region.regionClass === "notes") {
+							setNotesDetail({ region, sheetNumber });
+						} else if (region.regionClass === "legend") {
+							setLegendDetail({ region, sheetNumber });
 						}
 					}}
 				/>
@@ -405,6 +419,60 @@ export default function PlansScreen() {
 						onBack={() => setScheduleDetail(null)}
 						onViewOnSheet={(sheetId) => {
 							setScheduleDetail(null);
+							const allSheets = folders.flatMap((f) => f.sheets);
+							const sheet = allSheets.find((s) => s.id === sheetId);
+							if (sheet) {
+								setSelectedPlan(sheetToplan(sheet));
+								setSelectedSheet(sheet);
+								setIsViewerVisible(true);
+							}
+						}}
+					/>
+				)}
+			</Modal>
+
+			{/* Notes Detail Modal */}
+			<Modal
+				visible={notesDetail != null}
+				animationType="slide"
+				presentationStyle="fullScreen"
+				onRequestClose={() => setNotesDetail(null)}
+				statusBarTranslucent
+			>
+				{notesDetail && (
+					<NotesDetailScreen
+						region={notesDetail.region}
+						sheetNumber={notesDetail.sheetNumber}
+						onBack={() => setNotesDetail(null)}
+						onViewOnSheet={(sheetId) => {
+							setNotesDetail(null);
+							const allSheets = folders.flatMap((f) => f.sheets);
+							const sheet = allSheets.find((s) => s.id === sheetId);
+							if (sheet) {
+								setSelectedPlan(sheetToplan(sheet));
+								setSelectedSheet(sheet);
+								setIsViewerVisible(true);
+							}
+						}}
+					/>
+				)}
+			</Modal>
+
+			{/* Legend Detail Modal */}
+			<Modal
+				visible={legendDetail != null}
+				animationType="slide"
+				presentationStyle="fullScreen"
+				onRequestClose={() => setLegendDetail(null)}
+				statusBarTranslucent
+			>
+				{legendDetail && (
+					<LegendDetailScreen
+						region={legendDetail.region}
+						sheetNumber={legendDetail.sheetNumber}
+						onBack={() => setLegendDetail(null)}
+						onViewOnSheet={(sheetId) => {
+							setLegendDetail(null);
 							const allSheets = folders.flatMap((f) => f.sheets);
 							const sheet = allSheets.find((s) => s.id === sheetId);
 							if (sheet) {
