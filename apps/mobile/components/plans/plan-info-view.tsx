@@ -18,7 +18,11 @@ import {
 } from "@/hooks/use-plan-info";
 
 interface PlanInfoViewProps {
-	onRegionPress?: (region: LayoutRegion) => void;
+	onRegionPress?: (
+		region: LayoutRegion,
+		entries: ScheduleEntry[] | undefined,
+		sheetNumber: string,
+	) => void;
 }
 
 export function PlanInfoView({ onRegionPress }: PlanInfoViewProps) {
@@ -87,7 +91,11 @@ interface PlanInfoSectionProps {
 	regions: LayoutRegion[];
 	sheetNumberMap: Map<string, string>;
 	scheduleEntriesByRegion?: Map<string, ScheduleEntry[]>;
-	onRegionPress?: (region: LayoutRegion) => void;
+	onRegionPress?: (
+		region: LayoutRegion,
+		entries: ScheduleEntry[] | undefined,
+		sheetNumber: string,
+	) => void;
 }
 
 function PlanInfoSection({
@@ -120,7 +128,13 @@ function PlanInfoSection({
 						<Pressable
 							key={region.id}
 							className="active:bg-muted/20 flex-row items-center px-4 py-3"
-							onPress={() => onRegionPress?.(region)}
+							onPress={() =>
+								onRegionPress?.(
+									region,
+									scheduleEntriesByRegion?.get(region.id),
+									sheetNumber,
+								)
+							}
 						>
 							<View className="flex-1">
 								<Text className="text-foreground text-base font-medium">
