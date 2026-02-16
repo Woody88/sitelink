@@ -10,6 +10,7 @@ export interface TestEnv {
 	IMAGE_GENERATION_QUEUE: Queue;
 	METADATA_EXTRACTION_QUEUE: Queue;
 	CALLOUT_DETECTION_QUEUE: Queue;
+	DOCLAYOUT_DETECTION_QUEUE: Queue;
 	TILE_GENERATION_QUEUE: Queue;
 	PLAN_COORDINATOR_DO: DurableObjectNamespace;
 	FIXTURE_LOADER?: Fetcher;
@@ -27,12 +28,13 @@ export interface PlanCoordinatorState {
 	validSheets: string[];
 	sheetNumberMap: Record<string, string>;
 	detectedCallouts: string[];
+	detectedLayouts: string[];
 	generatedTiles: string[];
 	status:
 		| "image_generation"
 		| "metadata_extraction"
 		| "awaiting_metadata_complete"
-		| "callout_detection"
+		| "parallel_detection"
 		| "tile_generation"
 		| "complete"
 		| "failed";
@@ -72,8 +74,13 @@ export class PlanCoordinator extends DurableObject<TestEnv> {
 			const body = (await request.json()) as {
 				sheetId: string;
 				isValid: boolean;
+				sheetNumber?: string;
 			};
-			return this.handleSheetMetadataExtracted(body.sheetId, body.isValid);
+			return this.handleSheetMetadataExtracted(
+				body.sheetId,
+				body.isValid,
+				body.sheetNumber,
+			);
 		}
 
 		if (
@@ -82,6 +89,11 @@ export class PlanCoordinator extends DurableObject<TestEnv> {
 		) {
 			const body = (await request.json()) as { sheetId: string };
 			return this.handleSheetCalloutsDetected(body.sheetId);
+		}
+
+		if (url.pathname === "/sheetLayoutDetected" && request.method === "POST") {
+			const body = (await request.json()) as { sheetId: string };
+			return this.handleSheetLayoutDetected(body.sheetId);
 		}
 
 		if (url.pathname === "/sheetTilesGenerated" && request.method === "POST") {
@@ -113,6 +125,7 @@ export class PlanCoordinator extends DurableObject<TestEnv> {
 			validSheets: [],
 			sheetNumberMap: {},
 			detectedCallouts: [],
+			detectedLayouts: [],
 			generatedTiles: [],
 			status: "image_generation",
 			createdAt: Date.now(),
@@ -143,6 +156,7 @@ export class PlanCoordinator extends DurableObject<TestEnv> {
 	private handleSheetMetadataExtracted(
 		sheetId: string,
 		isValid: boolean,
+		sheetNumber?: string,
 	): Response {
 		if (!this.state) {
 			return Response.json({ error: "Not initialized" }, { status: 400 });
@@ -152,9 +166,12 @@ export class PlanCoordinator extends DurableObject<TestEnv> {
 		}
 		if (isValid && !this.state.validSheets.includes(sheetId)) {
 			this.state.validSheets.push(sheetId);
+			if (sheetNumber) {
+				this.state.sheetNumberMap[sheetId] = sheetNumber;
+			}
 		}
 		if (this.state.extractedMetadata.length === this.state.totalSheets) {
-			this.state.status = "callout_detection";
+			this.state.status = "parallel_detection";
 		}
 		return Response.json({ success: true, state: this.state });
 	}
@@ -166,10 +183,30 @@ export class PlanCoordinator extends DurableObject<TestEnv> {
 		if (!this.state.detectedCallouts.includes(sheetId)) {
 			this.state.detectedCallouts.push(sheetId);
 		}
-		if (this.state.detectedCallouts.length === this.state.validSheets.length) {
+		this.checkParallelDetectionComplete();
+		return Response.json({ success: true, state: this.state });
+	}
+
+	private handleSheetLayoutDetected(sheetId: string): Response {
+		if (!this.state) {
+			return Response.json({ error: "Not initialized" }, { status: 400 });
+		}
+		if (!this.state.detectedLayouts.includes(sheetId)) {
+			this.state.detectedLayouts.push(sheetId);
+		}
+		this.checkParallelDetectionComplete();
+		return Response.json({ success: true, state: this.state });
+	}
+
+	private checkParallelDetectionComplete(): void {
+		if (!this.state || this.state.status !== "parallel_detection") return;
+		const calloutsComplete =
+			this.state.detectedCallouts.length === this.state.validSheets.length;
+		const layoutsComplete =
+			this.state.detectedLayouts.length === this.state.validSheets.length;
+		if (calloutsComplete && layoutsComplete) {
 			this.state.status = "tile_generation";
 		}
-		return Response.json({ success: true, state: this.state });
 	}
 
 	private handleSheetTilesGenerated(sheetId: string): Response {

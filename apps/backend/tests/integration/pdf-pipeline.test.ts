@@ -385,7 +385,7 @@ describe("PDF Pipeline Integration", () => {
 				}),
 			});
 
-			// Check state after metadata extraction - should transition to callout_detection
+			// Check state after metadata extraction - should transition to parallel_detection
 			stateResponse = await coordinator.fetch("http://internal/getState");
 			state = (await stateResponse.json()) as {
 				status: string;
@@ -393,7 +393,7 @@ describe("PDF Pipeline Integration", () => {
 				validSheets: string[];
 			};
 
-			expect(state.status).toBe("callout_detection");
+			expect(state.status).toBe("parallel_detection");
 			expect(state.extractedMetadata).toHaveLength(3);
 			expect(state.validSheets).toHaveLength(2);
 			expect(state.validSheets).toContain("sheet-0");
@@ -454,15 +454,29 @@ describe("PDF Pipeline Integration", () => {
 				body: JSON.stringify({ sheetId: "sheet-1" }),
 			});
 
-			// Check state - should be in tile_generation
+			// Complete layout detection (parallel with callouts)
+			await coordinator.fetch("http://internal/sheetLayoutDetected", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ sheetId: "sheet-0" }),
+			});
+			await coordinator.fetch("http://internal/sheetLayoutDetected", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ sheetId: "sheet-1" }),
+			});
+
+			// Check state - should be in tile_generation (both callouts AND layouts complete)
 			const stateResponse = await coordinator.fetch("http://internal/getState");
 			const state = (await stateResponse.json()) as {
 				status: string;
 				detectedCallouts: string[];
+				detectedLayouts: string[];
 			};
 
 			expect(state.status).toBe("tile_generation");
 			expect(state.detectedCallouts).toHaveLength(2);
+			expect(state.detectedLayouts).toHaveLength(2);
 		});
 
 		it("should complete full pipeline and mark as complete", async () => {
@@ -502,6 +516,13 @@ describe("PDF Pipeline Integration", () => {
 
 			// Callout detection
 			await coordinator.fetch("http://internal/sheetCalloutsDetected", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ sheetId: "sheet-0" }),
+			});
+
+			// Layout detection
+			await coordinator.fetch("http://internal/sheetLayoutDetected", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ sheetId: "sheet-0" }),

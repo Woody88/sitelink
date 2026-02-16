@@ -269,12 +269,17 @@ describe("Pipeline E2E Integration Tests", () => {
 			state = (await (
 				await coordinator.fetch("http://internal/getState")
 			).json()) as any;
-			expect(state.status).toBe("callout_detection");
+			expect(state.status).toBe("parallel_detection");
 			expect(state.extractedMetadata).toHaveLength(2);
 			expect(state.validSheets).toHaveLength(1);
 			expect(state.validSheets).toContain("sheet-0");
 
 			await coordinator.fetch("http://internal/sheetCalloutsDetected", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ sheetId: "sheet-0" }),
+			});
+			await coordinator.fetch("http://internal/sheetLayoutDetected", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ sheetId: "sheet-0" }),
@@ -285,6 +290,7 @@ describe("Pipeline E2E Integration Tests", () => {
 			).json()) as any;
 			expect(state.status).toBe("tile_generation");
 			expect(state.detectedCallouts).toHaveLength(1);
+			expect(state.detectedLayouts).toHaveLength(1);
 
 			await coordinator.fetch("http://internal/sheetTilesGenerated", {
 				method: "POST",
@@ -644,9 +650,14 @@ describe("Pipeline E2E Integration Tests", () => {
 			state = (await (
 				await coordinator.fetch("http://internal/getState")
 			).json()) as any;
-			expect(state.status).toBe("callout_detection");
+			expect(state.status).toBe("parallel_detection");
 
 			await coordinator.fetch("http://internal/sheetCalloutsDetected", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ sheetId }),
+			});
+			await coordinator.fetch("http://internal/sheetLayoutDetected", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ sheetId }),
@@ -747,7 +758,7 @@ describe("Pipeline E2E Integration Tests", () => {
 			state = (await (
 				await coordinator.fetch("http://internal/getState")
 			).json()) as any;
-			expect(state.status).toBe("callout_detection");
+			expect(state.status).toBe("parallel_detection");
 			expect(state.validSheets).toHaveLength(2);
 			expect(state.validSheets).toContain("sheet-0");
 			expect(state.validSheets).not.toContain("sheet-1");
@@ -759,6 +770,11 @@ describe("Pipeline E2E Integration Tests", () => {
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify({ sheetId }),
 				});
+				await coordinator.fetch("http://internal/sheetLayoutDetected", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ sheetId }),
+				});
 			}
 
 			state = (await (
@@ -766,6 +782,7 @@ describe("Pipeline E2E Integration Tests", () => {
 			).json()) as any;
 			expect(state.status).toBe("tile_generation");
 			expect(state.detectedCallouts).toHaveLength(2);
+			expect(state.detectedLayouts).toHaveLength(2);
 
 			for (const sheetId of state.validSheets) {
 				await coordinator.fetch("http://internal/sheetTilesGenerated", {

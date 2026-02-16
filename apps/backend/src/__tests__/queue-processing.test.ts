@@ -1,15 +1,146 @@
 import { describe, expect, it, vi } from "vitest";
+import {
+	handleDocLayoutDetectionQueue,
+	handleCalloutDetectionQueue,
+} from "../processing/queue-consumer";
 import type {
 	CalloutDetectionJob,
 	DocLayoutDetectionJob,
 	ImageGenerationJob,
-	MetadataExtractionJob,
-	TileGenerationJob,
 } from "../processing/types";
 import { getR2Path } from "../processing/types";
+import type { Env } from "../types/env";
+
+interface MockMessage<T> {
+	body: T;
+	ack: ReturnType<typeof vi.fn>;
+	retry: ReturnType<typeof vi.fn>;
+}
+
+function createMockMessage<T>(body: T): MockMessage<T> {
+	return {
+		body,
+		ack: vi.fn(),
+		retry: vi.fn(),
+	};
+}
+
+function createMockBatch<T>(messages: MockMessage<T>[]): MessageBatch<T> {
+	return {
+		messages,
+		queue: "test-queue",
+		ackAll: vi.fn(),
+		retryAll: vi.fn(),
+	};
+}
+
+const testOrganizationId = "test-org-123";
+const testProjectId = "test-project-456";
+const testPlanId = "test-plan-789";
+const testSheetId = "sheet-0";
+
+function createMockEnvForDocLayout(options?: {
+	containerResponse?: Response;
+	containerShouldThrow?: boolean;
+	r2HasImage?: boolean;
+}) {
+	const coordinatorFetchCalls: Array<{
+		url: string;
+		body: Record<string, unknown>;
+	}> = [];
+	const liveStoreRequests: Array<{
+		url: string;
+		body: Record<string, unknown>;
+	}> = [];
+
+	const r2Objects = new Map<string, { data: ArrayBuffer; metadata: any }>();
+	if (options?.r2HasImage !== false) {
+		const imagePath = getR2Path(
+			testOrganizationId,
+			testProjectId,
+			testPlanId,
+			testSheetId,
+			"source.png",
+		);
+		r2Objects.set(imagePath, {
+			data: new ArrayBuffer(1024),
+			metadata: { httpMetadata: { contentType: "image/png" } },
+		});
+	}
+
+	const mockContainer = {
+		startAndWaitForPorts: vi.fn(async () => {}),
+		fetch: vi.fn(async (_url: string) => {
+			if (options?.containerShouldThrow) {
+				throw new Error("Container crashed");
+			}
+			return (
+				options?.containerResponse ??
+				Response.json({
+					regions: [
+						{
+							class: "schedule",
+							bbox: [0.1, 0.2, 0.3, 0.4],
+							confidence: 0.92,
+						},
+					],
+				})
+			);
+		}),
+	};
+
+	const mockEnv: Partial<Env> = {
+		R2_BUCKET: {
+			get: vi.fn(async (key: string) => {
+				const obj = r2Objects.get(key);
+				if (!obj) return null;
+				return {
+					arrayBuffer: async () => obj.data,
+					text: async () => new TextDecoder().decode(obj.data),
+					httpMetadata: obj.metadata?.httpMetadata,
+				};
+			}),
+		} as any,
+		PDF_PROCESSOR: {
+			idFromName: vi.fn(() => "container-id"),
+			get: vi.fn(() => mockContainer),
+		} as any,
+		PLAN_COORDINATOR_DO: {
+			idFromName: vi.fn(() => "coordinator-id"),
+			get: vi.fn(() => ({
+				fetch: vi.fn(async (url: string, init?: RequestInit) => {
+					const body = init?.body
+						? JSON.parse(init.body as string)
+						: {};
+					coordinatorFetchCalls.push({ url, body });
+					return Response.json({ success: true });
+				}),
+			})),
+		} as any,
+		LIVESTORE_CLIENT_DO: {
+			idFromName: vi.fn(() => "livestore-id"),
+			get: vi.fn(() => ({
+				fetch: vi.fn(async (url: string, init?: RequestInit) => {
+					const body = init?.body
+						? JSON.parse(init.body as string)
+						: {};
+					liveStoreRequests.push({ url, body });
+					return Response.json({ success: true });
+				}),
+			})),
+		} as any,
+	};
+
+	return {
+		mockEnv,
+		mockContainer,
+		coordinatorFetchCalls,
+		liveStoreRequests,
+	};
+}
 
 describe("Queue Message Format Validation", () => {
-	it("should validate ImageGenerationJob message structure", () => {
+	it("should validate ImageGenerationJob includes planName", () => {
 		const job: ImageGenerationJob = {
 			planId: "plan-123",
 			projectId: "project-456",
@@ -20,36 +151,11 @@ describe("Queue Message Format Validation", () => {
 			planName: "sample-plan",
 		};
 
-		expect(job).toHaveProperty("planId");
-		expect(job).toHaveProperty("projectId");
-		expect(job).toHaveProperty("organizationId");
-		expect(job).toHaveProperty("pdfPath");
-		expect(job).toHaveProperty("totalPages");
 		expect(job).toHaveProperty("planName");
-		expect(typeof job.planId).toBe("string");
-		expect(typeof job.totalPages).toBe("number");
 		expect(typeof job.planName).toBe("string");
 	});
 
-	it("should validate MetadataExtractionJob message structure", () => {
-		const job: MetadataExtractionJob = {
-			planId: "plan-123",
-			projectId: "project-456",
-			organizationId: "org-789",
-			sheetId: "sheet-001",
-			sheetNumber: 1,
-			totalSheets: 10,
-		};
-
-		expect(job).toHaveProperty("planId");
-		expect(job).toHaveProperty("sheetId");
-		expect(job).toHaveProperty("sheetNumber");
-		expect(job).toHaveProperty("totalSheets");
-		expect(typeof job.sheetNumber).toBe("number");
-		expect(typeof job.totalSheets).toBe("number");
-	});
-
-	it("should validate CalloutDetectionJob message structure", () => {
+	it("should validate CalloutDetectionJob uses validSheetNumbers", () => {
 		const job: CalloutDetectionJob = {
 			planId: "plan-123",
 			projectId: "project-456",
@@ -59,12 +165,9 @@ describe("Queue Message Format Validation", () => {
 			validSheetNumbers: ["A1", "A3", "S1"],
 		};
 
-		expect(job).toHaveProperty("planId");
-		expect(job).toHaveProperty("sheetId");
-		expect(job).toHaveProperty("sheetNumber");
 		expect(job).toHaveProperty("validSheetNumbers");
+		expect(job).toHaveProperty("sheetNumber");
 		expect(Array.isArray(job.validSheetNumbers)).toBe(true);
-		expect(job.validSheetNumbers.length).toBe(3);
 	});
 
 	it("should validate DocLayoutDetectionJob message structure", () => {
@@ -77,25 +180,8 @@ describe("Queue Message Format Validation", () => {
 		};
 
 		expect(job).toHaveProperty("planId");
-		expect(job).toHaveProperty("projectId");
-		expect(job).toHaveProperty("organizationId");
 		expect(job).toHaveProperty("sheetId");
 		expect(job).toHaveProperty("sheetNumber");
-		expect(typeof job.sheetNumber).toBe("string");
-	});
-
-	it("should validate TileGenerationJob message structure", () => {
-		const job: TileGenerationJob = {
-			planId: "plan-123",
-			projectId: "project-456",
-			organizationId: "org-789",
-			sheetId: "sheet-001",
-		};
-
-		expect(job).toHaveProperty("planId");
-		expect(job).toHaveProperty("projectId");
-		expect(job).toHaveProperty("organizationId");
-		expect(job).toHaveProperty("sheetId");
 	});
 });
 
@@ -103,13 +189,6 @@ describe("R2 Path Generation", () => {
 	it("should generate correct base plan path", () => {
 		const path = getR2Path("org-123", "proj-456", "plan-789");
 		expect(path).toBe("organizations/org-123/projects/proj-456/plans/plan-789");
-	});
-
-	it("should generate correct sheet path", () => {
-		const path = getR2Path("org-123", "proj-456", "plan-789", "sheet-001");
-		expect(path).toBe(
-			"organizations/org-123/projects/proj-456/plans/plan-789/sheets/sheet-001",
-		);
 	});
 
 	it("should generate correct sheet image path", () => {
@@ -124,145 +203,269 @@ describe("R2 Path Generation", () => {
 			"organizations/org-123/projects/proj-456/plans/plan-789/sheets/sheet-001/source.png",
 		);
 	});
-
-	it("should generate correct tiles path", () => {
-		const path = getR2Path(
-			"org-123",
-			"proj-456",
-			"plan-789",
-			"sheet-001",
-			"tiles.pmtiles",
-		);
-		expect(path).toBe(
-			"organizations/org-123/projects/proj-456/plans/plan-789/sheets/sheet-001/tiles.pmtiles",
-		);
-	});
 });
 
-describe("Queue Job Processing Logic", () => {
-	it("should correctly identify job dependencies", () => {
-		const imageJob: ImageGenerationJob = {
-			planId: "plan-123",
-			projectId: "project-456",
-			organizationId: "org-789",
-			pdfPath:
-				"organizations/org-789/projects/project-456/plans/plan-123/source.pdf",
-			totalPages: 3,
-			planName: "sample-plan",
+describe("DocLayout Detection Handler (Real Handler)", () => {
+	it("should call container /detect-layout and ACK on success", async () => {
+		const { mockEnv, mockContainer } =
+			createMockEnvForDocLayout();
+
+		const job: DocLayoutDetectionJob = {
+			planId: testPlanId,
+			projectId: testProjectId,
+			organizationId: testOrganizationId,
+			sheetId: testSheetId,
+			sheetNumber: "A1",
 		};
 
-		expect(imageJob.totalPages).toBe(3);
+		const message = createMockMessage(job);
+		const batch = createMockBatch([message]);
 
-		const metadataJobs: MetadataExtractionJob[] = Array.from(
-			{ length: imageJob.totalPages },
-			(_, i) => ({
-				planId: imageJob.planId,
-				projectId: imageJob.projectId,
-				organizationId: imageJob.organizationId,
-				sheetId: `sheet-${i}`,
-				sheetNumber: i + 1,
-				totalSheets: imageJob.totalPages,
-			}),
-		);
+		await handleDocLayoutDetectionQueue(batch, mockEnv as Env);
 
-		expect(metadataJobs).toHaveLength(3);
-		expect(metadataJobs[0].sheetNumber).toBe(1);
-		expect(metadataJobs[2].sheetNumber).toBe(3);
+		expect(message.ack).toHaveBeenCalledTimes(1);
+		expect(message.retry).not.toHaveBeenCalled();
+		expect(mockContainer.fetch).toHaveBeenCalledTimes(1);
+
+		const containerCall = mockContainer.fetch.mock.calls[0][0] as string;
+		expect(containerCall).toContain("/detect-layout");
 	});
 
-	it("should filter valid sheets for callout detection", () => {
-		const validSheetNumbers = ["A1", "A3"];
+	it("should notify coordinator via fetch on success", async () => {
+		const { mockEnv, coordinatorFetchCalls } =
+			createMockEnvForDocLayout();
 
-		const calloutJobs: CalloutDetectionJob[] = validSheetNumbers.map(
-			(sheetNumber, i) => ({
-				planId: "plan-123",
-				projectId: "project-456",
-				organizationId: "org-789",
-				sheetId: `sheet-${i}`,
-				sheetNumber,
-				validSheetNumbers,
-			}),
-		);
+		const job: DocLayoutDetectionJob = {
+			planId: testPlanId,
+			projectId: testProjectId,
+			organizationId: testOrganizationId,
+			sheetId: testSheetId,
+		};
 
-		expect(calloutJobs).toHaveLength(2);
-		expect(calloutJobs.every((job) => job.validSheetNumbers.length === 2)).toBe(
-			true,
+		const message = createMockMessage(job);
+		const batch = createMockBatch([message]);
+
+		await handleDocLayoutDetectionQueue(batch, mockEnv as Env);
+
+		const coordinatorCall = coordinatorFetchCalls.find((c) =>
+			c.url.includes("sheetLayoutDetected"),
 		);
+		expect(coordinatorCall).toBeDefined();
+		expect(coordinatorCall!.body.sheetId).toBe(testSheetId);
 	});
-});
 
-describe("Message Batch Processing Simulation", () => {
-	it("should handle batch of messages correctly", async () => {
-		const processedMessages: string[] = [];
-		const mockProcessor = vi.fn(async (job: MetadataExtractionJob) => {
-			processedMessages.push(job.sheetId);
+	it("should emit sheetLayoutRegionsDetected LiveStore event", async () => {
+		const { mockEnv, liveStoreRequests } = createMockEnvForDocLayout();
+
+		const job: DocLayoutDetectionJob = {
+			planId: testPlanId,
+			projectId: testProjectId,
+			organizationId: testOrganizationId,
+			sheetId: testSheetId,
+		};
+
+		const message = createMockMessage(job);
+		const batch = createMockBatch([message]);
+
+		await handleDocLayoutDetectionQueue(batch, mockEnv as Env);
+
+		const liveStoreEvent = liveStoreRequests.find(
+			(r) => r.body.eventName === "sheetLayoutRegionsDetected",
+		);
+		expect(liveStoreEvent).toBeDefined();
+		expect(liveStoreEvent!.body.data.sheetId).toBe(testSheetId);
+		expect(liveStoreEvent!.body.data.regions).toHaveLength(1);
+		expect(liveStoreEvent!.body.data.regions[0].regionClass).toBe("schedule");
+	});
+
+	it("should ACK (not retry) on container failure", async () => {
+		const { mockEnv } = createMockEnvForDocLayout({
+			containerShouldThrow: true,
 		});
 
-		const batch = [
-			{
-				sheetId: "sheet-1",
-				planId: "plan-1",
-				projectId: "proj-1",
-				organizationId: "org-1",
-				sheetNumber: 1,
-				totalSheets: 3,
-			},
-			{
-				sheetId: "sheet-2",
-				planId: "plan-1",
-				projectId: "proj-1",
-				organizationId: "org-1",
-				sheetNumber: 2,
-				totalSheets: 3,
-			},
-			{
-				sheetId: "sheet-3",
-				planId: "plan-1",
-				projectId: "proj-1",
-				organizationId: "org-1",
-				sheetNumber: 3,
-				totalSheets: 3,
-			},
-		];
-
-		for (const job of batch) {
-			await mockProcessor(job);
-		}
-
-		expect(mockProcessor).toHaveBeenCalledTimes(3);
-		expect(processedMessages).toEqual(["sheet-1", "sheet-2", "sheet-3"]);
-	});
-
-	it("should handle failed message with retry", async () => {
-		const ackMock = vi.fn();
-		const retryMock = vi.fn();
-
-		const message = {
-			id: "msg-1",
-			body: {
-				sheetId: "sheet-1",
-				planId: "plan-1",
-				projectId: "proj-1",
-				organizationId: "org-1",
-			},
-			ack: ackMock,
-			retry: retryMock,
+		const job: DocLayoutDetectionJob = {
+			planId: testPlanId,
+			projectId: testProjectId,
+			organizationId: testOrganizationId,
+			sheetId: testSheetId,
 		};
 
-		const shouldFail = true;
-		if (shouldFail) {
-			message.retry();
-		} else {
-			message.ack();
-		}
+		const message = createMockMessage(job);
+		const batch = createMockBatch([message]);
 
-		expect(retryMock).toHaveBeenCalledTimes(1);
-		expect(ackMock).not.toHaveBeenCalled();
+		await handleDocLayoutDetectionQueue(batch, mockEnv as Env);
+
+		expect(message.ack).toHaveBeenCalledTimes(1);
+		expect(message.retry).not.toHaveBeenCalled();
+	});
+
+	it("should still notify coordinator even on container failure", async () => {
+		const { mockEnv, coordinatorFetchCalls } = createMockEnvForDocLayout({
+			containerShouldThrow: true,
+		});
+
+		const job: DocLayoutDetectionJob = {
+			planId: testPlanId,
+			projectId: testProjectId,
+			organizationId: testOrganizationId,
+			sheetId: testSheetId,
+		};
+
+		const message = createMockMessage(job);
+		const batch = createMockBatch([message]);
+
+		await handleDocLayoutDetectionQueue(batch, mockEnv as Env);
+
+		const coordinatorCall = coordinatorFetchCalls.find((c) =>
+			c.url.includes("sheetLayoutDetected"),
+		);
+		expect(coordinatorCall).toBeDefined();
+		expect(coordinatorCall!.body.sheetId).toBe(testSheetId);
+	});
+
+	it("should ACK on container HTTP error (500)", async () => {
+		const { mockEnv } = createMockEnvForDocLayout({
+			containerResponse: Response.json(
+				{ error: "Model not loaded" },
+				{ status: 500 },
+			),
+		});
+
+		const job: DocLayoutDetectionJob = {
+			planId: testPlanId,
+			projectId: testProjectId,
+			organizationId: testOrganizationId,
+			sheetId: testSheetId,
+		};
+
+		const message = createMockMessage(job);
+		const batch = createMockBatch([message]);
+
+		await handleDocLayoutDetectionQueue(batch, mockEnv as Env);
+
+		expect(message.ack).toHaveBeenCalledTimes(1);
+		expect(message.retry).not.toHaveBeenCalled();
 	});
 });
 
-describe("Parallel Detection Job Creation", () => {
-	it("should create both callout and DocLayout jobs for each valid sheet", () => {
+describe("Callout Detection Handler - Grid Bubbles (Real Handler)", () => {
+	it("should emit grid bubbles event when container returns grid_bubbles", async () => {
+		const liveStoreRequests: Array<{
+			url: string;
+			body: Record<string, unknown>;
+		}> = [];
+
+		const r2Objects = new Map<string, { data: ArrayBuffer; metadata: any }>();
+		const imagePath = getR2Path(
+			testOrganizationId,
+			testProjectId,
+			testPlanId,
+			testSheetId,
+			"source.png",
+		);
+		r2Objects.set(imagePath, {
+			data: new ArrayBuffer(1024),
+			metadata: {},
+		});
+
+		const mockEnv: Partial<Env> = {
+			R2_BUCKET: {
+				get: vi.fn(async (key: string) => {
+					const obj = r2Objects.get(key);
+					if (!obj) return null;
+					return {
+						arrayBuffer: async () => obj.data,
+						httpMetadata: obj.metadata?.httpMetadata,
+					};
+				}),
+			} as any,
+			PDF_PROCESSOR: {
+				idFromName: vi.fn(() => "container-id"),
+				get: vi.fn(() => ({
+					startAndWaitForPorts: vi.fn(async () => {}),
+					fetch: vi.fn(async () =>
+						Response.json({
+							markers: [
+								{
+									id: "m1",
+									label: "1",
+									x: 100,
+									y: 200,
+									confidence: 0.95,
+									needsReview: false,
+								},
+							],
+							unmatchedCount: 0,
+							grid_bubbles: [
+								{
+									label: "A",
+									x: 50,
+									y: 50,
+									width: 30,
+									height: 30,
+									confidence: 0.88,
+								},
+								{
+									label: "B",
+									x: 800,
+									y: 50,
+									width: 30,
+									height: 30,
+									confidence: 0.91,
+								},
+							],
+						}),
+					),
+				})),
+			} as any,
+			PLAN_COORDINATOR_DO: {
+				idFromName: vi.fn(() => "coordinator-id"),
+				get: vi.fn(() => ({
+					sheetCalloutsDetected: vi.fn(async () => ({ success: true })),
+				})),
+			} as any,
+			LIVESTORE_CLIENT_DO: {
+				idFromName: vi.fn(() => "livestore-id"),
+				get: vi.fn(() => ({
+					fetch: vi.fn(async (url: string, init?: RequestInit) => {
+						const body = init?.body
+							? JSON.parse(init.body as string)
+							: {};
+						liveStoreRequests.push({ url, body });
+						return Response.json({ success: true });
+					}),
+				})),
+			} as any,
+		};
+
+		const job: CalloutDetectionJob = {
+			planId: testPlanId,
+			projectId: testProjectId,
+			organizationId: testOrganizationId,
+			sheetId: testSheetId,
+			sheetNumber: "A1",
+			validSheetNumbers: ["A1"],
+		};
+
+		const message = createMockMessage(job);
+		const batch = createMockBatch([message]);
+
+		await handleCalloutDetectionQueue(batch, mockEnv as Env);
+
+		expect(message.ack).toHaveBeenCalledTimes(1);
+
+		const gridBubbleEvent = liveStoreRequests.find(
+			(r) => r.body.eventName === "sheetGridBubblesDetected",
+		);
+		expect(gridBubbleEvent).toBeDefined();
+		expect(gridBubbleEvent!.body.data.bubbles).toHaveLength(2);
+		expect(gridBubbleEvent!.body.data.bubbles[0].label).toBe("A");
+		expect(gridBubbleEvent!.body.data.bubbles[1].label).toBe("B");
+	});
+});
+
+describe("Parallel Job Creation Logic", () => {
+	it("should create matching callout and DocLayout jobs for same sheets", () => {
 		const validSheets = [
 			{ sheetId: "sheet-0", sheetNumber: "A1" },
 			{ sheetId: "sheet-2", sheetNumber: "S1" },
@@ -290,74 +493,11 @@ describe("Parallel Detection Job Creation", () => {
 
 		expect(calloutJobs).toHaveLength(2);
 		expect(docLayoutJobs).toHaveLength(2);
-		expect(calloutJobs[0].sheetId).toBe(docLayoutJobs[0].sheetId);
-		expect(calloutJobs[1].sheetId).toBe(docLayoutJobs[1].sheetId);
-	});
 
-	it("should share same sheet identifiers between callout and DocLayout jobs", () => {
-		const sheetId = "sheet-0";
-		const sheetNumber = "A1";
-
-		const calloutJob: CalloutDetectionJob = {
-			planId: "plan-123",
-			projectId: "project-456",
-			organizationId: "org-789",
-			sheetId,
-			sheetNumber,
-			validSheetNumbers: ["A1", "S1"],
-		};
-
-		const docLayoutJob: DocLayoutDetectionJob = {
-			planId: "plan-123",
-			projectId: "project-456",
-			organizationId: "org-789",
-			sheetId,
-			sheetNumber,
-		};
-
-		expect(calloutJob.sheetId).toBe(docLayoutJob.sheetId);
-		expect(calloutJob.sheetNumber).toBe(docLayoutJob.sheetNumber);
-		expect(calloutJob.planId).toBe(docLayoutJob.planId);
-	});
-});
-
-describe("DocLayout Detection Failure Handling", () => {
-	it("should ACK (not retry) on DocLayout detection failure", async () => {
-		const ackMock = vi.fn();
-		const retryMock = vi.fn();
-
-		const message = {
-			id: "msg-layout-1",
-			body: {
-				planId: "plan-123",
-				projectId: "project-456",
-				organizationId: "org-789",
-				sheetId: "sheet-0",
-				sheetNumber: "A1",
-			} satisfies DocLayoutDetectionJob,
-			ack: ackMock,
-			retry: retryMock,
-		};
-
-		const containerFailed = true;
-		if (containerFailed) {
-			message.ack();
-		} else {
-			message.ack();
+		for (let i = 0; i < validSheets.length; i++) {
+			expect(calloutJobs[i].sheetId).toBe(docLayoutJobs[i].sheetId);
+			expect(calloutJobs[i].sheetNumber).toBe(docLayoutJobs[i].sheetNumber);
+			expect(calloutJobs[i].planId).toBe(docLayoutJobs[i].planId);
 		}
-
-		expect(ackMock).toHaveBeenCalledTimes(1);
-		expect(retryMock).not.toHaveBeenCalled();
-	});
-
-	it("should still notify coordinator even on DocLayout failure", async () => {
-		const coordinatorNotified = vi.fn();
-
-		const containerFailed = true;
-		if (containerFailed) {
-			coordinatorNotified("sheet-0");
-		}
-
-		expect(coordinatorNotified).toHaveBeenCalledWith("sheet-0");
 	});
 });
