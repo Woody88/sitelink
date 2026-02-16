@@ -207,8 +207,6 @@ export const events = {
     schema: Schema.Struct({
       planId: Schema.String,
       progress: Schema.Number,
-      currentPage: Schema.Number,
-      totalPages: Schema.Number,
     }),
   }),
 
