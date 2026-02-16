@@ -1,4 +1,24 @@
 import type { Env } from "../types/env";
+import type { events } from "@sitelink/domain";
+
+type EventName = keyof typeof events;
+type EventData<T extends EventName> = Parameters<(typeof events)[T]>[0];
+
+async function commitEvent<T extends EventName>(
+	env: Env,
+	organizationId: string,
+	eventName: T,
+	data: EventData<T>,
+): Promise<void> {
+	const liveStoreStub = env.LIVESTORE_CLIENT_DO.get(
+		env.LIVESTORE_CLIENT_DO.idFromName(organizationId),
+	);
+	await liveStoreStub.fetch("http://internal/commit?storeId=" + organizationId, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ eventName, data }),
+	});
+}
 
 interface PlanUploadMetadata {
 	planId: string;
@@ -77,28 +97,10 @@ export async function handleR2NotificationQueue(
 		);
 
 		try {
-			const liveStoreStub = env.LIVESTORE_CLIENT_DO.get(
-				env.LIVESTORE_CLIENT_DO.idFromName(metadata.organizationId),
-			);
-
-			await liveStoreStub.fetch(
-				"http://internal/commit?storeId=" + metadata.organizationId,
-				{
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({
-						eventName: "planProcessingStarted",
-						data: {
-							planId: metadata.planId,
-							projectId: metadata.projectId,
-							status: "processing",
-							stage: "queued",
-							progress: 0,
-							startedAt: Date.now(),
-						},
-					}),
-				},
-			);
+			await commitEvent(env, metadata.organizationId, "planProcessingStarted", {
+				planId: metadata.planId,
+				startedAt: Date.now(),
+			});
 		} catch (liveStoreError) {
 			console.warn(
 				`[R2Notification] LiveStore emit failed:`,

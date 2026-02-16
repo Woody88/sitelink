@@ -1,5 +1,25 @@
 import { DurableObject } from "cloudflare:workers"
 import type { Env } from "../env"
+import type { events } from "@sitelink/domain"
+
+type EventName = keyof typeof events
+type EventData<T extends EventName> = Parameters<(typeof events)[T]>[0]
+
+async function commitEvent<T extends EventName>(
+  env: Env,
+  organizationId: string,
+  eventName: T,
+  data: EventData<T>,
+): Promise<void> {
+  const liveStoreStub = env.LIVESTORE_CLIENT_DO.get(
+    env.LIVESTORE_CLIENT_DO.idFromName(organizationId),
+  )
+  await liveStoreStub.fetch("http://internal/commit?storeId=" + organizationId, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ eventName, data }),
+  })
+}
 
 export interface PlanCoordinatorState {
   planId: string
@@ -358,22 +378,11 @@ export class PlanCoordinator extends DurableObject<Env> {
     console.log(`[PlanCoordinator] Emitting metadata completed event for plan ${state.planId}`)
 
     try {
-      const liveStoreStub = this.env.LIVESTORE_CLIENT_DO.get(
-        this.env.LIVESTORE_CLIENT_DO.idFromName(state.organizationId),
-      )
-
-      await liveStoreStub.fetch("http://internal/commit?storeId=" + state.organizationId, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventName: "planMetadataCompleted",
-          data: {
-            planId: state.planId,
-            validSheets: state.validSheets,
-            sheetNumberMap: state.sheetNumberMap,
-            completedAt: Date.now(),
-          },
-        }),
+      await commitEvent(this.env, state.organizationId, "planMetadataCompleted", {
+        planId: state.planId,
+        validSheets: state.validSheets,
+        sheetNumberMap: state.sheetNumberMap,
+        completedAt: Date.now(),
       })
     } catch (error) {
       console.warn(`[PlanCoordinator] Failed to emit metadata completed event:`, error)
@@ -385,21 +394,10 @@ export class PlanCoordinator extends DurableObject<Env> {
     console.log(`[PlanCoordinator] Emitting processing complete event for plan ${state.planId}`)
 
     try {
-      const liveStoreStub = this.env.LIVESTORE_CLIENT_DO.get(
-        this.env.LIVESTORE_CLIENT_DO.idFromName(state.organizationId),
-      )
-
-      await liveStoreStub.fetch("http://internal/commit?storeId=" + state.organizationId, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventName: "planProcessingCompleted",
-          data: {
-            planId: state.planId,
-            sheetCount: state.validSheets.length,
-            completedAt: Date.now(),
-          },
-        }),
+      await commitEvent(this.env, state.organizationId, "planProcessingCompleted", {
+        planId: state.planId,
+        sheetCount: state.validSheets.length,
+        completedAt: Date.now(),
       })
     } catch (error) {
       console.warn(`[PlanCoordinator] Failed to emit processing complete event:`, error)

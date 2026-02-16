@@ -7,34 +7,37 @@ import type {
   TileGenerationJob,
 } from "./types"
 import { getR2Path } from "./types"
+import type { events } from "@sitelink/domain"
+
+type EventName = keyof typeof events
+type EventData<T extends EventName> = Parameters<(typeof events)[T]>[0]
+
+async function commitEvent<T extends EventName>(
+  env: Env,
+  organizationId: string,
+  eventName: T,
+  data: EventData<T>,
+): Promise<void> {
+  const liveStoreStub = env.LIVESTORE_CLIENT_DO.get(
+    env.LIVESTORE_CLIENT_DO.idFromName(organizationId),
+  )
+  await liveStoreStub.fetch("http://internal/commit?storeId=" + organizationId, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ eventName, data }),
+  })
+}
 
 async function emitProgressEvent(
   env: Env,
   organizationId: string,
   planId: string,
-  stage: string,
+  _stage: string,
   progress: number,
-  message: string,
+  _message: string,
 ): Promise<void> {
   try {
-    const liveStoreStub = env.LIVESTORE_CLIENT_DO.get(
-      env.LIVESTORE_CLIENT_DO.idFromName(organizationId),
-    )
-
-    await liveStoreStub.fetch("http://internal/commit?storeId=" + organizationId, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        eventName: "planProcessingProgress",
-        data: {
-          planId,
-          stage,
-          progress,
-          message,
-          updatedAt: Date.now(),
-        },
-      }),
-    })
+    await commitEvent(env, organizationId, "planProcessingProgress", { planId, progress })
   } catch (error) {
     console.warn(`[Progress] LiveStore emit failed:`, error)
   }
@@ -179,28 +182,17 @@ export async function handleImageGenerationQueue(
 
         // Emit LiveStore event (non-critical)
         try {
-          const liveStoreStub = env.LIVESTORE_CLIENT_DO.get(
-            env.LIVESTORE_CLIENT_DO.idFromName(job.organizationId),
-          )
-
-          await liveStoreStub.fetch("http://internal/commit?storeId=" + job.organizationId, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              eventName: "sheetImageGenerated",
-              data: {
-                sheetId: sheet.sheetId,
-                projectId: job.projectId,
-                planId: job.planId,
-                planName: job.planName,
-                pageNumber: sheet.pageNumber,
-                localImagePath: r2Path,
-                remoteImagePath: `/api/r2/${r2Path}`,
-                width: sheet.width,
-                height: sheet.height,
-                generatedAt: Date.now(),
-              },
-            }),
+          await commitEvent(env, job.organizationId, "sheetImageGenerated", {
+            sheetId: sheet.sheetId,
+            projectId: job.projectId,
+            planId: job.planId,
+            planName: job.planName,
+            pageNumber: sheet.pageNumber,
+            localImagePath: r2Path,
+            remoteImagePath: `/api/r2/${r2Path}`,
+            width: sheet.width,
+            height: sheet.height,
+            generatedAt: Date.now(),
           })
         } catch (liveStoreError) {
           console.warn(
@@ -309,25 +301,13 @@ export async function handleMetadataExtractionQueue(
 
       // Emit LiveStore event (non-critical, don't fail pipeline if this fails)
       try {
-        const liveStoreStub = env.LIVESTORE_CLIENT_DO.get(
-          env.LIVESTORE_CLIENT_DO.idFromName(job.organizationId),
-        )
-
-        await liveStoreStub.fetch("http://internal/commit?storeId=" + job.organizationId, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            eventName: "sheetMetadataExtracted",
-            data: {
-              sheetId: job.sheetId,
-              planId: job.planId,
-              sheetNumber: result.sheetNumber ?? "unknown",
-              // Convert null to undefined for Schema.optional compatibility
-              sheetTitle: result.title ?? undefined,
-              discipline: result.discipline ?? undefined,
-              extractedAt: Date.now(),
-            },
-          }),
+        await commitEvent(env, job.organizationId, "sheetMetadataExtracted", {
+          sheetId: job.sheetId,
+          planId: job.planId,
+          sheetNumber: result.sheetNumber ?? "unknown",
+          sheetTitle: result.title ?? undefined,
+          discipline: result.discipline ?? undefined,
+          extractedAt: Date.now(),
         })
       } catch (liveStoreError) {
         console.warn(
@@ -456,23 +436,12 @@ export async function handleCalloutDetectionQueue(
 
       // Emit LiveStore event (non-critical, don't fail pipeline if this fails)
       try {
-        const liveStoreStub = env.LIVESTORE_CLIENT_DO.get(
-          env.LIVESTORE_CLIENT_DO.idFromName(job.organizationId),
-        )
-
-        await liveStoreStub.fetch("http://internal/commit?storeId=" + job.organizationId, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            eventName: "sheetCalloutsDetected",
-            data: {
-              sheetId: job.sheetId,
-              planId: job.planId,
-              markers,
-              unmatchedCount,
-              detectedAt: Date.now(),
-            },
-          }),
+        await commitEvent(env, job.organizationId, "sheetCalloutsDetected", {
+          sheetId: job.sheetId,
+          planId: job.planId,
+          markers,
+          unmatchedCount,
+          detectedAt: Date.now(),
         })
       } catch (liveStoreError) {
         console.warn(`[CalloutDetection] LiveStore emit failed for ${job.sheetId}:`, liveStoreError)
@@ -493,21 +462,10 @@ export async function handleCalloutDetectionQueue(
             createdAt: Date.now(),
           }))
 
-          const liveStoreStub = env.LIVESTORE_CLIENT_DO.get(
-            env.LIVESTORE_CLIENT_DO.idFromName(job.organizationId),
-          )
-
-          await liveStoreStub.fetch("http://internal/commit?storeId=" + job.organizationId, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              eventName: "sheetGridBubblesDetected",
-              data: {
-                sheetId: job.sheetId,
-                bubbles,
-                detectedAt: Date.now(),
-              },
-            }),
+          await commitEvent(env, job.organizationId, "sheetGridBubblesDetected", {
+            sheetId: job.sheetId,
+            bubbles,
+            detectedAt: Date.now(),
           })
 
           console.log(
@@ -615,21 +573,10 @@ export async function handleDocLayoutDetectionQueue(
 
       // Emit LiveStore event (non-critical)
       try {
-        const liveStoreStub = env.LIVESTORE_CLIENT_DO.get(
-          env.LIVESTORE_CLIENT_DO.idFromName(job.organizationId),
-        )
-
-        await liveStoreStub.fetch("http://internal/commit?storeId=" + job.organizationId, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            eventName: "sheetLayoutRegionsDetected",
-            data: {
-              sheetId: job.sheetId,
-              regions,
-              detectedAt: Date.now(),
-            },
-          }),
+        await commitEvent(env, job.organizationId, "sheetLayoutRegionsDetected", {
+          sheetId: job.sheetId,
+          regions,
+          detectedAt: Date.now(),
         })
       } catch (liveStoreError) {
         console.warn(`[DocLayout] LiveStore emit failed for ${job.sheetId}:`, liveStoreError)
@@ -745,25 +692,14 @@ export async function handleTileGenerationQueue(
 
       // Emit LiveStore event (non-critical, don't fail pipeline if this fails)
       try {
-        const liveStoreStub = env.LIVESTORE_CLIENT_DO.get(
-          env.LIVESTORE_CLIENT_DO.idFromName(job.organizationId),
-        )
-
-        await liveStoreStub.fetch("http://internal/commit?storeId=" + job.organizationId, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            eventName: "sheetTilesGenerated",
-            data: {
-              sheetId: job.sheetId,
-              planId: job.planId,
-              localPmtilesPath: pmtilesPath,
-              remotePmtilesPath: `/api/r2/${pmtilesPath}`,
-              minZoom,
-              maxZoom,
-              generatedAt: Date.now(),
-            },
-          }),
+        await commitEvent(env, job.organizationId, "sheetTilesGenerated", {
+          sheetId: job.sheetId,
+          planId: job.planId,
+          localPmtilesPath: pmtilesPath,
+          remotePmtilesPath: `/api/r2/${pmtilesPath}`,
+          minZoom,
+          maxZoom,
+          generatedAt: Date.now(),
         })
       } catch (liveStoreError) {
         console.warn(`[TileGeneration] LiveStore emit failed for ${job.sheetId}:`, liveStoreError)
