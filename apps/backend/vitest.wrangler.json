@@ -45,6 +45,10 @@
 				"queue": "sitelink-callout-detection-test"
 			},
 			{
+				"binding": "DOCLAYOUT_DETECTION_QUEUE",
+				"queue": "sitelink-doclayout-detection-test"
+			},
+			{
 				"binding": "TILE_GENERATION_QUEUE",
 				"queue": "sitelink-tile-generation-test"
 			}
