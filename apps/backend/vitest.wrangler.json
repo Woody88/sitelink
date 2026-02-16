@@ -59,6 +59,14 @@
 			{
 				"name": "PLAN_COORDINATOR_DO",
 				"class_name": "PlanCoordinator"
+			},
+			{
+				"name": "PDF_PROCESSOR",
+				"class_name": "TestPdfProcessor"
+			},
+			{
+				"name": "LIVESTORE_CLIENT_DO",
+				"class_name": "LiveStoreCollector"
 			}
 		]
 	},
@@ -66,6 +74,10 @@
 		{
 			"tag": "v1",
 			"new_classes": ["PlanCoordinator"]
+		},
+		{
+			"tag": "v2",
+			"new_classes": ["TestPdfProcessor", "LiveStoreCollector"]
 		}
 	]
 }
