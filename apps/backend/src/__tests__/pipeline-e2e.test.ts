@@ -84,7 +84,7 @@ function createMockEnv(options?: {
 
 	const mockContainer = {
 		startAndWaitForPorts: vi.fn(async () => {}),
-		fetch: vi.fn(async (url: string, _init?: RequestInit) => {
+		fetch: vi.fn(async (url: string, init?: RequestInit) => {
 			if (url.includes("/generate-images")) {
 				return Response.json({
 					sheets: [
@@ -93,10 +93,19 @@ function createMockEnv(options?: {
 					totalPages: 1,
 				});
 			}
-			if (url.includes("/render-page")) {
-				return new Response(new ArrayBuffer(1024), {
-					headers: { "Content-Type": "image/png" },
-				});
+			if (url.includes("/render-pages")) {
+				const pageNumbers = JSON.parse(
+					(init?.headers as Record<string, string>)?.["X-Page-Numbers"] ?? "[1]",
+				);
+				const pages = pageNumbers.map((num: number) => ({
+					pageNumber: num,
+					pngBase64: btoa(
+						String.fromCharCode(0x89, 0x50, 0x4e, 0x47, ...Array(1020).fill(0)),
+					),
+					width: 3000,
+					height: 2000,
+				}));
+				return Response.json({ pages });
 			}
 			if (url.includes("/extract-metadata")) {
 				return Response.json({
@@ -460,7 +469,7 @@ describe("Pipeline Stage Tests", () => {
 				expect.any(Object),
 			);
 			expect(mockContainer.fetch).toHaveBeenCalledWith(
-				"http://container/render-page",
+				"http://container/render-pages",
 				expect.any(Object),
 			);
 
@@ -1532,10 +1541,19 @@ describe("Full Pipeline E2E Test", () => {
 					totalPages: 3,
 				});
 			}
-			if (url.includes("/render-page")) {
-				return new Response(new ArrayBuffer(1024), {
-					headers: { "Content-Type": "image/png" },
-				});
+			if (url.includes("/render-pages")) {
+				const pageNumbers = JSON.parse(
+					(init?.headers as Record<string, string>)?.["X-Page-Numbers"] ?? "[1]",
+				);
+				const pages = pageNumbers.map((num: number) => ({
+					pageNumber: num,
+					pngBase64: btoa(
+						String.fromCharCode(0x89, 0x50, 0x4e, 0x47, ...Array(1020).fill(0)),
+					),
+					width: 3000,
+					height: 2000,
+				}));
+				return Response.json({ pages });
 			}
 			if (url.includes("/extract-metadata")) {
 				const sheetId = init?.headers
@@ -1697,10 +1715,19 @@ describe("Full Pipeline E2E Test", () => {
 					totalPages: 3,
 				});
 			}
-			if (url.includes("/render-page")) {
-				return new Response(new ArrayBuffer(1024), {
-					headers: { "Content-Type": "image/png" },
-				});
+			if (url.includes("/render-pages")) {
+				const pageNumbers = JSON.parse(
+					(init?.headers as Record<string, string>)?.["X-Page-Numbers"] ?? "[1]",
+				);
+				const pages = pageNumbers.map((num: number) => ({
+					pageNumber: num,
+					pngBase64: btoa(
+						String.fromCharCode(0x89, 0x50, 0x4e, 0x47, ...Array(1020).fill(0)),
+					),
+					width: 3000,
+					height: 2000,
+				}));
+				return Response.json({ pages });
 			}
 			if (url.includes("/extract-metadata")) {
 				const sheetId = init?.headers

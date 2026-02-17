@@ -139,28 +139,38 @@ export async function handleImageGenerationQueue(
         `Rendering ${result.totalPages} pages...`,
       )
 
-      for (let i = 0; i < result.sheets.length; i++) {
-        const sheet = result.sheets[i]
-        const pageProgress = Math.round(10 + (i / result.sheets.length) * 15)
-        // Call container to render this specific page as PNG
-        const renderResponse = await container.fetch("http://container/render-page", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/pdf",
-            "X-Plan-Id": job.planId,
-            "X-Page-Number": sheet.pageNumber.toString(),
-          },
-          body: pdfBuffer,
-        })
+      // Batch render all pages in a single container.fetch() call
+      // This avoids the workerd socket cleanup bug (#3232) that causes
+      // "Cannot assign requested address" after sequential container.fetch() calls
+      const renderResponse = await container.fetch("http://container/render-pages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/pdf",
+          "X-Plan-Id": job.planId,
+          "X-Page-Numbers": JSON.stringify(result.sheets.map((s) => s.pageNumber)),
+        },
+        body: pdfBuffer,
+      })
 
-        if (!renderResponse.ok) {
-          throw new Error(
-            `Failed to render page ${sheet.pageNumber}: ${await renderResponse.text()}`,
-          )
+      if (!renderResponse.ok) {
+        throw new Error(`Batch render failed: ${renderResponse.status}: ${await renderResponse.text()}`)
+      }
+
+      const renderResult = (await renderResponse.json()) as {
+        pages: Array<{ pageNumber: number; pngBase64: string; width: number; height: number }>
+      }
+
+      for (const page of renderResult.pages) {
+        const sheet = result.sheets.find((s) => s.pageNumber === page.pageNumber)
+        if (!sheet) continue
+
+        // Decode base64 PNG
+        const binaryString = atob(page.pngBase64)
+        const bytes = new Uint8Array(binaryString.length)
+        for (let j = 0; j < binaryString.length; j++) {
+          bytes[j] = binaryString.charCodeAt(j)
         }
-
-        // Get PNG data from response
-        const pngData = await renderResponse.arrayBuffer()
+        const pngData = bytes.buffer
 
         // Upload to R2
         const r2Path = getR2Path(
@@ -190,8 +200,8 @@ export async function handleImageGenerationQueue(
             pageNumber: sheet.pageNumber,
             localImagePath: r2Path,
             remoteImagePath: `/api/r2/${r2Path}`,
-            width: sheet.width,
-            height: sheet.height,
+            width: page.width,
+            height: page.height,
             generatedAt: Date.now(),
           })
         } catch (liveStoreError) {
