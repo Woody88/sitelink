@@ -53,12 +53,13 @@ export default defineWorkersConfig(async () => {
 								url.protocol = "http:";
 								url.host = "localhost:3001";
 								try {
+									// Consume body before forwarding to avoid workerd
+									// "Can't read from request stream" error (#1730)
+									const body = await request.arrayBuffer();
 									return await fetch(url.toString(), {
 										method: request.method,
 										headers: request.headers,
-										body: request.body,
-										// @ts-expect-error duplex is required for streaming request bodies
-										duplex: "half",
+										body: body.byteLength > 0 ? body : undefined,
 									});
 								} catch (error) {
 									return new Response(
