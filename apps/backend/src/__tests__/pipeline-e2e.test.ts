@@ -93,19 +93,11 @@ function createMockEnv(options?: {
 					totalPages: 1,
 				});
 			}
-			if (url.includes("/render-pages")) {
-				const pageNumbers = JSON.parse(
-					(init?.headers as Record<string, string>)?.["X-Page-Numbers"] ?? "[1]",
-				);
-				const pages = pageNumbers.map((num: number) => ({
-					pageNumber: num,
-					pngBase64: btoa(
-						String.fromCharCode(0x89, 0x50, 0x4e, 0x47, ...Array(1020).fill(0)),
-					),
-					width: 3000,
-					height: 2000,
-				}));
-				return Response.json({ pages });
+			if (url.includes("/render-page")) {
+				const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, ...Array(1020).fill(0)]);
+				return new Response(pngBytes.buffer, {
+					headers: { "Content-Type": "image/png" },
+				});
 			}
 			if (url.includes("/extract-metadata")) {
 				return Response.json({
@@ -469,7 +461,7 @@ describe("Pipeline Stage Tests", () => {
 				expect.any(Object),
 			);
 			expect(mockContainer.fetch).toHaveBeenCalledWith(
-				"http://container/render-pages",
+				"http://container/render-page",
 				expect.any(Object),
 			);
 
@@ -1541,19 +1533,11 @@ describe("Full Pipeline E2E Test", () => {
 					totalPages: 3,
 				});
 			}
-			if (url.includes("/render-pages")) {
-				const pageNumbers = JSON.parse(
-					(init?.headers as Record<string, string>)?.["X-Page-Numbers"] ?? "[1]",
-				);
-				const pages = pageNumbers.map((num: number) => ({
-					pageNumber: num,
-					pngBase64: btoa(
-						String.fromCharCode(0x89, 0x50, 0x4e, 0x47, ...Array(1020).fill(0)),
-					),
-					width: 3000,
-					height: 2000,
-				}));
-				return Response.json({ pages });
+			if (url.includes("/render-page")) {
+				const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, ...Array(1020).fill(0)]);
+				return new Response(pngBytes.buffer, {
+					headers: { "Content-Type": "image/png" },
+				});
 			}
 			if (url.includes("/extract-metadata")) {
 				const sheetId = init?.headers
@@ -1715,19 +1699,11 @@ describe("Full Pipeline E2E Test", () => {
 					totalPages: 3,
 				});
 			}
-			if (url.includes("/render-pages")) {
-				const pageNumbers = JSON.parse(
-					(init?.headers as Record<string, string>)?.["X-Page-Numbers"] ?? "[1]",
-				);
-				const pages = pageNumbers.map((num: number) => ({
-					pageNumber: num,
-					pngBase64: btoa(
-						String.fromCharCode(0x89, 0x50, 0x4e, 0x47, ...Array(1020).fill(0)),
-					),
-					width: 3000,
-					height: 2000,
-				}));
-				return Response.json({ pages });
+			if (url.includes("/render-page")) {
+				const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, ...Array(1020).fill(0)]);
+				return new Response(pngBytes.buffer, {
+					headers: { "Content-Type": "image/png" },
+				});
 			}
 			if (url.includes("/extract-metadata")) {
 				const sheetId = init?.headers
