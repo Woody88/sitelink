@@ -374,6 +374,13 @@ def generate_images():
         return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500
 
 
+def render_pdf_page(pdf_data: bytes, page_num: int) -> tuple:
+    """Render a single PDF page to PNG. page_num is 1-based. Returns (png_bytes, width, height)."""
+    image = pyvips.Image.new_from_buffer(pdf_data, '', dpi=300, page=page_num - 1, access='sequential')
+    png_data = image.pngsave_buffer(compression=6)
+    return png_data, image.width, image.height
+
+
 @app.route('/render-page', methods=['POST'])
 def render_page():
     """
@@ -397,23 +404,74 @@ def render_page():
         if not pdf_data:
             return jsonify({"error": "No PDF data provided"}), 400
 
-        # Load specific page from PDF (page_num is 1-based, but pyvips expects 0-based)
-        image = pyvips.Image.new_from_buffer(pdf_data, '', dpi=300, page=page_num - 1, access='sequential')
-
-        # Convert to PNG bytes
-        png_data = image.pngsave_buffer(compression=6)
+        png_data, width, height = render_pdf_page(pdf_data, page_num)
 
         return Response(
             png_data,
             mimetype='image/png',
             headers={
-                'X-Width': str(image.width),
-                'X-Height': str(image.height),
+                'X-Width': str(width),
+                'X-Height': str(height),
                 'X-Page-Number': str(page_num)
             }
         )
 
     except Exception as e:
+        return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500
+
+
+@app.route('/render-pages', methods=['POST'])
+def render_pages():
+    """
+    Render multiple PDF pages to PNG in a single request.
+    Headers: X-Plan-Id, X-Page-Numbers (JSON array of 1-based page numbers)
+    Body: PDF binary data
+    Returns: JSON with base64-encoded PNGs
+      {"pages": [{"pageNumber": 1, "pngBase64": "...", "width": N, "height": N}, ...]}
+    """
+    try:
+        plan_id = request.headers.get('X-Plan-Id')
+        page_numbers_raw = request.headers.get('X-Page-Numbers')
+
+        if not plan_id:
+            return jsonify({"error": "Missing X-Plan-Id header"}), 400
+        if not page_numbers_raw:
+            return jsonify({"error": "Missing X-Page-Numbers header"}), 400
+
+        try:
+            page_numbers = json.loads(page_numbers_raw)
+        except (json.JSONDecodeError, ValueError) as e:
+            return jsonify({"error": f"Invalid X-Page-Numbers header: {e}"}), 400
+
+        if not isinstance(page_numbers, list) or len(page_numbers) == 0:
+            return jsonify({"error": "X-Page-Numbers must be a non-empty JSON array"}), 400
+
+        if not all(isinstance(p, int) and p >= 1 for p in page_numbers):
+            return jsonify({"error": "X-Page-Numbers must contain positive integers"}), 400
+
+        pdf_data = request.get_data()
+        if not pdf_data:
+            return jsonify({"error": "No PDF data provided"}), 400
+
+        print(f"[RenderPages] Rendering {len(page_numbers)} pages for plan {plan_id}")
+
+        pages = []
+        for page_num in page_numbers:
+            png_data, width, height = render_pdf_page(pdf_data, page_num)
+            pages.append({
+                "pageNumber": page_num,
+                "pngBase64": base64.b64encode(png_data).decode('utf-8'),
+                "width": width,
+                "height": height,
+            })
+            print(f"[RenderPages] Page {page_num}: {width}x{height} ({len(png_data)} bytes)")
+
+        print(f"[RenderPages] Done: {len(pages)} pages rendered")
+        return jsonify({"pages": pages})
+
+    except Exception as e:
+        print(f"[RenderPages] Error: {e}")
+        traceback.print_exc()
         return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500
 
 
