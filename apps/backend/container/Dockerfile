@@ -26,9 +26,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Copy YOLO model weights
-COPY weights/ ./weights/
-
 EXPOSE 3001
 
 CMD ["python", "server.py"]
