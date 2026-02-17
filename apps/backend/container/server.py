@@ -3,6 +3,7 @@ PDF Processing Container Server
 Flask server providing PDF processing endpoints for VIPS, OpenCV, and OCR operations.
 Uses LLM (Gemini Flash via OpenRouter) for title block analysis.
 """
+import gc
 import io
 import os
 import json
@@ -467,11 +468,13 @@ def render_pages():
             print(f"[RenderPages] Page {page_num}: {width}x{height} ({len(png_data)} bytes)")
 
         print(f"[RenderPages] Done: {len(pages)} pages rendered")
+        gc.collect()
         return jsonify({"pages": pages})
 
     except Exception as e:
         print(f"[RenderPages] Error: {e}")
         traceback.print_exc()
+        gc.collect()
         return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500
 
 
@@ -1011,15 +1014,18 @@ def detect_callouts_endpoint():
 
         grid_bubbles = result.get('grid_bubbles', [])
         print(f"[Callouts] YOLO returned {len(result.get('markers', []))} markers, {len(grid_bubbles)} grid bubbles")
-        return jsonify({
+        response = jsonify({
             "markers": result.get("markers", []),
             "unmatchedCount": result.get("unmatchedCount", 0),
             "grid_bubbles": grid_bubbles,
         })
+        gc.collect()
+        return response
 
     except Exception as e:
         print(f"[Callouts] Error: {e}")
         traceback.print_exc()
+        gc.collect()
         return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500
 
 def flip_y(zoom, y):
@@ -1234,12 +1240,14 @@ def generate_tiles():
             )
 
         finally:
-            # Clean up temp directory
+            # Clean up temp directory and free memory
             shutil.rmtree(temp_dir, ignore_errors=True)
+            gc.collect()
 
     except Exception as e:
         print(f"[Tiles] Error: {e}")
         traceback.print_exc()
+        gc.collect()
         return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500
 
 @app.route('/detect-layout', methods=['POST'])
@@ -1331,11 +1339,13 @@ def detect_layout_endpoint():
         for region in regions:
             print(f"  {region['class']}: conf={region['confidence']:.2f} bbox={[round(v, 3) for v in region['bbox']]}")
 
+        gc.collect()
         return jsonify({"regions": regions})
 
     except Exception as e:
         print(f"[Layout] Error: {e}")
         traceback.print_exc()
+        gc.collect()
         return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500
 
 

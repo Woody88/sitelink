@@ -1,6 +1,11 @@
-// Minimal test worker that doesn't include LiveStore dependencies
-// This avoids the OpenTelemetry/node:os issue in cloudflare:test
+// Test worker that re-exports the real PlanCoordinator and adds an upload endpoint.
+// All non-cloudflare imports in plan-coordinator.ts are type-only — safe for workerd.
 import { DurableObject } from "cloudflare:workers";
+import { uploadPdfAndTriggerPipeline } from "./processing/r2-with-notifications";
+
+// Re-export the real PlanCoordinator (dispatch methods, event emissions, alarm handler)
+export { PlanCoordinator } from "./processing/plan-coordinator";
+export type { PlanCoordinatorState } from "./processing/plan-coordinator";
 
 export interface TestEnv {
 	DB: D1Database;
@@ -21,289 +26,6 @@ export interface TestEnv {
 	OPENROUTER_MODEL?: string;
 }
 
-export interface PlanCoordinatorState {
-	planId: string;
-	projectId: string;
-	organizationId: string;
-	totalSheets: number;
-	generatedImages: string[];
-	extractedMetadata: string[];
-	validSheets: string[];
-	sheetNumberMap: Record<string, string>;
-	detectedCallouts: string[];
-	detectedLayouts: string[];
-	generatedTiles: string[];
-	status:
-		| "image_generation"
-		| "metadata_extraction"
-		| "awaiting_metadata_complete"
-		| "parallel_detection"
-		| "tile_generation"
-		| "complete"
-		| "failed";
-	createdAt: number;
-	lastError?: string;
-}
-
-export class PlanCoordinator extends DurableObject<TestEnv> {
-	// ---- Durable storage persistence ----
-	// State is persisted to this.ctx.storage so it survives DO eviction
-	// during long-running pipeline operations (image gen can take 30+ seconds).
-
-	private async loadState(): Promise<PlanCoordinatorState | null> {
-		return (await this.ctx.storage.get<PlanCoordinatorState>("state")) ?? null;
-	}
-
-	private async saveState(state: PlanCoordinatorState): Promise<void> {
-		await this.ctx.storage.put("state", state);
-	}
-
-	// ---- Public RPC methods (called by queue handlers via DO stub) ----
-
-	async initialize(params: {
-		planId: string;
-		projectId: string;
-		organizationId: string;
-		totalSheets: number;
-		timeoutMs?: number;
-	}) {
-		const state: PlanCoordinatorState = {
-			planId: params.planId,
-			projectId: params.projectId,
-			organizationId: params.organizationId,
-			totalSheets: params.totalSheets,
-			generatedImages: [],
-			extractedMetadata: [],
-			validSheets: [],
-			sheetNumberMap: {},
-			detectedCallouts: [],
-			detectedLayouts: [],
-			generatedTiles: [],
-			status: "image_generation",
-			createdAt: Date.now(),
-		};
-		await this.saveState(state);
-		return { success: true, state };
-	}
-
-	async getState(): Promise<PlanCoordinatorState | null> {
-		return this.loadState();
-	}
-
-	async sheetImageGenerated(sheetId: string) {
-		const state = await this.loadState();
-		if (!state) throw new Error("PlanCoordinator not initialized");
-		if (!state.generatedImages.includes(sheetId)) {
-			state.generatedImages.push(sheetId);
-		}
-		if (
-			state.generatedImages.length === state.totalSheets &&
-			state.status === "image_generation"
-		) {
-			state.status = "metadata_extraction";
-		}
-		await this.saveState(state);
-		return this.getProgress(state);
-	}
-
-	async sheetMetadataExtracted(
-		sheetId: string,
-		isValid: boolean,
-		sheetNumber?: string,
-	) {
-		const state = await this.loadState();
-		if (!state) throw new Error("PlanCoordinator not initialized");
-		if (!state.extractedMetadata.includes(sheetId)) {
-			state.extractedMetadata.push(sheetId);
-			if (isValid) {
-				state.validSheets.push(sheetId);
-				if (sheetNumber) {
-					state.sheetNumberMap[sheetId] = sheetNumber;
-				}
-			}
-		}
-		if (
-			state.extractedMetadata.length === state.totalSheets &&
-			state.status === "metadata_extraction"
-		) {
-			state.status = "parallel_detection";
-		}
-		await this.saveState(state);
-		return this.getProgress(state);
-	}
-
-	async sheetCalloutsDetected(sheetId: string) {
-		const state = await this.loadState();
-		if (!state) throw new Error("PlanCoordinator not initialized");
-		if (!state.detectedCallouts.includes(sheetId)) {
-			state.detectedCallouts.push(sheetId);
-		}
-		this.checkParallelDetectionComplete(state);
-		await this.saveState(state);
-		return this.getProgress(state);
-	}
-
-	async sheetTilesGenerated(sheetId: string) {
-		const state = await this.loadState();
-		if (!state) throw new Error("PlanCoordinator not initialized");
-		if (!state.generatedTiles.includes(sheetId)) {
-			state.generatedTiles.push(sheetId);
-		}
-		if (
-			state.generatedTiles.length === state.validSheets.length &&
-			state.status === "tile_generation"
-		) {
-			state.status = "complete";
-		}
-		await this.saveState(state);
-		return this.getProgress(state);
-	}
-
-	async markFailed(error: string) {
-		const state = await this.loadState();
-		if (!state) throw new Error("PlanCoordinator not initialized");
-		state.status = "failed";
-		state.lastError = error;
-		await this.saveState(state);
-		return this.getProgress(state);
-	}
-
-	// ---- Fetch handler ----
-	// DocLayout detection uses coordinator.fetch() (not RPC).
-	// Existing integration tests also call via fetch and expect { success, state } responses.
-
-	override async fetch(request: Request): Promise<Response> {
-		const url = new URL(request.url);
-
-		try {
-			if (url.pathname === "/initialize" && request.method === "POST") {
-				const body = (await request.json()) as {
-					planId: string;
-					projectId: string;
-					organizationId: string;
-					totalSheets: number;
-					timeoutMs?: number;
-				};
-				const result = await this.initialize(body);
-				return Response.json(result);
-			}
-
-			if (url.pathname === "/getState") {
-				const state = await this.loadState();
-				if (!state) {
-					return Response.json({ error: "Not initialized" }, { status: 400 });
-				}
-				return Response.json(state);
-			}
-
-			if (url.pathname === "/sheetImageGenerated" && request.method === "POST") {
-				const { sheetId } = (await request.json()) as { sheetId: string };
-				await this.sheetImageGenerated(sheetId);
-				const state = await this.loadState();
-				return Response.json({ success: true, state });
-			}
-
-			if (url.pathname === "/sheetMetadataExtracted" && request.method === "POST") {
-				const { sheetId, isValid, sheetNumber } = (await request.json()) as {
-					sheetId: string;
-					isValid: boolean;
-					sheetNumber?: string;
-				};
-				await this.sheetMetadataExtracted(sheetId, isValid, sheetNumber);
-				const state = await this.loadState();
-				return Response.json({ success: true, state });
-			}
-
-			if (url.pathname === "/sheetCalloutsDetected" && request.method === "POST") {
-				const { sheetId } = (await request.json()) as { sheetId: string };
-				await this.sheetCalloutsDetected(sheetId);
-				const state = await this.loadState();
-				return Response.json({ success: true, state });
-			}
-
-			if (url.pathname === "/sheetLayoutDetected" && request.method === "POST") {
-				const { sheetId } = (await request.json()) as { sheetId: string };
-				const state = await this.loadState();
-				if (!state) {
-					return Response.json({ error: "Not initialized" }, { status: 400 });
-				}
-				if (!state.detectedLayouts.includes(sheetId)) {
-					state.detectedLayouts.push(sheetId);
-				}
-				this.checkParallelDetectionComplete(state);
-				await this.saveState(state);
-				return Response.json({ success: true, state });
-			}
-
-			if (url.pathname === "/sheetTilesGenerated" && request.method === "POST") {
-				const { sheetId } = (await request.json()) as { sheetId: string };
-				await this.sheetTilesGenerated(sheetId);
-				const state = await this.loadState();
-				return Response.json({ success: true, state });
-			}
-
-			if (url.pathname === "/markFailed" && request.method === "POST") {
-				const { error } = (await request.json()) as { error: string };
-				await this.markFailed(error);
-				const state = await this.loadState();
-				return Response.json({ success: true, state });
-			}
-
-			return Response.json({ error: "Method not found" }, { status: 404 });
-		} catch (error) {
-			return Response.json(
-				{ error: error instanceof Error ? error.message : String(error) },
-				{ status: 500 },
-			);
-		}
-	}
-
-	private checkParallelDetectionComplete(state: PlanCoordinatorState): void {
-		if (state.status !== "parallel_detection") return;
-		const calloutsComplete =
-			state.detectedCallouts.length === state.validSheets.length;
-		const layoutsComplete =
-			state.detectedLayouts.length === state.validSheets.length;
-		if (calloutsComplete && layoutsComplete) {
-			state.status = "tile_generation";
-		}
-	}
-
-	private getProgress(state: PlanCoordinatorState) {
-		return {
-			planId: state.planId,
-			status: state.status,
-			progress: {
-				images: {
-					completed: state.generatedImages.length,
-					total: state.totalSheets,
-				},
-				metadata: {
-					completed: state.extractedMetadata.length,
-					total: state.totalSheets,
-				},
-				callouts: {
-					completed: state.detectedCallouts.length,
-					total: state.validSheets.length,
-				},
-				layouts: {
-					completed: state.detectedLayouts.length,
-					total: state.validSheets.length,
-				},
-				tiles: {
-					completed: state.generatedTiles.length,
-					total: state.validSheets.length,
-				},
-			},
-			validSheets: state.validSheets,
-			validSheetNumbers: state.validSheets.map(
-				(id) => state.sheetNumberMap[id] || id,
-			),
-			sheetNumberMap: state.sheetNumberMap,
-		};
-	}
-}
-
 // Proxies container calls to the real Docker container via PDF_CONTAINER_PROXY service binding.
 // This replaces the real PdfProcessor (which extends Container from @cloudflare/containers
 // and doesn't work in WSL2/test environments).
@@ -319,7 +41,15 @@ export class TestPdfProcessor extends DurableObject<TestEnv> {
 				{ status: 503 },
 			);
 		}
-		return this.env.PDF_CONTAINER_PROXY.fetch(request);
+		// Reconstruct the request to avoid workerd "Can't read from request stream
+		// after response has been sent" error (github.com/cloudflare/workerd#1730)
+		const body = await request.arrayBuffer();
+		const newRequest = new Request(request.url, {
+			method: request.method,
+			headers: request.headers,
+			body: body.byteLength > 0 ? body : undefined,
+		});
+		return this.env.PDF_CONTAINER_PROXY.fetch(newRequest);
 	}
 }
 
@@ -372,7 +102,95 @@ export class LiveStoreCollector extends DurableObject<TestEnv> {
 }
 
 export default {
-	async fetch(_request: Request): Promise<Response> {
+	async fetch(request: Request, env: TestEnv): Promise<Response> {
+		const url = new URL(request.url);
+
+		if (url.pathname === "/api/plans/upload" && request.method === "POST") {
+			try {
+				const authHeader = request.headers.get("authorization");
+				const authToken = authHeader?.replace("Bearer ", "");
+
+				if (!authToken) {
+					return Response.json({ error: "Missing authorization token" }, { status: 401 });
+				}
+
+				const sessionResult = await env.DB.prepare(
+					"SELECT s.*, u.id as user_id, u.email, u.name FROM session s JOIN user u ON s.user_id = u.id WHERE s.token = ? AND s.expires_at > ?",
+				)
+					.bind(authToken, Date.now())
+					.first<{ user_id: string; email: string; name?: string }>();
+
+				if (!sessionResult) {
+					return Response.json({ error: "Invalid or expired session" }, { status: 401 });
+				}
+
+				const formData = await request.formData();
+				const file = formData.get("file") as File;
+				const projectId = formData.get("projectId") as string;
+				const organizationId = formData.get("organizationId") as string;
+
+				if (!file || !projectId || !organizationId) {
+					return Response.json(
+						{ error: "Missing required fields: file, projectId, organizationId" },
+						{ status: 400 },
+					);
+				}
+
+				if (file.type !== "application/pdf") {
+					return Response.json({ error: "File must be a PDF" }, { status: 400 });
+				}
+
+				// Use crypto.randomUUID() to avoid nanoid dynamic import issues in workerd
+				const planId = crypto.randomUUID();
+				const pdfPath = `organizations/${organizationId}/projects/${projectId}/plans/${planId}/source.pdf`;
+				const totalPages = 1;
+				const planName = file.name.replace(/\.pdf$/i, "");
+
+				await uploadPdfAndTriggerPipeline(env as any, pdfPath, await file.arrayBuffer(), {
+					planId,
+					projectId,
+					organizationId,
+					totalPages,
+					planName,
+				});
+
+				// Commit planUploaded event via LiveStoreCollector
+				const liveStoreStub = env.LIVESTORE_CLIENT_DO.get(
+					env.LIVESTORE_CLIENT_DO.idFromName(organizationId),
+				);
+				await liveStoreStub.fetch("http://internal/commit?storeId=" + organizationId, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						eventName: "planUploaded",
+						data: {
+							id: planId,
+							projectId,
+							fileName: file.name,
+							fileSize: file.size,
+							mimeType: file.type,
+							localPath: `file://plans/${planId}/source.pdf`,
+							remotePath: pdfPath,
+							uploadedBy: sessionResult.user_id,
+							uploadedAt: Date.now(),
+						},
+					}),
+				});
+
+				return Response.json({
+					success: true,
+					planId,
+					message: "Plan uploaded, processing started",
+				});
+			} catch (error) {
+				console.error("Plan upload error:", error);
+				return Response.json(
+					{ error: error instanceof Error ? error.message : "Upload failed" },
+					{ status: 500 },
+				);
+			}
+		}
+
 		return new Response("Test worker");
 	},
 };
