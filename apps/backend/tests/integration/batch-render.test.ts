@@ -97,7 +97,7 @@ describe("Batch Render: /render-pages endpoint (requires Docker)", () => {
 		}
 	});
 
-	it("should call /render-pages on the container and get valid response", async () => {
+	it("should call /render-pages on the container and get valid response", { timeout: 60_000 }, async () => {
 		// Load a multi-page PDF fixture
 		const pdfResponse = await env.FIXTURE_LOADER!.fetch(
 			`http://fixture/${TEST_FIXTURE}`,
