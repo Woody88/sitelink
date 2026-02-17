@@ -13,3 +13,4 @@ PyMuPDF>=1.23.0
 scipy>=1.10.0
 httpx>=0.25.0
 doclayout-yolo>=0.0.1
+huggingface_hub
