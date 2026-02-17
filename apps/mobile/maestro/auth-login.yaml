@@ -10,47 +10,46 @@
 #   - Backend running (bun dev:network)
 #   - User must already exist (run auth-signup.yaml first if fresh DB)
 
-appId: host.exp.exponent
+appId: com.nessei.sitelink
 ---
 - launchApp:
     clearState: true
 
-# Enter Expo dev server URL manually
-- tapOn: 'Enter URL manually'
-- inputText: 'exp://192.168.2.13:8081'
-- tapOn: 'Connect'
-- waitForAnimationToEnd
+# Dev client launcher may appear after clearState - tap dev server if visible
+- extendedWaitUntil:
+    visible: 'http://localhost:8081'
+    timeout: 10000
+    optional: true
+- tapOn:
+    text: 'http://localhost:8081'
+    optional: true
 
-# Dismiss Expo account login prompt if it appears (tap X at top right)
-- runFlow:
-    when:
-      visible: 'Log in or create an account'
-    commands:
-      - tapOn:
-          point: '91%,7%'
-      - waitForAnimationToEnd
+# Dismiss dev menu intro popup if it appears
+- extendedWaitUntil:
+    visible: 'Continue'
+    timeout: 15000
+    optional: true
+- tapOn:
+    text: 'Continue'
+    optional: true
+# Close dev tools menu that opens after tapping Continue
+- pressKey: back
 
-# Dismiss Expo developer menu if it appears (tap outside the bottom sheet)
-- runFlow:
-    when:
-      visible: 'This is the developer menu'
-    commands:
-      - tapOn:
-          point: '50%,20%'
-      - waitForAnimationToEnd
-
-# Should be on login screen
-- assertVisible: 'Sign In'
+# Wait for app to load and show Sign In screen
+- extendedWaitUntil:
+    visible: 'Sign In'
+    timeout: 30000
 
 # Fill login form
 - tapOn:
     id: 'email-input'
-- inputText: ${TEST_EMAIL:-test@example.com}
+- inputText: 'test@example.com'
 - tapOn:
     id: 'password-input'
-- inputText: ${TEST_PASSWORD:-password123}
+- inputText: 'password123'
 
 # Submit login
+- hideKeyboard
 - tapOn:
     id: 'signin-button'
 - waitForAnimationToEnd
@@ -58,4 +57,4 @@ appId: host.exp.exponent
 # Verify we're on the Projects screen
 - extendedWaitUntil:
     visible: 'Projects'
-    timeout: 10000
+    timeout: 15000

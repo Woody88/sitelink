@@ -11,42 +11,35 @@
 #   - Backend running (bun dev:network)
 #   - Clean database state (bun wrangler:state:reset && bash delete_db.sh)
 
-appId: host.exp.exponent
+appId: com.nessei.sitelink
 ---
-- openLink: exp://192.168.2.13:8081
-- waitForAnimationToEnd
+- launchApp:
+    clearState: true
 
-# Dismiss Expo account login prompt if it appears (tap X at top right)
-- runFlow:
-    when:
-      visible: 'Log in or create an account'
-    commands:
-      - tapOn:
-          point: '91%,7%'
-      - waitForAnimationToEnd
+# Dev client launcher may appear after clearState - tap dev server if visible
+- extendedWaitUntil:
+    visible: 'http://localhost:8081'
+    timeout: 10000
+    optional: true
+- tapOn:
+    text: 'http://localhost:8081'
+    optional: true
 
-# Dismiss Expo developer menu if it appears (tap outside the bottom sheet)
-- runFlow:
-    when:
-      visible: '@sitelink/mobile'
-    commands:
-      - tapOn:
-          point: '93%,56%'
-      - waitForAnimationToEnd
+# Dismiss dev menu intro popup if it appears
+- extendedWaitUntil:
+    visible: 'Continue'
+    timeout: 15000
+    optional: true
+- tapOn:
+    text: 'Continue'
+    optional: true
+# Close dev tools menu that opens after tapping Continue
+- pressKey: back
 
-# Wait for app to load and show Sign In screen (may take a while for bundle download)
+# Wait for app to load and show Sign In screen
 - extendedWaitUntil:
     visible: 'Sign In'
-    timeout: 120000
-
-# Dismiss Expo developer menu AGAIN if it appears after app load (tap outside the bottom sheet)
-- runFlow:
-    when:
-      visible: '@sitelink/mobile'
-    commands:
-      - tapOn:
-          point: '93%,56%'
-      - waitForAnimationToEnd
+    timeout: 30000
 
 # Navigate to signup
 - tapOn:
@@ -60,14 +53,25 @@ appId: host.exp.exponent
 - tapOn:
     id: 'email-input'
 - inputText: 'test@example.com'
-- tapOn:
-    id: 'organization-input'
-- inputText: 'Test Organization'
+- hideKeyboard
 - tapOn:
     id: 'password-input'
 - inputText: 'password123'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'organization-input'
+    direction: DOWN
+- tapOn:
+    id: 'organization-input'
+- inputText: 'Test Organization'
+- hideKeyboard
 
 # Submit signup
+- scrollUntilVisible:
+    element:
+      id: 'signup-button'
+    direction: DOWN
 - tapOn:
     id: 'signup-button'
 - waitForAnimationToEnd
