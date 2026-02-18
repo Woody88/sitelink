@@ -1,19 +1,52 @@
 # Plan Upload Flow
 # Uploads a PDF plan from device storage
-# Must be inside a project on the Plans tab
+# Can start from the Projects list or from inside a project
 #
 # Prerequisites:
-#   - User must be inside a project (run project-create.yaml first)
-#   - sample-plan.pdf must be on device (bash push_plan.sh)
+#   - User must be logged in (run auth-login.yaml first)
+#   - A project must exist (run project-create.yaml first)
 #   - Backend running (bun dev:network)
-#
-# Note: This flow uses the Android file picker. The PDF should be
-# in the Downloads folder after running push_plan.sh
+#   - adb reverse ports set up (tcp:8081 and tcp:8787)
 
-appId: host.exp.exponent
+appId: com.nessei.sitelink
 ---
-# Verify we're on the Plans tab inside a project
-- assertVisible: 'Plans'
+# Launch app without clearing state (preserves login session)
+- launchApp
+
+# Handle dev client launcher if it appears
+- extendedWaitUntil:
+    visible: 'DEVELOPMENT SERVERS'
+    timeout: 5000
+    optional: true
+- runFlow:
+    when:
+      visible: 'DEVELOPMENT SERVERS'
+    commands:
+      - tapOn: 'http://localhost:8081'
+      - inputText: 'http://localhost:8081'
+      - pressKey: enter
+
+# Dismiss dev menu intro popup if it appears
+- runFlow:
+    when:
+      visible: 'Continue'
+    commands:
+      - tapOn: 'Continue'
+      - pressKey: back
+
+# Wait for the app to fully load (Projects screen or inside a project)
+- extendedWaitUntil:
+    visible: 'Riverside Apartments'
+    timeout: 30000
+
+# Tap into the project
+- tapOn: 'Riverside Apartments'
+- waitForAnimationToEnd
+
+# Verify we're on the Plans tab inside the project
+- extendedWaitUntil:
+    visible: 'Plans'
+    timeout: 10000
 
 # Tap FAB (+ button) to open upload sheet
 - tapOn:
@@ -29,28 +62,21 @@ appId: host.exp.exponent
 - tapOn: 'Device Storage'
 - waitForAnimationToEnd
 
-# Android file picker should open
-# Wait for it to load
+# Android file picker opens to Recent view
 - extendedWaitUntil:
-    visible:
-      text: '.*'
+    visible: 'Recent'
     timeout: 5000
 
-# Navigate to Downloads if not already there
-- runFlow:
-    when:
-      visible: 'Downloads'
-    commands:
-      - tapOn: 'Downloads'
-      - waitForAnimationToEnd
-
-# Look for sample-plan.pdf
-- extendedWaitUntil:
-    visible: 'sample-plan.pdf'
-    timeout: 5000
+# Find the structural drawings PDF in recent files
+- scrollUntilVisible:
+    element:
+      text: '4-Structural.*'
+    direction: DOWN
+    timeout: 10000
 
 # Select the PDF
-- tapOn: 'sample-plan.pdf'
+- tapOn:
+    text: '4-Structural.*'
 - waitForAnimationToEnd
 
 # Some file pickers require tapping Select/Open
@@ -79,8 +105,11 @@ appId: host.exp.exponent
     optional: true
 
 # After processing completes, we should see sheets
-# Wait for at least one folder to appear (processing pipeline creates these)
+# Wait for at least one sheet/folder to appear
 - extendedWaitUntil:
     visible:
-      text: '.*plans'
+      text: '.*Structural.*'
     timeout: 120000
+
+# Take a screenshot of the result
+- takeScreenshot: plan-upload-result
