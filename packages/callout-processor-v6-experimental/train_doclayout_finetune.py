@@ -50,7 +50,7 @@ except ImportError:
     print("Run: pip install doclayout-yolo")
     sys.exit(1)
 
-CLASSES = ["schedule_table", "notes_block", "legend_box"]
+CLASSES = ["legend", "notes", "schedule"]
 NUM_CLASSES = len(CLASSES)
 
 DATA_YAML = "datasets/document-layout-construction/data.yaml"
