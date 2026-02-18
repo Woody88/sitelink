@@ -25,6 +25,9 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # Cloudflare Workers local env (contains secrets)
 .dev.vars
 
+# Generated wrangler dev config (strips containers for local dev)
+wrangler.dev.json
+
 # caches
 .eslintcache
 .cache
