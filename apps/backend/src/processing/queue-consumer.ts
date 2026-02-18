@@ -10,7 +10,7 @@ import { getR2Path } from "./types"
 import type { events } from "@sitelink/domain"
 
 async function containerFetch(
-  container: { fetch: (url: string, init?: RequestInit) => Promise<Response> },
+  container: { fetch: (url: string, init?: RequestInit) => Promise<Response> } | null,
   url: string,
   init: RequestInit,
   env: Env,
@@ -19,22 +19,32 @@ async function containerFetch(
     const localUrl = url.replace("http://container/", env.LOCAL_CONTAINER_URL + "/")
     return fetch(localUrl, init)
   }
-  return container.fetch(url, init)
+  return container!.fetch(url, init)
+}
+
+function getContainer(env: Env, planId: string) {
+  if (env.LOCAL_CONTAINER_URL) return null
+  return env.PDF_PROCESSOR.get(env.PDF_PROCESSOR.idFromName(planId))
 }
 
 type EventName = keyof typeof events
 type EventData<T extends EventName> = Parameters<(typeof events)[T]>[0]
 
+type DOStub = { fetch: (url: string, init?: RequestInit) => Promise<Response> }
+
+function getLiveStoreStub(env: Env, organizationId: string): DOStub {
+  return env.LIVESTORE_CLIENT_DO.get(
+    env.LIVESTORE_CLIENT_DO.idFromName(organizationId),
+  )
+}
+
 async function commitEvent<T extends EventName>(
-  env: Env,
+  stub: DOStub,
   organizationId: string,
   eventName: T,
   data: EventData<T>,
 ): Promise<void> {
-  const liveStoreStub = env.LIVESTORE_CLIENT_DO.get(
-    env.LIVESTORE_CLIENT_DO.idFromName(organizationId),
-  )
-  await liveStoreStub.fetch("http://internal/commit?storeId=" + organizationId, {
+  await stub.fetch("http://internal/commit?storeId=" + organizationId, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ eventName, data }),
@@ -42,7 +52,7 @@ async function commitEvent<T extends EventName>(
 }
 
 async function emitProgressEvent(
-  env: Env,
+  stub: DOStub,
   organizationId: string,
   planId: string,
   _stage: string,
@@ -50,7 +60,7 @@ async function emitProgressEvent(
   _message: string,
 ): Promise<void> {
   try {
-    await commitEvent(env, organizationId, "planProcessingProgress", { planId, progress })
+    await commitEvent(stub, organizationId, "planProcessingProgress", { planId, progress })
   } catch (error) {
     console.warn(`[Progress] LiveStore emit failed:`, error)
   }
@@ -65,8 +75,10 @@ export async function handleImageGenerationQueue(
     console.log(`[ImageGeneration] Processing plan ${job.planId}`)
 
     try {
+      const liveStoreStub = getLiveStoreStub(env, job.organizationId)
+
       await emitProgressEvent(
-        env,
+        liveStoreStub,
         job.organizationId,
         job.planId,
         "image_generation",
@@ -90,12 +102,11 @@ export async function handleImageGenerationQueue(
 
       // Send PDF to container for image generation
       // Get a Container DO instance (Cloudflare Containers are Durable Objects)
-      const containerId = env.PDF_PROCESSOR.idFromName(job.planId)
-      const container = env.PDF_PROCESSOR.get(containerId)
+      const container = getContainer(env, job.planId)
 
       // Start container with environment variables injected from worker env
       // This ensures LLM API keys are available for later metadata extraction
-      if (!env.LOCAL_CONTAINER_URL) {
+      if (container) {
         await container.startAndWaitForPorts({
           startOptions: {
             envVars: {
@@ -146,7 +157,7 @@ export async function handleImageGenerationQueue(
       })
 
       await emitProgressEvent(
-        env,
+        liveStoreStub,
         job.organizationId,
         job.planId,
         "image_generation",
@@ -197,7 +208,7 @@ export async function handleImageGenerationQueue(
 
         // Emit LiveStore event (non-critical)
         try {
-          await commitEvent(env, job.organizationId, "sheetImageGenerated", {
+          await commitEvent(liveStoreStub, job.organizationId, "sheetImageGenerated", {
             sheetId: sheet.sheetId,
             projectId: job.projectId,
             planId: job.planId,
@@ -235,9 +246,11 @@ export async function handleMetadataExtractionQueue(
     console.log(`[MetadataExtraction] Processing sheet ${job.sheetId}`)
 
     try {
+      const liveStoreStub = getLiveStoreStub(env, job.organizationId)
+
       const metadataProgress = Math.round(25 + ((job.sheetNumber - 1) / job.totalSheets) * 25)
       await emitProgressEvent(
-        env,
+        liveStoreStub,
         job.organizationId,
         job.planId,
         "metadata_extraction",
@@ -263,12 +276,11 @@ export async function handleMetadataExtractionQueue(
       }
 
       // Send image to container for OCR/LLM extraction
-      const containerId = env.PDF_PROCESSOR.idFromName(job.planId)
-      const container = env.PDF_PROCESSOR.get(containerId)
+      const container = getContainer(env, job.planId)
 
       // Start container with environment variables injected from worker env
       // This is the Cloudflare Containers way to pass secrets to the container
-      if (!env.LOCAL_CONTAINER_URL) {
+      if (container) {
         await container.startAndWaitForPorts({
           startOptions: {
             envVars: {
@@ -318,7 +330,7 @@ export async function handleMetadataExtractionQueue(
 
       // Emit LiveStore event (non-critical, don't fail pipeline if this fails)
       try {
-        await commitEvent(env, job.organizationId, "sheetMetadataExtracted", {
+        await commitEvent(liveStoreStub, job.organizationId, "sheetMetadataExtracted", {
           sheetId: job.sheetId,
           planId: job.planId,
           sheetNumber: result.sheetNumber ?? "unknown",
@@ -351,8 +363,10 @@ export async function handleCalloutDetectionQueue(
     console.log(`[CalloutDetection] Processing sheet ${job.sheetId}`)
 
     try {
+      const liveStoreStub = getLiveStoreStub(env, job.organizationId)
+
       await emitProgressEvent(
-        env,
+        liveStoreStub,
         job.organizationId,
         job.planId,
         "callout_detection",
@@ -378,11 +392,10 @@ export async function handleCalloutDetectionQueue(
       }
 
       // Send image to container for callout detection (OpenCV + LLM)
-      const containerId = env.PDF_PROCESSOR.idFromName(job.planId)
-      const container = env.PDF_PROCESSOR.get(containerId)
+      const container = getContainer(env, job.planId)
 
       // Start container with LLM credentials for callout text recognition
-      if (!env.LOCAL_CONTAINER_URL) {
+      if (container) {
         await container.startAndWaitForPorts({
           startOptions: {
             envVars: {
@@ -455,7 +468,7 @@ export async function handleCalloutDetectionQueue(
 
       // Emit LiveStore event (non-critical, don't fail pipeline if this fails)
       try {
-        await commitEvent(env, job.organizationId, "sheetCalloutsDetected", {
+        await commitEvent(liveStoreStub, job.organizationId, "sheetCalloutsDetected", {
           sheetId: job.sheetId,
           planId: job.planId,
           markers,
@@ -481,7 +494,7 @@ export async function handleCalloutDetectionQueue(
             createdAt: Date.now(),
           }))
 
-          await commitEvent(env, job.organizationId, "sheetGridBubblesDetected", {
+          await commitEvent(liveStoreStub, job.organizationId, "sheetGridBubblesDetected", {
             sheetId: job.sheetId,
             bubbles,
             detectedAt: Date.now(),
@@ -518,8 +531,10 @@ export async function handleDocLayoutDetectionQueue(
     console.log(`[DocLayout] Processing sheet ${job.sheetId}`)
 
     try {
+      const liveStoreStub = getLiveStoreStub(env, job.organizationId)
+
       await emitProgressEvent(
-        env,
+        liveStoreStub,
         job.organizationId,
         job.planId,
         "layout_detection",
@@ -545,10 +560,9 @@ export async function handleDocLayoutDetectionQueue(
       }
 
       // Send image to container for DocLayout detection
-      const containerId = env.PDF_PROCESSOR.idFromName(job.planId)
-      const container = env.PDF_PROCESSOR.get(containerId)
+      const container = getContainer(env, job.planId)
 
-      if (!env.LOCAL_CONTAINER_URL) {
+      if (container) {
         await container.startAndWaitForPorts()
       }
 
@@ -594,7 +608,7 @@ export async function handleDocLayoutDetectionQueue(
 
       // Emit LiveStore event (non-critical)
       try {
-        await commitEvent(env, job.organizationId, "sheetLayoutRegionsDetected", {
+        await commitEvent(liveStoreStub, job.organizationId, "sheetLayoutRegionsDetected", {
           sheetId: job.sheetId,
           regions,
           detectedAt: Date.now(),
@@ -636,8 +650,10 @@ export async function handleTileGenerationQueue(
     console.log(`[TileGeneration] Processing sheet ${job.sheetId}`)
 
     try {
+      const liveStoreStub = getLiveStoreStub(env, job.organizationId)
+
       await emitProgressEvent(
-        env,
+        liveStoreStub,
         job.organizationId,
         job.planId,
         "tile_generation",
@@ -663,10 +679,9 @@ export async function handleTileGenerationQueue(
       }
 
       // Send image to container for PMTiles generation (pyvips → MBTiles → PMTiles)
-      const containerId = env.PDF_PROCESSOR.idFromName(job.planId)
-      const container = env.PDF_PROCESSOR.get(containerId)
+      const container = getContainer(env, job.planId)
 
-      if (!env.LOCAL_CONTAINER_URL) {
+      if (container) {
         await container.startAndWaitForPorts()
       }
 
@@ -715,7 +730,7 @@ export async function handleTileGenerationQueue(
 
       // Emit LiveStore event (non-critical, don't fail pipeline if this fails)
       try {
-        await commitEvent(env, job.organizationId, "sheetTilesGenerated", {
+        await commitEvent(liveStoreStub, job.organizationId, "sheetTilesGenerated", {
           sheetId: job.sheetId,
           planId: job.planId,
           localPmtilesPath: pmtilesPath,

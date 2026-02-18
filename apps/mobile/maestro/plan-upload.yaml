@@ -23,8 +23,6 @@ appId: com.nessei.sitelink
       visible: 'DEVELOPMENT SERVERS'
     commands:
       - tapOn: 'http://localhost:8081'
-      - inputText: 'http://localhost:8081'
-      - pressKey: enter
 
 # Dismiss dev menu intro popup if it appears
 - runFlow:
@@ -105,10 +103,10 @@ appId: com.nessei.sitelink
     optional: true
 
 # After processing completes, we should see sheets
-# Wait for at least one sheet/folder to appear
+# Wait for at least one sheet to appear (sheet numbers like S2, S4, O8, etc.)
 - extendedWaitUntil:
     visible:
-      text: '.*Structural.*'
+      text: '.*plans.*'
     timeout: 120000
 
 # Take a screenshot of the result

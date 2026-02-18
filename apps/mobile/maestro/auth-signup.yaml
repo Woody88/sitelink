@@ -16,25 +16,29 @@ appId: com.nessei.sitelink
 - launchApp:
     clearState: true
 
-# Dev client launcher may appear after clearState - tap dev server if visible
+# Dev client launcher appears after clearState showing the server list
 - extendedWaitUntil:
-    visible: 'http://localhost:8081'
-    timeout: 10000
-    optional: true
-- tapOn:
-    text: 'http://localhost:8081'
-    optional: true
-
-# Dismiss dev menu intro popup if it appears
-- extendedWaitUntil:
-    visible: 'Continue'
+    visible: 'DEVELOPMENT SERVERS'
     timeout: 15000
     optional: true
-- tapOn:
-    text: 'Continue'
-    optional: true
-# Close dev tools menu that opens after tapping Continue
-- pressKey: back
+- runFlow:
+    when:
+      visible: 'DEVELOPMENT SERVERS'
+    commands:
+      - tapOn: 'http://localhost:8081'
+      - runFlow:
+          when:
+            visible: 'Connect'
+          commands:
+            - tapOn: 'Connect'
+
+# Dismiss dev menu intro popup if it appears, then close dev tools menu
+- runFlow:
+    when:
+      visible: 'Continue'
+    commands:
+      - tapOn: 'Continue'
+      - pressKey: back
 
 # Wait for app to load and show Sign In screen
 - extendedWaitUntil:

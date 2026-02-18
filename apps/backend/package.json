@@ -4,8 +4,9 @@
 	"main": "src/index.ts",
 	"type": "module",
 	"scripts": {
-		"dev": "wrangler dev",
-		"dev:network": "wrangler dev --host 0.0.0.0",
+		"dev": "bun run dev:gen-config && wrangler dev --config wrangler.dev.json",
+		"dev:network": "bun run dev:gen-config && wrangler dev --config wrangler.dev.json --host 0.0.0.0",
+		"dev:gen-config": "bun -e \"const c=JSON.parse(require('fs').readFileSync('wrangler.json','utf8')); delete c.containers; require('fs').writeFileSync('wrangler.dev.json',JSON.stringify(c,null,2))\"",
 		"deploy": "wrangler deploy",
 		"cf-typegen": "wrangler types",
 		"wrangler:state:reset": "rm -rf .wrangler/state && bun run db:migrate:local",
