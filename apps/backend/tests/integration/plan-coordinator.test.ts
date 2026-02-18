@@ -58,13 +58,15 @@ describe("PlanCoordinator State Machine (Real DO)", () => {
 			expect(state.generatedTiles).toHaveLength(0);
 		});
 
-		it("should return error if getState called before initialize", async () => {
+		it("should return null state if getState called before initialize", async () => {
 			const planId = `uninit-${Date.now()}`;
 			const coordinatorId = env.PLAN_COORDINATOR_DO.idFromName(planId);
 			const coordinator = env.PLAN_COORDINATOR_DO.get(coordinatorId);
 
 			const res = await coordinator.fetch("http://internal/getState");
-			expect(res.status).toBe(400);
+			expect(res.status).toBe(200);
+			const body = await res.json();
+			expect(body).toBeNull();
 		});
 	});
 
