@@ -1,3 +1,6 @@
+import { fetch } from "expo/fetch";
+import { File } from "expo-file-system/next";
+
 const BACKEND_URL = process.env.EXPO_PUBLIC_BETTER_AUTH_URL;
 
 if (!BACKEND_URL) {
@@ -24,12 +27,17 @@ export async function uploadPlanToBackend(
 	const { fileUri, fileName, projectId, organizationId, sessionToken } =
 		options;
 
+	console.log("[UPLOAD-API] Starting upload:", {
+		fileUri: fileUri?.substring(0, 80),
+		fileName,
+		projectId,
+		organizationId,
+		hasToken: !!sessionToken,
+	});
+
+	const file = new File(fileUri);
 	const formData = new FormData();
-	formData.append("file", {
-		uri: fileUri,
-		type: "application/pdf",
-		name: fileName,
-	} as any);
+	formData.append("file", file as unknown as Blob, fileName);
 	formData.append("projectId", projectId);
 	formData.append("organizationId", organizationId);
 
@@ -40,6 +48,8 @@ export async function uploadPlanToBackend(
 		},
 		body: formData,
 	});
+
+	console.log("[UPLOAD-API] Response status:", response.status);
 
 	if (!response.ok) {
 		const errorText = await response.text();
