@@ -9,6 +9,19 @@ import type {
 import { getR2Path } from "./types"
 import type { events } from "@sitelink/domain"
 
+async function containerFetch(
+  container: { fetch: (url: string, init?: RequestInit) => Promise<Response> },
+  url: string,
+  init: RequestInit,
+  env: Env,
+): Promise<Response> {
+  if (env.LOCAL_CONTAINER_URL) {
+    const localUrl = url.replace("http://container/", env.LOCAL_CONTAINER_URL + "/")
+    return fetch(localUrl, init)
+  }
+  return container.fetch(url, init)
+}
+
 type EventName = keyof typeof events
 type EventData<T extends EventName> = Parameters<(typeof events)[T]>[0]
 
@@ -82,20 +95,22 @@ export async function handleImageGenerationQueue(
 
       // Start container with environment variables injected from worker env
       // This ensures LLM API keys are available for later metadata extraction
-      await container.startAndWaitForPorts({
-        startOptions: {
-          envVars: {
-            ...(env.OPENROUTER_API_KEY && {
-              OPENROUTER_API_KEY: env.OPENROUTER_API_KEY,
-            }),
-            ...(env.OPENROUTER_MODEL && {
-              OPENROUTER_MODEL: env.OPENROUTER_MODEL,
-            }),
+      if (!env.LOCAL_CONTAINER_URL) {
+        await container.startAndWaitForPorts({
+          startOptions: {
+            envVars: {
+              ...(env.OPENROUTER_API_KEY && {
+                OPENROUTER_API_KEY: env.OPENROUTER_API_KEY,
+              }),
+              ...(env.OPENROUTER_MODEL && {
+                OPENROUTER_MODEL: env.OPENROUTER_MODEL,
+              }),
+            },
           },
-        },
-      })
+        })
+      }
 
-      const response = await container.fetch("http://container/generate-images", {
+      const response = await containerFetch(container, "http://container/generate-images", {
         method: "POST",
         headers: {
           "Content-Type": "application/pdf",
@@ -105,7 +120,7 @@ export async function handleImageGenerationQueue(
           "X-Total-Pages": job.totalPages.toString(),
         },
         body: pdfBuffer,
-      })
+      }, env)
 
       if (!response.ok) {
         throw new Error(`Container returned ${response.status}: ${await response.text()}`)
@@ -143,7 +158,7 @@ export async function handleImageGenerationQueue(
         const sheet = result.sheets[i]
         const _pageProgress = Math.round(10 + (i / result.sheets.length) * 15)
         // Call container to render this specific page as PNG
-        const renderResponse = await container.fetch("http://container/render-page", {
+        const renderResponse = await containerFetch(container, "http://container/render-page", {
           method: "POST",
           headers: {
             "Content-Type": "application/pdf",
@@ -151,7 +166,7 @@ export async function handleImageGenerationQueue(
             "X-Page-Number": sheet.pageNumber.toString(),
           },
           body: pdfBuffer,
-        })
+        }, env)
 
         if (!renderResponse.ok) {
           throw new Error(
@@ -253,20 +268,22 @@ export async function handleMetadataExtractionQueue(
 
       // Start container with environment variables injected from worker env
       // This is the Cloudflare Containers way to pass secrets to the container
-      await container.startAndWaitForPorts({
-        startOptions: {
-          envVars: {
-            ...(env.OPENROUTER_API_KEY && {
-              OPENROUTER_API_KEY: env.OPENROUTER_API_KEY,
-            }),
-            ...(env.OPENROUTER_MODEL && {
-              OPENROUTER_MODEL: env.OPENROUTER_MODEL,
-            }),
+      if (!env.LOCAL_CONTAINER_URL) {
+        await container.startAndWaitForPorts({
+          startOptions: {
+            envVars: {
+              ...(env.OPENROUTER_API_KEY && {
+                OPENROUTER_API_KEY: env.OPENROUTER_API_KEY,
+              }),
+              ...(env.OPENROUTER_MODEL && {
+                OPENROUTER_MODEL: env.OPENROUTER_MODEL,
+              }),
+            },
           },
-        },
-      })
+        })
+      }
 
-      const response = await container.fetch("http://container/extract-metadata", {
+      const response = await containerFetch(container, "http://container/extract-metadata", {
         method: "POST",
         headers: {
           "Content-Type": "image/png",
@@ -274,7 +291,7 @@ export async function handleMetadataExtractionQueue(
           "X-Plan-Id": job.planId,
         },
         body: await imageData.arrayBuffer(),
-      })
+      }, env)
 
       if (!response.ok) {
         throw new Error(`Container returned ${response.status}: ${await response.text()}`)
@@ -365,20 +382,22 @@ export async function handleCalloutDetectionQueue(
       const container = env.PDF_PROCESSOR.get(containerId)
 
       // Start container with LLM credentials for callout text recognition
-      await container.startAndWaitForPorts({
-        startOptions: {
-          envVars: {
-            ...(env.OPENROUTER_API_KEY && {
-              OPENROUTER_API_KEY: env.OPENROUTER_API_KEY,
-            }),
-            ...(env.OPENROUTER_MODEL && {
-              OPENROUTER_MODEL: env.OPENROUTER_MODEL,
-            }),
+      if (!env.LOCAL_CONTAINER_URL) {
+        await container.startAndWaitForPorts({
+          startOptions: {
+            envVars: {
+              ...(env.OPENROUTER_API_KEY && {
+                OPENROUTER_API_KEY: env.OPENROUTER_API_KEY,
+              }),
+              ...(env.OPENROUTER_MODEL && {
+                OPENROUTER_MODEL: env.OPENROUTER_MODEL,
+              }),
+            },
           },
-        },
-      })
+        })
+      }
 
-      const response = await container.fetch("http://container/detect-callouts", {
+      const response = await containerFetch(container, "http://container/detect-callouts", {
         method: "POST",
         headers: {
           "Content-Type": "image/png",
@@ -388,7 +407,7 @@ export async function handleCalloutDetectionQueue(
           "X-Valid-Sheet-Numbers": JSON.stringify(job.validSheetNumbers),
         },
         body: await imageData.arrayBuffer(),
-      })
+      }, env)
 
       if (!response.ok) {
         throw new Error(`Container returned ${response.status}: ${await response.text()}`)
@@ -529,9 +548,11 @@ export async function handleDocLayoutDetectionQueue(
       const containerId = env.PDF_PROCESSOR.idFromName(job.planId)
       const container = env.PDF_PROCESSOR.get(containerId)
 
-      await container.startAndWaitForPorts()
+      if (!env.LOCAL_CONTAINER_URL) {
+        await container.startAndWaitForPorts()
+      }
 
-      const response = await container.fetch("http://container/detect-layout", {
+      const response = await containerFetch(container, "http://container/detect-layout", {
         method: "POST",
         headers: {
           "Content-Type": "image/png",
@@ -539,7 +560,7 @@ export async function handleDocLayoutDetectionQueue(
           "X-Plan-Id": job.planId,
         },
         body: await imageData.arrayBuffer(),
-      })
+      }, env)
 
       if (!response.ok) {
         throw new Error(`Container returned ${response.status}: ${await response.text()}`)
@@ -645,9 +666,11 @@ export async function handleTileGenerationQueue(
       const containerId = env.PDF_PROCESSOR.idFromName(job.planId)
       const container = env.PDF_PROCESSOR.get(containerId)
 
-      await container.startAndWaitForPorts()
+      if (!env.LOCAL_CONTAINER_URL) {
+        await container.startAndWaitForPorts()
+      }
 
-      const response = await container.fetch("http://container/generate-tiles", {
+      const response = await containerFetch(container, "http://container/generate-tiles", {
         method: "POST",
         headers: {
           "Content-Type": "image/png",
@@ -657,7 +680,7 @@ export async function handleTileGenerationQueue(
           "X-Project-Id": job.projectId,
         },
         body: await imageData.arrayBuffer(),
-      })
+      }, env)
 
       if (!response.ok) {
         throw new Error(`Container returned ${response.status}: ${await response.text()}`)

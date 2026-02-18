@@ -30,7 +30,8 @@
 		"test:coverage": "vitest --coverage",
 		"test:upload": "bun scripts/test-upload.ts",
 		"livestore:events": "bun scripts/view-eventlog.ts",
-		"viewer": "bun --hot scripts/viewer-dev.ts"
+		"viewer": "bun --hot scripts/viewer-dev.ts",
+		"dev:flask": "cd container && python server.py"
 	},
 	"dependencies": {
 		"@better-auth/expo": "^1.4.10",
@@ -58,6 +59,6 @@
 		"react": "^18.3.1",
 		"react-dom": "^18.3.1",
 		"vitest": "^3.0.0",
-		"wrangler": "^4.54.0"
+		"wrangler": "^4.65.0"
 	}
 }
