@@ -1,4 +1,4 @@
-import { env } from "cloudflare:test";
+import { SELF, env, applyD1Migrations } from "cloudflare:test";
 import { describe, expect, it, beforeAll, beforeEach } from "vitest";
 import {
 	handleR2NotificationQueue,
@@ -28,7 +28,7 @@ import type {
 // manually. A drift between these and the real schemas is a test bug.
 //
 // TODO: Import `events` from `@sitelink/domain` and use Schema.decodeUnknownSync
-// for validation. Currently blocked by @livestore/livestore → OpenTelemetry
+// for validation. Currently blocked by @livestore/livestore -> OpenTelemetry
 // transitive import causing crashes in the cloudflare:test (workerd) environment.
 // ---------------------------------------------------------------------------
 const EVENT_SCHEMAS: Record<string, { required: string[]; optional: string[] }> = {
@@ -80,6 +80,10 @@ const EVENT_SCHEMAS: Record<string, { required: string[]; optional: string[] }> 
 	},
 	planProcessingCompleted: {
 		required: ["planId", "sheetCount", "completedAt"],
+		optional: [],
+	},
+	planUploaded: {
+		required: ["id", "projectId", "fileName", "fileSize", "mimeType", "localPath", "remotePath", "uploadedBy", "uploadedAt"],
 		optional: [],
 	},
 };
@@ -206,6 +210,31 @@ async function isContainerAvailable(): Promise<boolean> {
 const TEST_ORG_ID = "integration-test-org";
 const TEST_PROJECT_ID = "integration-test-project";
 const TEST_FIXTURE = "structural-4page.pdf";
+
+// Auth constants for upload tests
+const TEST_USER_ID = "test-user-001";
+const TEST_USER_EMAIL = "test@sitelink.dev";
+const TEST_USER_NAME = "Test User";
+const TEST_SESSION_TOKEN = "test-session-token-integration";
+const TEST_SESSION_EXPIRY = Date.now() + 24 * 60 * 60 * 1000; // 24 hours from now
+
+async function seedAuthData(): Promise<void> {
+	// Apply D1 migrations to create user/session tables
+	await applyD1Migrations(env.DB, env.TEST_MIGRATIONS!);
+
+	const now = Date.now();
+	await env.DB.prepare(
+		"INSERT OR REPLACE INTO user (id, name, email, email_verified, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?)",
+	)
+		.bind(TEST_USER_ID, TEST_USER_NAME, TEST_USER_EMAIL, now, now)
+		.run();
+
+	await env.DB.prepare(
+		"INSERT OR REPLACE INTO session (id, expires_at, token, created_at, updated_at, user_id) VALUES (?, ?, ?, ?, ?, ?)",
+	)
+		.bind("test-session-001", TEST_SESSION_EXPIRY, TEST_SESSION_TOKEN, now, now, TEST_USER_ID)
+		.run();
+}
 
 // ---------------------------------------------------------------------------
 // Unit tests (no Docker required)
@@ -358,8 +387,8 @@ describe("LiveStore Collector DO", () => {
 	});
 });
 
-describe("PlanCoordinator RPC Methods", () => {
-	it("should transition through full state machine via RPC", async () => {
+describe("PlanCoordinator RPC Methods (real coordinator)", () => {
+	it("should transition through full state machine via RPC with real dispatch", async () => {
 		const planId = "rpc-test-plan";
 		const coordinatorId = env.PLAN_COORDINATOR_DO.idFromName(planId);
 		const coordinator = env.PLAN_COORDINATOR_DO.get(coordinatorId) as any;
@@ -375,22 +404,24 @@ describe("PlanCoordinator RPC Methods", () => {
 		let state = await coordinator.getState();
 		expect(state.status).toBe("image_generation");
 
+		// sheetImageGenerated triggers triggerMetadataExtraction() which sends to queue
 		await coordinator.sheetImageGenerated("sheet-0");
 		state = await coordinator.getState();
 		expect(state.status).toBe("metadata_extraction");
 
+		// sheetMetadataExtracted triggers emitMetadataCompleted() + triggerCalloutDetection() + triggerDocLayoutDetection()
 		await coordinator.sheetMetadataExtracted("sheet-0", true, "A1");
 		state = await coordinator.getState();
 		expect(state.status).toBe("parallel_detection");
 
 		await coordinator.sheetCalloutsDetected("sheet-0");
 		state = await coordinator.getState();
-		// Still in parallel_detection — layout not done yet
+		// Still in parallel_detection -- layout not done yet
 		expect(state.status).toBe("parallel_detection");
 		expect(state.detectedCallouts).toHaveLength(1);
 		expect(state.detectedLayouts).toHaveLength(0);
 
-		// DocLayout uses fetch (not RPC)
+		// DocLayout uses fetch (not RPC) -- also works with real coordinator
 		await coordinator.fetch("http://internal/sheetLayoutDetected", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
@@ -398,8 +429,10 @@ describe("PlanCoordinator RPC Methods", () => {
 		});
 
 		state = await coordinator.getState();
+		// checkParallelDetectionComplete triggers triggerTileGeneration()
 		expect(state.status).toBe("tile_generation");
 
+		// sheetTilesGenerated triggers emitProcessingComplete()
 		await coordinator.sheetTilesGenerated("sheet-0");
 		state = await coordinator.getState();
 		expect(state.status).toBe("complete");
@@ -430,7 +463,7 @@ describe("PlanCoordinator RPC Methods", () => {
 		expect(state.validSheets).toHaveLength(0);
 
 		// With 0 valid sheets, parallel detection is already "complete" (0 === 0)
-		// But nothing calls checkParallelDetectionComplete — this mirrors a real edge case
+		// But nothing calls checkParallelDetectionComplete -- this mirrors a real edge case
 		// where the coordinator would be stuck without external intervention
 	});
 });
@@ -442,11 +475,11 @@ describe("PlanCoordinator RPC Methods", () => {
 // They MUST be run via `bun run test:integration` which handles Docker lifecycle.
 // If Docker is not running, these tests FAIL (not skip).
 //
-// Known limitations (see QA review):
-// - startAndWaitForPorts() is a no-op (Cloudflare Containers is cloud-only)
-// - Tests call queue handlers directly, not the HTTP API (POST /api/plans/upload)
-// - Queue delivery/retry semantics are not tested (miniflare limitation)
-// - LiveStoreCollector accepts any payload shape (doesn't validate Effect schemas)
+// The PlanCoordinator is the REAL coordinator from src/processing/plan-coordinator.ts.
+// It dispatches to queues (triggerMetadataExtraction, triggerCalloutDetection, etc.)
+// and emits LiveStore events (planMetadataCompleted, planProcessingCompleted).
+// Queue messages from coordinator dispatch go to miniflare (can't auto-consume --
+// known miniflare limitation). Tests still manually drive each pipeline stage.
 // ---------------------------------------------------------------------------
 
 describe("Container Integration (requires Docker)", () => {
@@ -486,8 +519,9 @@ describe("Container Integration (requires Docker)", () => {
 });
 
 describe("Full Pipeline with Real Container", () => {
-	const testPlanId = "real-pipeline-test";
-	const pdfR2Path = `organizations/${TEST_ORG_ID}/projects/${TEST_PROJECT_ID}/plans/${testPlanId}/source.pdf`;
+	// planId is set by the upload endpoint (Stage 1) and shared across all stages
+	let testPlanId: string;
+	let pdfR2Path: string;
 
 	beforeAll(async () => {
 		const containerReady = await isContainerAvailable();
@@ -499,30 +533,59 @@ describe("Full Pipeline with Real Container", () => {
 			);
 		}
 
+		// Seed D1 with test user and session for upload auth
+		await seedAuthData();
 		await resetCollectedEvents(TEST_ORG_ID);
+	});
 
+	it("Stage 1: Upload PDF via HTTP endpoint", async () => {
+		// Load fixture PDF
 		const pdfResponse = await env.FIXTURE_LOADER!.fetch(
 			`http://fixture/${TEST_FIXTURE}`,
 		);
-		if (!pdfResponse.ok) {
-			throw new Error(
-				`Fixture not found: ${TEST_FIXTURE}. ` +
-					`Available fixtures in tests/fixtures/`,
-			);
-		}
+		expect(pdfResponse.ok, `Fixture not found: ${TEST_FIXTURE}`).toBe(true);
+		const pdfBlob = await pdfResponse.blob();
 
-		const pdfData = await pdfResponse.arrayBuffer();
-		await env.R2_BUCKET.put(pdfR2Path, pdfData, {
-			httpMetadata: { contentType: "application/pdf" },
-			customMetadata: {
-				planId: testPlanId,
-				projectId: TEST_PROJECT_ID,
-				organizationId: TEST_ORG_ID,
+		// Build multipart form data
+		const formData = new FormData();
+		formData.append("file", new File([pdfBlob], TEST_FIXTURE, { type: "application/pdf" }));
+		formData.append("projectId", TEST_PROJECT_ID);
+		formData.append("organizationId", TEST_ORG_ID);
+
+		// Call the real upload endpoint with auth
+		const uploadResponse = await SELF.fetch("http://worker/api/plans/upload", {
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${TEST_SESSION_TOKEN}`,
 			},
+			body: formData,
 		});
+
+		expect(uploadResponse.status, `Upload failed: ${await uploadResponse.clone().text()}`).toBe(200);
+
+		const result = (await uploadResponse.json()) as {
+			success: boolean;
+			planId: string;
+			message: string;
+		};
+		expect(result.success).toBe(true);
+		expect(result.planId).toBeTruthy();
+
+		// Store planId for subsequent stages
+		testPlanId = result.planId;
+		pdfR2Path = `organizations/${TEST_ORG_ID}/projects/${TEST_PROJECT_ID}/plans/${testPlanId}/source.pdf`;
+
+		// Verify PDF was stored in R2
+		const storedPdf = await env.R2_BUCKET.get(pdfR2Path);
+		expect(storedPdf, "PDF not found in R2 after upload").toBeTruthy();
+		const storedSize = (await storedPdf!.arrayBuffer()).byteLength;
+		expect(storedSize).toBeGreaterThan(0);
 	});
 
-	it("Stage 1: R2 notification triggers image generation queue", async () => {
+	it("Stage 1b: R2 notification triggers image generation queue", async () => {
+		// The upload endpoint sent a simulated R2 notification to the queue.
+		// Miniflare doesn't auto-consume queue messages, so we manually invoke
+		// the R2 notification handler with the same notification payload.
 		const notification: R2EventNotification = {
 			account: "test",
 			bucket: "sitelink-files-test",
@@ -578,6 +641,8 @@ describe("Full Pipeline with Real Container", () => {
 			expect(message.ackCalled, "Image generation failed (message retried, not acked)").toBe(true);
 			expect(message.retryCalled).toBe(false);
 
+			// Real coordinator: after all images generated, transitions to metadata_extraction
+			// AND calls triggerMetadataExtraction() which sends jobs to METADATA_EXTRACTION_QUEUE
 			const coordinatorId = env.PLAN_COORDINATOR_DO.idFromName(testPlanId);
 			const coordinator = env.PLAN_COORDINATOR_DO.get(coordinatorId) as any;
 			const state = await coordinator.getState();
@@ -654,12 +719,11 @@ describe("Full Pipeline with Real Container", () => {
 				).toBe(true);
 			}
 
+			// Real coordinator: after all metadata extracted, transitions to parallel_detection
+			// AND calls emitMetadataCompleted() + triggerCalloutDetection() + triggerDocLayoutDetection()
 			const postState = await coordinator.getState();
 			expect(postState.status).toBe("parallel_detection");
 
-			// Log validity results for debugging
-			// Metadata extraction may return isValid=false without OPENROUTER_API_KEY
-			// (Tesseract fallback may not extract valid sheet numbers from all PDFs)
 			if (postState.validSheets.length === 0) {
 				console.warn(
 					"[Integration] WARNING: Metadata extraction found 0 valid sheets.\n" +
@@ -677,6 +741,16 @@ describe("Full Pipeline with Real Container", () => {
 			for (const evt of metadataEvents) {
 				validateEventData("sheetMetadataExtracted", evt.data);
 			}
+
+			// Real coordinator emits planMetadataCompleted
+			const metaCompletedEvents = await getCollectedEventsByName(
+				TEST_ORG_ID,
+				"planMetadataCompleted",
+			);
+			expect(metaCompletedEvents.length).toBeGreaterThanOrEqual(1);
+			const metaCompletedEvent = metaCompletedEvents[0]!;
+			validateEventData("planMetadataCompleted", metaCompletedEvent.data);
+			expect(metaCompletedEvent.data.planId).toBe(testPlanId);
 		},
 	);
 
@@ -695,7 +769,7 @@ describe("Full Pipeline with Real Container", () => {
 			).toBe("parallel_detection");
 
 			if (state.validSheets.length === 0) {
-				// No valid sheets — nothing to detect callouts on. This is NOT a test failure;
+				// No valid sheets -- nothing to detect callouts on. This is NOT a test failure;
 				// it means metadata extraction didn't find valid sheet numbers (likely missing API key).
 				// The coordinator correctly transitioned to parallel_detection.
 				return;
@@ -769,7 +843,7 @@ describe("Full Pipeline with Real Container", () => {
 			).toBe("parallel_detection");
 
 			if (state.validSheets.length === 0) {
-				// No valid sheets — see note in Stage 4a
+				// No valid sheets -- see note in Stage 4a
 				return;
 			}
 
@@ -795,6 +869,8 @@ describe("Full Pipeline with Real Container", () => {
 				expect(message.ackCalled, `DocLayout detection failed for ${sheetId}`).toBe(true);
 			}
 
+			// Real coordinator: after both callouts + layouts done, checkParallelDetectionComplete
+			// transitions to tile_generation AND calls triggerTileGeneration()
 			const postLayoutState = await coordinator.getState();
 			expect(postLayoutState.status).toBe("tile_generation");
 			expect(postLayoutState.detectedLayouts.length).toBe(
@@ -838,7 +914,7 @@ describe("Full Pipeline with Real Container", () => {
 			if (state.validSheets.length === 0) {
 				// With 0 valid sheets, coordinator may still be in parallel_detection
 				// because nothing triggered checkParallelDetectionComplete.
-				// This is a known edge case — the real coordinator would be stuck here.
+				// This is a known edge case -- the real coordinator would be stuck here.
 				expect(state.status).toBe("parallel_detection");
 				return;
 			}
@@ -867,6 +943,8 @@ describe("Full Pipeline with Real Container", () => {
 				).toBe(true);
 			}
 
+			// Real coordinator: after all tiles generated, transitions to complete
+			// AND calls emitProcessingComplete()
 			const finalState = await coordinator.getState();
 			expect(finalState.status).toBe("complete");
 
@@ -910,5 +988,88 @@ describe("Full Pipeline with Real Container", () => {
 		expect(eventCounts.planProcessingStarted).toBeGreaterThanOrEqual(1);
 		expect(eventCounts.planProcessingProgress).toBeGreaterThanOrEqual(1);
 		expect(eventCounts.sheetImageGenerated).toBeGreaterThanOrEqual(1);
+
+		// Real coordinator emits these events (previously untested)
+		expect(eventCounts.planMetadataCompleted).toBeGreaterThanOrEqual(1);
+
+		// planProcessingCompleted is only emitted if validSheets > 0 and pipeline reaches completion
+		const coordinatorId = env.PLAN_COORDINATOR_DO.idFromName(testPlanId);
+		const coordinator = env.PLAN_COORDINATOR_DO.get(coordinatorId) as any;
+		const finalState = await coordinator.getState();
+		if (finalState?.status === "complete") {
+			expect(eventCounts.planProcessingCompleted).toBeGreaterThanOrEqual(1);
+		}
+	});
+});
+
+describe("Upload endpoint auth validation", () => {
+	beforeAll(async () => {
+		await seedAuthData();
+	});
+
+	it("should reject requests without auth token", async () => {
+		const formData = new FormData();
+		formData.append("file", new File(["fake"], "test.pdf", { type: "application/pdf" }));
+		formData.append("projectId", "proj-1");
+		formData.append("organizationId", "org-1");
+
+		const response = await SELF.fetch("http://worker/api/plans/upload", {
+			method: "POST",
+			body: formData,
+		});
+
+		expect(response.status).toBe(401);
+		const body = (await response.json()) as { error: string };
+		expect(body.error).toContain("Missing authorization token");
+	});
+
+	it("should reject requests with invalid session token", async () => {
+		const formData = new FormData();
+		formData.append("file", new File(["fake"], "test.pdf", { type: "application/pdf" }));
+		formData.append("projectId", "proj-1");
+		formData.append("organizationId", "org-1");
+
+		const response = await SELF.fetch("http://worker/api/plans/upload", {
+			method: "POST",
+			headers: { Authorization: "Bearer invalid-token-xyz" },
+			body: formData,
+		});
+
+		expect(response.status).toBe(401);
+		const body = (await response.json()) as { error: string };
+		expect(body.error).toContain("Invalid or expired session");
+	});
+
+	it("should reject non-PDF files", async () => {
+		const formData = new FormData();
+		formData.append("file", new File(["not a pdf"], "test.txt", { type: "text/plain" }));
+		formData.append("projectId", "proj-1");
+		formData.append("organizationId", "org-1");
+
+		const response = await SELF.fetch("http://worker/api/plans/upload", {
+			method: "POST",
+			headers: { Authorization: `Bearer ${TEST_SESSION_TOKEN}` },
+			body: formData,
+		});
+
+		expect(response.status).toBe(400);
+		const body = (await response.json()) as { error: string };
+		expect(body.error).toContain("File must be a PDF");
+	});
+
+	it("should reject requests with missing form fields", async () => {
+		const formData = new FormData();
+		formData.append("file", new File(["fake"], "test.pdf", { type: "application/pdf" }));
+		// Missing projectId and organizationId
+
+		const response = await SELF.fetch("http://worker/api/plans/upload", {
+			method: "POST",
+			headers: { Authorization: `Bearer ${TEST_SESSION_TOKEN}` },
+			body: formData,
+		});
+
+		expect(response.status).toBe(400);
+		const body = (await response.json()) as { error: string };
+		expect(body.error).toContain("Missing required fields");
 	});
 });

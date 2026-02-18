@@ -156,11 +156,11 @@ describe("PDF Pipeline Integration", () => {
 
 			expect(response.status).toBe(200);
 			const result = (await response.json()) as {
-				success: boolean;
-				state: { generatedImages: string[] };
+				planId: string;
+				status: string;
+				progress: { images: { completed: number; total: number } };
 			};
-			expect(result.success).toBe(true);
-			expect(result.state.generatedImages).toContain("sheet-0");
+			expect(result.progress.images.completed).toBeGreaterThanOrEqual(1);
 		});
 
 		it("should handle failure marking", async () => {
@@ -188,11 +188,10 @@ describe("PDF Pipeline Integration", () => {
 
 			expect(response.status).toBe(200);
 			const result = (await response.json()) as {
-				success: boolean;
-				state: { status: string; lastError: string };
+				planId: string;
+				status: string;
 			};
-			expect(result.state.status).toBe("failed");
-			expect(result.state.lastError).toBe("Test failure reason");
+			expect(result.status).toBe("failed");
 		});
 	});
 
