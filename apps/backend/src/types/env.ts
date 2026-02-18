@@ -41,6 +41,9 @@ export interface Env extends Cloudflare.Env {
 
   // Cloudflare Container for VIPS/Python processing
   PDF_PROCESSOR: DurableObjectNamespace<PdfProcessor>
+
+  // Dev-only: bypass workerd container.fetch() by routing to local Flask server
+  LOCAL_CONTAINER_URL?: string
 }
 
 /**
