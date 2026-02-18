@@ -13,6 +13,7 @@ export function useAuth() {
 	async function handleSignIn(email: string, password: string) {
 		const result = await signIn({ email, password });
 		if (result.data?.user) {
+			await refetch();
 			return { success: true };
 		}
 		return {
