@@ -1,7 +1,7 @@
 {
-  "pid": 6593,
-  "parent_pid": 6572,
+  "pid": 5348,
+  "parent_pid": 5251,
   "database": "/home/woodson/Code/projects/sitelink/.beads/beads.db",
   "version": "0.41.0",
-  "started_at": "2026-01-22T18:35:42.126321813Z"
+  "started_at": "2026-02-18T04:50:26.217102702Z"
 }
