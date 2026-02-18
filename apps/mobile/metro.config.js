@@ -12,10 +12,25 @@ const config = getDefaultConfig(__dirname);
 // Enable package exports for Better Auth
 config.resolver.unstable_enablePackageExports = true;
 
-// Needed for monorepo setup (can be removed in standalone projects)
+// Monorepo: Metro needs to watch the root for hoisted node_modules
 if (process.env.MONOREPO_ROOT) {
 	config.watchFolders = [path.resolve(process.env.MONOREPO_ROOT)];
 }
+
+// Exclude heavy directories Metro never needs to crawl (big win on WSL)
+config.resolver.blockList = [
+	/packages\/callout-processor.*/,
+	/archive\/.*/,
+	/tmp\/.*/,
+	/\.wrangler\/.*/,
+	/apps\/backend\/.*/,
+	/\.beads\/.*/,
+	/\.git\/.*/,
+	/.*\.pyc$/,
+	/.*\.wasm$/,
+	/validation_results\/.*/,
+	/test_.*_output\/.*/,
+];
 
 if (process.env.ENABLE_LIVESTORE) {
 	addLiveStoreDevtoolsMiddleware(config, {

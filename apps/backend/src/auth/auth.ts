@@ -46,7 +46,7 @@ export function createAuth(
 			expiresIn: 60 * 60 * 24 * 7, // 7 days
 			updateAge: 60 * 60 * 24, // 1 day
 		},
-		trustedOrigins: ["exp://192.168.2.13:8081", "http://localhost:8081"],
+		trustedOrigins: ["exp://192.168.2.13:8081", "http://localhost:8081", "sitelink-mobile://"],
 		plugins: [
 			expo(),
 			organization({

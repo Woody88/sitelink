@@ -9,7 +9,7 @@
 # Run with:
 #   maestro test apps/mobile/maestro/plan-view.yaml
 
-appId: host.exp.exponent
+appId: com.nessei.sitelink
 ---
 # Verify we're on the Plans tab
 - assertVisible: 'Plans'
@@ -58,7 +58,6 @@ appId: host.exp.exponent
     optional: true
 
 # Viewer should now be loaded - take a screenshot for verification
-# The close button (X) should be visible indicating viewer is loaded
 - extendedWaitUntil:
     visible:
       text: '.*'

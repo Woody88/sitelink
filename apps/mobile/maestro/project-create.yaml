@@ -2,15 +2,11 @@
 # Creates a new project from the Projects screen
 # Ends inside the project on the Plans tab (empty state)
 #
-# Environment variables:
-#   PROJECT_NAME - Project name (default: Test Project)
-#   PROJECT_ADDRESS - Project address (default: 123 Test St)
-#
 # Prerequisites:
 #   - User must be logged in and on the Projects screen
 #   - Run auth-signup.yaml or auth-login.yaml first
 
-appId: host.exp.exponent
+appId: com.nessei.sitelink
 ---
 # Verify we're on the Projects screen
 - assertVisible: 'Projects'
@@ -34,16 +30,24 @@ appId: host.exp.exponent
     visible: 'New Project'
     timeout: 5000
 
-# Fill project form
-- tapOn: 'Project Name'
-- inputText: ${PROJECT_NAME:-Test Project}
-- tapOn: 'Address (Optional)'
-- inputText: ${PROJECT_ADDRESS:-123 Test St}
+# Fill project form - tap on the input placeholder, then type
+- tapOn: 'e.g. Riverside Apartments'
+- inputText: 'Riverside Apartments'
+- tapOn: 'e.g. 123 Main St, Denver, CO'
+- inputText: '123 Main St, Denver, CO'
 
 # Create project
-- tapOn:
-    text: 'Create Project'
-    index: 1
+- hideKeyboard
+- tapOn: 'Create Project'
+- waitForAnimationToEnd
+
+# Wait for project to appear in the list
+- extendedWaitUntil:
+    visible: 'Riverside Apartments'
+    timeout: 10000
+
+# Tap on the project to enter it
+- tapOn: 'Riverside Apartments'
 - waitForAnimationToEnd
 
 # Verify we're inside the project
