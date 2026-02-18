@@ -17,63 +17,25 @@
 #
 # Prerequisites (IMPORTANT - run these first!):
 #   1. Reset backend: bun wrangler:state:reset
-#   2. Reset emulator DB: bash delete_db.sh
+#   2. Reset device DB: bash delete_db.sh
 #   3. Push test PDF: bash push_plan.sh
 #   4. Start backend: bun dev:network
-#   5. Start mobile: bun run android
+#   5. Start mobile: bun dev
+#   6. Ensure adb reverse ports: adb reverse tcp:8081 tcp:8081 && adb reverse tcp:8787 tcp:8787
 #
 # Run with:
 #   maestro test apps/mobile/maestro/e2e-signup-to-upload.yaml
 
-appId: host.exp.exponent
+appId: com.nessei.sitelink
 ---
 # === STEP 1: Signup ===
-- openLink: exp://192.168.2.13:8081
-- waitForAnimationToEnd
+- launchApp:
+    clearState: true
 
-# Dismiss Expo account login prompt if it appears (tap X at top right)
-- runFlow:
-    when:
-      visible: 'Log in or create an account'
-    commands:
-      - tapOn:
-          point: '91%,7%'
-      - waitForAnimationToEnd
-
-# Dismiss Expo developer menu if it appears (tap outside the bottom sheet)
-- runFlow:
-    when:
-      visible: '@sitelink/mobile'
-    commands:
-      - tapOn:
-          point: '93%,56%'
-      - waitForAnimationToEnd
-
-# Wait for app to load and show Sign In screen (may take a while for bundle download)
+# Wait for app to load and show Sign In screen
 - extendedWaitUntil:
     visible: 'Sign In'
-    timeout: 120000
-
-# Wait a moment for any dev menu to appear
-- waitForAnimationToEnd
-
-# Dismiss Expo developer menu if it appears after app load (tap X to close)
-- runFlow:
-    when:
-      visible: '@sitelink/mobile'
-    commands:
-      - tapOn:
-          point: '93%,56%'
-      - waitForAnimationToEnd
-
-# Extra check - also dismiss if "Continue" button from dev menu is visible
-- runFlow:
-    when:
-      visible: 'Continue'
-    commands:
-      - tapOn:
-          point: '93%,56%'
-      - waitForAnimationToEnd
+    timeout: 30000
 
 # Navigate to signup
 - tapOn:

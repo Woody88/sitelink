@@ -16,12 +16,13 @@ description: Automated mobile UI testing with Maestro. Use when testing the mobi
 
 **Flow location**: `apps/mobile/maestro/`
 **Documentation**: `apps/mobile/maestro/README.md`
+**App ID**: `com.nessei.sitelink` (dev client build, NOT Expo Go)
 
 ### Running Existing Flows
 
 ```bash
-# Via Maestro MCP
-mcp__maestro__run_flow_files(device_id="emulator-5554", flow_files="apps/mobile/maestro/<flow>.yaml")
+# Via Maestro MCP (use phone serial or emulator ID)
+mcp__maestro__run_flow_files(device_id="RFCX2045G1X", flow_files="apps/mobile/maestro/<flow>.yaml")
 
 # Via CLI
 maestro test apps/mobile/maestro/<flow>.yaml
@@ -31,9 +32,12 @@ maestro test apps/mobile/maestro/<flow>.yaml
 
 ```bash
 cd apps/backend && bun wrangler:state:reset   # Reset backend DB
-cd apps/mobile && bash delete_db.sh           # Reset emulator DB
+cd apps/mobile && bash delete_db.sh           # Reset device DB
 cd apps/mobile && bash push_plan.sh           # Push test files
 # IMPORTANT: Restart backend after reset!
+
+# Ensure port forwarding (physical device via USB)
+adb reverse tcp:8081 tcp:8081 && adb reverse tcp:8787 tcp:8787
 ```
 
 ## Creating New Flows
@@ -49,33 +53,16 @@ When you need to test something not covered by existing flows, create a new one 
 # Run with:
 #   maestro test apps/mobile/maestro/<name>.yaml
 
-appId: host.exp.exponent
+appId: com.nessei.sitelink
 ---
-# Use openLink instead of launchApp for Expo Go
-- openLink: exp://192.168.2.13:8081
-- waitForAnimationToEnd
-
-# Always handle Expo prompts (copy from existing flows)
-- runFlow:
-    when:
-      visible: 'Log in or create an account'
-    commands:
-      - tapOn:
-          point: '91%,7%'
-      - waitForAnimationToEnd
-
-- runFlow:
-    when:
-      visible: '@sitelink/mobile'
-    commands:
-      - tapOn:
-          point: '93%,56%'
-      - waitForAnimationToEnd
+# Dev client launches directly - no Expo Go prompts needed
+- launchApp:
+    clearState: true
 
 # Wait for app to load
 - extendedWaitUntil:
     visible: 'Sign In'
-    timeout: 120000
+    timeout: 30000
 
 # Your test steps here...
 ```
@@ -84,10 +71,9 @@ appId: host.exp.exponent
 
 | Pattern | Solution |
 |---------|----------|
-| Launch Expo Go app | `openLink: exp://192.168.2.13:8081` (NOT `launchApp`) |
-| Dismiss dev menu | Check for `@sitelink/mobile`, tap `93%,56%` |
-| Dismiss Expo login | Check for `Log in or create an account`, tap `91%,7%` |
-| Wait for app load | `extendedWaitUntil` with 120s timeout |
+| Launch app | `launchApp` with `clearState: true` (dev client, NOT Expo Go) |
+| App ID | `com.nessei.sitelink` (NOT `host.exp.exponent`) |
+| Wait for app load | `extendedWaitUntil` with 30s timeout |
 | Tap by testID | `tapOn: id: 'my-test-id'` |
 | Tap by text | `tapOn: 'Button Text'` |
 | File picker | Use full filename like `sample-plan.pdf` |
@@ -120,12 +106,12 @@ Then reference it in Maestro:
 
 | Issue | Solution |
 |-------|----------|
-| `Unable to launch app` | Use `openLink` not `launchApp` |
 | Element not found | Check exact text with `inspect_view_hierarchy` |
 | Sign up failed | Restart backend after DB reset |
 | File not in picker | Run `bash push_plan.sh` |
-| Dev menu blocking | Add `@sitelink/mobile` check before interactions |
+| Network request failed | Check `adb reverse` ports are set up |
 | Form text concatenated | Don't tap label, tap input or use autoFocus |
+| Phone disconnected | Replug USB, re-run `adb reverse tcp:8081 tcp:8081 && adb reverse tcp:8787 tcp:8787` |
 
 ## Verification Workflow
 
@@ -133,9 +119,10 @@ Then reference it in Maestro:
 
 1. Reset environment if needed
 2. Restart backend after resets
-3. Run appropriate Maestro flow (or create one)
-4. Take screenshots to verify
-5. Only then confirm the fix
+3. Ensure `adb reverse` ports are forwarded
+4. Run appropriate Maestro flow (or create one)
+5. Take screenshots to verify
+6. Only then confirm the fix
 
 ## Device Database Inspection
 
