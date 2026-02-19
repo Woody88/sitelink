@@ -509,10 +509,24 @@ export class PlanProcessingWorkflow extends WorkflowEntrypoint<Env, PlanProcessi
     }
 
     // Step 5: Detect layout per valid sheet (non-critical — catch errors and continue)
+    const layoutRegionsMap: Record<
+      string,
+      Array<{
+        id: string
+        regionClass: string
+        regionTitle?: string
+        x: number
+        y: number
+        width: number
+        height: number
+        confidence: number
+      }>
+    > = {}
+
     for (let li = 0; li < validSheetIds.length; li++) {
       const sheetId = validSheetIds[li]
       try {
-        await step.do(
+        const regions = await step.do(
           `detect-layout-${sheetId}`,
           {
             retries: { limit: 2, delay: "5 seconds", backoff: "linear" },
@@ -575,16 +589,228 @@ export class PlanProcessingWorkflow extends WorkflowEntrypoint<Env, PlanProcessi
               console.warn(`[Workflow] Layout event emit failed for ${sheetId}:`, liveStoreError)
             }
 
-            const layoutProgress = Math.round(55 + ((li + 1) / validSheetIds.length) * 20)
+            const layoutProgress = Math.round(55 + ((li + 1) / validSheetIds.length) * 15)
             await emitProgress(stub, organizationId, planId, layoutProgress)
             console.log(`[Workflow] Layout detected for ${sheetId}: ${regions.length} regions`)
+
+            return regions
           },
         )
+        if (regions && regions.length > 0) {
+          layoutRegionsMap[sheetId] = regions
+        }
       } catch (error) {
         console.warn(
           `[Workflow] Layout detection failed for ${sheetId}, continuing pipeline:`,
           error,
         )
+      }
+    }
+
+    // Step 5a: Extract content from detected layout regions (non-critical)
+    const sheetsWithRegions = Object.keys(layoutRegionsMap)
+    if (sheetsWithRegions.length > 0) {
+      console.log(
+        `[Workflow] Step 5a: Extracting content from ${sheetsWithRegions.length} sheets with layout regions`,
+      )
+
+      for (let si = 0; si < sheetsWithRegions.length; si++) {
+        const sheetId = sheetsWithRegions[si]
+        const regions = layoutRegionsMap[sheetId]
+
+        try {
+          await step.do(
+            `extract-regions-${sheetId}`,
+            {
+              retries: { limit: 1, delay: "5 seconds", backoff: "linear" },
+              timeout: "10 minutes",
+            },
+            async () => {
+              const imagePath = getR2Path(
+                organizationId,
+                projectId,
+                planId,
+                sheetId,
+                "source.png",
+              )
+              const imageData = await this.env.R2_BUCKET.get(imagePath)
+              if (!imageData) {
+                console.warn(`[Workflow] Image not found at ${imagePath}, skipping extraction`)
+                return
+              }
+              const imageBuffer = await imageData.arrayBuffer()
+
+              const container = getContainer(this.env, planId)
+              await ensureContainer(container as any, this.env)
+              const stub = getLiveStoreStub(this.env, organizationId)
+
+              for (const region of regions) {
+                try {
+                  const bboxJson = JSON.stringify([
+                    region.x,
+                    region.y,
+                    region.width,
+                    region.height,
+                  ])
+
+                  if (region.regionClass === "schedule") {
+                    const response = await containerFetch(
+                      container,
+                      "http://container/extract-schedule",
+                      {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "image/png",
+                          "X-Bbox": bboxJson,
+                          "X-Region-Title": region.regionTitle ?? "",
+                        },
+                        body: imageBuffer,
+                      },
+                      this.env,
+                    )
+
+                    if (response.ok) {
+                      const result = (await response.json()) as {
+                        scheduleType?: string
+                        entries?: Array<{
+                          mark?: string
+                          properties?: Record<string, unknown>
+                        }>
+                        confidence?: number
+                        error?: string
+                      }
+
+                      if (!result.error && result.entries && result.entries.length > 0) {
+                        const now = Date.now()
+                        await commitEvent(stub, organizationId, "sheetScheduleExtracted", {
+                          sheetId,
+                          regionId: region.id,
+                          scheduleType: result.scheduleType ?? "generic",
+                          entries: result.entries.map((e, idx) => ({
+                            id: `entry-${sheetId}-${region.id}-${idx}`,
+                            mark: e.mark ?? "",
+                            properties: JSON.stringify(e.properties ?? {}),
+                            confidence: result.confidence ?? 0.5,
+                            createdAt: now,
+                          })),
+                          extractedAt: now,
+                        })
+                        console.log(
+                          `[Workflow] Schedule extracted for ${sheetId}/${region.id}: ${result.entries.length} entries`,
+                        )
+                      }
+                    } else {
+                      console.warn(
+                        `[Workflow] Schedule extraction returned ${response.status} for ${sheetId}/${region.id}`,
+                      )
+                    }
+                  } else if (region.regionClass === "notes") {
+                    const response = await containerFetch(
+                      container,
+                      "http://container/extract-notes",
+                      {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "image/png",
+                          "X-Bbox": bboxJson,
+                        },
+                        body: imageBuffer,
+                      },
+                      this.env,
+                    )
+
+                    if (response.ok) {
+                      const result = (await response.json()) as {
+                        noteType?: string
+                        title?: string
+                        items?: Array<Record<string, unknown>>
+                        confidence?: number
+                        error?: string
+                      }
+
+                      if (!result.error && result.items && result.items.length > 0) {
+                        await commitEvent(stub, organizationId, "sheetNotesExtracted", {
+                          sheetId,
+                          regionId: region.id,
+                          content: JSON.stringify({
+                            title: result.title,
+                            items: result.items,
+                          }),
+                          noteType: result.noteType ?? "other",
+                          extractedAt: Date.now(),
+                        })
+                        console.log(
+                          `[Workflow] Notes extracted for ${sheetId}/${region.id}: ${result.items.length} items`,
+                        )
+                      }
+                    } else {
+                      console.warn(
+                        `[Workflow] Notes extraction returned ${response.status} for ${sheetId}/${region.id}`,
+                      )
+                    }
+                  } else if (region.regionClass === "legend") {
+                    const response = await containerFetch(
+                      container,
+                      "http://container/crop-region",
+                      {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "image/png",
+                          "X-Bbox": bboxJson,
+                        },
+                        body: imageBuffer,
+                      },
+                      this.env,
+                    )
+
+                    if (response.ok) {
+                      const cropData = await response.arrayBuffer()
+                      const cropPath = getR2Path(
+                        organizationId,
+                        projectId,
+                        planId,
+                        sheetId,
+                        `legend-${region.id}.png`,
+                      )
+                      await this.env.R2_BUCKET.put(cropPath, cropData, {
+                        httpMetadata: { contentType: "image/png" },
+                      })
+
+                      await commitEvent(stub, organizationId, "sheetLegendCropped", {
+                        sheetId,
+                        regionId: region.id,
+                        cropImageUrl: `/api/r2/${cropPath}`,
+                        croppedAt: Date.now(),
+                      })
+                      console.log(
+                        `[Workflow] Legend cropped for ${sheetId}/${region.id}: ${cropData.byteLength} bytes`,
+                      )
+                    } else {
+                      console.warn(
+                        `[Workflow] Legend crop returned ${response.status} for ${sheetId}/${region.id}`,
+                      )
+                    }
+                  }
+                } catch (regionError) {
+                  console.warn(
+                    `[Workflow] Region extraction failed for ${sheetId}/${region.id}:`,
+                    regionError,
+                  )
+                }
+              }
+
+              const extractionProgress = Math.round(
+                70 + ((si + 1) / sheetsWithRegions.length) * 10,
+              )
+              await emitProgress(stub, organizationId, planId, extractionProgress)
+            },
+          )
+        } catch (error) {
+          console.warn(
+            `[Workflow] Extraction step failed for ${sheetId}, continuing pipeline:`,
+            error,
+          )
+        }
       }
     }
 
@@ -654,7 +880,7 @@ export class PlanProcessingWorkflow extends WorkflowEntrypoint<Env, PlanProcessi
             console.warn(`[Workflow] LiveStore tiles emit failed for ${sheetId}:`, liveStoreError)
           }
 
-          const progress = Math.round(75 + ((i + 1) / validSheetIds.length) * 24)
+          const progress = Math.round(80 + ((i + 1) / validSheetIds.length) * 19)
           await emitProgress(stub, organizationId, planId, Math.min(progress, 99))
         },
       )

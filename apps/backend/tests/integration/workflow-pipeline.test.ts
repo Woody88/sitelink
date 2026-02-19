@@ -52,6 +52,18 @@ const EVENT_SCHEMAS: Record<string, { required: string[]; optional: string[] }> 
 		required: ["sheetId", "regions", "detectedAt"],
 		optional: [],
 	},
+	sheetScheduleExtracted: {
+		required: ["sheetId", "regionId", "scheduleType", "entries", "extractedAt"],
+		optional: [],
+	},
+	sheetNotesExtracted: {
+		required: ["sheetId", "regionId", "content", "noteType", "extractedAt"],
+		optional: [],
+	},
+	sheetLegendCropped: {
+		required: ["sheetId", "regionId", "cropImageUrl", "croppedAt"],
+		optional: [],
+	},
 	sheetGridBubblesDetected: {
 		required: ["sheetId", "bubbles", "detectedAt"],
 		optional: [],
@@ -472,6 +484,93 @@ describe("PlanProcessingWorkflow Integration (requires Docker)", () => {
 				expect(data.maxZoom).toBeGreaterThanOrEqual(data.minZoom);
 				expect(typeof data.localPmtilesPath).toBe("string");
 				expect(data.localPmtilesPath.endsWith(".pmtiles")).toBe(true);
+			}
+
+			// sheetScheduleExtracted: valid entries structure (if any detected)
+			const scheduleEvents = await getCollectedEventsByName(TEST_ORG_ID, "sheetScheduleExtracted");
+			for (const evt of scheduleEvents) {
+				validateEventData("sheetScheduleExtracted", evt.data);
+				const data = evt.data as {
+					sheetId: string;
+					regionId: string;
+					scheduleType: string;
+					entries: Array<{ id: string; mark: string; properties: string; confidence: number; createdAt: number }>;
+				};
+				expect(typeof data.regionId).toBe("string");
+				expect(data.regionId.length).toBeGreaterThan(0);
+				expect(typeof data.scheduleType).toBe("string");
+				expect(Array.isArray(data.entries)).toBe(true);
+				for (const entry of data.entries) {
+					expect(typeof entry.id).toBe("string");
+					expect(typeof entry.mark).toBe("string");
+					expect(typeof entry.properties).toBe("string");
+					// properties must be valid JSON
+					expect(() => JSON.parse(entry.properties)).not.toThrow();
+					expect(typeof entry.confidence).toBe("number");
+					expect(entry.createdAt).toBeGreaterThan(0);
+				}
+			}
+
+			// sheetNotesExtracted: valid content structure (if any detected)
+			const notesEvents = await getCollectedEventsByName(TEST_ORG_ID, "sheetNotesExtracted");
+			for (const evt of notesEvents) {
+				validateEventData("sheetNotesExtracted", evt.data);
+				const data = evt.data as {
+					sheetId: string;
+					regionId: string;
+					content: string;
+					noteType: string;
+				};
+				expect(typeof data.regionId).toBe("string");
+				expect(data.regionId.length).toBeGreaterThan(0);
+				expect(typeof data.content).toBe("string");
+				// content must be valid JSON
+				expect(() => JSON.parse(data.content)).not.toThrow();
+				expect(typeof data.noteType).toBe("string");
+				expect(data.noteType.length).toBeGreaterThan(0);
+			}
+
+			// sheetLegendCropped: valid crop URL (if any detected)
+			const legendEvents = await getCollectedEventsByName(TEST_ORG_ID, "sheetLegendCropped");
+			for (const evt of legendEvents) {
+				validateEventData("sheetLegendCropped", evt.data);
+				const data = evt.data as {
+					sheetId: string;
+					regionId: string;
+					cropImageUrl: string;
+				};
+				expect(typeof data.regionId).toBe("string");
+				expect(data.regionId.length).toBeGreaterThan(0);
+				expect(typeof data.cropImageUrl).toBe("string");
+				expect(data.cropImageUrl).toContain("/api/r2/");
+				expect(data.cropImageUrl).toContain("legend-");
+			}
+
+			// Extraction events ordering: must come after layout events
+			const allEvents = await getCollectedEvents(TEST_ORG_ID);
+			const allEventNames = allEvents.map((e) => e.eventName);
+			const lastLayoutIdx = allEventNames.lastIndexOf("sheetLayoutRegionsDetected");
+			const firstScheduleIdx = allEventNames.indexOf("sheetScheduleExtracted");
+			const firstNotesIdx = allEventNames.indexOf("sheetNotesExtracted");
+			const firstLegendIdx = allEventNames.indexOf("sheetLegendCropped");
+
+			if (firstScheduleIdx >= 0 && lastLayoutIdx >= 0) {
+				expect(
+					firstScheduleIdx,
+					"sheetScheduleExtracted must come after layout detection",
+				).toBeGreaterThan(lastLayoutIdx);
+			}
+			if (firstNotesIdx >= 0 && lastLayoutIdx >= 0) {
+				expect(
+					firstNotesIdx,
+					"sheetNotesExtracted must come after layout detection",
+				).toBeGreaterThan(lastLayoutIdx);
+			}
+			if (firstLegendIdx >= 0 && lastLayoutIdx >= 0) {
+				expect(
+					firstLegendIdx,
+					"sheetLegendCropped must come after layout detection",
+				).toBeGreaterThan(lastLayoutIdx);
 			}
 		},
 	);

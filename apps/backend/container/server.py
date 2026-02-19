@@ -25,7 +25,7 @@ def get_openrouter_config():
     """Get OpenRouter config at request time (env vars may be set after module load)"""
     return {
         'api_key': os.environ.get('OPENROUTER_API_KEY', ''),
-        'model': os.environ.get('OPENROUTER_MODEL', 'google/gemini-2.5-flash')
+        'model': os.environ.get('OPENROUTER_MODEL', 'google/gemini-3-flash-preview')
     }
 
 
@@ -1351,6 +1351,686 @@ def detect_layout_endpoint():
 
 # Global DocLayout-YOLO model (lazy-loaded)
 _doclayout_model = None
+
+
+# =============================================================================
+# Region Extraction: Helpers, Prompts & Endpoints
+# =============================================================================
+
+def crop_region_from_image_data(image_data, bbox, padding_pct=0.02):
+    """Crop a region from raw PNG bytes using normalized bbox [x, y, w, h]."""
+    nparr = np.frombuffer(image_data, np.uint8)
+    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    if img is None:
+        raise ValueError("Failed to decode image data")
+
+    img_h, img_w = img.shape[:2]
+    bx, by, bw, bh = bbox
+
+    pad_x = bw * padding_pct
+    pad_y = bh * padding_pct
+
+    x1 = max(0, int((bx - pad_x) * img_w))
+    y1 = max(0, int((by - pad_y) * img_h))
+    x2 = min(img_w, int((bx + bw + pad_x) * img_w))
+    y2 = min(img_h, int((by + bh + pad_y) * img_h))
+
+    if x2 <= x1 or y2 <= y1:
+        raise ValueError(f"Invalid crop: ({x1},{y1}) to ({x2},{y2}) from bbox {bbox}")
+
+    crop = img[y1:y2, x1:x2]
+    success, buffer = cv2.imencode('.png', crop)
+    if not success:
+        raise ValueError("Failed to encode crop as PNG")
+
+    png_bytes = buffer.tobytes()
+    b64 = base64.b64encode(png_bytes).decode('utf-8')
+
+    return {
+        "base64": b64,
+        "png_bytes": png_bytes,
+        "width": crop.shape[1],
+        "height": crop.shape[0],
+    }
+
+
+def parse_json_response(text):
+    """Parse JSON from LLM response, handling markdown fences and regex fallback."""
+    cleaned = text.strip()
+    if cleaned.startswith("```json"):
+        cleaned = cleaned.split("```json", 1)[1].split("```", 1)[0]
+    elif cleaned.startswith("```"):
+        cleaned = cleaned.split("```", 1)[1].split("```", 1)[0]
+
+    try:
+        return json.loads(cleaned.strip())
+    except json.JSONDecodeError:
+        json_match = re.search(r"\{[\s\S]*\}", cleaned)
+        if json_match:
+            try:
+                return json.loads(json_match.group())
+            except json.JSONDecodeError:
+                return None
+    return None
+
+
+def call_openrouter_extraction(prompt, image_base64, max_tokens=4096, timeout=90):
+    """Call OpenRouter for region extraction with configurable params."""
+    config = get_openrouter_config()
+    api_key = config['api_key']
+    model = config['model']
+
+    if not api_key:
+        print("[Extraction] No OPENROUTER_API_KEY configured")
+        return None
+
+    print(f"[Extraction] Calling OpenRouter ({model}) max_tokens={max_tokens}")
+
+    try:
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://sitelink.dev",
+                "X-Title": "Sitelink Region Extraction"
+            },
+            json={
+                "model": model,
+                "messages": [{
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{image_base64}"}}
+                    ]
+                }],
+                "temperature": 0,
+                "max_tokens": max_tokens,
+            },
+            timeout=timeout,
+        )
+
+        if response.status_code != 200:
+            print(f"[Extraction] API error {response.status_code}: {response.text[:200]}")
+            return None
+
+        raw_text = response.json()['choices'][0]['message']['content']
+        print(f"[Extraction] Response length: {len(raw_text)} chars")
+
+        return parse_json_response(raw_text)
+
+    except Exception as e:
+        print(f"[Extraction] Error: {e}")
+        traceback.print_exc()
+        return None
+
+
+def infer_schedule_type(title):
+    """Infer schedule type from region title text."""
+    if not title:
+        return "generic"
+    t = title.lower()
+    if "footing" in t or "ftg" in t:
+        return "footing"
+    if "beam" in t or "lintel" in t:
+        return "beam"
+    if "pier" in t or "pilaster" in t:
+        return "pier"
+    if "column" in t or "col " in t:
+        return "column"
+    return "generic"
+
+
+_NOTE_TYPE_PATTERNS = {
+    "general_notes": [r"general\s*(structural\s*)?notes", r"general\s*notes"],
+    "concrete_notes": [r"concrete\s*(and\s*foundation\s*)?notes", r"concrete\s*notes",
+                       r"foundation\s*(and\s*slab\s*)?(on\s*grade\s*)?notes"],
+    "steel_notes": [r"reinforc(ing|ement)\s*steel\s*notes", r"structural\s*steel\s*notes",
+                    r"steel\s*notes"],
+    "masonry_notes": [r"masonry\s*notes"],
+    "abbreviations": [r"symbols?\s*(&|and)\s*abbreviations?", r"abbreviations?"],
+}
+
+
+def classify_note_type(title):
+    """Classify note type from title text using regex patterns."""
+    if not title:
+        return "other"
+    title_lower = title.lower().strip()
+    for note_type, patterns in _NOTE_TYPE_PATTERNS.items():
+        for pattern in patterns:
+            if re.search(pattern, title_lower):
+                return note_type
+    return "other"
+
+
+# --- Schedule Extraction Prompts (ported from extract_schedule.py) ---
+
+_FOOTING_SCHEDULE_PROMPT = """You are analyzing a **FOOTING SCHEDULE** table from a structural engineering construction drawing.
+
+**Your task:** Extract every data row from this schedule table into structured JSON.
+
+**What a footing schedule looks like:**
+- Table with columns like: MARK (or TYPE), SIZE, DEPTH, REINFORCING (or REBAR), TOP OF FOOTING ELEV, BOTTOM OF FOOTING ELEV, NOTES
+- Each row represents a different footing type (F1, F2, F3, etc.)
+- Column names vary between projects but the data types are consistent
+
+**Extraction rules:**
+1. First, identify the column headers in the table
+2. Then extract each data row, mapping cell values to the correct column
+3. Preserve exact text from cells (don't reformat dimensions or rebar specs)
+4. Handle merged cells by repeating the value for all affected rows
+5. Handle multi-line cell content by joining with a space
+6. If a cell is empty or has a dash, use null
+7. Include any footnotes referenced by rows (e.g., "See Note 1")
+
+**Return JSON in exactly this format:**
+```json
+{
+  "scheduleType": "footing",
+  "scheduleTitle": "FOOTING SCHEDULE",
+  "columns": ["MARK", "SIZE", "DEPTH", "REINFORCING", "NOTES"],
+  "entries": [
+    {
+      "mark": "F1",
+      "properties": {
+        "size": "1500x1500",
+        "depth": "300",
+        "reinforcing": "4-15M E.W.",
+        "topOfFootingElev": null,
+        "bottomOfFootingElev": null,
+        "notes": null
+      }
+    }
+  ],
+  "footnotes": ["1. All footings to bear on undisturbed soil."]
+}
+```
+
+**Important:**
+- The "mark" field is the footing type identifier (F1, F2, F-1, FTG-1, etc.)
+- Put ALL column data into the "properties" object using camelCase keys
+- Include "size" and "reinforcing" as separate fields even if your column names differ
+- Do NOT skip any rows — extract every single data row in the table
+- Return ONLY the JSON object, no additional text"""
+
+
+_BEAM_SCHEDULE_PROMPT = """You are analyzing a **BEAM SCHEDULE** table from a structural engineering construction drawing.
+
+**Your task:** Extract every data row from this schedule table into structured JSON.
+
+**What a beam schedule looks like:**
+- Table with columns like: MARK, SIZE (or b x h), TOP BARS (or TOP REINF), BOTTOM BARS (or BTM REINF), STIRRUPS (or TIES), NOTES
+- Each row represents a different beam type (B1, B2, B3, LB1, etc.)
+- May include lintel beams (LB), grade beams (GB), or bond beams (BB)
+
+**Extraction rules:**
+1. First, identify the column headers in the table
+2. Then extract each data row, mapping cell values to the correct column
+3. Preserve exact text from cells (don't reformat dimensions or rebar specs)
+4. Handle merged cells by repeating the value for all affected rows
+5. Handle multi-line cell content by joining with a space
+6. If a cell is empty or has a dash, use null
+7. Include any footnotes referenced by rows
+
+**Return JSON in exactly this format:**
+```json
+{
+  "scheduleType": "beam",
+  "scheduleTitle": "BEAM SCHEDULE",
+  "columns": ["MARK", "SIZE", "TOP BARS", "BOTTOM BARS", "STIRRUPS", "NOTES"],
+  "entries": [
+    {
+      "mark": "B1",
+      "properties": {
+        "size": "300x600",
+        "topBars": "3-20M",
+        "bottomBars": "4-25M",
+        "stirrups": "10M@200",
+        "notes": null
+      }
+    }
+  ],
+  "footnotes": []
+}
+```
+
+**Important:**
+- The "mark" field is the beam type identifier (B1, B2, LB1, GB1, etc.)
+- Put ALL column data into the "properties" object using camelCase keys
+- Do NOT skip any rows — extract every single data row
+- Return ONLY the JSON object, no additional text"""
+
+
+_PIER_SCHEDULE_PROMPT = """You are analyzing a **PIER SCHEDULE** (or PILASTER SCHEDULE) table from a structural engineering construction drawing.
+
+**Your task:** Extract every data row from this schedule table into structured JSON.
+
+**What a pier/pilaster schedule looks like:**
+- Table with columns like: MARK, SIZE, VERTICAL BARS, TIES, TOP OF PIER ELEV, NOTES
+- Each row represents a different pier type (P1, P2, etc.)
+
+**Extraction rules:**
+1. First, identify the column headers in the table
+2. Then extract each data row, mapping cell values to the correct column
+3. Preserve exact text from cells
+4. Handle merged cells, multi-line content, empty cells (null)
+5. Include any footnotes
+
+**Return JSON in exactly this format:**
+```json
+{
+  "scheduleType": "pier",
+  "scheduleTitle": "PIER SCHEDULE",
+  "columns": ["MARK", "SIZE", "VERTICAL BARS", "TIES", "NOTES"],
+  "entries": [
+    {
+      "mark": "P1",
+      "properties": {
+        "size": "450x450",
+        "verticalBars": "4-25M",
+        "ties": "10M@300",
+        "topOfPierElev": null,
+        "notes": null
+      }
+    }
+  ],
+  "footnotes": []
+}
+```
+
+**Important:**
+- The "mark" field is the pier type identifier (P1, P2, etc.)
+- Put ALL column data into the "properties" object using camelCase keys
+- Do NOT skip any rows
+- Return ONLY the JSON object, no additional text"""
+
+
+_COLUMN_SCHEDULE_PROMPT = """You are analyzing a **COLUMN SCHEDULE** table from a structural engineering construction drawing.
+
+**Your task:** Extract every data row from this schedule table into structured JSON.
+
+**What a column schedule looks like:**
+- Table with columns like: MARK, SIZE, VERTICAL BARS (or VERT REINF), TIES (or HOOPS), NOTES
+- Each row represents a different column type (C1, C2, etc.)
+- May include steel columns (W shapes) or concrete columns
+
+**Extraction rules:**
+1. First, identify the column headers in the table
+2. Then extract each data row
+3. Preserve exact text from cells
+4. Handle merged cells, multi-line content, empty cells (null)
+5. Include any footnotes
+
+**Return JSON in exactly this format:**
+```json
+{
+  "scheduleType": "column",
+  "scheduleTitle": "COLUMN SCHEDULE",
+  "columns": ["MARK", "SIZE", "VERTICAL BARS", "TIES", "NOTES"],
+  "entries": [
+    {
+      "mark": "C1",
+      "properties": {
+        "size": "400x400",
+        "verticalBars": "8-25M",
+        "ties": "10M@300",
+        "notes": null
+      }
+    }
+  ],
+  "footnotes": []
+}
+```
+
+**Important:**
+- The "mark" field is the column type identifier (C1, C2, etc.)
+- Put ALL column data into the "properties" object using camelCase keys
+- Do NOT skip any rows
+- Return ONLY the JSON object, no additional text"""
+
+
+_GENERIC_SCHEDULE_PROMPT = """You are analyzing a **SCHEDULE TABLE** from a construction drawing.
+
+**Your task:** Extract every data row from this schedule table into structured JSON.
+
+**Extraction rules:**
+1. First, identify the schedule title and type
+2. Identify the column headers
+3. Extract each data row, mapping cell values to correct columns
+4. Preserve exact text from cells
+5. Handle merged cells, multi-line content, empty cells (null)
+6. Include any footnotes
+
+**Return JSON in exactly this format:**
+```json
+{
+  "scheduleType": "generic",
+  "scheduleTitle": "THE SCHEDULE TITLE",
+  "columns": ["COL1", "COL2", "COL3"],
+  "entries": [
+    {
+      "mark": "identifier from first column",
+      "properties": {
+        "col1": "value",
+        "col2": "value"
+      }
+    }
+  ],
+  "footnotes": []
+}
+```
+
+**Important:**
+- Use the first column value (usually a type mark/identifier) as the "mark" field
+- Put ALL other column data into "properties" using camelCase keys derived from column headers
+- Do NOT skip any rows
+- Return ONLY the JSON object, no additional text"""
+
+
+_SCHEDULE_PROMPTS = {
+    "footing": _FOOTING_SCHEDULE_PROMPT,
+    "beam": _BEAM_SCHEDULE_PROMPT,
+    "pier": _PIER_SCHEDULE_PROMPT,
+    "column": _COLUMN_SCHEDULE_PROMPT,
+    "generic": _GENERIC_SCHEDULE_PROMPT,
+}
+
+
+# --- Notes Extraction Prompts (ported from extract_notes.py) ---
+
+_NOTES_EXTRACTION_PROMPT = """You are analyzing a **NOTES BLOCK** from a structural/architectural construction drawing.
+
+**Your task:** Extract all text content from this notes block, preserving the numbered list structure and hierarchy.
+
+**What construction notes look like:**
+- A title/header like "GENERAL NOTES", "CONCRETE NOTES", "REINFORCING STEEL NOTES", etc.
+- Numbered items (1, 2, 3...) each containing a specification or instruction
+- Sub-items under numbered items using letters (a, b, c...) or roman numerals (i, ii, iii...)
+- Dense technical text with engineering abbreviations and specifications
+- May span multiple columns on the drawing
+
+**Extraction rules:**
+1. First, identify the title/header text at the top of the notes block
+2. Extract every numbered item with its full text content
+3. Preserve sub-item hierarchy (letters a, b, c or roman numerals under numbered items)
+4. Preserve exact text — do NOT paraphrase or summarize
+5. If text is cut off at edges, include what is visible and note "[text cut off]"
+6. Include all specification references (ASTM, ACI, etc.) exactly as shown
+7. Combine multi-line text within a single item into one continuous string
+8. If the notes block has multiple sections with sub-headers, capture each section
+
+**Return JSON in exactly this format:**
+```json
+{
+  "noteType": "general_notes",
+  "title": "GENERAL STRUCTURAL NOTES",
+  "items": [
+    {
+      "number": 1,
+      "text": "All concrete shall be 4000 PSI minimum 28-day strength unless noted otherwise."
+    },
+    {
+      "number": 2,
+      "text": "Reinforcing steel shall be ASTM A615 Grade 60.",
+      "subItems": [
+        {"letter": "a", "text": "Minimum cover: 3\\" for footings and grade beams."},
+        {"letter": "b", "text": "Minimum cover: 1.5\\" for walls and columns."}
+      ]
+    }
+  ]
+}
+```
+
+**Note type classification** — identify from the header text:
+- "general_notes" -> GENERAL NOTES, GENERAL STRUCTURAL NOTES
+- "concrete_notes" -> CONCRETE NOTES, CONCRETE AND FOUNDATION NOTES
+- "steel_notes" -> REINFORCING STEEL NOTES, STRUCTURAL STEEL NOTES, STEEL NOTES
+- "masonry_notes" -> MASONRY NOTES
+- "abbreviations" -> ABBREVIATIONS, SYMBOLS & ABBREVIATIONS, SYMBOLS AND ABBREVIATIONS
+- "other" -> anything else
+
+**Important:**
+- Extract EVERY numbered item — do NOT skip any
+- Preserve the exact wording from the drawing
+- Sub-items should use "letter" for a/b/c and "roman" for i/ii/iii
+- Return ONLY the JSON object, no additional text"""
+
+
+_ABBREVIATIONS_PROMPT = """You are analyzing an **ABBREVIATIONS** or **SYMBOLS & ABBREVIATIONS** block from a construction drawing.
+
+**Your task:** Extract all abbreviation definitions as structured data.
+
+**What abbreviation sections look like:**
+- A title like "ABBREVIATIONS" or "SYMBOLS & ABBREVIATIONS"
+- List of abbreviation-definition pairs, typically formatted as:
+  - "CMU - CONCRETE MASONRY UNIT"
+  - "E.W. = EACH WAY"
+  - "TYP. TYPICAL"
+- May be arranged in multiple columns
+- May include section symbols mixed with text abbreviations
+
+**Extraction rules:**
+1. Extract every abbreviation-definition pair
+2. Preserve exact abbreviation text (including periods, slashes)
+3. Preserve exact definition text
+4. Handle multi-column layouts — read left column first, then right
+5. Skip graphical symbols (hatches, line types) — those belong in legends, not abbreviations
+
+**Return JSON in exactly this format:**
+```json
+{
+  "noteType": "abbreviations",
+  "title": "ABBREVIATIONS",
+  "items": [
+    {"number": 1, "text": "CMU - CONCRETE MASONRY UNIT", "abbreviation": "CMU", "definition": "CONCRETE MASONRY UNIT"},
+    {"number": 2, "text": "E.W. - EACH WAY", "abbreviation": "E.W.", "definition": "EACH WAY"}
+  ]
+}
+```
+
+**Important:**
+- Extract EVERY abbreviation pair — do NOT skip any
+- Keep the full "text" field as the raw line text
+- Also split into "abbreviation" and "definition" fields
+- Return ONLY the JSON object, no additional text"""
+
+
+# --- Extraction Endpoints ---
+
+@app.route('/extract-schedule', methods=['POST'])
+def extract_schedule_endpoint():
+    """
+    Extract structured data from a schedule region using LLM.
+    Headers: X-Bbox (JSON array [x,y,w,h] normalized), X-Region-Title (optional)
+    Body: PNG binary data (full sheet image)
+    Returns: {"scheduleType": "...", "entries": [...], "confidence": float}
+    """
+    try:
+        bbox_json = request.headers.get('X-Bbox')
+        region_title = request.headers.get('X-Region-Title', '')
+
+        if not bbox_json:
+            return jsonify({"error": "Missing X-Bbox header"}), 400
+
+        try:
+            bbox = json.loads(bbox_json)
+        except (json.JSONDecodeError, ValueError):
+            return jsonify({"error": "Invalid X-Bbox header"}), 400
+
+        image_data = request.get_data()
+        if not image_data:
+            return jsonify({"error": "No image data provided"}), 400
+
+        print(f"[Schedule] Extracting from bbox={[round(v, 3) for v in bbox]}, title='{region_title}'")
+
+        crop = crop_region_from_image_data(image_data, bbox)
+        print(f"[Schedule] Cropped region: {crop['width']}x{crop['height']}")
+
+        schedule_type = infer_schedule_type(region_title)
+        prompt = _SCHEDULE_PROMPTS.get(schedule_type, _GENERIC_SCHEDULE_PROMPT)
+
+        result = call_openrouter_extraction(prompt, crop["base64"], max_tokens=4096, timeout=90)
+
+        if result is None:
+            return jsonify({"error": "LLM extraction failed", "entries": []})
+
+        entries = result.get("entries", [])
+        confidence = 1.0
+        if len(entries) == 0:
+            confidence = 0.3
+        else:
+            valid_marks = sum(1 for e in entries if e.get("mark"))
+            valid_props = sum(1 for e in entries if e.get("properties") and len(e["properties"]) > 0)
+            confidence = min(1.0, (valid_marks + valid_props) / (2 * len(entries)))
+
+        print(f"[Schedule] Extracted {len(entries)} entries, type={result.get('scheduleType', schedule_type)}, conf={confidence:.2f}")
+
+        gc.collect()
+        return jsonify({
+            "scheduleType": result.get("scheduleType", schedule_type),
+            "scheduleTitle": result.get("scheduleTitle", region_title or "Unknown Schedule"),
+            "columns": result.get("columns", []),
+            "entries": entries,
+            "footnotes": result.get("footnotes", []),
+            "confidence": confidence,
+            "error": None,
+        })
+
+    except Exception as e:
+        print(f"[Schedule] Error: {e}")
+        traceback.print_exc()
+        gc.collect()
+        return jsonify({"error": str(e), "entries": []}), 500
+
+
+@app.route('/extract-notes', methods=['POST'])
+def extract_notes_endpoint():
+    """
+    Extract structured text from a notes region using LLM.
+    Headers: X-Bbox (JSON array [x,y,w,h] normalized)
+    Body: PNG binary data (full sheet image)
+    Returns: {"noteType": "...", "title": "...", "items": [...], "confidence": float}
+    """
+    try:
+        bbox_json = request.headers.get('X-Bbox')
+
+        if not bbox_json:
+            return jsonify({"error": "Missing X-Bbox header"}), 400
+
+        try:
+            bbox = json.loads(bbox_json)
+        except (json.JSONDecodeError, ValueError):
+            return jsonify({"error": "Invalid X-Bbox header"}), 400
+
+        image_data = request.get_data()
+        if not image_data:
+            return jsonify({"error": "No image data provided"}), 400
+
+        print(f"[Notes] Extracting from bbox={[round(v, 3) for v in bbox]}")
+
+        crop = crop_region_from_image_data(image_data, bbox)
+        print(f"[Notes] Cropped region: {crop['width']}x{crop['height']}")
+
+        result = call_openrouter_extraction(
+            _NOTES_EXTRACTION_PROMPT, crop["base64"], max_tokens=8192, timeout=120
+        )
+
+        if result is None:
+            return jsonify({"error": "LLM extraction failed", "items": []})
+
+        items = result.get("items", [])
+        title = result.get("title", "")
+        note_type = result.get("noteType", "")
+
+        if title and not note_type:
+            note_type = classify_note_type(title)
+        elif not note_type:
+            note_type = "other"
+
+        # Two-pass abbreviation detection: if first pass didn't return structured fields, retry
+        if note_type == "abbreviations" and items:
+            has_abbrev_fields = any(
+                item.get("abbreviation") and item.get("definition")
+                for item in items
+            )
+            if not has_abbrev_fields:
+                print("[Notes] Re-extracting abbreviations with specialized prompt")
+                result2 = call_openrouter_extraction(
+                    _ABBREVIATIONS_PROMPT, crop["base64"], max_tokens=8192, timeout=120
+                )
+                if result2 and result2.get("items"):
+                    items = result2["items"]
+
+        confidence = 1.0
+        if len(items) == 0:
+            confidence = 0.3
+        else:
+            valid_items = sum(1 for item in items if item.get("text"))
+            numbered_items = sum(1 for item in items if item.get("number") is not None)
+            confidence = min(1.0, (valid_items + numbered_items) / (2 * len(items)))
+
+        print(f"[Notes] Extracted {len(items)} items, type={note_type}, conf={confidence:.2f}")
+
+        gc.collect()
+        return jsonify({
+            "noteType": note_type,
+            "title": title,
+            "items": items,
+            "confidence": confidence,
+            "error": None,
+        })
+
+    except Exception as e:
+        print(f"[Notes] Error: {e}")
+        traceback.print_exc()
+        gc.collect()
+        return jsonify({"error": str(e), "items": []}), 500
+
+
+@app.route('/crop-region', methods=['POST'])
+def crop_region_endpoint():
+    """
+    Crop a region from an image and return the cropped PNG.
+    Headers: X-Bbox (JSON array [x,y,w,h] normalized)
+    Body: PNG binary data (full sheet image)
+    Returns: PNG binary data of cropped region
+    """
+    try:
+        bbox_json = request.headers.get('X-Bbox')
+
+        if not bbox_json:
+            return jsonify({"error": "Missing X-Bbox header"}), 400
+
+        try:
+            bbox = json.loads(bbox_json)
+        except (json.JSONDecodeError, ValueError):
+            return jsonify({"error": "Invalid X-Bbox header"}), 400
+
+        image_data = request.get_data()
+        if not image_data:
+            return jsonify({"error": "No image data provided"}), 400
+
+        print(f"[CropRegion] Cropping bbox={[round(v, 3) for v in bbox]}")
+
+        crop = crop_region_from_image_data(image_data, bbox)
+        print(f"[CropRegion] Crop size: {crop['width']}x{crop['height']} ({len(crop['png_bytes'])} bytes)")
+
+        gc.collect()
+        return Response(
+            crop["png_bytes"],
+            mimetype='image/png',
+            headers={
+                'X-Width': str(crop["width"]),
+                'X-Height': str(crop["height"]),
+            }
+        )
+
+    except Exception as e:
+        print(f"[CropRegion] Error: {e}")
+        traceback.print_exc()
+        gc.collect()
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == '__main__':
