@@ -10,7 +10,6 @@
  */
 
 import type { PdfProcessor } from "../processing/pdf-processor-container"
-import type { PlanCoordinator } from "../processing/plan-coordinator"
 import type { PlanProcessingParams } from "../workflows/plan-processing"
 
 export interface Env extends Cloudflare.Env {
@@ -25,20 +24,10 @@ export interface Env extends Cloudflare.Env {
   OPENROUTER_API_KEY?: string
   OPENROUTER_MODEL?: string
 
-  // Durable Objects for PDF processing
-  PLAN_COORDINATOR_DO: DurableObjectNamespace<PlanCoordinator>
   LIVESTORE_CLIENT_DO: DurableObjectNamespace
 
   // R2 Storage
   R2_BUCKET: R2Bucket
-
-  // Queues for PDF processing pipeline
-  R2_NOTIFICATION_QUEUE: Queue
-  IMAGE_GENERATION_QUEUE: Queue
-  METADATA_EXTRACTION_QUEUE: Queue
-  CALLOUT_DETECTION_QUEUE: Queue
-  DOCLAYOUT_DETECTION_QUEUE: Queue
-  TILE_GENERATION_QUEUE: Queue
 
   // Cloudflare Container for VIPS/Python processing
   PDF_PROCESSOR: DurableObjectNamespace<PdfProcessor>

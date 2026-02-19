@@ -1,24 +1,16 @@
-// Test worker that re-exports the real PlanCoordinator and adds an upload endpoint.
-// All non-cloudflare imports in plan-coordinator.ts are type-only — safe for workerd.
+// Test worker for integration testing via Workflow-based pipeline.
 import { DurableObject } from "cloudflare:workers";
-import { uploadPdfAndTriggerPipeline } from "./processing/r2-with-notifications";
 
-// Re-export the real PlanCoordinator (dispatch methods, event emissions, alarm handler)
-export { PlanCoordinator } from "./processing/plan-coordinator";
-export type { PlanCoordinatorState } from "./processing/plan-coordinator";
+// Re-export PlanProcessingWorkflow for integration testing via Workflow binding
+export { PlanProcessingWorkflow } from "./workflows/plan-processing";
+import type { PlanProcessingParams } from "./workflows/plan-processing";
 
 export interface TestEnv {
 	DB: D1Database;
 	R2_BUCKET: R2Bucket;
-	R2_NOTIFICATION_QUEUE: Queue;
-	IMAGE_GENERATION_QUEUE: Queue;
-	METADATA_EXTRACTION_QUEUE: Queue;
-	CALLOUT_DETECTION_QUEUE: Queue;
-	DOCLAYOUT_DETECTION_QUEUE: Queue;
-	TILE_GENERATION_QUEUE: Queue;
-	PLAN_COORDINATOR_DO: DurableObjectNamespace;
 	LIVESTORE_CLIENT_DO: DurableObjectNamespace;
 	PDF_PROCESSOR: DurableObjectNamespace;
+	PLAN_PROCESSING_WORKFLOW: Workflow<PlanProcessingParams>;
 	FIXTURE_LOADER?: Fetcher;
 	PDF_CONTAINER_PROXY?: Fetcher;
 	TEST_MIGRATIONS?: D1Migration[];
@@ -55,7 +47,7 @@ export class TestPdfProcessor extends DurableObject<TestEnv> {
 
 // Captures LiveStore events committed during pipeline processing.
 // Tests can retrieve collected events to validate schema shapes.
-// Uses durable storage (like PlanCoordinator) to survive DO eviction during long pipeline runs.
+// Uses durable storage to survive DO eviction during long pipeline runs.
 export class LiveStoreCollector extends DurableObject<TestEnv> {
 	private async loadEvents(): Promise<
 		Array<{ eventName: string; data: Record<string, unknown>; timestamp: number }>
@@ -146,13 +138,18 @@ export default {
 				const totalPages = 1;
 				const planName = file.name.replace(/\.pdf$/i, "");
 
-				await uploadPdfAndTriggerPipeline(env as any, pdfPath, await file.arrayBuffer(), {
-					planId,
-					projectId,
-					organizationId,
-					totalPages,
-					planName,
+				// Upload PDF to R2
+				await env.R2_BUCKET.put(pdfPath, await file.arrayBuffer(), {
+					httpMetadata: { contentType: "application/pdf" },
+					customMetadata: { planId, projectId, organizationId, ...(planName ? { planName } : {}) },
 				});
+
+				// Trigger Workflow pipeline
+				const instance = await env.PLAN_PROCESSING_WORKFLOW.create({
+					id: planId,
+					params: { planId, projectId, organizationId, pdfPath, totalPages, planName },
+				});
+				console.log(`[Upload] Workflow instance created: ${instance.id}`);
 
 				// Commit planUploaded event via LiveStoreCollector
 				const liveStoreStub = env.LIVESTORE_CLIENT_DO.get(
