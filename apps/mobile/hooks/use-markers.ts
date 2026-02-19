@@ -8,6 +8,8 @@ export interface CalloutMarker {
 	id: string;
 	x: number;
 	y: number;
+	width?: number;
+	height?: number;
 	label: string;
 	targetSheetRef?: string;
 	type: "detail" | "section" | "elevation" | "note";
@@ -60,6 +62,8 @@ export function useMarkers(sheetId: string | null) {
 			id: marker.id,
 			x: marker.x,
 			y: marker.y,
+			width: marker.width ?? undefined,
+			height: marker.height ?? undefined,
 			label: marker.label,
 			targetSheetRef: marker.targetSheetId ?? undefined,
 			type: inferMarkerType(marker.label),

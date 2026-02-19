@@ -280,10 +280,10 @@ export const events = {
           label: Schema.String,
           targetSheetRef: Schema.optional(Schema.String),
           targetSheetId: Schema.optional(Schema.String),
-          // x and y are normalized coordinates (0-1 range relative to image dimensions)
-          // Viewers must scale these by the actual image/tile dimensions to position markers
           x: Schema.Number,
           y: Schema.Number,
+          width: Schema.optional(Schema.Number),
+          height: Schema.optional(Schema.Number),
           confidence: Schema.Number,
           needsReview: Schema.Boolean,
         }),
