@@ -2,11 +2,15 @@
   "name": "sitelink-backend",
   "main": "src/index.ts",
   "compatibility_date": "2024-12-01",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "rules": [
     {
       "type": "CompiledWasm",
-      "globs": ["**/*.wasm"],
+      "globs": [
+        "**/*.wasm"
+      ],
       "fallthrough": true
     }
   ],
@@ -57,19 +61,28 @@
   "migrations": [
     {
       "tag": "v1",
-      "new_sqlite_classes": ["SyncBackendDO", "LiveStoreClientDO"]
+      "new_sqlite_classes": [
+        "SyncBackendDO",
+        "LiveStoreClientDO"
+      ]
     },
     {
       "tag": "v2",
-      "new_sqlite_classes": ["PlanCoordinator"]
+      "new_sqlite_classes": [
+        "PlanCoordinator"
+      ]
     },
     {
       "tag": "v3",
-      "new_sqlite_classes": ["PdfProcessor"]
+      "new_sqlite_classes": [
+        "PdfProcessor"
+      ]
     },
     {
       "tag": "v4",
-      "deleted_classes": ["PlanCoordinator"]
+      "deleted_classes": [
+        "PlanCoordinator"
+      ]
     }
   ],
   "workflows": [
@@ -82,7 +95,5 @@
   "observability": {
     "enabled": true
   },
-  "vars": {
-    "LOCAL_CONTAINER_URL": "http://localhost:3001"
-  }
+  "vars": {}
 }

@@ -26,40 +26,8 @@
 			"bucket_name": "sitelink-files-test"
 		}
 	],
-	"queues": {
-		"producers": [
-			{
-				"binding": "R2_NOTIFICATION_QUEUE",
-				"queue": "sitelink-r2-notifications-test"
-			},
-			{
-				"binding": "IMAGE_GENERATION_QUEUE",
-				"queue": "sitelink-image-generation-test"
-			},
-			{
-				"binding": "METADATA_EXTRACTION_QUEUE",
-				"queue": "sitelink-metadata-extraction-test"
-			},
-			{
-				"binding": "CALLOUT_DETECTION_QUEUE",
-				"queue": "sitelink-callout-detection-test"
-			},
-			{
-				"binding": "DOCLAYOUT_DETECTION_QUEUE",
-				"queue": "sitelink-doclayout-detection-test"
-			},
-			{
-				"binding": "TILE_GENERATION_QUEUE",
-				"queue": "sitelink-tile-generation-test"
-			}
-		]
-	},
 	"durable_objects": {
 		"bindings": [
-			{
-				"name": "PLAN_COORDINATOR_DO",
-				"class_name": "PlanCoordinator"
-			},
 			{
 				"name": "PDF_PROCESSOR",
 				"class_name": "TestPdfProcessor"
@@ -70,13 +38,16 @@
 			}
 		]
 	},
+	"workflows": [
+		{
+			"name": "plan-processing-test",
+			"binding": "PLAN_PROCESSING_WORKFLOW",
+			"class_name": "PlanProcessingWorkflow"
+		}
+	],
 	"migrations": [
 		{
 			"tag": "v1",
-			"new_classes": ["PlanCoordinator"]
-		},
-		{
-			"tag": "v2",
 			"new_classes": ["TestPdfProcessor", "LiveStoreCollector"]
 		}
 	]
