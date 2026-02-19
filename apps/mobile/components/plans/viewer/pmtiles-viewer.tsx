@@ -6,8 +6,10 @@ import * as React from "react";
 
 export interface CalloutMarker {
 	id: string;
-	x: number; // Normalized 0-1 coordinate (relative to image dimensions)
-	y: number; // Normalized 0-1 coordinate (relative to image dimensions)
+	x: number; // Normalized 0-1 coordinate (center, relative to image dimensions)
+	y: number; // Normalized 0-1 coordinate (center, relative to image dimensions)
+	width?: number; // Normalized 0-1 bbox width
+	height?: number; // Normalized 0-1 bbox height
 	label: string;
 	targetSheetRef?: string;
 	type: "detail" | "section" | "elevation" | "note";
@@ -312,12 +314,8 @@ export default function PMTilesViewer({
 	}, [pmtilesUrl, imageWidth, imageHeight, onReady, onError, onViewerStateChange]);
 
 	React.useEffect(() => {
-		console.log(`[PMTilesViewer] Marker effect triggered with ${markers.length} markers`);
 		const viewer = viewerRef.current;
-		if (!viewer) {
-			console.log("[PMTilesViewer] No viewer ref yet, skipping markers");
-			return;
-		}
+		if (!viewer || !isViewerReady) return;
 
 		markerOverlaysRef.current.forEach((overlay) => {
 			viewer.removeOverlay(overlay);
@@ -325,109 +323,94 @@ export default function PMTilesViewer({
 		markerOverlaysRef.current.clear();
 
 		const dimensions = imageDimensionsRef.current;
-		if (!dimensions) {
-			console.warn(
-				"[PMTilesViewer] Image dimensions not available yet, skipping markers",
-			);
-			return;
-		}
-		console.log(`[PMTilesViewer] Rendering ${markers.length} markers with dimensions:`, dimensions);
+		if (!dimensions) return;
+
+		// OpenSeadragon viewport: x=[0,1] maps to tileAlignedWidth pixels,
+		// y=[0, tileAlignedHeight/tileAlignedWidth] maps to tileAlignedHeight pixels.
+		// Marker coords are normalized 0-1 relative to actual image dimensions,
+		// so we must scale by (imageSize / tileAlignedSize) to convert.
+		const tileSize = 256;
+		const tileAlignedW = Math.ceil(dimensions.width / tileSize) * tileSize;
+		const scaleX = dimensions.width / tileAlignedW;
+		const scaleY = dimensions.height / tileAlignedW;
+
+		const TYPE_COLORS: Record<string, string> = {
+			detail: "#22c55e",
+			section: "#3b82f6",
+			elevation: "#3b82f6",
+			note: "#a855f7",
+		};
+
+		const DEFAULT_BBOX = 0.025;
 
 		markers.forEach((marker) => {
+			const isSelected = marker.id === selectedMarkerId;
+			const color = TYPE_COLORS[marker.type] || "#22c55e";
+
+			const bboxW = marker.width != null && marker.width > 0 ? marker.width : DEFAULT_BBOX;
+			const bboxH = marker.height != null && marker.height > 0 ? marker.height : DEFAULT_BBOX;
+
 			const el = document.createElement("div");
 			el.className = "marker-overlay";
-			el.style.cssText = `
-        position: absolute;
-        width: 32px;
-        height: 32px;
-        margin-left: -16px;
-        margin-top: -16px;
-        background-color: ${marker.id === selectedMarkerId ? "#3b82f6" : "#ef4444"};
-        border: 2px solid white;
-        border-radius: 50%;
-        cursor: pointer;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        transition: transform 0.2s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 12px;
-        font-weight: bold;
-        z-index: 1000;
-      `;
 
-			if (marker.needsReview) {
-				el.style.borderColor = "#fbbf24";
-			}
+			const selectedBg = "rgba(250, 204, 21, 0.25)";
+			el.style.cssText = `
+				position: relative;
+				width: 100%;
+				height: 100%;
+				border: 2px solid ${isSelected ? "#facc15" : color};
+				background-color: ${isSelected ? selectedBg : "transparent"};
+				cursor: pointer;
+				box-sizing: border-box;
+			`;
+
+			el.addEventListener("mouseenter", () => {
+				if (!isSelected) el.style.backgroundColor = `${color}22`;
+			});
+			el.addEventListener("mouseleave", () => {
+				el.style.backgroundColor = isSelected ? selectedBg : "transparent";
+			});
 
 			const labelEl = document.createElement("div");
 			labelEl.className = "marker-label";
 			labelEl.style.cssText = `
-        position: absolute;
-        top: 38px;
-        left: 50%;
-        transform: translateX(-50%);
-        background-color: rgba(0, 0, 0, 0.8);
-        color: white;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 11px;
-        white-space: nowrap;
-        pointer-events: none;
-        opacity: ${marker.id === selectedMarkerId ? "1" : "0"};
-        transition: opacity 0.2s;
-      `;
+				position: absolute;
+				top: -18px;
+				left: 0;
+				background-color: ${isSelected ? "#facc15" : color};
+				color: ${isSelected ? "#000" : "#fff"};
+				padding: 1px 5px;
+				border-radius: 2px;
+				font-size: 9px;
+				font-weight: bold;
+				white-space: nowrap;
+				pointer-events: none;
+				opacity: ${isSelected ? "1" : "0"};
+				transition: opacity 0.15s;
+			`;
 			labelEl.textContent = marker.label;
 			el.appendChild(labelEl);
 
-			el.addEventListener("mouseenter", () => {
-				el.style.transform = "scale(1.2)";
-				labelEl.style.opacity = "1";
-			});
-
-			el.addEventListener("mouseleave", () => {
-				el.style.transform = "scale(1)";
-				if (marker.id !== selectedMarkerId) {
-					labelEl.style.opacity = "0";
-				}
-			});
+			el.addEventListener("mouseenter", () => { labelEl.style.opacity = "1"; });
+			el.addEventListener("mouseleave", () => { if (!isSelected) labelEl.style.opacity = "0"; });
 
 			el.addEventListener("click", (e) => {
 				e.stopPropagation();
-				if (onMarkerPress) {
-					onMarkerPress(marker);
-				}
+				if (onMarkerPress) onMarkerPress(marker);
 			});
 
-			// OpenSeadragon viewport coordinates:
-			// - x: 0 to 1 (full width)
-			// - y: 0 to aspectRatio (height/width)
-			// Our markers have normalized (0-1) coords relative to image dimensions
-			const aspectRatio = dimensions.height / dimensions.width;
-
-			// Check if coordinates are normalized (0-1 range) or legacy pixel values
 			const isNormalized = marker.x <= 1 && marker.y <= 1;
+			const normX = isNormalized ? marker.x : marker.x / dimensions.width;
+			const normY = isNormalized ? marker.y : marker.y / dimensions.height;
 
-			let viewportX: number;
-			let viewportY: number;
-
-			if (isNormalized) {
-				// Convert normalized (0-1) to viewport coordinates
-				viewportX = marker.x;
-				viewportY = marker.y * aspectRatio;
-			} else {
-				// Legacy: convert pixel coords to viewport coords
-				viewportX = marker.x / dimensions.width;
-				viewportY = (marker.y / dimensions.height) * aspectRatio;
-			}
-
-			console.log(`[PMTilesViewer] Adding marker ${marker.label} at viewport (${viewportX.toFixed(3)}, ${viewportY.toFixed(3)})`);
+			const vpX = (normX - bboxW / 2) * scaleX;
+			const vpY = (normY - bboxH / 2) * scaleY;
+			const vpW = bboxW * scaleX;
+			const vpH = bboxH * scaleY;
 
 			viewer.addOverlay({
 				element: el,
-				location: new OpenSeadragon.Point(viewportX, viewportY),
-				placement: OpenSeadragon.Placement.CENTER,
+				location: new OpenSeadragon.Rect(vpX, vpY, vpW, vpH),
 			});
 
 			markerOverlaysRef.current.set(marker.id, el);
@@ -436,7 +419,7 @@ export default function PMTilesViewer({
 
 	React.useEffect(() => {
 		const viewer = viewerRef.current;
-		if (!viewer) return;
+		if (!viewer || !isViewerReady) return;
 
 		regionOverlaysRef.current.forEach((overlay) => {
 			viewer.removeOverlay(overlay);
@@ -448,7 +431,10 @@ export default function PMTilesViewer({
 		const dimensions = imageDimensionsRef.current;
 		if (!dimensions) return;
 
-		const aspectRatio = dimensions.height / dimensions.width;
+		const tileSize = 256;
+		const tileAlignedW = Math.ceil(dimensions.width / tileSize) * tileSize;
+		const scaleX = dimensions.width / tileAlignedW;
+		const scaleY = dimensions.height / tileAlignedW;
 
 		const REGION_LABELS: Record<string, string> = {
 			schedule: "Schedule",
@@ -502,10 +488,10 @@ export default function PMTilesViewer({
 				}
 			});
 
-			const vpX = region.x;
-			const vpY = region.y * aspectRatio;
-			const vpW = region.width;
-			const vpH = region.height * aspectRatio;
+			const vpX = region.x * scaleX;
+			const vpY = region.y * scaleY;
+			const vpW = region.width * scaleX;
+			const vpH = region.height * scaleY;
 
 			viewer.addOverlay({
 				element: el,

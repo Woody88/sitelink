@@ -160,6 +160,8 @@ export const tables = {
       targetSheetId: State.SQLite.text({ nullable: true }),
       x: State.SQLite.real(),
       y: State.SQLite.real(),
+      width: State.SQLite.real({ nullable: true }),
+      height: State.SQLite.real({ nullable: true }),
       confidence: State.SQLite.real({ nullable: true }), // null for manual markers
       createdBy: State.SQLite.text({ nullable: true }), // null for AI-detected markers
       createdAt: State.SQLite.integer({ nullable: true }),

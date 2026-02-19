@@ -28,11 +28,15 @@ async function commitEvent<T extends EventName>(
   eventName: T,
   data: EventData<T>,
 ): Promise<void> {
-  await stub.fetch("http://internal/commit?storeId=" + organizationId, {
+  const response = await stub.fetch("http://internal/commit?storeId=" + organizationId, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ eventName, data }),
   })
+  if (!response.ok) {
+    const text = await response.text()
+    throw new Error(`LiveStore commit failed for ${eventName}: ${response.status} ${text}`)
+  }
 }
 
 async function emitProgress(
@@ -430,6 +434,8 @@ export class PlanProcessingWorkflow extends WorkflowEntrypoint<Env, PlanProcessi
               targetSheetId?: string
               x: number
               y: number
+              width?: number
+              height?: number
               confidence: number
               needsReview: boolean
             }>
@@ -448,11 +454,13 @@ export class PlanProcessingWorkflow extends WorkflowEntrypoint<Env, PlanProcessi
           const rawMarkers = result.markers ?? []
           const markers = rawMarkers.map((m) => ({
             id: m.id,
-            label: m.label,
+            label: m.label ?? "",
             targetSheetRef: m.targetSheetRef ?? undefined,
             targetSheetId: m.targetSheetId ?? undefined,
             x: m.x,
             y: m.y,
+            width: m.width,
+            height: m.height,
             confidence: m.confidence,
             needsReview: m.needsReview,
           }))

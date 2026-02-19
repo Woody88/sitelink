@@ -278,6 +278,8 @@ export const materializers = State.SQLite.materializers(events, {
         targetSheetId: marker.targetSheetId ?? null,
         x: marker.x,
         y: marker.y,
+        width: marker.width ?? null,
+        height: marker.height ?? null,
         confidence: marker.confidence,
         createdBy: null,
         createdAt: null,
