@@ -15,10 +15,11 @@ import {
 import { LiveStoreClientDO } from "./sync/client-do"
 import { createLiveStoreClient } from "./sync/livestore-client"
 import { createSyncWorker, SyncBackendDO } from "./sync/worker"
+import { PlanProcessingWorkflow } from "./workflows/plan-processing"
 import type { Env } from "./types/env"
 
-// Export Durable Objects and Container classes for Cloudflare Workers
-export { SyncBackendDO, LiveStoreClientDO, PlanCoordinator, PdfProcessor }
+// Export Durable Objects, Container, and Workflow classes for Cloudflare Workers
+export { SyncBackendDO, LiveStoreClientDO, PlanCoordinator, PdfProcessor, PlanProcessingWorkflow }
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -93,6 +94,7 @@ export default {
 
         const formData = await request.formData()
         const file = formData.get("file") as File
+        const fileName = (formData.get("fileName") as string) || file.name
         const projectId = formData.get("projectId") as string
         const organizationId = formData.get("organizationId") as string
 
@@ -130,23 +132,32 @@ export default {
         const planId = nanoid()
         const pdfPath = `organizations/${organizationId}/projects/${projectId}/plans/${planId}/source.pdf`
         const totalPages = 1
-        const planName = file.name.replace(/\.pdf$/i, "")
+        const planName = fileName.replace(/\.pdf$/i, "")
 
-        // Upload PDF and automatically trigger pipeline (works in local dev and production)
-        await uploadPdfAndTriggerPipeline(env, pdfPath, await file.arrayBuffer(), {
-          planId,
-          projectId,
-          organizationId,
-          totalPages,
-          planName,
+        // Upload PDF to R2
+        await env.R2_BUCKET.put(pdfPath, await file.arrayBuffer(), {
+          httpMetadata: { contentType: "application/pdf" },
+          customMetadata: {
+            planId,
+            projectId,
+            organizationId,
+            ...(planName ? { planName } : {}),
+          },
         })
+
+        // Trigger Workflow pipeline (replaces 6-queue + PlanCoordinator architecture)
+        const instance = await env.PLAN_PROCESSING_WORKFLOW.create({
+          id: planId,
+          params: { planId, projectId, organizationId, pdfPath, totalPages, planName },
+        })
+        console.log(`[Upload] Workflow instance created: ${instance.id}`)
 
         await liveStoreClient.commit(
           "planUploaded",
           {
             id: planId,
             projectId,
-            fileName: file.name,
+            fileName,
             fileSize: file.size,
             mimeType: file.type,
             localPath: `file://plans/${planId}/source.pdf`,
