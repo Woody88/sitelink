@@ -11,6 +11,7 @@
 
 import type { PdfProcessor } from "../processing/pdf-processor-container"
 import type { PlanCoordinator } from "../processing/plan-coordinator"
+import type { PlanProcessingParams } from "../workflows/plan-processing"
 
 export interface Env extends Cloudflare.Env {
   // Environment variables (set via wrangler.toml or secrets)
@@ -41,6 +42,9 @@ export interface Env extends Cloudflare.Env {
 
   // Cloudflare Container for VIPS/Python processing
   PDF_PROCESSOR: DurableObjectNamespace<PdfProcessor>
+
+  // Cloudflare Workflow for PDF processing pipeline
+  PLAN_PROCESSING_WORKFLOW: Workflow<PlanProcessingParams>
 
   // Dev-only: bypass workerd container.fetch() by routing to local Flask server
   LOCAL_CONTAINER_URL?: string

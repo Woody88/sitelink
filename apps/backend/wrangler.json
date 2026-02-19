@@ -18,13 +18,15 @@
     {
       "binding": "DB",
       "database_name": "sitelink-db",
-      "database_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+      "database_id": "9b97a3b7-f357-48a2-83fe-d041c393820f",
+      "preview_database_id": "29203158-8ecf-4082-844d-07d4baae4e9c"
     }
   ],
   "r2_buckets": [
     {
       "binding": "R2_BUCKET",
-      "bucket_name": "sitelink-files"
+      "bucket_name": "sitelink-files",
+      "preview_bucket_name": "sitelink-files-preview"
     }
   ],
   "queues": {
@@ -135,6 +137,13 @@
     {
       "tag": "v3",
       "new_sqlite_classes": ["PdfProcessor"]
+    }
+  ],
+  "workflows": [
+    {
+      "name": "plan-processing",
+      "binding": "PLAN_PROCESSING_WORKFLOW",
+      "class_name": "PlanProcessingWorkflow"
     }
   ],
   "observability": {
