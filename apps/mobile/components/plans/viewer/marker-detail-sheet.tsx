@@ -94,7 +94,7 @@ export function MarkerDetailSheet({
 			animationType="fade"
 			onRequestClose={onClose}
 		>
-			<Pressable className="flex-1 bg-black/50" onPress={onClose}>
+			<Pressable className="flex-1 bg-black/20" onPress={onClose}>
 				<View className="flex-1" />
 
 				{/* Sheet content */}
