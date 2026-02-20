@@ -219,12 +219,12 @@ export default function PMTilesViewer({
 										};
 										img.src = url;
 									} else {
-										const errorMsg = `No tile data for ${src}`;
-										console.warn(errorMsg);
-										job.errorMsg = errorMsg;
-										if (job.callback) {
-											job.callback(null, job.errorMsg, src);
-										}
+										const img = new Image();
+										img.onload = () => {
+											job.image = img;
+											if (job.callback) job.callback(img, null, src);
+										};
+										img.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQI12P4z8BQDwAEgAF/QualIQAAAABJRU5ErkJggg==";
 									}
 								})
 								.catch((err) => {
