@@ -182,8 +182,39 @@ export default {
         return Response.json({ error: "Missing path" }, { status: 400 })
       }
 
+      const isImmutable = /\.(pmtiles|png|webp)$/i.test(r2Path)
+
+      // Check Cloudflare edge cache for immutable content
+      const cache = caches.default
+      let cacheKey: Request | undefined
+      if (isImmutable) {
+        cacheKey = new Request(url.toString(), {
+          headers: { Range: request.headers.get("Range") || "" },
+        })
+        const cached = await cache.match(cacheKey)
+        if (cached) return cached
+      }
+
       try {
-        const object = await env.R2_BUCKET.get(r2Path)
+        // Parse Range header and pass to R2 for native range support
+        const rangeHeader = request.headers.get("Range")
+        let rangeStart: number | undefined
+        let rangeEnd: number | undefined
+
+        if (rangeHeader) {
+          const match = rangeHeader.match(/bytes=(\d+)-(\d*)/)
+          if (match) {
+            rangeStart = parseInt(match[1]!, 10)
+            rangeEnd = match[2] ? parseInt(match[2]!, 10) : undefined
+          }
+        }
+
+        const object = await env.R2_BUCKET.get(r2Path, rangeStart !== undefined ? {
+          range: rangeEnd !== undefined
+            ? { offset: rangeStart, length: rangeEnd - rangeStart + 1 }
+            : { offset: rangeStart },
+        } : undefined)
+
         if (!object) {
           return Response.json({ error: "Not found", path: r2Path }, { status: 404 })
         }
@@ -191,25 +222,26 @@ export default {
         const headers = new Headers()
         headers.set("Content-Type", object.httpMetadata?.contentType || "application/octet-stream")
         headers.set("Access-Control-Allow-Origin", "*")
-        headers.set("Cache-Control", "public, max-age=3600")
+        headers.set("Accept-Ranges", "bytes")
+        headers.set(
+          "Cache-Control",
+          isImmutable ? "public, max-age=31536000, immutable" : "public, max-age=3600",
+        )
 
-        // Support range requests for PMTiles
-        const rangeHeader = request.headers.get("Range")
-        if (rangeHeader) {
-          const match = rangeHeader.match(/bytes=(\d+)-(\d*)/)
-          if (match) {
-            const start = parseInt(match[1], 10)
-            const end = match[2] ? parseInt(match[2], 10) : object.size - 1
-            const body = await object.arrayBuffer()
-            const slice = body.slice(start, end + 1)
-
-            headers.set("Content-Range", `bytes ${start}-${end}/${object.size}`)
-            headers.set("Content-Length", String(slice.byteLength))
-            return new Response(slice, { status: 206, headers })
-          }
+        if (rangeStart !== undefined) {
+          const end = rangeEnd !== undefined ? rangeEnd : object.size - 1
+          const length = rangeEnd !== undefined ? rangeEnd - rangeStart + 1 : object.size - rangeStart
+          headers.set("Content-Range", `bytes ${rangeStart}-${end}/${object.size}`)
+          headers.set("Content-Length", String(length))
+          const response = new Response(object.body, { status: 206, headers })
+          if (cacheKey) ctx.waitUntil(cache.put(cacheKey, response.clone()))
+          return response
         }
 
-        return new Response(object.body, { headers })
+        headers.set("Content-Length", String(object.size))
+        const response = new Response(object.body, { headers })
+        if (cacheKey) ctx.waitUntil(cache.put(cacheKey, response.clone()))
+        return response
       } catch (error) {
         console.error("[R2] Error fetching:", r2Path, error)
         return Response.json({ error: String(error) }, { status: 500 })
@@ -261,6 +293,7 @@ export default {
           "Access-Control-Allow-Origin": "*",
           "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
           "Access-Control-Allow-Headers": "Content-Type, Range",
+          "Access-Control-Expose-Headers": "Content-Range, Accept-Ranges, Content-Length",
         },
       })
     }
