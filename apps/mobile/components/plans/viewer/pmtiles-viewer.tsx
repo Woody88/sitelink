@@ -224,7 +224,7 @@ export default function PMTilesViewer({
 											job.image = img;
 											if (job.callback) job.callback(img, null, src);
 										};
-										img.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQI12P4z8BQDwAEgAF/QualIQAAAABJRU5ErkJggg==";
+										img.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII=";
 									}
 								})
 								.catch((err) => {
