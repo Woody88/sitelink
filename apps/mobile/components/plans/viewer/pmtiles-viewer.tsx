@@ -219,12 +219,15 @@ export default function PMTilesViewer({
 										};
 										img.src = url;
 									} else {
+										const canvas = document.createElement("canvas");
+										canvas.width = tileSize;
+										canvas.height = tileSize;
 										const img = new Image();
 										img.onload = () => {
 											job.image = img;
 											if (job.callback) job.callback(img, null, src);
 										};
-										img.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII=";
+										img.src = canvas.toDataURL();
 									}
 								})
 								.catch((err) => {
