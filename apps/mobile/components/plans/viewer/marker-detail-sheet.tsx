@@ -7,8 +7,13 @@ import {
 	X,
 } from "lucide-react-native";
 import * as React from "react";
-import { Modal, Pressable, View } from "react-native";
-import Animated, { SlideInDown } from "react-native-reanimated";
+import { BackHandler, Pressable, View } from "react-native";
+import Animated, {
+	FadeIn,
+	FadeOut,
+	SlideInDown,
+	SlideOutDown,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -77,7 +82,16 @@ export function MarkerDetailSheet({
 }: MarkerDetailSheetProps) {
 	const insets = useSafeAreaInsets();
 
-	if (!marker) return null;
+	React.useEffect(() => {
+		if (!visible) return;
+		const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+			onClose();
+			return true;
+		});
+		return () => sub.remove();
+	}, [visible, onClose]);
+
+	if (!visible || !marker) return null;
 
 	const discipline = DISCIPLINE_CONFIG[marker.discipline || ""] || {
 		label: "General",
@@ -88,11 +102,11 @@ export function MarkerDetailSheet({
 	const typeLabel = TYPE_LABELS[marker.type] || "Marker";
 
 	return (
-		<Modal
-			visible={visible}
-			transparent
-			animationType="fade"
-			onRequestClose={onClose}
+		<Animated.View
+			entering={FadeIn.duration(200)}
+			exiting={FadeOut.duration(150)}
+			className="absolute inset-0"
+			pointerEvents="box-none"
 		>
 			<Pressable className="flex-1 bg-black/20" onPress={onClose}>
 				<View className="flex-1" />
@@ -100,6 +114,7 @@ export function MarkerDetailSheet({
 				{/* Sheet content */}
 				<Animated.View
 					entering={SlideInDown.springify().damping(20).stiffness(200)}
+					exiting={SlideOutDown.springify().damping(20).stiffness(200)}
 					className="bg-card rounded-t-3xl"
 					style={{ paddingBottom: insets.bottom + 16 }}
 				>
@@ -208,7 +223,7 @@ export function MarkerDetailSheet({
 					</Pressable>
 				</Animated.View>
 			</Pressable>
-		</Modal>
+		</Animated.View>
 	);
 }
 
