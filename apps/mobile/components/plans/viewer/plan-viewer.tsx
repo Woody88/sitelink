@@ -2,7 +2,7 @@ import { nanoid } from "@livestore/livestore";
 import { useStore } from "@livestore/react";
 import { events } from "@sitelink/domain";
 import * as Haptics from "expo-haptics";
-import { AlertCircle, Download, Plus, RefreshCw, X } from "lucide-react-native";
+import { AlertCircle, Download, Plus, RefreshCw, TableProperties, X } from "lucide-react-native";
 import * as React from "react";
 import {
 	ActivityIndicator,
@@ -23,6 +23,7 @@ import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useLayoutRegions } from "@/hooks/use-layout-regions";
 import { useMarkers } from "@/hooks/use-markers";
+import { useScheduleDrawerData } from "@/hooks/use-schedule-drawer";
 import {
 	type CalloutMarker,
 	usePlanViewer,
@@ -33,6 +34,7 @@ import { useSessionContext } from "@/lib/session-context";
 import { createAppStoreOptions } from "@/lib/store-config";
 import { useSheetPmtilesSync } from "@/services/file-sync-service";
 import { MarkerDetailSheet } from "./marker-detail-sheet";
+import { ScheduleDrawer } from "./schedule-drawer";
 import OpenSeadragonViewer from "./openseadragon-viewer";
 import PMTilesViewer, { type LayoutRegionOverlay } from "./pmtiles-viewer";
 import { SheetInfoBar } from "./sheet-info-bar";
@@ -112,6 +114,9 @@ export function PlanViewer({
 	// Query layout regions for the current sheet
 	const layoutRegions = useLayoutRegions(sheetId);
 
+	// Schedule drawer data
+	const scheduleGroups = useScheduleDrawerData(projectId);
+
 	// Use LiveStore markers, falling back to internal markers state
 	const markers = liveMarkers.length > 0 ? liveMarkers : internalMarkers;
 
@@ -124,6 +129,7 @@ export function PlanViewer({
 	const [imageDataUrl, setImageDataUrl] = React.useState<string | null>(null);
 	const [retryCount, setRetryCount] = React.useState(0);
 	const [showRegions, setShowRegions] = React.useState(true);
+	const [showScheduleDrawer, setShowScheduleDrawer] = React.useState(false);
 	const controlsOpacity = useSharedValue(1);
 
 	const { sessionToken, userId } = useSessionContext();
@@ -147,7 +153,9 @@ export function PlanViewer({
 	const pmtilesUrl = usePMTiles && remotePmtilesPath
 		? remotePmtilesPath.startsWith("https://r2.sitelink.dev/")
 			? `${BACKEND_URL}/api/r2/${remotePmtilesPath.slice("https://r2.sitelink.dev/".length)}`
-			: remotePmtilesPath
+			: remotePmtilesPath.startsWith("/api/r2/")
+				? `${BACKEND_URL}${remotePmtilesPath}`
+				: remotePmtilesPath
 		: null;
 
 	console.log(`[PlanViewer] PMTiles config:`, {
@@ -347,6 +355,21 @@ export function PlanViewer({
 		setShowRegions((prev) => !prev);
 	}, []);
 
+	const handleOpenSchedules = React.useCallback(() => {
+		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+		setShowScheduleDrawer(true);
+	}, []);
+
+	const handleScheduleViewOnSheet = React.useCallback(
+		(targetSheetId: string, _bbox: { x: number; y: number; width: number; height: number }) => {
+			setShowScheduleDrawer(false);
+			if (targetSheetId !== sheetId) {
+				onSheetChange?.(targetSheetId);
+			}
+		},
+		[sheetId, onSheetChange],
+	);
+
 	const controlsAnimatedStyle = useAnimatedStyle(() => ({
 		opacity: controlsOpacity.value,
 		pointerEvents: controlsOpacity.value > 0.5 ? "auto" : "none",
@@ -514,6 +537,18 @@ export function PlanViewer({
 					>
 						<Icon as={Plus} className="size-6 text-white" />
 					</Pressable>
+
+					{/* Schedule drawer button */}
+					{scheduleGroups.length > 0 && (
+						<Pressable
+							onPress={handleOpenSchedules}
+							className="mt-2 h-12 w-12 items-center justify-center rounded-2xl bg-black/60 backdrop-blur-md active:bg-black/70"
+							accessibilityLabel="View schedules"
+							accessibilityRole="button"
+						>
+							<Icon as={TableProperties} className="size-5 text-white" />
+						</Pressable>
+					)}
 				</View>
 			</Animated.View>
 
@@ -524,6 +559,14 @@ export function PlanViewer({
 				onClose={handleCloseMarkerSheet}
 				onNavigateToSheet={handleNavigateToSheet}
 				onTakePhoto={handleTakePhoto}
+			/>
+
+			{/* Schedule drawer */}
+			<ScheduleDrawer
+				isOpen={showScheduleDrawer}
+				onClose={() => setShowScheduleDrawer(false)}
+				groups={scheduleGroups}
+				onViewOnSheet={handleScheduleViewOnSheet}
 			/>
 		</View>
 	);
