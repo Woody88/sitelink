@@ -538,8 +538,8 @@ export function PlanViewer({
 						<Icon as={Plus} className="size-6 text-white" />
 					</Pressable>
 
-					{/* Schedule drawer button */}
-					{scheduleGroups.length > 0 && (
+					{/* Schedule drawer button — TODO: restore > 0 once DocLayout pipeline populates data */}
+					{scheduleGroups.length >= 0 && (
 						<Pressable
 							onPress={handleOpenSchedules}
 							className="mt-2 h-12 w-12 items-center justify-center rounded-2xl bg-black/60 backdrop-blur-md active:bg-black/70"

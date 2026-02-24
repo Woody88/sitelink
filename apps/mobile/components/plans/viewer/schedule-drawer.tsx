@@ -2,7 +2,7 @@ import * as Haptics from "expo-haptics";
 import { ChevronDown, ChevronRight, TableProperties, X } from "lucide-react-native";
 import * as React from "react";
 import { Modal, Pressable, ScrollView, View } from "react-native";
-import Animated, { SlideInDown } from "react-native-reanimated";
+import Animated, { Easing, SlideInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
 	Collapsible,
@@ -73,7 +73,7 @@ export function ScheduleDrawer({
 				<View className="flex-[0.35]" />
 
 				<Animated.View
-					entering={SlideInDown.springify().damping(20).stiffness(200)}
+					entering={SlideInDown.duration(300).easing(Easing.out(Easing.cubic))}
 					className="flex-[0.65] rounded-t-3xl bg-card"
 					style={{ paddingBottom: insets.bottom + 16 }}
 				>
