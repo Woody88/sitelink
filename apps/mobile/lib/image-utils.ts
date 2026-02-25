@@ -8,10 +8,12 @@
 import { Image } from "react-native";
 
 // Bundled demo sheet images — require() is resolved at build time by Metro
-// S1 = RTA S-131 (Overall Roof Plan), S2 = RTA S-003 (Typical Details)
+// S1 = S0.0 Cover & Schedules, S2 = S1.0 Foundation Plan, S3 = S2.0 Foundation Details, S4 = S3.0 Second Floor Framing
 const DEMO_SHEET_ASSETS: Record<string, number> = {
 	DEMO_PLACEHOLDER_S1: require("@/assets/demo/sheet-s1.png"),
 	DEMO_PLACEHOLDER_S2: require("@/assets/demo/sheet-s2.png"),
+	DEMO_PLACEHOLDER_S3: require("@/assets/demo/sheet-s3.png"),
+	DEMO_PLACEHOLDER_S4: require("@/assets/demo/sheet-s4.png"),
 };
 
 /**
