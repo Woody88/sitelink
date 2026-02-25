@@ -5,11 +5,35 @@
  * for use in WebView/DOM components where CORS restrictions apply.
  */
 
+import { Image } from "react-native";
+
+// Bundled demo sheet images — require() is resolved at build time by Metro
+// S1 = RTA S-131 (Overall Roof Plan), S2 = RTA S-003 (Typical Details)
+const DEMO_SHEET_ASSETS: Record<string, number> = {
+	DEMO_PLACEHOLDER_S1: require("@/assets/demo/sheet-s1.png"),
+	DEMO_PLACEHOLDER_S2: require("@/assets/demo/sheet-s2.png"),
+};
+
 /**
  * Fetch an image from a URL and convert to base64 data URL
  * This bypasses WebView CORS restrictions by fetching from React Native's network stack
+ *
+ * For demo mode, intercepts DEMO_PLACEHOLDER URLs and serves bundled assets
  */
 export async function fetchImageAsBase64(url: string): Promise<string> {
+	// Demo mode: serve bundled structural drawing assets
+	const demoAsset = DEMO_SHEET_ASSETS[url];
+	if (demoAsset) {
+		// Resolve the bundled asset URI (works in both dev and production)
+		const source = Image.resolveAssetSource(demoAsset);
+		// Fetch the asset via its resolved URI and convert to base64
+		return fetchAndConvertToBase64(source.uri);
+	}
+
+	return fetchAndConvertToBase64(url);
+}
+
+async function fetchAndConvertToBase64(url: string): Promise<string> {
 	try {
 		const response = await fetch(url);
 
