@@ -59,6 +59,52 @@ interface PMTilesMetadata {
 	tileSize: number;
 }
 
+// LRU in-memory cache for decoded tile ArrayBuffers.
+// Keyed by "z/x/y". Map insertion order = LRU order; when full, the first
+// (oldest) entry is evicted. 300 WebP/JPEG tiles at ~20KB each ≈ 6 MB.
+class TileCache {
+	private cache = new Map<string, ArrayBuffer>();
+	private readonly maxSize: number;
+
+	constructor(maxSize = 300) {
+		this.maxSize = maxSize;
+	}
+
+	get(z: number, x: number, y: number): ArrayBuffer | undefined {
+		const key = `${z}/${x}/${y}`;
+		const data = this.cache.get(key);
+		if (data !== undefined) {
+			// Refresh position (move to end = most recently used)
+			this.cache.delete(key);
+			this.cache.set(key, data);
+		}
+		return data;
+	}
+
+	set(z: number, x: number, y: number, data: ArrayBuffer): void {
+		const key = `${z}/${x}/${y}`;
+		if (this.cache.has(key)) {
+			this.cache.delete(key);
+		} else if (this.cache.size >= this.maxSize) {
+			// Evict oldest (first inserted) entry
+			this.cache.delete(this.cache.keys().next().value!);
+		}
+		this.cache.set(key, data);
+	}
+}
+
+// One cache instance per PMTiles URL so different sheets don't pollute each other.
+const tileCachesByUrl = new Map<string, TileCache>();
+
+function getTileCache(url: string): TileCache {
+	let cache = tileCachesByUrl.get(url);
+	if (!cache) {
+		cache = new TileCache();
+		tileCachesByUrl.set(url, cache);
+	}
+	return cache;
+}
+
 export default function PMTilesViewer({
 	pmtilesUrl,
 	imageWidth,
@@ -166,6 +212,37 @@ export default function PMTilesViewer({
 
 				viewerRef.current = viewer;
 
+				const tileCache = getTileCache(pmtilesUrl);
+
+				const mimeType =
+					header.tileType === 1
+						? "image/png"
+						: header.tileType === 2
+							? "image/jpeg"
+							: "image/webp";
+
+				function renderTileData(
+					data: ArrayBuffer,
+					job: { image: HTMLImageElement | null; callback: any },
+					src: string,
+				) {
+					const blob = new Blob([data], { type: mimeType });
+					const url = URL.createObjectURL(blob);
+					const img = new Image();
+					img.onload = () => {
+						job.image = img;
+						if (job.callback) job.callback(img, null, src);
+						URL.revokeObjectURL(url);
+					};
+					img.onerror = () => {
+						const errorMsg = `Failed to load image from blob: ${src}`;
+						console.error(errorMsg);
+						if (job.callback) job.callback(null, errorMsg, src);
+						URL.revokeObjectURL(url);
+					};
+					img.src = url;
+				}
+
 				const originalAddJob = (viewer as any).imageLoader.addJob;
 				(viewer as any).imageLoader.addJob = function (options: any) {
 					const src = options.src;
@@ -186,38 +263,20 @@ export default function PMTilesViewer({
 								errorMsg: null as string | null,
 							};
 
+							// Serve from in-memory LRU cache when available, avoiding a
+							// redundant PMTiles range-request parse on repeated pan/zoom.
+							const cached = tileCache.get(z, x, y);
+							if (cached) {
+								renderTileData(cached, job, src);
+								return job;
+							}
+
 							pmtiles
 								.getZxy(z, x, y)
 								.then((tileData) => {
 									if (tileData?.data) {
-										const mimeType =
-											header.tileType === 1
-												? "image/png"
-												: header.tileType === 2
-													? "image/jpeg"
-													: "image/webp";
-
-										const blob = new Blob([tileData.data], { type: mimeType });
-										const url = URL.createObjectURL(blob);
-
-										const img = new Image();
-										img.onload = () => {
-											job.image = img;
-											if (job.callback) {
-												job.callback(img, null, src);
-											}
-											URL.revokeObjectURL(url);
-										};
-										img.onerror = () => {
-											const errorMsg = `Failed to load image from blob: ${src}`;
-											console.error(errorMsg);
-											job.errorMsg = errorMsg;
-											if (job.callback) {
-												job.callback(null, job.errorMsg, src);
-											}
-											URL.revokeObjectURL(url);
-										};
-										img.src = url;
+										tileCache.set(z, x, y, tileData.data);
+										renderTileData(tileData.data, job, src);
 									} else {
 										const canvas = document.createElement("canvas");
 										canvas.width = tileSize;
