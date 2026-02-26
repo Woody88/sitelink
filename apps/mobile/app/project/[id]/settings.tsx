@@ -41,6 +41,7 @@ export default function ProjectSettingsScreen() {
 	// Share link state
 	const [shareUrl, setShareUrl] = React.useState<string | null>(null);
 	const [shareLinkState, setShareLinkState] = React.useState<"idle" | "loading" | "copied" | "error">("idle");
+	const [shareExpiry, setShareExpiry] = React.useState<"never" | "7d" | "30d">("never");
 
 	// Notification settings
 	const [notifyOnNewPlans, setNotifyOnNewPlans] = React.useState(true);
@@ -138,8 +139,9 @@ export default function ProjectSettingsScreen() {
 		);
 	};
 
-	const handleGenerateShareLink = React.useCallback(async () => {
+	const generateShareLink = React.useCallback(async (expiresIn: "never" | "7d" | "30d") => {
 		if (!sessionToken) return;
+		setShareExpiry(expiresIn);
 		setShareLinkState("loading");
 		try {
 			const response = await fetch(`${BACKEND_URL}/api/projects/${params.id}/share`, {
@@ -148,7 +150,7 @@ export default function ProjectSettingsScreen() {
 					"Content-Type": "application/json",
 					Authorization: `Bearer ${sessionToken}`,
 				},
-				body: JSON.stringify({ expiresIn: "never" }),
+				body: JSON.stringify({ expiresIn }),
 			});
 			if (!response.ok) throw new Error("Failed to generate share link");
 			const data = (await response.json()) as { shareUrl: string };
@@ -161,6 +163,19 @@ export default function ProjectSettingsScreen() {
 			setTimeout(() => setShareLinkState("idle"), 2000);
 		}
 	}, [sessionToken, params.id]);
+
+	const handleGenerateShareLink = React.useCallback(() => {
+		Alert.alert(
+			"Link Expiration",
+			"How long should the share link remain active?",
+			[
+				{ text: "Never expire", onPress: () => generateShareLink("never") },
+				{ text: "7 days", onPress: () => generateShareLink("7d") },
+				{ text: "30 days", onPress: () => generateShareLink("30d") },
+				{ text: "Cancel", style: "cancel" },
+			],
+		);
+	}, [generateShareLink]);
 
 	const handleCopyShareLink = React.useCallback(async () => {
 		if (!shareUrl) return;
@@ -388,7 +403,12 @@ export default function ProjectSettingsScreen() {
 						{shareUrl ? (
 							<>
 								<View className="gap-1 px-4 py-3">
-									<Text className="text-muted-foreground text-xs">Share link active</Text>
+									<Text className="text-muted-foreground text-xs">
+									{"Share link active"}
+									{shareExpiry !== "never"
+										? ` · expires in ${shareExpiry === "7d" ? "7 days" : "30 days"}`
+										: " · never expires"}
+								</Text>
 									<Text className="text-foreground text-sm" numberOfLines={1} ellipsizeMode="middle">
 										{shareUrl}
 									</Text>
