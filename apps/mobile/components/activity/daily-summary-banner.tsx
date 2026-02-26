@@ -2,19 +2,29 @@ import { formatDistanceToNow } from "date-fns";
 import {
 	ChevronDown,
 	ChevronUp,
+	Edit3,
 	ExternalLink,
 	RefreshCcw,
 	Sparkles,
 	X,
 } from "lucide-react-native";
 import * as React from "react";
-import { Modal, Pressable, Share, View } from "react-native";
+import { Modal, Pressable, ScrollView, Share, TextInput, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import type { DailySummary } from "@/hooks/use-daily-summary";
 import { cn } from "@/lib/utils";
+import { PhotoThumbnail } from "./photo-thumbnail";
+
+export interface SummaryPhotoDisplay {
+	id: string;
+	localPath: string;
+	capturedAt: number;
+	isIssue: boolean;
+	voiceNoteDuration: number | null;
+}
 
 interface DailySummaryBannerProps {
 	summary: DailySummary | null;
@@ -27,6 +37,7 @@ interface DailySummaryBannerProps {
 		voiceNoteCount: number;
 		issueCount: number;
 	};
+	photos?: SummaryPhotoDisplay[];
 }
 
 export const DailySummaryBanner = React.memo(function DailySummaryBanner({
@@ -36,9 +47,13 @@ export const DailySummaryBanner = React.memo(function DailySummaryBanner({
 	onShare,
 	className,
 	stats,
+	photos,
 }: DailySummaryBannerProps) {
 	const [isCollapsed, setIsCollapsed] = React.useState(false);
 	const [showConfirmDialog, setShowConfirmDialog] = React.useState(false);
+	const [showEditDialog, setShowEditDialog] = React.useState(false);
+	const [editText, setEditText] = React.useState("");
+	const [editedSummaryText, setEditedSummaryText] = React.useState<string | null>(null);
 	const hasSummary = !!summary;
 
 	// Build default summary from stats - always show counts, even if zero
@@ -55,23 +70,26 @@ export const DailySummaryBanner = React.memo(function DailySummaryBanner({
 		return lines.join("\n");
 	}, [stats]);
 
-	const displaySummary = summary || {
-		text: buildDefaultSummary,
-		lastGenerated: new Date(),
-	};
+	const baseText = summary?.text ?? buildDefaultSummary;
+	const displayText = editedSummaryText ?? baseText;
+
+	const lastGenerated = summary?.lastGenerated ?? new Date();
+
+	// When a new summary is generated, clear any edited text
+	React.useEffect(() => {
+		if (summary) setEditedSummaryText(null);
+	}, [summary]);
 
 	const handleShare = React.useCallback(async () => {
-		if (!displaySummary) return;
-
 		try {
 			await Share.share({
-				message: `Daily Summary\n\n${displaySummary.text}\n\n${!hasSummary ? "Default summary" : `Generated ${formatDistanceToNow(displaySummary.lastGenerated, { addSuffix: true })}`}`,
+				message: `Daily Summary\n\n${displayText}\n\n${!hasSummary ? "Default summary" : `Generated ${formatDistanceToNow(lastGenerated, { addSuffix: true })}`}`,
 			});
 			onShare?.();
 		} catch (error) {
 			console.error("Error sharing summary:", error);
 		}
-	}, [displaySummary, onShare, hasSummary]);
+	}, [displayText, onShare, hasSummary, lastGenerated]);
 
 	const handleGenerateClick = React.useCallback(() => {
 		setShowConfirmDialog(true);
@@ -82,6 +100,18 @@ export const DailySummaryBanner = React.memo(function DailySummaryBanner({
 		onGenerate();
 	}, [onGenerate]);
 
+	const handleEditOpen = React.useCallback(() => {
+		setEditText(displayText);
+		setShowEditDialog(true);
+	}, [displayText]);
+
+	const handleEditSave = React.useCallback(() => {
+		setEditedSummaryText(editText.trim() || null);
+		setShowEditDialog(false);
+	}, [editText]);
+
+	const hasPhotos = photos && photos.length > 0;
+
 	return (
 		<View
 			className={cn(
@@ -91,65 +121,102 @@ export const DailySummaryBanner = React.memo(function DailySummaryBanner({
 		>
 			{/* Title Bar */}
 			<Pressable
-				onPress={() => displaySummary && setIsCollapsed(!isCollapsed)}
+				onPress={() => setIsCollapsed(!isCollapsed)}
 				className="flex-row items-center justify-between p-4"
-				disabled={!displaySummary}
 			>
 				<View className="flex-1 flex-row items-center gap-2">
 					<Icon as={Sparkles} className="text-foreground size-4" />
 					<Text className="text-foreground text-base font-semibold">
 						Today&apos;s Summary
 					</Text>
-					{displaySummary && (
-						<Icon
-							as={isCollapsed ? ChevronDown : ChevronUp}
-							className="text-muted-foreground ml-1 size-4"
-						/>
-					)}
+					<Icon
+						as={isCollapsed ? ChevronDown : ChevronUp}
+						className="text-muted-foreground ml-1 size-4"
+					/>
 				</View>
 
-				{displaySummary && !isCollapsed && hasSummary && (
-					<Pressable
-						onPress={handleShare}
-						className="bg-foreground/5 flex-row items-center gap-1.5 rounded-full px-3 py-1.5 active:opacity-70"
-						hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
-					>
-						<Icon as={ExternalLink} className="text-foreground size-4" />
-						<Text className="text-foreground text-sm font-medium">Share</Text>
-					</Pressable>
+				{!isCollapsed && hasSummary && (
+					<View className="flex-row items-center gap-2">
+						<Pressable
+							onPress={handleEditOpen}
+							className="bg-foreground/5 flex-row items-center gap-1.5 rounded-full px-3 py-1.5 active:opacity-70"
+							hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+						>
+							<Icon as={Edit3} className="text-foreground size-4" />
+							<Text className="text-foreground text-sm font-medium">Edit</Text>
+						</Pressable>
+						<Pressable
+							onPress={handleShare}
+							className="bg-foreground/5 flex-row items-center gap-1.5 rounded-full px-3 py-1.5 active:opacity-70"
+							hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+						>
+							<Icon as={ExternalLink} className="text-foreground size-4" />
+							<Text className="text-foreground text-sm font-medium">Share</Text>
+						</Pressable>
+					</View>
 				)}
 			</Pressable>
 
 			{/* Content */}
 			{!isCollapsed && (
-				<View className="px-4 pb-4">
-					<View className="bg-border mb-4 h-px opacity-50" />
+				<View className="pb-4">
+					<View className="bg-border mx-4 mb-4 h-px opacity-50" />
 					{isLoading ? (
-						<View className="gap-2">
+						<View className="gap-2 px-4">
 							<Skeleton className="h-4 w-full" />
 							<Skeleton className="h-4 w-[90%]" />
 							<Skeleton className="h-4 w-[95%]" />
 							<Skeleton className="h-4 w-[60%]" />
 						</View>
-					) : displaySummary ? (
+					) : (
 						<View className="gap-3">
-							{!hasSummary && buildDefaultSummary ? (
-								<View className="gap-2">
-									{displaySummary.text.split("\n").map((line, index) => (
-										<Text
-											key={index}
-											className="text-foreground text-sm leading-relaxed"
-										>
-											{line}
-										</Text>
+							{/* Photo Thumbnails Strip — shown only when AI summary exists */}
+							{hasPhotos && hasSummary && (
+								<ScrollView
+									horizontal
+									showsHorizontalScrollIndicator={false}
+									contentContainerClassName="px-4 gap-2 pb-1"
+								>
+									{photos.map((photo) => (
+										<PhotoThumbnail
+											key={photo.id}
+											uri={photo.localPath}
+											capturedAt={photo.capturedAt}
+											isIssue={photo.isIssue}
+											hasVoiceNote={photo.voiceNoteDuration !== null}
+											className="h-16 w-16 rounded-md"
+										/>
 									))}
-								</View>
-							) : (
-								<Text className="text-foreground text-sm leading-relaxed">
-									{displaySummary.text}
-								</Text>
+								</ScrollView>
 							)}
-							<View className="mt-1 flex-row items-center justify-between">
+
+							{/* Summary Text */}
+							<View className="px-4">
+								{!hasSummary ? (
+									<View className="gap-2">
+										{displayText.split("\n").map((line, index) => (
+											<Text
+												key={index}
+												className="text-foreground text-sm leading-relaxed"
+											>
+												{line}
+											</Text>
+										))}
+									</View>
+								) : (
+									<Text className="text-foreground text-sm leading-relaxed">
+										{displayText}
+									</Text>
+								)}
+								{editedSummaryText !== null && (
+									<Text className="text-muted-foreground mt-1 text-xs">
+										Edited
+									</Text>
+								)}
+							</View>
+
+							{/* Bottom Row: Timestamp + Generate/Regenerate */}
+							<View className="mt-1 flex-row items-center justify-between px-4">
 								{!hasSummary ? (
 									<Text className="text-muted-foreground text-xs">
 										Default summary
@@ -157,12 +224,12 @@ export const DailySummaryBanner = React.memo(function DailySummaryBanner({
 								) : (
 									<Text className="text-muted-foreground text-xs">
 										Generated{" "}
-										{formatDistanceToNow(displaySummary.lastGenerated, {
+										{formatDistanceToNow(lastGenerated, {
 											addSuffix: true,
 										})}
 									</Text>
 								)}
-								{hasSummary && (
+								{hasSummary ? (
 									<Pressable
 										onPress={handleGenerateClick}
 										disabled={isLoading}
@@ -177,13 +244,10 @@ export const DailySummaryBanner = React.memo(function DailySummaryBanner({
 											)}
 										/>
 										<Text className="text-muted-foreground text-xs">
-											Refresh
+											Regenerate
 										</Text>
 									</Pressable>
-								)}
-							</View>
-							{!hasSummary && (
-								<View className="mt-2 flex-row justify-end">
+								) : (
 									<Pressable
 										onPress={handleGenerateClick}
 										disabled={isLoading}
@@ -200,10 +264,10 @@ export const DailySummaryBanner = React.memo(function DailySummaryBanner({
 											Generate Summary
 										</Text>
 									</Pressable>
-								</View>
-							)}
+								)}
+							</View>
 						</View>
-					) : null}
+					)}
 				</View>
 			)}
 
@@ -218,7 +282,7 @@ export const DailySummaryBanner = React.memo(function DailySummaryBanner({
 					<View className="bg-background border-border w-full max-w-sm rounded-xl border p-6">
 						<View className="mb-4 flex-row items-center justify-between">
 							<Text className="text-foreground text-lg font-bold">
-								Generate AI Summary
+								{hasSummary ? "Regenerate Summary" : "Generate AI Summary"}
 							</Text>
 							<Pressable
 								onPress={() => setShowConfirmDialog(false)}
@@ -228,7 +292,9 @@ export const DailySummaryBanner = React.memo(function DailySummaryBanner({
 							</Pressable>
 						</View>
 						<Text className="text-muted-foreground mb-6 text-sm leading-relaxed">
-							Generate a summary of today&apos;s progress and photos using AI.
+							{hasSummary
+								? "Regenerate the AI summary from today's latest photos and voice notes. Your current edits will be reset."
+								: "Generate a summary of today's progress and photos using AI."}
 						</Text>
 						<View className="flex-row gap-3">
 							<Button
@@ -244,7 +310,54 @@ export const DailySummaryBanner = React.memo(function DailySummaryBanner({
 								className="flex-1"
 							>
 								<Text className="text-primary-foreground font-medium">
-									Generate
+									{hasSummary ? "Regenerate" : "Generate"}
+								</Text>
+							</Button>
+						</View>
+					</View>
+				</View>
+			</Modal>
+
+			{/* Edit Summary Dialog */}
+			<Modal
+				visible={showEditDialog}
+				transparent
+				animationType="slide"
+				onRequestClose={() => setShowEditDialog(false)}
+			>
+				<View className="flex-1 justify-end bg-black/50">
+					<View className="bg-background border-border rounded-t-2xl border-t p-6">
+						<View className="mb-4 flex-row items-center justify-between">
+							<Text className="text-foreground text-lg font-bold">
+								Edit Summary
+							</Text>
+							<Pressable
+								onPress={() => setShowEditDialog(false)}
+								className="p-1"
+							>
+								<Icon as={X} className="text-muted-foreground size-5" />
+							</Pressable>
+						</View>
+						<TextInput
+							value={editText}
+							onChangeText={setEditText}
+							multiline
+							numberOfLines={10}
+							className="border-border text-foreground mb-4 min-h-[200px] rounded-xl border p-3 text-sm leading-relaxed"
+							style={{ textAlignVertical: "top" }}
+							autoFocus
+						/>
+						<View className="flex-row gap-3">
+							<Button
+								variant="outline"
+								onPress={() => setShowEditDialog(false)}
+								className="flex-1"
+							>
+								<Text className="text-foreground font-medium">Cancel</Text>
+							</Button>
+							<Button onPress={handleEditSave} className="flex-1">
+								<Text className="text-primary-foreground font-medium">
+									Save
 								</Text>
 							</Button>
 						</View>

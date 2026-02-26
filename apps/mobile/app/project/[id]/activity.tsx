@@ -3,6 +3,7 @@ import { Download, type LucideIcon, Share2, UserPlus } from "lucide-react-native
 import * as React from "react";
 import { Pressable, ScrollView, Share, View } from "react-native";
 import { DailySummaryBanner } from "@/components/activity/daily-summary-banner";
+import type { SummaryPhotoDisplay } from "@/components/activity/daily-summary-banner";
 import { Icon } from "@/components/ui/icon";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
@@ -122,6 +123,23 @@ export default function ActivityScreen() {
 		);
 	}, [timelineSections]);
 
+	// Build today's photos for thumbnail display in the summary banner
+	const todayPhotosForBanner = React.useMemo((): SummaryPhotoDisplay[] => {
+		const todaySection = timelineSections.find(
+			(section) => section.title === "Today",
+		);
+		if (!todaySection) return [];
+		return todaySection.data.flatMap((group) =>
+			group.photos.map((photo) => ({
+				id: photo.id,
+				localPath: photo.localPath,
+				capturedAt: photo.capturedAt,
+				isIssue: photo.isIssue,
+				voiceNoteDuration: photo.voiceNoteDuration,
+			})),
+		);
+	}, [timelineSections]);
+
 	const handleGenerate = React.useCallback(() => {
 		generateSummary(todayPhotosForSummary);
 	}, [generateSummary, todayPhotosForSummary]);
@@ -170,6 +188,7 @@ export default function ActivityScreen() {
 					isLoading={isSummaryLoading}
 					onGenerate={handleGenerate}
 					stats={todayStats}
+				photos={todayPhotosForBanner}
 				/>
 
 				{/* Quick Actions */}
