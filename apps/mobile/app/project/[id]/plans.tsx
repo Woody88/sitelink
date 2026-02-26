@@ -85,6 +85,7 @@ export default function PlansScreen() {
 	const isSearchActive = searchQuery.trim().length >= 2;
 	const [viewMode, setViewMode] = React.useState<"grid" | "list">("list");
 	const [plansTab, setPlansTab] = React.useState<"sheets" | "plan-info">("sheets");
+	const [activeDiscipline, setActiveDiscipline] = React.useState<string | null>(null);
 	const hasInitialized = React.useRef(false);
 	const [expandedFolders, setExpandedFolders] = React.useState<string[]>([]);
 	const [isSelectorVisible, setIsSelectorVisible] = React.useState(false);
@@ -180,14 +181,30 @@ export default function PlansScreen() {
 		thumbnail: sheet.imagePath,
 	});
 
+	// Collect unique disciplines for filter chips
+	const allDisciplines = React.useMemo(() => {
+		const seen = new Set<string>();
+		for (const folder of folders) {
+			for (const sheet of folder.sheets) {
+				const key = sheet.discipline?.toUpperCase()?.slice(0, 5);
+				if (key && DISCIPLINE_COLORS[key]) seen.add(key);
+			}
+		}
+		return Array.from(seen).sort();
+	}, [folders]);
+
 	const filteredFolders = folders
 		.map((folder) => ({
 			...folder,
-			sheets: folder.sheets.filter(
-				(sheet) =>
+			sheets: folder.sheets.filter((sheet) => {
+				const matchesSearch =
 					sheet.number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-					sheet.title.toLowerCase().includes(searchQuery.toLowerCase()),
-			),
+					sheet.title.toLowerCase().includes(searchQuery.toLowerCase());
+				const matchesDiscipline =
+					!activeDiscipline ||
+					sheet.discipline?.toUpperCase()?.slice(0, 5) === activeDiscipline;
+				return matchesSearch && matchesDiscipline;
+			}),
 		}))
 		.filter(
 			(folder) =>
@@ -308,6 +325,50 @@ export default function PlansScreen() {
 							</View>
 						)}
 					</View>
+				)}
+
+				{/* Discipline filter chips — only visible on Sheets tab with multiple disciplines */}
+				{plansTab === "sheets" && allDisciplines.length > 1 && (
+					<ScrollView
+						horizontal
+						showsHorizontalScrollIndicator={false}
+						contentContainerStyle={{ gap: 8, flexDirection: "row" }}
+					>
+						{allDisciplines.map((disc) => {
+							const color = DISCIPLINE_COLORS[disc] ?? "#6B7280";
+							const isActive = activeDiscipline === disc;
+							return (
+								<Pressable
+									key={disc}
+									onPress={() => {
+										Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+										setActiveDiscipline(isActive ? null : disc);
+									}}
+									style={{
+										height: 36,
+										flexDirection: "row",
+										alignItems: "center",
+										paddingHorizontal: 14,
+										borderRadius: 18,
+										backgroundColor: isActive ? color : color + "22",
+										borderWidth: 1,
+										borderColor: isActive ? color : color + "55",
+									}}
+								>
+									<Text
+										style={{
+											fontSize: 11,
+											fontWeight: "700",
+											letterSpacing: 0.5,
+											color: isActive ? "#fff" : color,
+										}}
+									>
+										{disc}
+									</Text>
+								</Pressable>
+							);
+						})}
+					</ScrollView>
 				)}
 			</View>
 
@@ -435,7 +496,7 @@ export default function PlansScreen() {
 																	className="mt-0.5 rounded px-1.5 py-0.5"
 																	style={{
 																		backgroundColor:
-																			getDisciplineColor(sheet.discipline) + "22",
+																			getDisciplineColor(sheet.discipline) + "33",
 																	}}
 																>
 																	<Text
@@ -466,7 +527,7 @@ export default function PlansScreen() {
 																className="size-11 items-center justify-center rounded-lg"
 																style={{
 																	backgroundColor:
-																		getDisciplineColor(sheet.discipline) + "22",
+																		getDisciplineColor(sheet.discipline) + "33",
 																}}
 															>
 																<Text

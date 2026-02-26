@@ -143,7 +143,7 @@ export function MarkerDetailSheet({
 										{typeLabel}
 									</Text>
 								</View>
-								<Text className="text-foreground text-2xl font-bold">
+								<Text className="text-foreground font-mono text-3xl font-bold tracking-tight">
 									{marker.label}
 								</Text>
 							</View>

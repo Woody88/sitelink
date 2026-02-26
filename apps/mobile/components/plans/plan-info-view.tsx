@@ -146,7 +146,7 @@ function PlanInfoSection({
 									</Text>
 								)}
 							</View>
-							<Text className="text-muted-foreground mr-2 text-sm">
+							<Text className="text-muted-foreground font-mono mr-2 text-sm">
 								{sheetNumber}
 							</Text>
 							<Icon
