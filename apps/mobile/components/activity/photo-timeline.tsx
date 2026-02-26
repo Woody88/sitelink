@@ -1,4 +1,5 @@
-import { FileText, MapPin, Mic, Play } from "lucide-react-native";
+import { Audio } from "expo-av";
+import { FileText, MapPin, Mic, Pause, Play } from "lucide-react-native";
 import * as React from "react";
 import { Pressable, ScrollView, SectionList, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
@@ -35,11 +36,50 @@ const CalloutGroup = React.memo(function CalloutGroup({
 				return {
 					transcript: photo.voiceNoteTranscription,
 					duration: `${mins}:${String(secs).padStart(2, "0")}`,
+					localPath: photo.voiceNoteLocalPath,
 				};
 			}
 		}
 		return null;
 	}, [group.photos]);
+
+	const [isPlaying, setIsPlaying] = React.useState(false);
+	const soundRef = React.useRef<Audio.Sound | null>(null);
+
+	React.useEffect(() => {
+		return () => {
+			soundRef.current?.unloadAsync();
+		};
+	}, []);
+
+	const handlePlayPause = React.useCallback(async () => {
+		if (!groupVoiceNote?.localPath) return;
+		if (isPlaying) {
+			await soundRef.current?.pauseAsync();
+			setIsPlaying(false);
+			return;
+		}
+		try {
+			if (!soundRef.current) {
+				const { sound } = await Audio.Sound.createAsync(
+					{ uri: groupVoiceNote.localPath },
+					{ shouldPlay: true },
+				);
+				soundRef.current = sound;
+				sound.setOnPlaybackStatusUpdate((status) => {
+					if (status.isLoaded && status.didJustFinish) {
+						setIsPlaying(false);
+						soundRef.current = null;
+					}
+				});
+			} else {
+				await soundRef.current.playAsync();
+			}
+			setIsPlaying(true);
+		} catch (err) {
+			console.error("[PhotoTimeline] Audio playback error:", err);
+		}
+	}, [groupVoiceNote?.localPath, isPlaying]);
 
 	const handleGenerateRFI = React.useCallback(() => {
 		// TODO: Implement RFI generation
@@ -101,8 +141,15 @@ const CalloutGroup = React.memo(function CalloutGroup({
 								&ldquo;{groupVoiceNote.transcript}&rdquo;
 							</Text>
 						</View>
-						<Pressable className="p-1">
-							<Icon as={Play} className="text-primary size-4" />
+						<Pressable
+							onPress={groupVoiceNote.localPath ? handlePlayPause : undefined}
+							disabled={!groupVoiceNote.localPath}
+							className="p-1 active:opacity-70 disabled:opacity-40"
+						>
+							<Icon
+								as={isPlaying ? Pause : Play}
+								className="text-primary size-4"
+							/>
 						</Pressable>
 					</View>
 				</View>

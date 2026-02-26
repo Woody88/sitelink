@@ -17,6 +17,7 @@ export interface PhotoWithMarker {
 	capturedBy: string;
 	voiceNoteTranscription: string | null;
 	voiceNoteDuration: number | null;
+	voiceNoteLocalPath: string | null;
 }
 
 export interface TimelineSection {
@@ -55,13 +56,18 @@ export function usePhotosTimeline(projectId: string) {
 		// Map photoId → voice note for quick lookup (first voice note per photo)
 		const voiceNoteMap = new Map<
 			string,
-			{ transcription: string | null; durationSeconds: number }
+			{
+				transcription: string | null;
+				durationSeconds: number;
+				localPath: string;
+			}
 		>();
 		voiceNotesArray.forEach((vn) => {
 			if (!voiceNoteMap.has(vn.photoId)) {
 				voiceNoteMap.set(vn.photoId, {
 					transcription: vn.transcription ?? null,
 					durationSeconds: vn.durationSeconds,
+					localPath: vn.localPath,
 				});
 			}
 		});
@@ -89,6 +95,7 @@ export function usePhotosTimeline(projectId: string) {
 					: null,
 				voiceNoteTranscription: voiceNote?.transcription ?? null,
 				voiceNoteDuration: voiceNote?.durationSeconds ?? null,
+				voiceNoteLocalPath: voiceNote?.localPath ?? null,
 			});
 		});
 
