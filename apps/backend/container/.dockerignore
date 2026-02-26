@@ -1,0 +1,14 @@
+node_modules
+*.log
+*.md
+.git
+.gitignore
+server.ts
+package.json
+bun.lock
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+test_*.py
+docker-compose.yml

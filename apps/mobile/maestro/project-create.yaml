@@ -1,0 +1,59 @@
+# Project Creation Flow
+# Creates a new project from the Projects screen
+# Ends inside the project on the Plans tab (empty state)
+#
+# Prerequisites:
+#   - User must be logged in and on the Projects screen
+#   - Run auth-signup.yaml or auth-login.yaml first
+
+appId: com.nessei.sitelink
+---
+# Verify we're on the Projects screen
+- assertVisible: 'Projects'
+
+# Tap FAB or Create Project button (both work)
+- runFlow:
+    when:
+      visible: 'Create Project'
+    commands:
+      - tapOn: 'Create Project'
+- runFlow:
+    when:
+      notVisible: 'Create Project'
+    commands:
+      # FAB is the + button at bottom right
+      - tapOn:
+          point: '90%,90%'
+
+# Wait for modal
+- extendedWaitUntil:
+    visible: 'New Project'
+    timeout: 5000
+
+# Fill project form - tap on the input placeholder, then type
+- tapOn: 'e.g. Riverside Apartments'
+- inputText: 'Riverside Apartments'
+- tapOn: 'e.g. 123 Main St, Denver, CO'
+- inputText: '123 Main St, Denver, CO'
+
+# Create project
+- hideKeyboard
+- tapOn: 'Create Project'
+- waitForAnimationToEnd
+
+# Wait for project to appear in the list
+- extendedWaitUntil:
+    visible: 'Riverside Apartments'
+    timeout: 10000
+
+# Tap on the project to enter it
+- tapOn: 'Riverside Apartments'
+- waitForAnimationToEnd
+
+# Verify we're inside the project
+- extendedWaitUntil:
+    visible: 'Plans'
+    timeout: 10000
+- assertVisible: 'Media'
+- assertVisible: 'Activity'
+- assertVisible: 'No Plans Yet'

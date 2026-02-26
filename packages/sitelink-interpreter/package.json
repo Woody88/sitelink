@@ -1,0 +1,26 @@
+{
+  "name": "sitelink-interpreter",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "ingest": "bun run src/ingestion/index.ts",
+    "extract": "bun run src/extraction/index.ts",
+    "synthesize": "bun run src/synthesis/index.ts",
+    "serve": "bun run src/api/server.ts",
+    "pipeline": "bun run src/ingestion/index.ts && bun run src/extraction/index.ts && bun run src/synthesis/index.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "nanoid": "^5.1.6",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
+  }
+}

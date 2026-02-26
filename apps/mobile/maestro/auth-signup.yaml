@@ -1,0 +1,98 @@
+# Auth Signup Flow
+# Registers a new user and skips biometric setup
+# Ends on the Projects screen (empty state)
+#
+# Environment variables:
+#   TEST_NAME - User's name (default: Tester)
+#   TEST_EMAIL - User's email (default: test@example.com)
+#   TEST_PASSWORD - User's password (default: password123)
+#
+# Prerequisites:
+#   - Backend running (bun dev:network)
+#   - Clean database state (bun wrangler:state:reset && bash delete_db.sh)
+
+appId: com.nessei.sitelink
+---
+- launchApp:
+    clearState: true
+
+# Dev client launcher appears after clearState showing the server list
+- extendedWaitUntil:
+    visible: 'DEVELOPMENT SERVERS'
+    timeout: 15000
+    optional: true
+- runFlow:
+    when:
+      visible: 'DEVELOPMENT SERVERS'
+    commands:
+      - tapOn: 'http://localhost:8081'
+      - runFlow:
+          when:
+            visible: 'Connect'
+          commands:
+            - tapOn: 'Connect'
+
+# Dismiss dev menu intro popup if it appears, then close dev tools menu
+- runFlow:
+    when:
+      visible: 'Continue'
+    commands:
+      - tapOn: 'Continue'
+      - pressKey: back
+
+# Wait for app to load and show Sign In screen
+- extendedWaitUntil:
+    visible: 'Sign In'
+    timeout: 30000
+
+# Navigate to signup
+- tapOn:
+    id: 'signup-link'
+- assertVisible: 'Create Account'
+
+# Fill signup form
+- tapOn:
+    id: 'name-input'
+- inputText: 'Tester'
+- tapOn:
+    id: 'email-input'
+- inputText: 'test@example.com'
+- hideKeyboard
+- tapOn:
+    id: 'password-input'
+- inputText: 'password123'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'organization-input'
+    direction: DOWN
+- tapOn:
+    id: 'organization-input'
+- inputText: 'Test Organization'
+- hideKeyboard
+
+# Submit signup
+- scrollUntilVisible:
+    element:
+      id: 'signup-button'
+    direction: DOWN
+- tapOn:
+    id: 'signup-button'
+- waitForAnimationToEnd
+
+# Handle biometric setup (skip it)
+- extendedWaitUntil:
+    visible:
+      text: 'Enable Fingerprint?'
+    timeout: 10000
+    optional: true
+- tapOn:
+    id: 'skip-biometric-button'
+    optional: true
+- waitForAnimationToEnd
+
+# Verify we're on the Projects screen
+- extendedWaitUntil:
+    visible: 'Projects'
+    timeout: 10000
+- assertVisible: 'No Projects Found'

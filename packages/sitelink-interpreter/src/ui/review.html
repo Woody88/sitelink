@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SiteLink - HITL Review</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .crop-container {
+      position: relative;
+      display: inline-block;
+    }
+    .bbox-highlight {
+      position: absolute;
+      border: 3px solid #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div id="root"></div>
+  <script type="module" src="./review.tsx"></script>
+</body>
+</html>

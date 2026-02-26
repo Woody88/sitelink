@@ -1,0 +1,188 @@
+# End-to-End: Signup to Plan Upload
+# Complete flow from fresh signup to uploading a plan
+#
+# This flow:
+#   1. Signs up a new user
+#   2. Skips biometric setup
+#   3. Creates a new project
+#   4. Uploads a PDF plan
+#   5. Waits for processing to complete
+#
+# Environment variables:
+#   TEST_NAME - User's name (default: Tester)
+#   TEST_EMAIL - User's email (default: test@example.com)
+#   TEST_PASSWORD - User's password (default: password123)
+#   PROJECT_NAME - Project name (default: Test Project)
+#   PROJECT_ADDRESS - Project address (default: 123 Test St)
+#
+# Prerequisites (IMPORTANT - run these first!):
+#   1. Reset backend: bun wrangler:state:reset
+#   2. Reset device DB: bash delete_db.sh
+#   3. Push test PDF: bash push_plan.sh
+#   4. Start backend: bun dev:network
+#   5. Start mobile: bun dev
+#   6. Ensure adb reverse ports: adb reverse tcp:8081 tcp:8081 && adb reverse tcp:8787 tcp:8787
+#
+# Run with:
+#   maestro test apps/mobile/maestro/e2e-signup-to-upload.yaml
+
+appId: com.nessei.sitelink
+---
+# === STEP 1: Signup ===
+- launchApp:
+    clearState: true
+
+# Wait for app to load and show Sign In screen
+- extendedWaitUntil:
+    visible: 'Sign In'
+    timeout: 30000
+
+# Navigate to signup
+- tapOn:
+    id: 'signup-link'
+- assertVisible: 'Create Account'
+
+# Fill signup form
+- tapOn:
+    id: 'name-input'
+- inputText: 'Tester'
+- tapOn:
+    id: 'email-input'
+- inputText: 'test@example.com'
+- tapOn:
+    id: 'organization-input'
+- inputText: 'Test Organization'
+- tapOn:
+    id: 'password-input'
+- inputText: 'password123'
+
+# Submit signup
+- tapOn:
+    id: 'signup-button'
+- waitForAnimationToEnd
+
+# Handle biometric setup (skip it)
+- extendedWaitUntil:
+    visible:
+      text: 'Enable Fingerprint?'
+    timeout: 15000
+    optional: true
+- tapOn:
+    id: 'skip-biometric-button'
+    optional: true
+- waitForAnimationToEnd
+
+# Verify we're on the Projects screen
+- extendedWaitUntil:
+    visible: 'Projects'
+    timeout: 10000
+
+# === STEP 2: Create Project ===
+# Tap FAB or Create Project button
+- runFlow:
+    when:
+      visible: 'Create Project'
+    commands:
+      - tapOn: 'Create Project'
+- runFlow:
+    when:
+      notVisible: 'Create Project'
+    commands:
+      - tapOn:
+          point: '90%,90%'
+
+# Wait for modal
+- extendedWaitUntil:
+    visible: 'New Project'
+    timeout: 5000
+
+# Fill project form - Project Name input is already focused (autoFocus)
+- inputText: 'Test Project'
+# Tap on the Address input placeholder to focus it
+- tapOn: 'e.g. 123 Main St, Denver, CO'
+- inputText: '123 Test St'
+
+# Create project
+- tapOn: 'Create Project'
+- waitForAnimationToEnd
+
+# Wait for project to be created and return to Projects list
+- extendedWaitUntil:
+    visible: 'Test Project'
+    timeout: 10000
+
+# Tap on the project to enter it
+- tapOn: 'Test Project'
+- waitForAnimationToEnd
+
+# Verify we're inside the project
+- extendedWaitUntil:
+    visible: 'Plans'
+    timeout: 10000
+
+# === STEP 3: Upload Plan ===
+# Tap FAB to open upload sheet
+- tapOn:
+    point: '90%,90%'
+
+# Wait for upload sheet
+- extendedWaitUntil:
+    visible: 'Upload Plan'
+    timeout: 5000
+
+# Select device storage option
+- tapOn: 'Device Storage'
+- waitForAnimationToEnd
+
+# Android file picker - navigate to Downloads
+- extendedWaitUntil:
+    visible:
+      text: '.*'
+    timeout: 5000
+- runFlow:
+    when:
+      visible: 'Downloads'
+    commands:
+      - tapOn: 'Downloads'
+      - waitForAnimationToEnd
+
+# Select sample-plan.pdf
+- extendedWaitUntil:
+    visible: 'sample-plan.pdf'
+    timeout: 5000
+- tapOn: 'sample-plan.pdf'
+- waitForAnimationToEnd
+
+# Handle Select/Open button if present
+- runFlow:
+    when:
+      visible: 'Select'
+    commands:
+      - tapOn: 'Select'
+- runFlow:
+    when:
+      visible: 'Open'
+    commands:
+      - tapOn: 'Open'
+
+# Wait for upload modal
+- extendedWaitUntil:
+    visible: 'Uploading Plan'
+    timeout: 15000
+    optional: true
+
+# Wait for processing to complete (up to 2 minutes)
+- extendedWaitUntil:
+    notVisible: 'Uploading Plan'
+    timeout: 120000
+    optional: true
+
+# === STEP 4: Verify Results ===
+# After processing, sheets should appear in folders
+- extendedWaitUntil:
+    visible:
+      text: '.*plans'
+    timeout: 120000
+
+# Take a screenshot of the result
+- takeScreenshot: e2e-final-result

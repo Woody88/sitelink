@@ -1,0 +1,560 @@
+"use dom";
+
+import OpenSeadragon from "openseadragon";
+import { PMTiles } from "pmtiles";
+import * as React from "react";
+
+export interface CalloutMarker {
+	id: string;
+	x: number; // Normalized 0-1 coordinate (center, relative to image dimensions)
+	y: number; // Normalized 0-1 coordinate (center, relative to image dimensions)
+	width?: number; // Normalized 0-1 bbox width
+	height?: number; // Normalized 0-1 bbox height
+	label: string;
+	targetSheetRef?: string;
+	type: "detail" | "section" | "elevation" | "note";
+	discipline?: "arch" | "struct" | "elec" | "mech" | "plumb";
+	needsReview?: boolean;
+}
+
+export interface LayoutRegionOverlay {
+	id: string;
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+	regionClass: "schedule" | "notes" | "legend";
+	regionTitle: string;
+	confidence: number;
+}
+
+export interface ViewerState {
+	zoom: number;
+	minZoom: number;
+	maxZoom: number;
+	center: { x: number; y: number };
+	isReady: boolean;
+}
+
+interface PMTilesViewerProps {
+	pmtilesUrl: string;
+	imageWidth: number;
+	imageHeight: number;
+	markers?: CalloutMarker[];
+	selectedMarkerId?: string | null;
+	onMarkerPress?: (marker: CalloutMarker) => Promise<void>;
+	onViewerStateChange?: (state: ViewerState) => Promise<void>;
+	onReady?: () => Promise<void>;
+	onError?: (error: string) => Promise<void>;
+	regions?: LayoutRegionOverlay[];
+	showRegions?: boolean;
+	onRegionPress?: (region: LayoutRegionOverlay) => Promise<void>;
+}
+
+interface PMTilesMetadata {
+	minZoom: number;
+	maxZoom: number;
+	bounds: [number, number, number, number];
+	center: [number, number];
+	tileSize: number;
+}
+
+export default function PMTilesViewer({
+	pmtilesUrl,
+	imageWidth,
+	imageHeight,
+	markers = [],
+	selectedMarkerId,
+	onMarkerPress,
+	onViewerStateChange,
+	onReady,
+	onError,
+	regions = [],
+	showRegions = true,
+	onRegionPress,
+}: PMTilesViewerProps) {
+	const containerRef = React.useRef<HTMLDivElement>(null);
+	const viewerRef = React.useRef<OpenSeadragon.Viewer | null>(null);
+	const pmtilesRef = React.useRef<PMTiles | null>(null);
+	const markerOverlaysRef = React.useRef<Map<string, HTMLElement>>(new Map());
+	const regionOverlaysRef = React.useRef<Map<string, HTMLElement>>(new Map());
+	const imageDimensionsRef = React.useRef<{
+		width: number;
+		height: number;
+	} | null>(null);
+	const [isViewerReady, setIsViewerReady] = React.useState(false);
+
+	React.useEffect(() => {
+		if (!containerRef.current) return;
+
+		let viewer: OpenSeadragon.Viewer | null = null;
+
+		const initViewer = async () => {
+			try {
+				console.log("[PMTilesViewer] Initializing for:", pmtilesUrl);
+
+				const pmtiles = new PMTiles(pmtilesUrl);
+				pmtilesRef.current = pmtiles;
+
+				const header = await pmtiles.getHeader();
+				console.log("[PMTilesViewer] PMTiles Header:", header);
+
+				// PMTiles tileType: 1=MVT, 2=PNG, 3=JPEG, 4=WebP
+				// Our tiles are always 256px (set in dzsave)
+				const tileSize = 256;
+				const meta: PMTilesMetadata = {
+					minZoom: header.minZoom,
+					maxZoom: header.maxZoom,
+					bounds: [header.minLon, header.minLat, header.maxLon, header.maxLat],
+					center: [
+						(header.minLon + header.maxLon) / 2,
+						(header.minLat + header.maxLat) / 2,
+					],
+					tileSize,
+				};
+
+				// Calculate dimensions based on actual tile coverage
+				// Round up to tile boundaries to ensure all edge tiles are requested
+				const tilesX = Math.ceil(imageWidth / tileSize);
+				const tilesY = Math.ceil(imageHeight / tileSize);
+				const width = tilesX * tileSize;
+				const height = tilesY * tileSize;
+
+				console.log("[PMTilesViewer] Dimensions:", {
+					imageWidth,
+					imageHeight,
+					tilesX,
+					tilesY,
+					effectiveWidth: width,
+					effectiveHeight: height,
+					maxZoom: header.maxZoom,
+					tileSize,
+				});
+
+				// Store ACTUAL dimensions for marker coordinate scaling
+				imageDimensionsRef.current = { width: imageWidth, height: imageHeight };
+
+				const customTileSource: OpenSeadragon.TileSource =
+					new OpenSeadragon.TileSource({
+						width,
+						height,
+						tileSize,
+						tileOverlap: 0,
+						minLevel: header.minZoom,
+						maxLevel: header.maxZoom,
+						getTileUrl: (level: number, x: number, y: number) => {
+							return `pmtiles://${level}/${x}/${y}`;
+						},
+					});
+
+				viewer = OpenSeadragon({
+					element: containerRef.current!,
+					tileSources: [customTileSource],
+					prefixUrl: "https://openseadragon.github.io/openseadragon/images/",
+					animationTime: 0.5,
+					blendTime: 0.1,
+					constrainDuringPan: true,
+					maxZoomPixelRatio: 2,
+					minZoomLevel: 0,
+					visibilityRatio: 1,
+					zoomPerScroll: 2,
+					timeout: 120000,
+					imageLoaderLimit: 4,
+					immediateRender: false,
+					showNavigationControl: false,
+				});
+
+				viewerRef.current = viewer;
+
+				const originalAddJob = (viewer as any).imageLoader.addJob;
+				(viewer as any).imageLoader.addJob = function (options: any) {
+					const src = options.src;
+
+					if (src && src.startsWith("pmtiles://")) {
+						const match = src.match(/pmtiles:\/\/(\d+)\/(\d+)\/(\d+)/);
+						if (match) {
+							const [, zStr, xStr, yStr] = match;
+							const z = parseInt(zStr, 10);
+							const x = parseInt(xStr, 10);
+							const y = parseInt(yStr, 10);
+
+							const job = {
+								src,
+								callback: options.callback,
+								abort: options.abort,
+								image: null as HTMLImageElement | null,
+								errorMsg: null as string | null,
+							};
+
+							pmtiles
+								.getZxy(z, x, y)
+								.then((tileData) => {
+									if (tileData?.data) {
+										const mimeType =
+											header.tileType === 1
+												? "image/png"
+												: header.tileType === 2
+													? "image/jpeg"
+													: "image/webp";
+
+										const blob = new Blob([tileData.data], { type: mimeType });
+										const url = URL.createObjectURL(blob);
+
+										const img = new Image();
+										img.onload = () => {
+											job.image = img;
+											if (job.callback) {
+												job.callback(img, null, src);
+											}
+											URL.revokeObjectURL(url);
+										};
+										img.onerror = () => {
+											const errorMsg = `Failed to load image from blob: ${src}`;
+											console.error(errorMsg);
+											job.errorMsg = errorMsg;
+											if (job.callback) {
+												job.callback(null, job.errorMsg, src);
+											}
+											URL.revokeObjectURL(url);
+										};
+										img.src = url;
+									} else {
+										const canvas = document.createElement("canvas");
+										canvas.width = tileSize;
+										canvas.height = tileSize;
+										const ctx = canvas.getContext("2d");
+										if (ctx) {
+											ctx.fillStyle = "#ffffff";
+											ctx.fillRect(0, 0, tileSize, tileSize);
+										}
+										const img = new Image();
+										img.onload = () => {
+											job.image = img;
+											if (job.callback) job.callback(img, null, src);
+										};
+										img.src = canvas.toDataURL("image/png");
+									}
+								})
+								.catch((err) => {
+									const errorMsg = `PMTiles error for ${src}: ${err.message}`;
+									console.error(errorMsg, err);
+									job.errorMsg = errorMsg;
+									if (job.callback) {
+										job.callback(null, job.errorMsg, src);
+									}
+								});
+
+							return job;
+						}
+					}
+
+					return originalAddJob.call(this, options);
+				};
+
+				viewer.addHandler("open", () => {
+					console.log("[PMTilesViewer] Viewer opened successfully");
+					// Go to home position which fits the full image in viewport
+					if (viewer) {
+						viewer.viewport.goHome(true);
+						console.log("[PMTilesViewer] Viewport after goHome:", JSON.stringify(viewer.viewport.getBounds()));
+					}
+					setIsViewerReady(true);
+					if (onReady) onReady();
+				});
+
+				viewer.addHandler("open-failed", (event: any) => {
+					console.error("[PMTilesViewer] Failed to open:", event);
+					if (onError) onError("Failed to open PMTiles viewer");
+				});
+
+				viewer.addHandler("zoom", () => {
+					if (viewer && onViewerStateChange) {
+						const viewport = viewer.viewport;
+						const zoom = viewport.getZoom(true);
+						const center = viewport.getCenter();
+						const bounds = viewport.getBounds(true);
+
+						onViewerStateChange({
+							zoom,
+							minZoom: viewport.getMinZoom(),
+							maxZoom: viewport.getMaxZoom(),
+							center: { x: center.x, y: center.y },
+							isReady: true,
+						});
+					}
+				});
+
+				viewer.addHandler("pan", () => {
+					if (viewer && onViewerStateChange) {
+						const viewport = viewer.viewport;
+						const zoom = viewport.getZoom(true);
+						const center = viewport.getCenter();
+
+						onViewerStateChange({
+							zoom,
+							minZoom: viewport.getMinZoom(),
+							maxZoom: viewport.getMaxZoom(),
+							center: { x: center.x, y: center.y },
+							isReady: true,
+						});
+					}
+				});
+
+				console.log("[PMTilesViewer] Initialization complete");
+			} catch (err) {
+				const errorMessage = err instanceof Error ? err.message : String(err);
+				console.error("[PMTilesViewer] Failed to initialize:", err);
+				if (onError) onError(errorMessage);
+			}
+		};
+
+		initViewer();
+
+		return () => {
+			if (viewer) {
+				viewer.destroy();
+			}
+			pmtilesRef.current = null;
+			markerOverlaysRef.current.clear();
+			regionOverlaysRef.current.clear();
+			setIsViewerReady(false);
+		};
+	}, [pmtilesUrl, imageWidth, imageHeight, onReady, onError, onViewerStateChange]);
+
+	React.useEffect(() => {
+		const viewer = viewerRef.current;
+		if (!viewer || !isViewerReady) return;
+
+		markerOverlaysRef.current.forEach((overlay) => {
+			viewer.removeOverlay(overlay);
+		});
+		markerOverlaysRef.current.clear();
+
+		const dimensions = imageDimensionsRef.current;
+		if (!dimensions) return;
+
+		// OpenSeadragon viewport: x=[0,1] maps to tileAlignedWidth pixels,
+		// y=[0, tileAlignedHeight/tileAlignedWidth] maps to tileAlignedHeight pixels.
+		// Marker coords are normalized 0-1 relative to actual image dimensions,
+		// so we must scale by (imageSize / tileAlignedSize) to convert.
+		const tileSize = 256;
+		const tileAlignedW = Math.ceil(dimensions.width / tileSize) * tileSize;
+		const scaleX = dimensions.width / tileAlignedW;
+		const scaleY = dimensions.height / tileAlignedW;
+
+		const TYPE_COLORS: Record<string, string> = {
+			detail: "#22c55e",
+			section: "#3b82f6",
+			elevation: "#3b82f6",
+			note: "#a855f7",
+		};
+
+		const DEFAULT_BBOX = 0.025;
+
+		markers.forEach((marker) => {
+			const isSelected = marker.id === selectedMarkerId;
+			const color = TYPE_COLORS[marker.type] || "#22c55e";
+
+			const bboxW = marker.width != null && marker.width > 0 ? marker.width : DEFAULT_BBOX;
+			const bboxH = marker.height != null && marker.height > 0 ? marker.height : DEFAULT_BBOX;
+
+			const el = document.createElement("div");
+			el.className = "marker-overlay";
+
+			const selectedBg = "rgba(250, 204, 21, 0.25)";
+			el.style.cssText = `
+				position: relative;
+				width: 100%;
+				height: 100%;
+				border: 2px solid ${isSelected ? "#facc15" : color};
+				background-color: ${isSelected ? selectedBg : "transparent"};
+				cursor: pointer;
+				box-sizing: border-box;
+			`;
+
+			el.addEventListener("mouseenter", () => {
+				if (!isSelected) el.style.backgroundColor = `${color}22`;
+			});
+			el.addEventListener("mouseleave", () => {
+				el.style.backgroundColor = isSelected ? selectedBg : "transparent";
+			});
+
+			const labelEl = document.createElement("div");
+			labelEl.className = "marker-label";
+			labelEl.style.cssText = `
+				position: absolute;
+				top: -18px;
+				left: 0;
+				background-color: ${isSelected ? "#facc15" : color};
+				color: ${isSelected ? "#000" : "#fff"};
+				padding: 1px 5px;
+				border-radius: 2px;
+				font-size: 9px;
+				font-weight: bold;
+				white-space: nowrap;
+				pointer-events: none;
+				opacity: ${isSelected ? "1" : "0"};
+				transition: opacity 0.15s;
+			`;
+			labelEl.textContent = marker.label;
+			el.appendChild(labelEl);
+
+			el.addEventListener("mouseenter", () => { labelEl.style.opacity = "1"; });
+			el.addEventListener("mouseleave", () => { if (!isSelected) labelEl.style.opacity = "0"; });
+
+			el.addEventListener("click", (e) => {
+				e.stopPropagation();
+				if (onMarkerPress) onMarkerPress(marker);
+			});
+
+			const isNormalized = marker.x <= 1 && marker.y <= 1;
+			const normX = isNormalized ? marker.x : marker.x / dimensions.width;
+			const normY = isNormalized ? marker.y : marker.y / dimensions.height;
+
+			const vpX = (normX - bboxW / 2) * scaleX;
+			const vpY = (normY - bboxH / 2) * scaleY;
+			const vpW = bboxW * scaleX;
+			const vpH = bboxH * scaleY;
+
+			viewer.addOverlay({
+				element: el,
+				location: new OpenSeadragon.Rect(vpX, vpY, vpW, vpH),
+			});
+
+			markerOverlaysRef.current.set(marker.id, el);
+		});
+	}, [markers, selectedMarkerId, onMarkerPress, isViewerReady]);
+
+	React.useEffect(() => {
+		const viewer = viewerRef.current;
+		if (!viewer || !isViewerReady) return;
+
+		regionOverlaysRef.current.forEach((overlay) => {
+			viewer.removeOverlay(overlay);
+		});
+		regionOverlaysRef.current.clear();
+
+		if (!showRegions || regions.length === 0) return;
+
+		const dimensions = imageDimensionsRef.current;
+		if (!dimensions) return;
+
+		const tileSize = 256;
+		const tileAlignedW = Math.ceil(dimensions.width / tileSize) * tileSize;
+		const scaleX = dimensions.width / tileAlignedW;
+		const scaleY = dimensions.height / tileAlignedW;
+
+		const REGION_LABELS: Record<string, string> = {
+			schedule: "Schedule",
+			notes: "Notes",
+			legend: "Legend",
+		};
+
+		regions.forEach((region) => {
+			const el = document.createElement("div");
+			el.className = "region-overlay";
+			el.style.cssText = `
+				position: relative;
+				width: 100%;
+				height: 100%;
+				border: 2px dashed #8B5CF6;
+				background-color: rgba(139, 92, 246, 0.15);
+				cursor: pointer;
+				box-sizing: border-box;
+				transition: background-color 0.2s;
+			`;
+
+			const labelEl = document.createElement("div");
+			labelEl.style.cssText = `
+				position: absolute;
+				top: 4px;
+				left: 4px;
+				background-color: rgba(139, 92, 246, 0.85);
+				color: white;
+				padding: 2px 8px;
+				border-radius: 4px;
+				font-size: 11px;
+				font-weight: 600;
+				white-space: nowrap;
+				pointer-events: none;
+			`;
+			labelEl.textContent = REGION_LABELS[region.regionClass] || region.regionClass;
+			el.appendChild(labelEl);
+
+			el.addEventListener("mouseenter", () => {
+				el.style.backgroundColor = "rgba(139, 92, 246, 0.25)";
+			});
+
+			el.addEventListener("mouseleave", () => {
+				el.style.backgroundColor = "rgba(139, 92, 246, 0.15)";
+			});
+
+			el.addEventListener("click", (e) => {
+				e.stopPropagation();
+				if (onRegionPress) {
+					onRegionPress(region);
+				}
+			});
+
+			const vpX = region.x * scaleX;
+			const vpY = region.y * scaleY;
+			const vpW = region.width * scaleX;
+			const vpH = region.height * scaleY;
+
+			viewer.addOverlay({
+				element: el,
+				location: new OpenSeadragon.Rect(vpX, vpY, vpW, vpH),
+			});
+
+			regionOverlaysRef.current.set(region.id, el);
+		});
+	}, [regions, showRegions, onRegionPress, isViewerReady]);
+
+	return (
+		<>
+			<style>
+				{`
+          html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #121212;
+            touch-action: none;
+          }
+          *:focus {
+            outline: none !important;
+          }
+          * {
+            -webkit-tap-highlight-color: transparent !important;
+            -webkit-user-select: none !important;
+            -ms-user-select: none !important;
+            user-select: none !important;
+            -webkit-touch-callout: none !important;
+          }
+          .marker-overlay {
+            touch-action: manipulation;
+          }
+          .region-overlay {
+            touch-action: manipulation;
+          }
+        `}
+			</style>
+			<div
+				ref={containerRef}
+				style={{
+					width: "100vw",
+					height: "100vh",
+					backgroundColor: "#121212",
+					outline: "none",
+					WebkitTapHighlightColor: "transparent",
+					WebkitUserSelect: "none",
+					userSelect: "none",
+					WebkitTouchCallout: "none",
+					touchAction: "none",
+				}}
+			/>
+		</>
+	);
+}

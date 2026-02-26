@@ -1,0 +1,60 @@
+# Auth Login Flow
+# Logs in an existing user
+# Ends on the Projects screen
+#
+# Environment variables:
+#   TEST_EMAIL - User's email (default: test@example.com)
+#   TEST_PASSWORD - User's password (default: password123)
+#
+# Prerequisites:
+#   - Backend running (bun dev:network)
+#   - User must already exist (run auth-signup.yaml first if fresh DB)
+#   - adb reverse ports set up (tcp:8081 and tcp:8787)
+
+appId: com.nessei.sitelink
+---
+- launchApp:
+    clearState: true
+
+# Dev client launcher appears after clearState with server list
+- extendedWaitUntil:
+    visible: 'DEVELOPMENT SERVERS'
+    timeout: 15000
+    optional: true
+- runFlow:
+    when:
+      visible: 'DEVELOPMENT SERVERS'
+    commands:
+      - tapOn: 'http://localhost:8081'
+
+# Dismiss dev menu intro popup if it appears, then close dev tools menu
+- runFlow:
+    when:
+      visible: 'Continue'
+    commands:
+      - tapOn: 'Continue'
+      - pressKey: back
+
+# Wait for app to load and show Sign In screen
+- extendedWaitUntil:
+    visible: 'Sign In'
+    timeout: 30000
+
+# Fill login form
+- tapOn:
+    id: 'email-input'
+- inputText: 'test@example.com'
+- tapOn:
+    id: 'password-input'
+- inputText: 'password123'
+
+# Submit login
+- hideKeyboard
+- tapOn:
+    id: 'signin-button'
+- waitForAnimationToEnd
+
+# Verify we're on the Projects screen
+- extendedWaitUntil:
+    visible: 'Projects'
+    timeout: 15000

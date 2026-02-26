@@ -1,0 +1,10 @@
+# Database
+db/*.db
+db/*.db-shm
+db/*.db-wal
+
+# Output
+output/
+
+# Uploads
+uploads/
