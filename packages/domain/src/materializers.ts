@@ -283,6 +283,11 @@ export const materializers = State.SQLite.materializers(events, {
         confidence: marker.confidence,
         createdBy: null,
         createdAt: null,
+        needsReview: marker.needsReview,
+        reviewStatus: marker.needsReview ? "pending" : null,
+        originalLabel: null,
+        reviewedAt: null,
+        reviewedBy: null,
       }),
     ),
   ],
@@ -519,4 +524,32 @@ export const materializers = State.SQLite.materializers(events, {
         createdAt: bubble.createdAt,
       }),
     ),
+
+  // ===================
+  // Marker review materializers
+  // ===================
+  "v1.MarkerReviewed": (event) =>
+    tables.markers
+      .update({
+        reviewStatus: event.action, // 'accepted' | 'rejected'
+        reviewedBy: event.reviewedBy,
+        reviewedAt: event.reviewedAt,
+        needsReview: false,
+      })
+      .where({ id: event.markerId }),
+
+  "v1.MarkerCorrected": (event) =>
+    tables.markers
+      .update({
+        originalLabel: event.originalLabel,
+        label: event.correctedLabel,
+        ...(event.correctedTargetSheetId !== undefined && {
+          targetSheetId: event.correctedTargetSheetId,
+        }),
+        reviewStatus: "corrected",
+        reviewedBy: event.correctedBy,
+        reviewedAt: event.correctedAt,
+        needsReview: false,
+      })
+      .where({ id: event.markerId }),
 })

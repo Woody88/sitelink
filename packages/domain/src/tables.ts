@@ -165,8 +165,16 @@ export const tables = {
       confidence: State.SQLite.real({ nullable: true }), // null for manual markers
       createdBy: State.SQLite.text({ nullable: true }), // null for AI-detected markers
       createdAt: State.SQLite.integer({ nullable: true }),
+      needsReview: State.SQLite.boolean({ default: false }),
+      reviewStatus: State.SQLite.text({ nullable: true }), // 'pending' | 'accepted' | 'rejected' | 'corrected'
+      originalLabel: State.SQLite.text({ nullable: true }),
+      reviewedAt: State.SQLite.integer({ nullable: true }),
+      reviewedBy: State.SQLite.text({ nullable: true }),
     },
-    indexes: [{ name: "markers_sheetId", columns: ["sheetId"] }],
+    indexes: [
+      { name: "markers_sheetId", columns: ["sheetId"] },
+      { name: "markers_needsReview", columns: ["needsReview"] },
+    ],
   }),
 
   // ===================

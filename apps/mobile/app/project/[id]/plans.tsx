@@ -1,6 +1,7 @@
 import * as Haptics from "expo-haptics";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import {
+	AlertTriangle,
 	ChevronDown,
 	ChevronRight,
 	FileText,
@@ -40,14 +41,17 @@ import {
 	type ScheduleEntry,
 	usePlanInfo,
 } from "@/hooks/use-plan-info";
+import { useCalloutReview } from "@/hooks/use-callout-review";
 import { usePlanSearch } from "@/hooks/use-plan-search";
 import { type Sheet, useSheets } from "@/hooks/use-sheets";
 import { cn } from "@/lib/utils";
 
 export default function PlansScreen() {
+	const router = useRouter();
 	const { id: projectId } = useLocalSearchParams<{ id: string }>();
 	const folders = useSheets(projectId!);
 	const planInfo = usePlanInfo(projectId!);
+	const { pendingCount } = useCalloutReview(projectId!);
 	const [searchQuery, setSearchQuery] = React.useState("");
 	const searchResults = usePlanSearch(projectId!, searchQuery);
 	const isSearchActive = searchQuery.trim().length >= 2;
@@ -153,6 +157,27 @@ export default function PlansScreen() {
 
 	return (
 		<View className="bg-background flex-1">
+			{/* Review callouts banner */}
+			{pendingCount > 0 && (
+				<Pressable
+					onPress={() =>
+						router.push(`/project/${projectId}/review-callouts` as any)
+					}
+					className="active:opacity-80 mx-4 mt-3 flex-row items-center gap-3 overflow-hidden rounded-2xl bg-amber-500/10 px-4 py-3"
+				>
+					<Icon as={AlertTriangle} className="text-amber-600 size-5 flex-shrink-0" />
+					<View className="flex-1">
+						<Text className="text-amber-700 dark:text-amber-400 text-sm font-semibold">
+							{pendingCount} callout{pendingCount !== 1 ? "s" : ""} need review
+						</Text>
+						<Text className="text-amber-600/80 dark:text-amber-500/80 text-xs">
+							AI detected callouts with low confidence
+						</Text>
+					</View>
+					<Icon as={ChevronRight} className="text-amber-600 size-4" />
+				</Pressable>
+			)}
+
 			{/* Search bar - always visible */}
 			<View className="px-4 py-4">
 				<View className="flex-row items-center gap-2">

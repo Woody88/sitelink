@@ -414,6 +414,28 @@ export const events = {
     schema: Schema.Struct({ markerId: Schema.String }),
   }),
 
+  markerReviewed: Events.synced({
+    name: "v1.MarkerReviewed",
+    schema: Schema.Struct({
+      markerId: Schema.String,
+      action: Schema.String, // 'accepted' | 'rejected'
+      reviewedBy: Schema.String,
+      reviewedAt: Schema.Number,
+    }),
+  }),
+
+  markerCorrected: Events.synced({
+    name: "v1.MarkerCorrected",
+    schema: Schema.Struct({
+      markerId: Schema.String,
+      originalLabel: Schema.String,
+      correctedLabel: Schema.String,
+      correctedTargetSheetId: Schema.optional(Schema.String),
+      correctedBy: Schema.String,
+      correctedAt: Schema.Number,
+    }),
+  }),
+
   // ===================
   // Photo events
   // ===================
