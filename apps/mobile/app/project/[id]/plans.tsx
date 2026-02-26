@@ -1,9 +1,11 @@
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import {
 	AlertTriangle,
 	ChevronDown,
 	ChevronRight,
+	Clock,
 	FileText,
 	Folder,
 	LayoutGrid,
@@ -81,8 +83,40 @@ export default function PlansScreen() {
 		isRetrying,
 	} = usePendingUploads(projectId!);
 	const [searchQuery, setSearchQuery] = React.useState("");
-	const searchResults = usePlanSearch(projectId!, searchQuery);
-	const isSearchActive = searchQuery.trim().length >= 2;
+	const [debouncedQuery, setDebouncedQuery] = React.useState("");
+	const [recentSearches, setRecentSearches] = React.useState<string[]>([]);
+	const [isSearchFocused, setIsSearchFocused] = React.useState(false);
+
+	// Debounce search query by 300ms
+	React.useEffect(() => {
+		const timer = setTimeout(() => setDebouncedQuery(searchQuery), 300);
+		return () => clearTimeout(timer);
+	}, [searchQuery]);
+
+	// Load recent searches from storage on mount
+	React.useEffect(() => {
+		SecureStore.getItemAsync("recentPlanSearches").then((raw) => {
+			if (raw) {
+				try {
+					setRecentSearches(JSON.parse(raw));
+				} catch {}
+			}
+		});
+	}, []);
+
+	const saveRecentSearch = React.useCallback((query: string) => {
+		const trimmed = query.trim();
+		if (!trimmed || trimmed.length < 2) return;
+		setRecentSearches((prev) => {
+			const next = [trimmed, ...prev.filter((q) => q !== trimmed)].slice(0, 5);
+			SecureStore.setItemAsync("recentPlanSearches", JSON.stringify(next));
+			return next;
+		});
+	}, []);
+
+	const searchResults = usePlanSearch(projectId!, debouncedQuery);
+	const isSearchActive = debouncedQuery.trim().length >= 2;
+	const showRecentSearches = isSearchFocused && searchQuery.trim().length === 0 && recentSearches.length > 0;
 	const [viewMode, setViewMode] = React.useState<"grid" | "list">("list");
 	const [plansTab, setPlansTab] = React.useState<"sheets" | "plan-info">("sheets");
 	const [activeDiscipline, setActiveDiscipline] = React.useState<string | null>(null);
@@ -257,7 +291,7 @@ export default function PlansScreen() {
 					selectedIndex={plansTab === "sheets" ? 0 : 1}
 					onIndexChange={(i) => {
 						setPlansTab(i === 0 ? "sheets" : "plan-info");
-						if (i === 0) setSearchQuery("");
+						if (i === 0) { setSearchQuery(""); setDebouncedQuery(""); }
 					}}
 				/>
 
@@ -272,6 +306,10 @@ export default function PlansScreen() {
 								placeholder="Search plans"
 								value={searchQuery}
 								onChangeText={setSearchQuery}
+								onFocus={() => setIsSearchFocused(true)}
+								onBlur={() => setIsSearchFocused(false)}
+								onSubmitEditing={() => saveRecentSearch(searchQuery)}
+								returnKeyType="search"
 								className="bg-muted/40 h-10 rounded-xl border-transparent pl-10"
 							/>
 							<Pressable
@@ -375,17 +413,39 @@ export default function PlansScreen() {
 			{/* Content area */}
 			{plansTab === "plan-info" ? (
 				<PlanInfoView onRegionPress={handleRegionPress} />
+			) : showRecentSearches ? (
+				<ScrollView className="flex-1" contentContainerClassName="px-4 pb-8">
+					<Text className="text-muted-foreground mb-2 mt-4 text-xs font-semibold uppercase tracking-wider">
+						Recent Searches
+					</Text>
+					{recentSearches.map((q) => (
+						<Pressable
+							key={q}
+							className="active:bg-muted/10 flex-row items-center gap-3 rounded-lg px-2 py-3"
+							onPress={() => {
+								setSearchQuery(q);
+								setDebouncedQuery(q);
+							}}
+						>
+							<Icon as={Clock} className="text-muted-foreground size-4" />
+							<Text className="text-foreground flex-1 text-sm">{q}</Text>
+						</Pressable>
+					))}
+				</ScrollView>
 			) : isSearchActive ? (
 				<PlanSearchResults
 					results={searchResults}
-					query={searchQuery}
+					query={debouncedQuery}
 					onSheetPress={(sheet) => {
+						saveRecentSearch(searchQuery);
 						handleOpenPlan(sheetToplan(sheet), sheet);
 					}}
 					onSchedulePress={(region, entries, sheetNumber) => {
+						saveRecentSearch(searchQuery);
 						setScheduleDetail({ region, entries, sheetNumber });
 					}}
 					onNotesPress={(region, sheetNumber) => {
+						saveRecentSearch(searchQuery);
 						setNotesDetail({ region, sheetNumber });
 					}}
 				/>

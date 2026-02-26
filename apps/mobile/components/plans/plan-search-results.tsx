@@ -2,6 +2,7 @@ import * as Haptics from "expo-haptics";
 import {
 	ChevronRight,
 	FileText,
+	Mic,
 	StickyNote,
 	Table2,
 } from "lucide-react-native";
@@ -57,6 +58,13 @@ const typeConfig: Record<
 		iconClass: "text-purple-600 size-5",
 		labelColor: "#9333ea",
 		bg: "rgba(147, 51, 234, 0.15)",
+	},
+	voice: {
+		icon: Mic,
+		label: "Voice",
+		iconClass: "text-green-600 size-5",
+		labelColor: "#16a34a",
+		bg: "rgba(22, 163, 74, 0.15)",
 	},
 };
 

@@ -1,3 +1,5 @@
+import { queryDb } from "@livestore/livestore";
+import { tables } from "@sitelink/domain";
 import { useMemo } from "react";
 import {
 	type LayoutRegion,
@@ -5,8 +7,10 @@ import {
 	usePlanInfo,
 } from "./use-plan-info";
 import { type Sheet, useSheets } from "./use-sheets";
+import { useSessionContext } from "@/lib/session-context";
+import { useAppStore } from "@/livestore/store";
 
-export type SearchResultType = "sheet" | "schedule" | "notes";
+export type SearchResultType = "sheet" | "schedule" | "notes" | "voice";
 
 export interface PlanSearchResult {
 	id: string;
@@ -67,6 +71,13 @@ export function usePlanSearch(
 	const folders = useSheets(projectId);
 	const { schedules, notes, scheduleEntriesByRegion, sheetNumberMap } =
 		usePlanInfo(projectId);
+
+	const { organizationId, sessionToken, sessionId } = useSessionContext();
+	const store = useAppStore(organizationId!, sessionToken, sessionId);
+	const voiceNotes = store.useQuery(queryDb(tables.voiceNotes));
+	const photos = store.useQuery(
+		queryDb(tables.photos.where({ projectId })),
+	);
 
 	return useMemo(() => {
 		const trimmed = query.trim().toLowerCase();
@@ -164,10 +175,32 @@ export function usePlanSearch(
 			}
 		}
 
+		// Search voice note transcriptions
+		const voiceNotesArray = Array.isArray(voiceNotes) ? voiceNotes : [];
+		const photosArray = Array.isArray(photos) ? photos : [];
+		const photoMap = new Map(photosArray.map((p) => [p.id, p]));
+
+		for (const vn of voiceNotesArray) {
+			if (!vn.transcription) continue;
+			const snippet = extractSnippet(vn.transcription, trimmed);
+			if (!snippet) continue;
+
+			const photo = photoMap.get(vn.photoId);
+			results.push({
+				id: `voice-${vn.id}`,
+				type: "voice",
+				title: "Voice Note",
+				subtitle: snippet,
+				matchText: snippet,
+				sheetNumber: photo?.markerId ? "Linked" : "Unlinked",
+			});
+		}
+
 		const typePriority: Record<SearchResultType, number> = {
 			schedule: 0,
 			notes: 1,
 			sheet: 2,
+			voice: 3,
 		};
 
 		results.sort((a, b) => {
@@ -178,5 +211,5 @@ export function usePlanSearch(
 		});
 
 		return results.slice(0, MAX_RESULTS);
-	}, [query, folders, schedules, notes, scheduleEntriesByRegion, sheetNumberMap]);
+	}, [query, folders, schedules, notes, scheduleEntriesByRegion, sheetNumberMap, voiceNotes, photos]);
 }
