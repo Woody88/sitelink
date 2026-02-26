@@ -222,13 +222,15 @@ export default {
       // Authenticated: serve the file without public edge caching
       const isImmutable = /\.(pmtiles|png|webp)$/i.test(r2Path)
 
-      // Only cache authenticated responses in private cache (not shared edge cache)
+      // Cache authenticated responses in Workers edge cache, keyed per-user so
+      // different users never share cached content. Both Bearer and ?st= token
+      // paths are cached (PMTiles viewer uses ?st= since WebViews can't set headers).
       const cache = caches.default
       let cacheKey: Request | undefined
-      if (isImmutable && bearerToken) {
-        // Cache with auth token in key so different users don't share cached content
+      if (isImmutable) {
+        // Normalize URL: strip ?st= token, then append user-scoped fragment
         const cacheUrl = new URL(url.toString())
-        cacheUrl.searchParams.delete("st") // Normalize: don't include query token in cache key
+        cacheUrl.searchParams.delete("st")
         cacheKey = new Request(cacheUrl.toString() + `#${sessionResult.user_id}`, {
           headers: { Range: request.headers.get("Range") || "" },
         })
@@ -264,10 +266,15 @@ export default {
         headers.set("Content-Type", object.httpMetadata?.contentType || "application/octet-stream")
         headers.set("Access-Control-Allow-Origin", "*")
         headers.set("Accept-Ranges", "bytes")
-        // Use private caching for authenticated content to prevent cross-user cache poisoning
+        // PMTiles and images are immutable once generated — cache aggressively on device.
+        // Use private (not shared) to prevent cross-user leakage via CDN edge caches.
+        // stale-while-revalidate lets the WebView serve stale tiles instantly while
+        // revalidating in the background when the 24h max-age expires.
         headers.set(
           "Cache-Control",
-          isImmutable ? "private, max-age=3600" : "private, max-age=300",
+          isImmutable
+            ? "private, max-age=86400, stale-while-revalidate=604800"
+            : "private, max-age=300",
         )
 
         if (rangeStart !== undefined) {
