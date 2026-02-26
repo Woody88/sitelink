@@ -14,6 +14,7 @@ export interface LayoutRegion {
 	width: number;
 	height: number;
 	extractedContent: string | null;
+	noteType: string | null;
 	cropImageUrl: string | null;
 	confidence: number;
 	createdAt: number;

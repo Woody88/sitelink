@@ -117,6 +117,8 @@ export function NotesDetailScreen({
 						onPress={onBack}
 						className="active:bg-muted/50 -m-2 rounded-full p-2"
 						hitSlop={8}
+						accessibilityLabel="Go back"
+						accessibilityRole="button"
 					>
 						<Icon as={ArrowLeft} className="text-foreground size-5" />
 					</Pressable>
@@ -128,6 +130,8 @@ export function NotesDetailScreen({
 					onPress={handleCopy}
 					className="active:bg-muted/50 -m-2 rounded-full p-2 ml-2"
 					hitSlop={8}
+					accessibilityLabel="Copy notes to clipboard"
+					accessibilityRole="button"
 				>
 					<Icon
 						as={copied ? Check : Copy}
@@ -136,11 +140,18 @@ export function NotesDetailScreen({
 				</Pressable>
 			</View>
 
-			{/* Subtitle: sheet number + confidence */}
-			<View className="flex-row items-center gap-2 px-4 pb-3">
+			{/* Subtitle: sheet number + noteType + confidence */}
+			<View className="flex-row flex-wrap items-center gap-2 px-4 pb-3">
 				<Text className="text-muted-foreground text-sm">
 					Sheet {sheetNumber}
 				</Text>
+				{region.noteType && (
+					<View className="bg-muted/40 rounded-full px-2 py-0.5">
+						<Text className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+							{region.noteType.replace(/_/g, " ")}
+						</Text>
+					</View>
+				)}
 				<View className="rounded-full px-2 py-0.5" style={{ backgroundColor: badge.bg }}>
 					<Text style={{ color: badge.color }} className="text-xs font-medium">
 						{Math.round(region.confidence * 100)}% {badge.label}
@@ -208,7 +219,7 @@ export function NotesDetailScreen({
 				className="border-border/50 border-t px-4 py-3"
 				style={{ paddingBottom: insets.bottom + 12 }}
 			>
-				<Button onPress={handleViewOnSheet} className="h-12">
+				<Button onPress={handleViewOnSheet} className="h-12" accessibilityLabel="View notes on sheet">
 					<Icon as={Eye} className="text-primary-foreground size-5" />
 					<Text className="text-primary-foreground text-base font-semibold">
 						View on Sheet

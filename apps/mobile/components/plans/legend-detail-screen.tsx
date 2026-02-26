@@ -1,7 +1,7 @@
 import { Image } from "expo-image";
 import { ArrowLeft, Eye, ImageOff } from "lucide-react-native";
 import * as React from "react";
-import { Dimensions, Pressable, ScrollView, View } from "react-native";
+import { ActivityIndicator, Dimensions, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -12,6 +12,7 @@ import type { LayoutRegion } from "@/hooks/use-plan-info";
 interface LegendDetailScreenProps {
 	region: LayoutRegion;
 	sheetNumber: string;
+	isExtracting?: boolean;
 	onBack: () => void;
 	onViewOnSheet: (
 		sheetId: string,
@@ -32,6 +33,7 @@ function getConfidenceBadge(confidence: number) {
 export function LegendDetailScreen({
 	region,
 	sheetNumber,
+	isExtracting = false,
 	onBack,
 	onViewOnSheet,
 }: LegendDetailScreenProps) {
@@ -63,6 +65,8 @@ export function LegendDetailScreen({
 						onPress={onBack}
 						className="active:bg-muted/50 -m-2 rounded-full p-2"
 						hitSlop={8}
+						accessibilityLabel="Go back"
+						accessibilityRole="button"
 					>
 						<Icon as={ArrowLeft} className="text-foreground size-5" />
 					</Pressable>
@@ -70,7 +74,12 @@ export function LegendDetailScreen({
 						{title}
 					</Text>
 				</View>
-				<Button variant="ghost" size="sm" onPress={handleViewOnSheet}>
+				<Button
+					variant="ghost"
+					size="sm"
+					onPress={handleViewOnSheet}
+					accessibilityLabel={`View ${title} on sheet`}
+				>
 					<Icon as={Eye} className="text-primary size-4" />
 					<Text className="text-primary text-sm font-medium">View on Sheet</Text>
 				</Button>
@@ -112,14 +121,26 @@ export function LegendDetailScreen({
 						onLoad={() => setImageLoaded(true)}
 						onError={() => setImageError(true)}
 						transition={200}
+						accessibilityLabel={`Legend image: ${title}`}
 					/>
 				</ScrollView>
 			) : (
-				<View className="flex-1 items-center justify-center px-8">
-					<Icon as={ImageOff} className="text-muted-foreground mb-3 size-12" />
-					<Text className="text-muted-foreground text-center text-sm">
-						Legend image not available
-					</Text>
+				<View className="flex-1 items-center justify-center px-8 gap-3">
+					{isExtracting ? (
+						<>
+							<ActivityIndicator />
+							<Text className="text-muted-foreground text-center text-sm">
+								Extracting legend image…
+							</Text>
+						</>
+					) : (
+						<>
+							<Icon as={ImageOff} className="text-muted-foreground mb-3 size-12" />
+							<Text className="text-muted-foreground text-center text-sm">
+								Legend image not available
+							</Text>
+						</>
+					)}
 				</View>
 			)}
 
@@ -137,7 +158,11 @@ export function LegendDetailScreen({
 				className="border-border/50 border-t px-4 py-3"
 				style={{ paddingBottom: insets.bottom + 12 }}
 			>
-				<Button onPress={handleViewOnSheet} className="h-12">
+				<Button
+					onPress={handleViewOnSheet}
+					className="h-12"
+					accessibilityLabel={`View ${title} on sheet`}
+				>
 					<Icon as={Eye} className="text-primary-foreground size-5" />
 					<Text className="text-primary-foreground text-base font-semibold">
 						View on Sheet

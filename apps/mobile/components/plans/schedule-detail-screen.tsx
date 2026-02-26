@@ -118,6 +118,8 @@ export function ScheduleDetailScreen({
 						onPress={onBack}
 						className="active:bg-muted/50 -m-2 rounded-full p-2"
 						hitSlop={8}
+						accessibilityLabel="Go back"
+						accessibilityRole="button"
 					>
 						<Icon as={ArrowLeft} className="text-foreground size-5" />
 					</Pressable>
@@ -125,7 +127,12 @@ export function ScheduleDetailScreen({
 						{title}
 					</Text>
 				</View>
-				<Button variant="ghost" size="sm" onPress={handleViewOnSheet}>
+				<Button
+					variant="ghost"
+					size="sm"
+					onPress={handleViewOnSheet}
+					accessibilityLabel={`View ${title} on sheet`}
+				>
 					<Icon as={Eye} className="text-primary size-4" />
 					<Text className="text-primary text-sm font-medium">View on Sheet</Text>
 				</Button>
@@ -186,6 +193,8 @@ export function ScheduleDetailScreen({
 										rowIndex % 2 === 1 && "bg-muted/10",
 									)}
 									style={{ minHeight: 48 }}
+									accessibilityRole="button"
+									accessibilityLabel={`Schedule entry ${entry.mark}, tap for details`}
 									onPress={() => handleRowPress(entry)}
 								>
 									{allColumns.map((col) => {
@@ -226,7 +235,7 @@ export function ScheduleDetailScreen({
 				className="border-border/50 border-t px-4 py-3"
 				style={{ paddingBottom: insets.bottom + 12 }}
 			>
-				<Button onPress={handleViewOnSheet} className="h-12">
+				<Button onPress={handleViewOnSheet} className="h-12" accessibilityLabel="View schedule on sheet">
 					<Icon as={Eye} className="text-primary-foreground size-5" />
 					<Text className="text-primary-foreground text-base font-semibold">
 						View on Sheet

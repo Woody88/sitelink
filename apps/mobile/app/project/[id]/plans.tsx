@@ -414,6 +414,7 @@ export default function PlansScreen() {
 			{plansTab === "plan-info" ? (
 				<PlanInfoView
 					isProcessing={folders.some((f) => f.status === "processing")}
+					isError={folders.some((f) => f.status === "failed")}
 					onRegionPress={handleRegionPress}
 				/>
 			) : showRecentSearches ? (
@@ -717,6 +718,9 @@ export default function PlansScreen() {
 					<LegendDetailScreen
 						region={legendDetail.region}
 						sheetNumber={legendDetail.sheetNumber}
+						isExtracting={folders.some(
+							(f) => f.status === "processing" && f.sheets.some((s) => s.id === legendDetail.region.sheetId),
+						)}
 						onBack={() => setLegendDetail(null)}
 						onViewOnSheet={(sheetId) => {
 							setLegendDetail(null);

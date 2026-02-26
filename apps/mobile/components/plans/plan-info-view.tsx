@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from "expo-router";
-import { ChevronRight, Layers } from "lucide-react-native";
+import { AlertCircle, ChevronRight, Layers } from "lucide-react-native";
 import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -19,6 +19,7 @@ import {
 
 interface PlanInfoViewProps {
 	isProcessing?: boolean;
+	isError?: boolean;
 	onRegionPress?: (
 		region: LayoutRegion,
 		entries: ScheduleEntry[] | undefined,
@@ -26,7 +27,7 @@ interface PlanInfoViewProps {
 	) => void;
 }
 
-export function PlanInfoView({ isProcessing = false, onRegionPress }: PlanInfoViewProps) {
+export function PlanInfoView({ isProcessing = false, isError = false, onRegionPress }: PlanInfoViewProps) {
 	const { id: projectId } = useLocalSearchParams<{ id: string }>();
 	const { schedules, notes, legends, scheduleEntriesByRegion, sheetNumberMap } =
 		usePlanInfo(projectId!);
@@ -43,6 +44,19 @@ export function PlanInfoView({ isProcessing = false, onRegionPress }: PlanInfoVi
 							AI is analyzing your plans…
 						</Text>
 					</View>
+				) : isError ? (
+					<Empty>
+						<EmptyHeader>
+							<EmptyMedia variant="icon">
+								<Icon as={AlertCircle} className="text-destructive size-5" />
+							</EmptyMedia>
+							<EmptyTitle>Analysis failed</EmptyTitle>
+							<EmptyDescription>
+								Plan processing encountered an error. Try re-uploading the plan or
+								contact support if the problem persists.
+							</EmptyDescription>
+						</EmptyHeader>
+					</Empty>
 				) : (
 					<Empty>
 						<EmptyHeader>
@@ -63,6 +77,14 @@ export function PlanInfoView({ isProcessing = false, onRegionPress }: PlanInfoVi
 
 	return (
 		<ScrollView className="flex-1" contentContainerClassName="px-4 pb-8 pt-4">
+			{isError && (
+				<View className="mb-4 flex-row items-center gap-3 rounded-xl bg-destructive/10 px-4 py-3">
+					<Icon as={AlertCircle} className="text-destructive size-5 flex-shrink-0" />
+					<Text className="text-destructive text-sm flex-1">
+						Some plans failed to process and may have incomplete data.
+					</Text>
+				</View>
+			)}
 			{schedules.length > 0 && (
 				<PlanInfoSection
 					title="SCHEDULES"
@@ -130,7 +152,7 @@ function PlanInfoSection({
 			</View>
 
 			<View className="bg-muted/10 overflow-hidden rounded-xl">
-				{regions.map((region, index) => {
+				{regions.map((region) => {
 					const sheetNumber = sheetNumberMap.get(region.sheetId) ?? "—";
 					const entryCount = scheduleEntriesByRegion?.get(region.id)?.length;
 
@@ -138,6 +160,8 @@ function PlanInfoSection({
 						<Pressable
 							key={region.id}
 							className="active:bg-muted/20 flex-row items-center px-4 py-3"
+							accessibilityRole="button"
+							accessibilityLabel={`Open ${region.regionTitle ?? region.regionClass}, sheet ${sheetNumber}`}
 							onPress={() =>
 								onRegionPress?.(
 									region,
