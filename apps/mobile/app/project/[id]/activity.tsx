@@ -48,7 +48,7 @@ interface ActivityItem {
 	message: string;
 }
 
-function photoToActivity(photo: PhotoWithMarker): ActivityItem {
+function photoToActivity(photo: PhotoWithMarker, memberMap: Map<string, string>): ActivityItem {
 	const date = new Date(photo.capturedAt);
 	let timeStr: string;
 	if (isToday(date)) {
@@ -59,13 +59,16 @@ function photoToActivity(photo: PhotoWithMarker): ActivityItem {
 		timeStr = format(date, "MMM d h:mm a");
 	}
 
+	const byName = photo.capturedBy ? memberMap.get(photo.capturedBy) : undefined;
+	const bySuffix = byName ? ` by ${byName.split(" ")[0]}` : "";
+
 	let message: string;
 	if (photo.isIssue && photo.markerLabel) {
-		message = `Issue flagged at ${photo.markerLabel}`;
+		message = `Issue flagged at ${photo.markerLabel}${bySuffix}`;
 	} else if (photo.markerLabel) {
-		message = `Photo added at ${photo.markerLabel}`;
+		message = `Photo added at ${photo.markerLabel}${bySuffix}`;
 	} else {
-		message = "Photo added";
+		message = `Photo added${bySuffix}`;
 	}
 
 	return { id: photo.id, time: timeStr, message };
@@ -147,6 +150,7 @@ export default function ActivityScreen() {
 
 	// Build activity feed from recent photos
 	const recentActivity = React.useMemo(() => {
+		const memberMap = new Map(members.map((m) => [m.userId, m.name]));
 		const allPhotos = timelineSections.flatMap((section) =>
 			section.data.flatMap((group) => group.photos),
 		);
@@ -154,8 +158,8 @@ export default function ActivityScreen() {
 		return allPhotos
 			.sort((a, b) => b.capturedAt - a.capturedAt)
 			.slice(0, 10)
-			.map(photoToActivity);
-	}, [timelineSections]);
+			.map((photo) => photoToActivity(photo, memberMap));
+	}, [timelineSections, members]);
 
 	const handleShare = React.useCallback(async () => {
 		try {
