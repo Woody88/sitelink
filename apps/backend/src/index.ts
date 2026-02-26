@@ -490,6 +490,208 @@ Keep it professional, concise, and use construction terminology. Do not include 
       }
     }
 
+    // Project Share: Create or retrieve share link
+    // POST /api/projects/:projectId/share
+    const projectShareCreateMatch = url.pathname.match(/^\/api\/projects\/([^/]+)\/share$/)
+    if (projectShareCreateMatch && request.method === "POST") {
+      try {
+        const authHeader = request.headers.get("authorization")
+        const authToken = authHeader?.replace("Bearer ", "") || url.searchParams.get("st")
+
+        if (!authToken) {
+          return Response.json({ error: "Authentication required" }, { status: 401 })
+        }
+
+        const sessionResult = await env.DB.prepare(
+          "SELECT s.user_id, u.name FROM session s JOIN user u ON s.user_id = u.id WHERE s.token = ? AND s.expires_at > ?",
+        )
+          .bind(authToken, Date.now())
+          .first<{ user_id: string; name: string }>()
+
+        if (!sessionResult) {
+          return Response.json({ error: "Invalid or expired session" }, { status: 401 })
+        }
+
+        const projectId = projectShareCreateMatch[1]
+        const body = await request.json() as { expiresIn?: "7d" | "30d" | "never" }
+        const expiresIn = body.expiresIn ?? "never"
+
+        await env.DB.prepare(
+          `CREATE TABLE IF NOT EXISTS project_shares (
+            code TEXT PRIMARY KEY,
+            project_id TEXT NOT NULL,
+            created_by TEXT NOT NULL,
+            expires_at INTEGER,
+            created_at INTEGER NOT NULL
+          )`,
+        ).run()
+
+        // Check if a share link already exists for this project (reuse it)
+        const existing = await env.DB.prepare(
+          "SELECT code, expires_at FROM project_shares WHERE project_id = ? AND (expires_at IS NULL OR expires_at > ?) LIMIT 1",
+        )
+          .bind(projectId, Date.now())
+          .first<{ code: string; expires_at: number | null }>()
+
+        let shareCode: string
+        if (existing) {
+          shareCode = existing.code
+        } else {
+          shareCode = crypto.randomUUID().replace(/-/g, "").slice(0, 10)
+          const expiresAt = expiresIn === "never"
+            ? null
+            : expiresIn === "7d"
+              ? Date.now() + 7 * 24 * 60 * 60 * 1000
+              : Date.now() + 30 * 24 * 60 * 60 * 1000
+
+          await env.DB.prepare(
+            "INSERT INTO project_shares (code, project_id, created_by, expires_at, created_at) VALUES (?, ?, ?, ?, ?)",
+          )
+            .bind(shareCode, projectId, sessionResult.user_id, expiresAt, Date.now())
+            .run()
+        }
+
+        const shareUrl = `${url.origin}/share/${shareCode}`
+        return Response.json({ shareCode, shareUrl })
+      } catch (error) {
+        console.error("[ProjectShare] Create error:", error)
+        return Response.json({ error: "Failed to create share link" }, { status: 500 })
+      }
+    }
+
+    // Project Share: Revoke share link
+    // DELETE /api/share/:code
+    const projectShareRevokeMatch = url.pathname.match(/^\/api\/share\/([a-z0-9]+)$/)
+    if (projectShareRevokeMatch && request.method === "DELETE") {
+      try {
+        const authHeader = request.headers.get("authorization")
+        const authToken = authHeader?.replace("Bearer ", "") || url.searchParams.get("st")
+
+        if (!authToken) {
+          return Response.json({ error: "Authentication required" }, { status: 401 })
+        }
+
+        const sessionResult = await env.DB.prepare(
+          "SELECT s.user_id FROM session s WHERE s.token = ? AND s.expires_at > ?",
+        )
+          .bind(authToken, Date.now())
+          .first<{ user_id: string }>()
+
+        if (!sessionResult) {
+          return Response.json({ error: "Invalid or expired session" }, { status: 401 })
+        }
+
+        const shareCode = projectShareRevokeMatch[1]
+        await env.DB.prepare(
+          "DELETE FROM project_shares WHERE code = ? AND created_by = ?",
+        )
+          .bind(shareCode, sessionResult.user_id)
+          .run()
+
+        return Response.json({ revoked: true })
+      } catch (error) {
+        console.error("[ProjectShare] Revoke error:", error)
+        return Response.json({ error: "Failed to revoke share link" }, { status: 500 })
+      }
+    }
+
+    // Project Share: Get project data for shared link (JSON API for mobile)
+    // GET /api/share/:code
+    const projectShareDataMatch = url.pathname.match(/^\/api\/share\/([a-z0-9]+)$/)
+    if (projectShareDataMatch && request.method === "GET") {
+      try {
+        const shareCode = projectShareDataMatch[1]
+        const share = await env.DB.prepare(
+          "SELECT project_id, expires_at FROM project_shares WHERE code = ?",
+        )
+          .bind(shareCode)
+          .first<{ project_id: string; expires_at: number | null }>()
+
+        if (!share || (share.expires_at !== null && share.expires_at < Date.now())) {
+          return Response.json({ error: "Share link not found or expired" }, { status: 404 })
+        }
+
+        return Response.json({ projectId: share.project_id, shareCode })
+      } catch (error) {
+        console.error("[ProjectShare] Data error:", error)
+        return Response.json({ error: "Failed to load share data" }, { status: 500 })
+      }
+    }
+
+    // Project Share: Public HTML web view
+    // GET /share/:code
+    const projectShareViewMatch = url.pathname.match(/^\/share\/([a-z0-9]+)$/)
+    if (projectShareViewMatch && request.method === "GET") {
+      try {
+        const shareCode = projectShareViewMatch[1]
+        const share = await env.DB.prepare(
+          "SELECT project_id, expires_at FROM project_shares WHERE code = ?",
+        )
+          .bind(shareCode)
+          .first<{ project_id: string; expires_at: number | null }>()
+
+        if (!share || (share.expires_at !== null && share.expires_at < Date.now())) {
+          return new Response(
+            `<!DOCTYPE html><html><head><title>Link Expired</title></head><body style="font-family:system-ui;text-align:center;padding:48px"><h2>This link has expired or is no longer valid.</h2><p><a href="https://sitelink.app">SiteLink</a></p></body></html>`,
+            { status: 410, headers: { "Content-Type": "text/html; charset=utf-8" } },
+          )
+        }
+
+        const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SiteLink — Shared Project</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0 }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; min-height: 100vh }
+    .header { background: #1a1a1a; color: #fff; padding: 16px 24px; display: flex; align-items: center; gap: 12px }
+    .header h1 { font-size: 18px; font-weight: 700 }
+    .badge { background: #3b82f6; color: #fff; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.05em }
+    .container { max-width: 640px; margin: 0 auto; padding: 32px 16px }
+    .card { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1) }
+    .label { font-size: 11px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px }
+    .value { font-size: 20px; font-weight: 700 }
+    .subtitle { font-size: 14px; color: #666; margin-top: 4px }
+    .cta { background: #3b82f6; color: #fff; border-radius: 10px; padding: 14px 24px; text-align: center; text-decoration: none; display: block; font-weight: 600; font-size: 15px; margin-top: 8px }
+    .cta-text { font-size: 13px; color: #888; text-align: center; margin-top: 8px }
+    .footer { text-align: center; font-size: 12px; color: #aaa; margin-top: 32px }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>SiteLink</h1>
+    <span class="badge">Shared View</span>
+  </div>
+  <div class="container">
+    <div class="card">
+      <div class="label">Construction Project</div>
+      <div class="value">Project Plans</div>
+      <div class="subtitle">Shared via SiteLink · View only</div>
+    </div>
+    <div class="card">
+      <div class="label">View on Mobile</div>
+      <p style="font-size:14px;color:#444;margin-bottom:16px">
+        Open SiteLink on your phone to view the full interactive plans with callout navigation, photos, and more.
+      </p>
+      <a class="cta" href="https://sitelink.app">Open SiteLink App</a>
+      <p class="cta-text">Free to create an account — no credit card required</p>
+    </div>
+    <div class="footer">Shared with SiteLink · <a href="https://sitelink.app" style="color:#3b82f6">sitelink.app</a></div>
+  </div>
+</body>
+</html>`
+
+        return new Response(html, {
+          headers: { "Content-Type": "text/html; charset=utf-8" },
+        })
+      } catch (error) {
+        console.error("[ProjectShare] View error:", error)
+        return new Response("Internal server error", { status: 500 })
+      }
+    }
+
     // Public Report: Create shareable link
     // POST /api/reports
     // Body: { projectName, reportDate, summaryText }

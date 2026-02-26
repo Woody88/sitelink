@@ -1,5 +1,6 @@
 // apps/mobile/app/project/[id]/settings.tsx
 
+import * as Clipboard from "expo-clipboard";
 import * as FileSystem from "expo-file-system/legacy";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -8,6 +9,9 @@ import {
 	Edit,
 	FileText,
 	HardDrive,
+	Link,
+	Share2,
+	Trash2,
 	Users,
 } from "lucide-react-native";
 import * as React from "react";
@@ -18,17 +22,25 @@ import { Icon } from "@/components/ui/icon";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Text } from "@/components/ui/text";
+import { useSessionContext } from "@/lib/session-context";
 import { getMediaPath, getProjectPath } from "@/utils/file-paths";
+
+const BACKEND_URL = process.env.EXPO_PUBLIC_BETTER_AUTH_URL ?? "";
 
 export default function ProjectSettingsScreen() {
 	const router = useRouter();
 	const params = useLocalSearchParams<{ id: string }>();
 	const insets = useSafeAreaInsets();
+	const { sessionToken } = useSessionContext();
 
 	// TODO: Get project data from LiveStore
 	const [projectName] = React.useState("Riverside Apartments");
 	const [projectAddress] = React.useState("123 Main St, Denver, CO");
 	const [isEditingDetails, setIsEditingDetails] = React.useState(false);
+
+	// Share link state
+	const [shareUrl, setShareUrl] = React.useState<string | null>(null);
+	const [shareLinkState, setShareLinkState] = React.useState<"idle" | "loading" | "copied" | "error">("idle");
 
 	// Notification settings
 	const [notifyOnNewPlans, setNotifyOnNewPlans] = React.useState(true);
@@ -125,6 +137,61 @@ export default function ProjectSettingsScreen() {
 			[{ text: "OK" }],
 		);
 	};
+
+	const handleGenerateShareLink = React.useCallback(async () => {
+		if (!sessionToken) return;
+		setShareLinkState("loading");
+		try {
+			const response = await fetch(`${BACKEND_URL}/api/projects/${params.id}/share`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${sessionToken}`,
+				},
+				body: JSON.stringify({ expiresIn: "never" }),
+			});
+			if (!response.ok) throw new Error("Failed to generate share link");
+			const data = (await response.json()) as { shareUrl: string };
+			setShareUrl(data.shareUrl);
+			await Clipboard.setStringAsync(data.shareUrl);
+			setShareLinkState("copied");
+			setTimeout(() => setShareLinkState("idle"), 2000);
+		} catch {
+			setShareLinkState("error");
+			setTimeout(() => setShareLinkState("idle"), 2000);
+		}
+	}, [sessionToken, params.id]);
+
+	const handleCopyShareLink = React.useCallback(async () => {
+		if (!shareUrl) return;
+		await Clipboard.setStringAsync(shareUrl);
+		setShareLinkState("copied");
+		setTimeout(() => setShareLinkState("idle"), 2000);
+	}, [shareUrl]);
+
+	const handleRevokeShareLink = React.useCallback(() => {
+		if (!shareUrl || !sessionToken) return;
+		const code = shareUrl.split("/share/")[1];
+		if (!code) return;
+		Alert.alert(
+			"Revoke Share Link",
+			"This link will stop working. Anyone with it won't be able to view the project.",
+			[
+				{ text: "Cancel", style: "cancel" },
+				{
+					text: "Revoke",
+					style: "destructive",
+					onPress: async () => {
+						await fetch(`${BACKEND_URL}/api/share/${code}`, {
+							method: "DELETE",
+							headers: { Authorization: `Bearer ${sessionToken}` },
+						});
+						setShareUrl(null);
+					},
+				},
+			],
+		);
+	}, [shareUrl, sessionToken]);
 
 	return (
 		<View className="bg-background flex-1">
@@ -301,6 +368,49 @@ export default function ProjectSettingsScreen() {
 								onCheckedChange={setNotifyOnComments}
 							/>
 						</View>
+					</View>
+				</View>
+
+				{/* Sharing Section */}
+				<View className="px-4 pt-6">
+					<Text className="text-muted-foreground mb-3 text-sm font-semibold tracking-wider uppercase">
+						Sharing
+					</Text>
+					<View className="bg-card border-border/50 overflow-hidden rounded-2xl border">
+						{shareUrl ? (
+							<>
+								<View className="gap-1 px-4 py-3">
+									<Text className="text-muted-foreground text-xs">Share link active</Text>
+									<Text className="text-foreground text-sm" numberOfLines={1} ellipsizeMode="middle">
+										{shareUrl}
+									</Text>
+								</View>
+								<Separator />
+								<SettingsItem
+									icon={Link}
+									label={shareLinkState === "copied" ? "Copied!" : "Copy Link"}
+									onPress={handleCopyShareLink}
+								/>
+								<Separator />
+								<SettingsItem
+									icon={Trash2}
+									label="Revoke Link"
+									onPress={handleRevokeShareLink}
+								/>
+							</>
+						) : (
+							<SettingsItem
+								icon={Share2}
+								label={
+									shareLinkState === "loading"
+										? "Generating…"
+										: shareLinkState === "error"
+											? "Failed — Tap to retry"
+											: "Share Project"
+								}
+								onPress={handleGenerateShareLink}
+							/>
+						)}
 					</View>
 				</View>
 
