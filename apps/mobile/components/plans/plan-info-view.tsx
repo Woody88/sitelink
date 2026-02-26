@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from "expo-router";
 import { ChevronRight, Layers } from "lucide-react-native";
-import { Pressable, ScrollView, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { Badge } from "@/components/ui/badge";
 import {
 	Empty,
@@ -18,6 +18,7 @@ import {
 } from "@/hooks/use-plan-info";
 
 interface PlanInfoViewProps {
+	isProcessing?: boolean;
 	onRegionPress?: (
 		region: LayoutRegion,
 		entries: ScheduleEntry[] | undefined,
@@ -25,7 +26,7 @@ interface PlanInfoViewProps {
 	) => void;
 }
 
-export function PlanInfoView({ onRegionPress }: PlanInfoViewProps) {
+export function PlanInfoView({ isProcessing = false, onRegionPress }: PlanInfoViewProps) {
 	const { id: projectId } = useLocalSearchParams<{ id: string }>();
 	const { schedules, notes, legends, scheduleEntriesByRegion, sheetNumberMap } =
 		usePlanInfo(projectId!);
@@ -35,18 +36,27 @@ export function PlanInfoView({ onRegionPress }: PlanInfoViewProps) {
 	if (!hasContent) {
 		return (
 			<View className="flex-1 px-4 pt-8">
-				<Empty>
-					<EmptyHeader>
-						<EmptyMedia variant="icon">
-							<Icon as={Layers} className="text-muted-foreground size-5" />
-						</EmptyMedia>
-						<EmptyTitle>No plan intelligence detected yet</EmptyTitle>
-						<EmptyDescription>
-							Schedules, notes, and legends will appear here once plans are
-							processed by SiteLink&apos;s AI
-						</EmptyDescription>
-					</EmptyHeader>
-				</Empty>
+				{isProcessing ? (
+					<View className="flex-1 items-center justify-center gap-4">
+						<ActivityIndicator size="large" />
+						<Text className="text-muted-foreground text-center text-sm">
+							AI is analyzing your plans…
+						</Text>
+					</View>
+				) : (
+					<Empty>
+						<EmptyHeader>
+							<EmptyMedia variant="icon">
+								<Icon as={Layers} className="text-muted-foreground size-5" />
+							</EmptyMedia>
+							<EmptyTitle>No plan intelligence detected yet</EmptyTitle>
+							<EmptyDescription>
+								Schedules, notes, and legends will appear here once plans are
+								processed by SiteLink&apos;s AI
+							</EmptyDescription>
+						</EmptyHeader>
+					</Empty>
+				)}
 			</View>
 		);
 	}

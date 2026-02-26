@@ -485,6 +485,7 @@ export const materializers = State.SQLite.materializers(events, {
         width: region.width,
         height: region.height,
         extractedContent: null,
+        noteType: null,
         cropImageUrl: null,
         confidence: region.confidence,
         createdAt: region.createdAt,
@@ -504,7 +505,7 @@ export const materializers = State.SQLite.materializers(events, {
         mark: entry.mark,
         properties: entry.properties,
         confidence: entry.confidence,
-        createdAt: entry.createdAt,
+        createdAt: entry.createdAt ?? event.extractedAt,
       }),
     ),
 
@@ -515,6 +516,7 @@ export const materializers = State.SQLite.materializers(events, {
     tables.layoutRegions
       .update({
         extractedContent: event.content,
+        noteType: event.noteType ?? null,
       })
       .where({ id: event.regionId }),
 

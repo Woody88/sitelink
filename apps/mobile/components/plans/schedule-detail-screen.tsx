@@ -1,7 +1,7 @@
 import * as Haptics from "expo-haptics";
 import { ArrowLeft, Eye } from "lucide-react-native";
 import * as React from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -14,6 +14,7 @@ interface ScheduleDetailScreenProps {
 	region: LayoutRegion;
 	entries: ScheduleEntry[];
 	sheetNumber: string;
+	isExtracting?: boolean;
 	onBack: () => void;
 	onViewOnSheet: (
 		sheetId: string,
@@ -70,6 +71,7 @@ export function ScheduleDetailScreen({
 	region,
 	entries,
 	sheetNumber,
+	isExtracting = false,
 	onBack,
 	onViewOnSheet,
 }: ScheduleDetailScreenProps) {
@@ -143,10 +145,19 @@ export function ScheduleDetailScreen({
 
 			{/* Table */}
 			{entries.length === 0 ? (
-				<View className="flex-1 items-center justify-center px-8">
-					<Text className="text-muted-foreground text-center text-sm">
-						No entries extracted for this schedule yet
-					</Text>
+				<View className="flex-1 items-center justify-center px-8 gap-3">
+					{isExtracting ? (
+						<>
+							<ActivityIndicator />
+							<Text className="text-muted-foreground text-center text-sm">
+								Extracting schedule data…
+							</Text>
+						</>
+					) : (
+						<Text className="text-muted-foreground text-center text-sm">
+							No entries extracted for this schedule yet
+						</Text>
+					)}
 				</View>
 			) : (
 				<ScrollView

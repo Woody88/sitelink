@@ -2,7 +2,7 @@ import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import { ArrowLeft, Check, Copy, Eye } from "lucide-react-native";
 import * as React from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -12,6 +12,7 @@ import type { LayoutRegion } from "@/hooks/use-plan-info";
 interface NotesDetailScreenProps {
 	region: LayoutRegion;
 	sheetNumber: string;
+	isExtracting?: boolean;
 	onBack: () => void;
 	onViewOnSheet: (
 		sheetId: string,
@@ -75,6 +76,7 @@ function getConfidenceBadge(confidence: number) {
 export function NotesDetailScreen({
 	region,
 	sheetNumber,
+	isExtracting = false,
 	onBack,
 	onViewOnSheet,
 }: NotesDetailScreenProps) {
@@ -148,10 +150,19 @@ export function NotesDetailScreen({
 
 			{/* Notes content */}
 			{!region.extractedContent ? (
-				<View className="flex-1 items-center justify-center px-8">
-					<Text className="text-muted-foreground text-center text-sm">
-						No notes content extracted yet
-					</Text>
+				<View className="flex-1 items-center justify-center px-8 gap-3">
+					{isExtracting ? (
+						<>
+							<ActivityIndicator />
+							<Text className="text-muted-foreground text-center text-sm">
+								Extracting notes content…
+							</Text>
+						</>
+					) : (
+						<Text className="text-muted-foreground text-center text-sm">
+							No notes content extracted yet
+						</Text>
+					)}
 				</View>
 			) : parsed ? (
 				<ScrollView

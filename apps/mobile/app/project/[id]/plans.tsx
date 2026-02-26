@@ -412,7 +412,10 @@ export default function PlansScreen() {
 
 			{/* Content area */}
 			{plansTab === "plan-info" ? (
-				<PlanInfoView onRegionPress={handleRegionPress} />
+				<PlanInfoView
+					isProcessing={folders.some((f) => f.status === "processing")}
+					onRegionPress={handleRegionPress}
+				/>
 			) : showRecentSearches ? (
 				<ScrollView className="flex-1" contentContainerClassName="px-4 pb-8">
 					<Text className="text-muted-foreground mb-2 mt-4 text-xs font-semibold uppercase tracking-wider">
@@ -654,6 +657,9 @@ export default function PlansScreen() {
 						region={scheduleDetail.region}
 						entries={scheduleDetail.entries}
 						sheetNumber={scheduleDetail.sheetNumber}
+						isExtracting={folders.some(
+							(f) => f.status === "processing" && f.sheets.some((s) => s.id === scheduleDetail.region.sheetId),
+						)}
 						onBack={() => setScheduleDetail(null)}
 						onViewOnSheet={(sheetId) => {
 							setScheduleDetail(null);
@@ -681,6 +687,9 @@ export default function PlansScreen() {
 					<NotesDetailScreen
 						region={notesDetail.region}
 						sheetNumber={notesDetail.sheetNumber}
+						isExtracting={folders.some(
+							(f) => f.status === "processing" && f.sheets.some((s) => s.id === notesDetail.region.sheetId),
+						)}
 						onBack={() => setNotesDetail(null)}
 						onViewOnSheet={(sheetId) => {
 							setNotesDetail(null);

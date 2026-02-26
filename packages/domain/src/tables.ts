@@ -234,6 +234,7 @@ export const tables = {
       width: State.SQLite.real(),
       height: State.SQLite.real(),
       extractedContent: State.SQLite.text({ nullable: true }), // JSON (schedules) or text (notes)
+      noteType: State.SQLite.text({ nullable: true }), // e.g. "general_notes", "concrete_notes"
       cropImageUrl: State.SQLite.text({ nullable: true }), // R2 URL for legend image crops
       confidence: State.SQLite.real(),
       createdAt: State.SQLite.integer(),
