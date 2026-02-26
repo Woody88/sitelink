@@ -12,11 +12,13 @@ import {
 } from "@/components/ui/empty";
 import { Icon } from "@/components/ui/icon";
 import { usePhotosTimeline } from "@/hooks/use-photos-timeline";
+import { useRetryTranscription } from "@/hooks/use-retry-transcription";
 
 export default function MediaScreen() {
 	const { id: projectId } = useLocalSearchParams<{ id: string }>();
 
 	const sections = usePhotosTimeline(projectId);
+	const { retryTranscription, retryingIds } = useRetryTranscription();
 
 	const handlePhotoPress = React.useCallback((_photoId: string) => {
 		// TODO: Navigate to full-screen photo viewer
@@ -25,7 +27,12 @@ export default function MediaScreen() {
 	return (
 		<View className="bg-background flex-1">
 			{sections.length > 0 ? (
-				<PhotoTimeline sections={sections} onPhotoPress={handlePhotoPress} />
+				<PhotoTimeline
+					sections={sections}
+					onPhotoPress={handlePhotoPress}
+					onRetryTranscription={retryTranscription}
+					retryingIds={retryingIds}
+				/>
 			) : (
 				<Empty className="flex-1">
 					<EmptyHeader>

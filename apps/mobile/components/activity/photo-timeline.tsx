@@ -1,7 +1,7 @@
 import { Audio } from "expo-av";
-import { FileText, MapPin, Mic, Pause, Play } from "lucide-react-native";
+import { AlertCircle, FileText, MapPin, Mic, Pause, Play, RefreshCw } from "lucide-react-native";
 import * as React from "react";
-import { Pressable, ScrollView, SectionList, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, SectionList, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
@@ -15,28 +15,37 @@ interface PhotoTimelineProps {
 	sections: TimelineSection[];
 	onPhotoPress?: (photoId: string) => void;
 	ListHeaderComponent?: React.ReactElement;
+	onRetryTranscription?: (voiceNoteId: string, localPath: string) => void;
+	retryingIds?: Set<string>;
 }
 
 const CalloutGroup = React.memo(function CalloutGroup({
 	group,
 	onPhotoPress,
+	onRetryTranscription,
+	retryingIds,
 }: {
 	group: CalloutGroupType;
 	onPhotoPress?: (photoId: string) => void;
+	onRetryTranscription?: (voiceNoteId: string, localPath: string) => void;
+	retryingIds?: Set<string>;
 }) {
 	const hasIssues = group.photos.some((photo) => photo.isIssue);
 
-	// Find the first voice note with a transcription across all photos in this group
+	// Find the first voice note (with transcription or failed) across all photos in this group
 	const groupVoiceNote = React.useMemo(() => {
 		for (const photo of group.photos) {
-			if (photo.voiceNoteTranscription) {
+			if (photo.voiceNoteDuration !== null) {
 				const dur = photo.voiceNoteDuration ?? 0;
 				const mins = Math.floor(dur / 60);
 				const secs = dur % 60;
 				return {
+					voiceNoteId: photo.voiceNoteId,
 					transcript: photo.voiceNoteTranscription,
+					transcriptionStatus: photo.voiceNoteTranscriptionStatus,
 					duration: `${mins}:${String(secs).padStart(2, "0")}`,
 					audioUri: photo.voiceNoteAudioUri ?? photo.voiceNoteLocalPath,
+					localPath: photo.voiceNoteLocalPath,
 				};
 			}
 		}
@@ -131,27 +140,56 @@ const CalloutGroup = React.memo(function CalloutGroup({
 			{/* Voice Note Display */}
 			{groupVoiceNote && (
 				<View className="mt-3 px-4">
-					<View className="bg-muted/20 flex-row items-start gap-2 rounded-lg p-3">
-						<Icon as={Mic} className="text-primary mt-0.5 size-4" />
-						<View className="flex-1">
-							<Text className="text-muted-foreground mb-1 text-xs">
-								{groupVoiceNote.duration}
-							</Text>
-							<Text className="text-foreground text-sm leading-relaxed">
-								&ldquo;{groupVoiceNote.transcript}&rdquo;
-							</Text>
+					{groupVoiceNote.transcriptionStatus === "failed" ? (
+						<View className="border-destructive/30 bg-destructive/10 flex-row items-center gap-2 rounded-lg border p-3">
+							<Icon as={AlertCircle} className="text-destructive mt-0.5 size-4" />
+							<View className="flex-1">
+								<Text className="text-muted-foreground text-xs">
+									{groupVoiceNote.duration} · Transcription failed
+								</Text>
+							</View>
+							{groupVoiceNote.voiceNoteId && groupVoiceNote.localPath && onRetryTranscription && (
+								<Pressable
+									onPress={() =>
+										onRetryTranscription(
+											groupVoiceNote.voiceNoteId!,
+											groupVoiceNote.localPath!,
+										)
+									}
+									disabled={retryingIds?.has(groupVoiceNote.voiceNoteId!)}
+									className="p-1 active:opacity-70 disabled:opacity-40"
+								>
+									{retryingIds?.has(groupVoiceNote.voiceNoteId!) ? (
+										<ActivityIndicator size="small" />
+									) : (
+										<Icon as={RefreshCw} className="text-destructive size-4" />
+									)}
+								</Pressable>
+							)}
 						</View>
-						<Pressable
-							onPress={groupVoiceNote.localPath ? handlePlayPause : undefined}
-							disabled={!groupVoiceNote.localPath}
-							className="p-1 active:opacity-70 disabled:opacity-40"
-						>
-							<Icon
-								as={isPlaying ? Pause : Play}
-								className="text-primary size-4"
-							/>
-						</Pressable>
-					</View>
+					) : groupVoiceNote.transcript ? (
+						<View className="bg-muted/20 flex-row items-start gap-2 rounded-lg p-3">
+							<Icon as={Mic} className="text-primary mt-0.5 size-4" />
+							<View className="flex-1">
+								<Text className="text-muted-foreground mb-1 text-xs">
+									{groupVoiceNote.duration}
+								</Text>
+								<Text className="text-foreground text-sm leading-relaxed">
+									&ldquo;{groupVoiceNote.transcript}&rdquo;
+								</Text>
+							</View>
+							<Pressable
+								onPress={groupVoiceNote.localPath ? handlePlayPause : undefined}
+								disabled={!groupVoiceNote.localPath}
+								className="p-1 active:opacity-70 disabled:opacity-40"
+							>
+								<Icon
+									as={isPlaying ? Pause : Play}
+									className="text-primary size-4"
+								/>
+							</Pressable>
+						</View>
+					) : null}
 				</View>
 			)}
 		</View>
@@ -162,6 +200,8 @@ export const PhotoTimeline = React.memo(function PhotoTimeline({
 	sections,
 	onPhotoPress,
 	ListHeaderComponent,
+	onRetryTranscription,
+	retryingIds,
 }: PhotoTimelineProps) {
 	return (
 		<SectionList
@@ -175,7 +215,12 @@ export const PhotoTimeline = React.memo(function PhotoTimeline({
 				</View>
 			)}
 			renderItem={({ item }) => (
-				<CalloutGroup group={item} onPhotoPress={onPhotoPress} />
+				<CalloutGroup
+					group={item}
+					onPhotoPress={onPhotoPress}
+					onRetryTranscription={onRetryTranscription}
+					retryingIds={retryingIds}
+				/>
 			)}
 			ItemSeparatorComponent={() => <Separator className="ml-4" />}
 			contentContainerClassName="pb-12"

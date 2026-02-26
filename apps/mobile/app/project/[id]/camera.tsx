@@ -257,6 +257,14 @@ export default function CameraScreen() {
 						}),
 					);
 					console.log("[CAMERA] Voice note transcription saved to LiveStore");
+				} else if (audio.state.transcriptionError) {
+					await store.commit(
+						events.voiceNoteTranscriptionFailed({
+							voiceNoteId,
+							error: audio.state.transcriptionError,
+						}),
+					);
+					console.log("[CAMERA] Voice note transcription failure recorded");
 				}
 
 				// Upload audio to R2 in the background for persistent remote storage

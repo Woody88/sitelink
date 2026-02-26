@@ -17,7 +17,9 @@ export interface PhotoWithMarker {
 	isIssue: boolean;
 	capturedAt: number;
 	capturedBy: string;
+	voiceNoteId: string | null;
 	voiceNoteTranscription: string | null;
+	voiceNoteTranscriptionStatus: string | null;
 	voiceNoteDuration: number | null;
 	voiceNoteLocalPath: string | null;
 	/** Best available URI for audio playback: remote R2 URL if available, local path otherwise */
@@ -62,7 +64,9 @@ export function usePhotosTimeline(projectId: string) {
 		const voiceNoteMap = new Map<
 			string,
 			{
+				id: string;
 				transcription: string | null;
+				transcriptionStatus: string | null;
 				durationSeconds: number;
 				localPath: string;
 				remotePath: string | null;
@@ -76,7 +80,9 @@ export function usePhotosTimeline(projectId: string) {
 					? `${BACKEND_URL}/api/r2/${vn.remotePath}?st=${token}`
 					: vn.localPath;
 				voiceNoteMap.set(vn.photoId, {
+					id: vn.id,
 					transcription: vn.transcription ?? null,
+					transcriptionStatus: (vn as any).transcriptionStatus ?? null,
 					durationSeconds: vn.durationSeconds,
 					localPath: vn.localPath,
 					remotePath: vn.remotePath ?? null,
@@ -106,7 +112,9 @@ export function usePhotosTimeline(projectId: string) {
 				markerLabel: photo.markerId
 					? (markerMap.get(photo.markerId) ?? "Unknown Callout")
 					: null,
+				voiceNoteId: voiceNote?.id ?? null,
 				voiceNoteTranscription: voiceNote?.transcription ?? null,
+				voiceNoteTranscriptionStatus: voiceNote?.transcriptionStatus ?? null,
 				voiceNoteDuration: voiceNote?.durationSeconds ?? null,
 				voiceNoteLocalPath: voiceNote?.localPath ?? null,
 				voiceNoteAudioUri: voiceNote?.audioUri ?? null,

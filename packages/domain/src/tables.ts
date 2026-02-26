@@ -211,6 +211,7 @@ export const tables = {
       remotePath: State.SQLite.text({ nullable: true }),
       durationSeconds: State.SQLite.integer(),
       transcription: State.SQLite.text({ nullable: true }),
+      transcriptionStatus: State.SQLite.text({ nullable: true }),
     },
     indexes: [{ name: "voiceNotes_photoId", columns: ["photoId"] }],
   }),

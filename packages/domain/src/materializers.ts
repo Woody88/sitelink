@@ -443,7 +443,12 @@ export const materializers = State.SQLite.materializers(events, {
 
   "v1.VoiceNoteTranscribed": (event) =>
     tables.voiceNotes
-      .update({ transcription: event.transcription })
+      .update({ transcription: event.transcription, transcriptionStatus: "transcribed" })
+      .where({ id: event.voiceNoteId }),
+
+  "v1.VoiceNoteTranscriptionFailed": (event) =>
+    tables.voiceNotes
+      .update({ transcriptionStatus: "failed" })
       .where({ id: event.voiceNoteId }),
 
   "v1.VoiceNoteDeleted": (event) => tables.voiceNotes.delete().where({ id: event.voiceNoteId }),

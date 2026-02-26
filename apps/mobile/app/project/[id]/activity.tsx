@@ -99,6 +99,7 @@ export default function ActivityScreen() {
 			group.photos.forEach((photo) => {
 				photoCount++;
 				if (photo.isIssue) issueCount++;
+				if (photo.voiceNoteDuration !== null) voiceNoteCount++;
 			});
 		});
 

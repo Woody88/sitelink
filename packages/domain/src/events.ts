@@ -512,6 +512,14 @@ export const events = {
     }),
   }),
 
+  voiceNoteTranscriptionFailed: Events.synced({
+    name: "v1.VoiceNoteTranscriptionFailed",
+    schema: Schema.Struct({
+      voiceNoteId: Schema.String,
+      error: Schema.String,
+    }),
+  }),
+
   voiceNoteDeleted: Events.synced({
     name: "v1.VoiceNoteDeleted",
     schema: Schema.Struct({ voiceNoteId: Schema.String }),
