@@ -441,6 +441,66 @@ Keep it professional, concise, and use construction terminology. Do not include 
       }
     }
 
+    // Voice Note Transcription via Whisper
+    // POST /api/voice-notes/transcribe  (multipart/form-data: file=<audio>)
+    if (url.pathname === "/api/voice-notes/transcribe" && request.method === "POST") {
+      try {
+        const authHeader = request.headers.get("authorization")
+        const authToken = authHeader?.replace("Bearer ", "") || url.searchParams.get("st")
+
+        if (!authToken) {
+          return Response.json({ error: "Authentication required" }, { status: 401 })
+        }
+
+        const sessionResult = await env.DB.prepare(
+          "SELECT s.user_id FROM session s WHERE s.token = ? AND s.expires_at > ?",
+        )
+          .bind(authToken, Date.now())
+          .first<{ user_id: string }>()
+
+        if (!sessionResult) {
+          return Response.json({ error: "Invalid or expired session" }, { status: 401 })
+        }
+
+        if (!env.OPENAI_API_KEY) {
+          return Response.json({ error: "Transcription not configured" }, { status: 503 })
+        }
+
+        const formData = await request.formData()
+        const audioFile = formData.get("file") as File | null
+
+        if (!audioFile) {
+          return Response.json({ error: "Missing audio file" }, { status: 400 })
+        }
+
+        // Forward to OpenAI Whisper
+        const whisperForm = new FormData()
+        whisperForm.append("file", audioFile)
+        whisperForm.append("model", "whisper-1")
+        whisperForm.append("language", "en")
+
+        const whisperRes = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+          },
+          body: whisperForm,
+        })
+
+        if (!whisperRes.ok) {
+          const err = await whisperRes.text()
+          console.error("[Transcribe] Whisper error:", err)
+          return Response.json({ error: "Transcription failed" }, { status: 502 })
+        }
+
+        const result = await whisperRes.json() as { text: string }
+        return Response.json({ transcription: result.text.trim() })
+      } catch (error) {
+        console.error("[Transcribe] Error:", error)
+        return Response.json({ error: "Transcription failed" }, { status: 500 })
+      }
+    }
+
     // Handle CORS preflight for viewer
     if (request.method === "OPTIONS") {
       return new Response(null, {

@@ -55,9 +55,8 @@ export default function CameraScreen() {
 		React.useState(false);
 
 	const camera = useCameraState();
-	const audio = useAudioRecorder();
-
 	const { sessionToken, userId } = useSessionContext();
+	const audio = useAudioRecorder({ sessionToken: sessionToken ?? undefined });
 
 	const storeOptions = React.useMemo(
 		() => createAppStoreOptions(sessionToken),

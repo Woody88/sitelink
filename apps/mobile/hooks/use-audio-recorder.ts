@@ -8,6 +8,7 @@ export interface AudioRecordingState {
 	uri: string | null;
 	isTranscribing: boolean;
 	transcript: string | null;
+	transcriptionError: string | null;
 }
 
 export interface UseAudioRecorderReturn {
@@ -20,18 +21,59 @@ export interface UseAudioRecorderReturn {
 }
 
 const MAX_RECORDING_DURATION = 60; // seconds
+const BACKEND_URL =
+	process.env.EXPO_PUBLIC_BETTER_AUTH_URL || "http://localhost:8787";
 
-export function useAudioRecorder(): UseAudioRecorderReturn {
+async function transcribeAudio(
+	audioUri: string,
+	sessionToken: string,
+): Promise<string> {
+	const formData = new FormData();
+	formData.append("file", {
+		uri: audioUri,
+		name: "recording.m4a",
+		type: "audio/m4a",
+	} as unknown as Blob);
+
+	const response = await fetch(`${BACKEND_URL}/api/voice-notes/transcribe`, {
+		method: "POST",
+		headers: {
+			Authorization: `Bearer ${sessionToken}`,
+		},
+		body: formData,
+	});
+
+	if (!response.ok) {
+		const body = (await response.json().catch(() => ({}))) as {
+			error?: string;
+		};
+		throw new Error(
+			body?.error ?? `Transcription failed (${response.status})`,
+		);
+	}
+
+	const data = (await response.json()) as { transcription: string };
+	return data.transcription;
+}
+
+export function useAudioRecorder(options?: {
+	sessionToken?: string;
+}): UseAudioRecorderReturn {
 	const [isRecording, setIsRecording] = useState(false);
 	const [duration, setDuration] = useState(0);
 	const [uri, setUri] = useState<string | null>(null);
 	const [isTranscribing, setIsTranscribing] = useState(false);
 	const [transcript, setTranscript] = useState<string | null>(null);
+	const [transcriptionError, setTranscriptionError] = useState<string | null>(
+		null,
+	);
 
 	const recordingRef = useRef<Audio.Recording | null>(null);
 	const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
 		null,
 	);
+	const sessionTokenRef = useRef(options?.sessionToken);
+	sessionTokenRef.current = options?.sessionToken;
 
 	useEffect(() => {
 		return () => {
@@ -58,6 +100,7 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
 			setDuration(0);
 			setUri(null);
 			setTranscript(null);
+			setTranscriptionError(null);
 
 			// Start duration timer
 			durationIntervalRef.current = setInterval(() => {
@@ -82,27 +125,35 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
 
 		try {
 			await recordingRef.current.stopAndUnloadAsync();
-			const uri = recordingRef.current.getURI();
+			const recordingUri = recordingRef.current.getURI();
 
 			setIsRecording(false);
-			setUri(uri);
+			setUri(recordingUri);
 
 			if (durationIntervalRef.current) {
 				clearInterval(durationIntervalRef.current);
 				durationIntervalRef.current = null;
 			}
 
-			// Trigger transcription (mock for now)
-			setIsTranscribing(true);
-			// TODO: Integrate with Whisper API
-			setTimeout(() => {
-				setTranscript(
-					"Mock transcription: Junction box needs to move about six inches to the left to clear the conduit run",
-				);
-				setIsTranscribing(false);
-			}, 2000);
-
 			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+			// Transcribe via backend if session token is available
+			const token = sessionTokenRef.current;
+			if (recordingUri && token) {
+				setIsTranscribing(true);
+				setTranscriptionError(null);
+				try {
+					const text = await transcribeAudio(recordingUri, token);
+					setTranscript(text);
+				} catch (err) {
+					console.error("[AudioRecorder] Transcription error:", err);
+					setTranscriptionError(
+						err instanceof Error ? err.message : "Transcription failed",
+					);
+				} finally {
+					setIsTranscribing(false);
+				}
+			}
 		} catch (error) {
 			console.error("Error stopping recording:", error);
 		}
@@ -112,6 +163,7 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
 		setUri(null);
 		setDuration(0);
 		setTranscript(null);
+		setTranscriptionError(null);
 		setIsTranscribing(false);
 		if (recordingRef.current) {
 			recordingRef.current = null;
@@ -136,9 +188,7 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
 	}, [uri]);
 
 	const generateWaveform = useCallback(
-		async (audioUri: string): Promise<number[]> => {
-			// Mock waveform data - in production, use a library like wavesurfer.js or similar
-			// For now, generate random waveform bars for visualization
+		async (_audioUri: string): Promise<number[]> => {
 			const bars = 20;
 			return Array.from({ length: bars }, () => Math.random() * 0.8 + 0.2);
 		},
@@ -152,6 +202,7 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
 			uri,
 			isTranscribing,
 			transcript,
+			transcriptionError,
 		},
 		startRecording,
 		stopRecording,

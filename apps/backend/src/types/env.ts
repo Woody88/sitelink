@@ -20,9 +20,12 @@ export interface Env extends Cloudflare.Env {
   GITHUB_CLIENT_ID?: string
   GITHUB_CLIENT_SECRET?: string
 
-  // OpenRouter API for LLM-based callout detection
+  // OpenRouter API for LLM-based callout detection and daily summaries
   OPENROUTER_API_KEY?: string
   OPENROUTER_MODEL?: string
+
+  // OpenAI API for Whisper audio transcription
+  OPENAI_API_KEY?: string
 
   LIVESTORE_CLIENT_DO: DurableObjectNamespace
 
