@@ -36,7 +36,7 @@ const CalloutGroup = React.memo(function CalloutGroup({
 				return {
 					transcript: photo.voiceNoteTranscription,
 					duration: `${mins}:${String(secs).padStart(2, "0")}`,
-					localPath: photo.voiceNoteLocalPath,
+					audioUri: photo.voiceNoteAudioUri ?? photo.voiceNoteLocalPath,
 				};
 			}
 		}
@@ -53,7 +53,7 @@ const CalloutGroup = React.memo(function CalloutGroup({
 	}, []);
 
 	const handlePlayPause = React.useCallback(async () => {
-		if (!groupVoiceNote?.localPath) return;
+		if (!groupVoiceNote?.audioUri) return;
 		if (isPlaying) {
 			await soundRef.current?.pauseAsync();
 			setIsPlaying(false);
@@ -62,7 +62,7 @@ const CalloutGroup = React.memo(function CalloutGroup({
 		try {
 			if (!soundRef.current) {
 				const { sound } = await Audio.Sound.createAsync(
-					{ uri: groupVoiceNote.localPath },
+					{ uri: groupVoiceNote.audioUri },
 					{ shouldPlay: true },
 				);
 				soundRef.current = sound;
@@ -79,7 +79,7 @@ const CalloutGroup = React.memo(function CalloutGroup({
 		} catch (err) {
 			console.error("[PhotoTimeline] Audio playback error:", err);
 		}
-	}, [groupVoiceNote?.localPath, isPlaying]);
+	}, [groupVoiceNote?.audioUri, isPlaying]);
 
 	const handleGenerateRFI = React.useCallback(() => {
 		// TODO: Implement RFI generation

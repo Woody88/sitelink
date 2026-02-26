@@ -258,6 +258,39 @@ export default function CameraScreen() {
 					);
 					console.log("[CAMERA] Voice note transcription saved to LiveStore");
 				}
+
+				// Upload audio to R2 in the background for persistent remote storage
+				if (sessionToken) {
+					const uploadVoiceNoteToR2 = async () => {
+						try {
+							const backendUrl = process.env.EXPO_PUBLIC_BETTER_AUTH_URL || "http://localhost:8787";
+							const form = new FormData();
+							form.append("file", {
+								uri: destinationPath,
+								name: fileName,
+								type: "audio/m4a",
+							} as unknown as Blob);
+							form.append("voiceNoteId", voiceNoteId);
+
+							const res = await fetch(`${backendUrl}/api/voice-notes/upload`, {
+								method: "POST",
+								headers: { Authorization: `Bearer ${sessionToken}` },
+								body: form,
+							});
+
+							if (res.ok) {
+								const { remotePath } = await res.json() as { remotePath: string };
+								await store.commit(events.voiceNoteUploaded({ voiceNoteId, remotePath }));
+								console.log("[CAMERA] Voice note uploaded to R2:", remotePath);
+							} else {
+								console.warn("[CAMERA] Voice note R2 upload failed:", res.status);
+							}
+						} catch (err) {
+							console.warn("[CAMERA] Voice note R2 upload error:", err);
+						}
+					};
+					uploadVoiceNoteToR2();
+				}
 			}
 		} catch (error) {
 			console.error("[CAMERA] Error saving voice recording:", error);
@@ -265,7 +298,7 @@ export default function CameraScreen() {
 
 		audio.deleteRecording();
 		setScreenState("preview");
-	}, [audio, params.id, currentPhotoId, store, storeOptions]);
+	}, [audio, params.id, currentPhotoId, store, storeOptions, sessionToken]);
 
 	const handleLinkToPlan = React.useCallback(() => {
 		setIsPlanSelectorVisible(true);

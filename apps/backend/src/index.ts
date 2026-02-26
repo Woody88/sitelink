@@ -441,6 +441,52 @@ Keep it professional, concise, and use construction terminology. Do not include 
       }
     }
 
+    // Voice Note Upload to R2
+    // POST /api/voice-notes/upload  (multipart/form-data: file=<audio>, voiceNoteId=<id>)
+    if (url.pathname === "/api/voice-notes/upload" && request.method === "POST") {
+      try {
+        const authHeader = request.headers.get("authorization")
+        const authToken = authHeader?.replace("Bearer ", "") || url.searchParams.get("st")
+
+        if (!authToken) {
+          return Response.json({ error: "Authentication required" }, { status: 401 })
+        }
+
+        const sessionResult = await env.DB.prepare(
+          "SELECT s.user_id FROM session s WHERE s.token = ? AND s.expires_at > ?",
+        )
+          .bind(authToken, Date.now())
+          .first<{ user_id: string }>()
+
+        if (!sessionResult) {
+          return Response.json({ error: "Invalid or expired session" }, { status: 401 })
+        }
+
+        const formData = await request.formData()
+        const audioFile = formData.get("file") as File | null
+        const voiceNoteId = formData.get("voiceNoteId") as string | null
+
+        if (!audioFile) {
+          return Response.json({ error: "Missing audio file" }, { status: 400 })
+        }
+        if (!voiceNoteId) {
+          return Response.json({ error: "Missing voiceNoteId" }, { status: 400 })
+        }
+
+        // Store in R2
+        const ext = audioFile.name?.endsWith(".webm") ? "webm" : "m4a"
+        const r2Key = `voice-notes/${sessionResult.user_id}/${voiceNoteId}.${ext}`
+        await env.R2_BUCKET.put(r2Key, await audioFile.arrayBuffer(), {
+          httpMetadata: { contentType: audioFile.type || "audio/m4a" },
+        })
+
+        return Response.json({ remotePath: r2Key })
+      } catch (error) {
+        console.error("[VoiceNote Upload] Error:", error)
+        return Response.json({ error: "Upload failed" }, { status: 500 })
+      }
+    }
+
     // Voice Note Transcription via Whisper
     // POST /api/voice-notes/transcribe  (multipart/form-data: file=<audio>)
     if (url.pathname === "/api/voice-notes/transcribe" && request.method === "POST") {

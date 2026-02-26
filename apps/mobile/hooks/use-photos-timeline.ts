@@ -5,6 +5,8 @@ import { useMemo } from "react";
 import { useSessionContext } from "@/lib/session-context";
 import { useAppStore } from "@/livestore/store";
 
+const BACKEND_URL = process.env.EXPO_PUBLIC_BETTER_AUTH_URL || "http://localhost:8787";
+
 export interface PhotoWithMarker {
 	id: string;
 	projectId: string;
@@ -18,6 +20,8 @@ export interface PhotoWithMarker {
 	voiceNoteTranscription: string | null;
 	voiceNoteDuration: number | null;
 	voiceNoteLocalPath: string | null;
+	/** Best available URI for audio playback: remote R2 URL if available, local path otherwise */
+	voiceNoteAudioUri: string | null;
 }
 
 export interface TimelineSection {
@@ -45,6 +49,7 @@ export function usePhotosTimeline(projectId: string) {
 	const voiceNotes = store.useQuery(queryDb(tables.voiceNotes));
 
 	return useMemo(() => {
+		const token = sessionToken;
 		// Ensure we have an array to work with
 		const photosArray = Array.isArray(photos) ? photos : [];
 		const markersArray = Array.isArray(markers) ? markers : [];
@@ -60,14 +65,22 @@ export function usePhotosTimeline(projectId: string) {
 				transcription: string | null;
 				durationSeconds: number;
 				localPath: string;
+				remotePath: string | null;
+				audioUri: string;
 			}
 		>();
 		voiceNotesArray.forEach((vn) => {
 			if (!voiceNoteMap.has(vn.photoId)) {
+				// Build best audio URI: prefer remote R2 URL with auth token, fall back to local
+				const audioUri = vn.remotePath && token
+					? `${BACKEND_URL}/api/r2/${vn.remotePath}?st=${token}`
+					: vn.localPath;
 				voiceNoteMap.set(vn.photoId, {
 					transcription: vn.transcription ?? null,
 					durationSeconds: vn.durationSeconds,
 					localPath: vn.localPath,
+					remotePath: vn.remotePath ?? null,
+					audioUri,
 				});
 			}
 		});
@@ -96,6 +109,7 @@ export function usePhotosTimeline(projectId: string) {
 				voiceNoteTranscription: voiceNote?.transcription ?? null,
 				voiceNoteDuration: voiceNote?.durationSeconds ?? null,
 				voiceNoteLocalPath: voiceNote?.localPath ?? null,
+				voiceNoteAudioUri: voiceNote?.audioUri ?? null,
 			});
 		});
 
@@ -126,5 +140,5 @@ export function usePhotosTimeline(projectId: string) {
 		);
 
 		return sections;
-	}, [photos, markers, voiceNotes]);
+	}, [photos, markers, voiceNotes, sessionToken]);
 }
