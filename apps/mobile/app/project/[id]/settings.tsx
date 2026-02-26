@@ -15,7 +15,7 @@ import {
 	Users,
 } from "lucide-react-native";
 import * as React from "react";
-import { Alert, ScrollView, View } from "react-native";
+import { Alert, ScrollView, Share, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SettingsItem } from "@/components/settings/settings-item";
 import { Icon } from "@/components/ui/icon";
@@ -192,6 +192,14 @@ export default function ProjectSettingsScreen() {
 			],
 		);
 	}, [shareUrl, sessionToken]);
+
+	const handleNativeShare = React.useCallback(async () => {
+		if (!shareUrl) return;
+		await Share.share({
+			message: `View this construction project on SiteLink: ${shareUrl}`,
+			url: shareUrl,
+		});
+	}, [shareUrl]);
 
 	return (
 		<View className="bg-background flex-1">
@@ -385,6 +393,12 @@ export default function ProjectSettingsScreen() {
 										{shareUrl}
 									</Text>
 								</View>
+								<Separator />
+								<SettingsItem
+									icon={Share2}
+									label="Share via…"
+									onPress={handleNativeShare}
+								/>
 								<Separator />
 								<SettingsItem
 									icon={Link}
