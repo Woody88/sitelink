@@ -24,23 +24,27 @@ const CalloutGroup = React.memo(function CalloutGroup({
 	onPhotoPress?: (photoId: string) => void;
 }) {
 	const hasIssues = group.photos.some((photo) => photo.isIssue);
-	const hasVoiceNotes = group.photos.some(
-		(photo) => (photo as any).hasVoiceNote,
-	);
+
+	// Find the first voice note with a transcription across all photos in this group
+	const groupVoiceNote = React.useMemo(() => {
+		for (const photo of group.photos) {
+			if (photo.voiceNoteTranscription) {
+				const dur = photo.voiceNoteDuration ?? 0;
+				const mins = Math.floor(dur / 60);
+				const secs = dur % 60;
+				return {
+					transcript: photo.voiceNoteTranscription,
+					duration: `${mins}:${String(secs).padStart(2, "0")}`,
+				};
+			}
+		}
+		return null;
+	}, [group.photos]);
 
 	const handleGenerateRFI = React.useCallback(() => {
 		// TODO: Implement RFI generation
 		console.log("Generate RFI for", group.markerLabel);
 	}, [group.markerLabel]);
-
-	// Mock voice note data - in real app, this would come from the photo data
-	const mockVoiceNote = hasVoiceNotes
-		? {
-				transcript:
-					"Junction box needs to move about six inches to the left to clear the conduit run",
-				duration: "0:15",
-			}
-		: null;
 
 	return (
 		<View className="py-4">
@@ -78,23 +82,23 @@ const CalloutGroup = React.memo(function CalloutGroup({
 						uri={photo.localPath}
 						capturedAt={photo.capturedAt}
 						isIssue={photo.isIssue}
-						hasVoiceNote={(photo as any).hasVoiceNote || photo.id === "p2"}
+						hasVoiceNote={photo.voiceNoteDuration !== null}
 						onPress={() => onPhotoPress?.(photo.id)}
 					/>
 				))}
 			</ScrollView>
 
 			{/* Voice Note Display */}
-			{mockVoiceNote && (
+			{groupVoiceNote && (
 				<View className="mt-3 px-4">
 					<View className="bg-muted/20 flex-row items-start gap-2 rounded-lg p-3">
 						<Icon as={Mic} className="text-primary mt-0.5 size-4" />
 						<View className="flex-1">
 							<Text className="text-muted-foreground mb-1 text-xs">
-								{mockVoiceNote.duration}
+								{groupVoiceNote.duration}
 							</Text>
 							<Text className="text-foreground text-sm leading-relaxed">
-								&ldquo;{mockVoiceNote.transcript}&rdquo;
+								&ldquo;{groupVoiceNote.transcript}&rdquo;
 							</Text>
 						</View>
 						<Pressable className="p-1">

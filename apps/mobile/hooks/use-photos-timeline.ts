@@ -15,6 +15,8 @@ export interface PhotoWithMarker {
 	isIssue: boolean;
 	capturedAt: number;
 	capturedBy: string;
+	voiceNoteTranscription: string | null;
+	voiceNoteDuration: number | null;
 }
 
 export interface TimelineSection {
@@ -39,13 +41,30 @@ export function usePhotosTimeline(projectId: string) {
 
 	const markers = store.useQuery(queryDb(tables.markers));
 
+	const voiceNotes = store.useQuery(queryDb(tables.voiceNotes));
+
 	return useMemo(() => {
 		// Ensure we have an array to work with
 		const photosArray = Array.isArray(photos) ? photos : [];
 		const markersArray = Array.isArray(markers) ? markers : [];
+		const voiceNotesArray = Array.isArray(voiceNotes) ? voiceNotes : [];
 
 		// Map markers for quick lookup
 		const markerMap = new Map(markersArray.map((m) => [m.id, m.label]));
+
+		// Map photoId → voice note for quick lookup (first voice note per photo)
+		const voiceNoteMap = new Map<
+			string,
+			{ transcription: string | null; durationSeconds: number }
+		>();
+		voiceNotesArray.forEach((vn) => {
+			if (!voiceNoteMap.has(vn.photoId)) {
+				voiceNoteMap.set(vn.photoId, {
+					transcription: vn.transcription ?? null,
+					durationSeconds: vn.durationSeconds,
+				});
+			}
+		});
 
 		// Group by date primary
 		const groupedByDate: Record<string, PhotoWithMarker[]> = {};
@@ -62,11 +81,14 @@ export function usePhotosTimeline(projectId: string) {
 				groupedByDate[dateKey] = [];
 			}
 
+			const voiceNote = voiceNoteMap.get(photo.id);
 			groupedByDate[dateKey].push({
 				...photo,
 				markerLabel: photo.markerId
 					? (markerMap.get(photo.markerId) ?? "Unknown Callout")
 					: null,
+				voiceNoteTranscription: voiceNote?.transcription ?? null,
+				voiceNoteDuration: voiceNote?.durationSeconds ?? null,
 			});
 		});
 
@@ -97,5 +119,5 @@ export function usePhotosTimeline(projectId: string) {
 		);
 
 		return sections;
-	}, [photos, markers]);
+	}, [photos, markers, voiceNotes]);
 }
