@@ -1,9 +1,11 @@
+import * as Clipboard from "expo-clipboard";
 import { formatDistanceToNow } from "date-fns";
 import {
 	ChevronDown,
 	ChevronUp,
 	Edit3,
 	ExternalLink,
+	Link,
 	RefreshCcw,
 	Sparkles,
 	X,
@@ -26,6 +28,9 @@ export interface SummaryPhotoDisplay {
 	voiceNoteDuration: number | null;
 }
 
+const BACKEND_URL =
+	process.env.EXPO_PUBLIC_BETTER_AUTH_URL || "http://localhost:8787";
+
 interface DailySummaryBannerProps {
 	summary: DailySummary | null;
 	isLoading: boolean;
@@ -38,6 +43,8 @@ interface DailySummaryBannerProps {
 		issueCount: number;
 	};
 	photos?: SummaryPhotoDisplay[];
+	projectName?: string;
+	sessionToken?: string | null;
 }
 
 export const DailySummaryBanner = React.memo(function DailySummaryBanner({
@@ -48,12 +55,15 @@ export const DailySummaryBanner = React.memo(function DailySummaryBanner({
 	className,
 	stats,
 	photos,
+	projectName,
+	sessionToken,
 }: DailySummaryBannerProps) {
 	const [isCollapsed, setIsCollapsed] = React.useState(false);
 	const [showConfirmDialog, setShowConfirmDialog] = React.useState(false);
 	const [showEditDialog, setShowEditDialog] = React.useState(false);
 	const [editText, setEditText] = React.useState("");
 	const [editedSummaryText, setEditedSummaryText] = React.useState<string | null>(null);
+	const [copyLinkState, setCopyLinkState] = React.useState<"idle" | "loading" | "copied" | "error">("idle");
 	const hasSummary = !!summary;
 
 	// Build default summary from stats - always show counts, even if zero
@@ -110,6 +120,38 @@ export const DailySummaryBanner = React.memo(function DailySummaryBanner({
 		setShowEditDialog(false);
 	}, [editText]);
 
+	const handleCopyLink = React.useCallback(async () => {
+		if (!sessionToken || !projectName || !hasSummary) return;
+		setCopyLinkState("loading");
+		try {
+			const response = await fetch(`${BACKEND_URL}/api/reports`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${sessionToken}`,
+				},
+				body: JSON.stringify({
+					projectName,
+					reportDate: new Date().toLocaleDateString("en-US", {
+						weekday: "long",
+						year: "numeric",
+						month: "long",
+						day: "numeric",
+					}),
+					summaryText: displayText,
+				}),
+			});
+			if (!response.ok) throw new Error("Failed to create report");
+			const data = (await response.json()) as { shareUrl: string };
+			await Clipboard.setStringAsync(data.shareUrl);
+			setCopyLinkState("copied");
+			setTimeout(() => setCopyLinkState("idle"), 2000);
+		} catch {
+			setCopyLinkState("error");
+			setTimeout(() => setCopyLinkState("idle"), 2000);
+		}
+	}, [sessionToken, projectName, hasSummary, displayText]);
+
 	const hasPhotos = photos && photos.length > 0;
 
 	return (
@@ -145,6 +187,23 @@ export const DailySummaryBanner = React.memo(function DailySummaryBanner({
 							<Icon as={Edit3} className="text-foreground size-4" />
 							<Text className="text-foreground text-sm font-medium">Edit</Text>
 						</Pressable>
+						{sessionToken && projectName && (
+							<Pressable
+								onPress={handleCopyLink}
+								disabled={copyLinkState === "loading"}
+								className="bg-foreground/5 flex-row items-center gap-1.5 rounded-full px-3 py-1.5 active:opacity-70 disabled:opacity-40"
+								hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+							>
+								<Icon as={Link} className="text-foreground size-4" />
+								<Text className="text-foreground text-sm font-medium">
+									{copyLinkState === "copied"
+										? "Copied!"
+										: copyLinkState === "error"
+											? "Error"
+											: "Copy Link"}
+								</Text>
+							</Pressable>
+						)}
 						<Pressable
 							onPress={handleShare}
 							className="bg-foreground/5 flex-row items-center gap-1.5 rounded-full px-3 py-1.5 active:opacity-70"

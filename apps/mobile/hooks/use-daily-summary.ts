@@ -90,5 +90,6 @@ export function useDailySummary(projectId: string) {
 		isLoading,
 		error,
 		generateSummary,
+		projectName: project?.name ?? null,
 	};
 }

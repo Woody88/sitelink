@@ -74,11 +74,12 @@ function photoToActivity(photo: PhotoWithMarker): ActivityItem {
 export default function ActivityScreen() {
 	const router = useRouter();
 	const { id: projectId } = useLocalSearchParams<{ id: string }>();
-	const { userId } = useSessionContext();
+	const { userId, sessionToken } = useSessionContext();
 	const {
 		summary,
 		isLoading: isSummaryLoading,
 		generateSummary,
+		projectName,
 	} = useDailySummary(projectId);
 	const timelineSections = usePhotosTimeline(projectId!);
 	const members = useMembers(projectId!);
@@ -188,7 +189,9 @@ export default function ActivityScreen() {
 					isLoading={isSummaryLoading}
 					onGenerate={handleGenerate}
 					stats={todayStats}
-				photos={todayPhotosForBanner}
+					photos={todayPhotosForBanner}
+					projectName={projectName ?? undefined}
+					sessionToken={sessionToken}
 				/>
 
 				{/* Quick Actions */}
