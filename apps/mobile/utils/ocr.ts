@@ -1,9 +1,10 @@
 /**
  * OCR Text Detection Utility
  *
- * In production, this will call the backend API which uses PaddleOCR
- * to extract text from photos. For now, this is a mock implementation.
+ * Calls the backend API which uses PaddleOCR to extract text from photos.
  */
+
+const BACKEND_URL = process.env.EXPO_PUBLIC_BETTER_AUTH_URL ?? "";
 
 export interface OcrResult {
 	text: string;
@@ -12,20 +13,27 @@ export interface OcrResult {
 
 export async function detectTextInPhoto(
 	photoUri: string,
+	sessionToken: string,
 ): Promise<OcrResult | null> {
-	// TODO: Replace with actual API call to backend OCR endpoint
-	// Example: POST /api/photos/ocr with FormData containing the image
+	const formData = new FormData();
+	formData.append("image", {
+		uri: photoUri,
+		type: "image/jpeg",
+		name: "photo.jpg",
+	} as unknown as Blob);
 
-	// Mock implementation - simulate async processing
-	await new Promise((resolve) => setTimeout(resolve, 1500));
+	const response = await fetch(`${BACKEND_URL}/api/photos/ocr`, {
+		method: "POST",
+		headers: { Authorization: `Bearer ${sessionToken}` },
+		body: formData,
+	});
 
-	// Mock text detection (randomly returns text or null)
-	if (Math.random() > 0.3) {
-		return {
-			text: "Junction box needs to move about six inches to the left to clear the conduit run",
-			confidence: 0.92,
-		};
+	if (!response.ok) {
+		throw new Error(`OCR request failed: ${response.status}`);
 	}
 
-	return null;
+	const data = (await response.json()) as { text: string; confidence: number } | { text: null };
+	if (!data.text) return null;
+
+	return { text: data.text, confidence: (data as { text: string; confidence: number }).confidence };
 }

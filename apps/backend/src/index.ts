@@ -1348,6 +1348,64 @@ Keep it professional, concise, and use construction terminology. Do not include 
       }
     }
 
+    // POST /api/photos/ocr  (multipart/form-data: image=<jpeg>)
+    if (url.pathname === "/api/photos/ocr" && request.method === "POST") {
+      try {
+        const authHeader = request.headers.get("authorization")
+        const authToken = authHeader?.replace("Bearer ", "")
+
+        if (!authToken) {
+          return Response.json({ error: "Unauthorized" }, { status: 401 })
+        }
+
+        const sessionResult = await env.DB.prepare(
+          "SELECT s.*, u.id as user_id FROM session s JOIN user u ON s.user_id = u.id WHERE s.token = ? AND s.expires_at > ?",
+        )
+          .bind(authToken, Date.now())
+          .first<{ user_id: string }>()
+
+        if (!sessionResult) {
+          return Response.json({ error: "Invalid or expired session" }, { status: 401 })
+        }
+
+        const formData = await request.formData()
+        const imageFile = formData.get("image") as File | null
+
+        if (!imageFile) {
+          return Response.json({ error: "Missing image" }, { status: 400 })
+        }
+
+        // Forward to container for OCR processing
+        const containerForm = new FormData()
+        containerForm.append("image", imageFile)
+
+        let ocrRes: Response
+        if (env.LOCAL_CONTAINER_URL) {
+          ocrRes = await fetch(`${env.LOCAL_CONTAINER_URL}/photo-ocr`, {
+            method: "POST",
+            body: containerForm,
+          })
+        } else {
+          const container = env.PDF_PROCESSOR.get(env.PDF_PROCESSOR.idFromName("photo-ocr"))
+          ocrRes = await (container as unknown as { fetch: (url: string, init?: RequestInit) => Promise<Response> }).fetch(
+            "http://container/photo-ocr",
+            { method: "POST", body: containerForm },
+          )
+        }
+
+        if (!ocrRes.ok) {
+          console.error("[PhotoOCR] Container error:", ocrRes.status)
+          return Response.json({ text: null }, { status: 200 })
+        }
+
+        const result = await ocrRes.json() as { text: string | null; confidence: number }
+        return Response.json(result)
+      } catch (error) {
+        console.error("[PhotoOCR] Error:", error)
+        return Response.json({ error: "OCR failed" }, { status: 500 })
+      }
+    }
+
     // Handle CORS preflight for viewer
     if (request.method === "OPTIONS") {
       return new Response(null, {

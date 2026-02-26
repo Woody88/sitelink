@@ -10,7 +10,7 @@ import { type Sheet, useSheets } from "./use-sheets";
 import { useSessionContext } from "@/lib/session-context";
 import { useAppStore } from "@/livestore/store";
 
-export type SearchResultType = "sheet" | "schedule" | "notes" | "voice";
+export type SearchResultType = "sheet" | "schedule" | "notes" | "voice" | "photo";
 
 export interface PlanSearchResult {
 	id: string;
@@ -196,11 +196,28 @@ export function usePlanSearch(
 			});
 		}
 
+		// Search photo OCR text
+		for (const photo of photosArray) {
+			if (!photo.extractedText || photo.extractionStatus !== "done") continue;
+			const snippet = extractSnippet(photo.extractedText, trimmed);
+			if (!snippet) continue;
+
+			results.push({
+				id: `photo-${photo.id}`,
+				type: "photo",
+				title: "Photo Text",
+				subtitle: snippet,
+				matchText: snippet,
+				sheetNumber: photo.markerId ? "Linked" : "Unlinked",
+			});
+		}
+
 		const typePriority: Record<SearchResultType, number> = {
 			schedule: 0,
 			notes: 1,
 			sheet: 2,
 			voice: 3,
+			photo: 4,
 		};
 
 		results.sort((a, b) => {

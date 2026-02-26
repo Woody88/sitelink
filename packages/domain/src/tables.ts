@@ -191,6 +191,9 @@ export const tables = {
       isIssue: State.SQLite.boolean({ default: false }),
       capturedAt: State.SQLite.integer(),
       capturedBy: State.SQLite.text(),
+      extractedText: State.SQLite.text({ nullable: true }),
+      extractionStatus: State.SQLite.text({ nullable: true }), // "pending" | "done" | "failed"
+      extractionConfidence: State.SQLite.real({ nullable: true }),
     },
     indexes: [
       { name: "photos_projectId", columns: ["projectId"] },

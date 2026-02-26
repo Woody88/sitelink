@@ -483,6 +483,23 @@ export const events = {
     schema: Schema.Struct({ photoId: Schema.String }),
   }),
 
+  photoTextExtracted: Events.synced({
+    name: "v1.PhotoTextExtracted",
+    schema: Schema.Struct({
+      photoId: Schema.String,
+      extractedText: Schema.String,
+      confidence: Schema.Number,
+    }),
+  }),
+
+  photoTextExtractionFailed: Events.synced({
+    name: "v1.PhotoTextExtractionFailed",
+    schema: Schema.Struct({
+      photoId: Schema.String,
+      error: Schema.String,
+    }),
+  }),
+
   // ===================
   // Voice note events
   // ===================

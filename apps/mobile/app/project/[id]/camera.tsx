@@ -144,16 +144,38 @@ export default function CameraScreen() {
 					);
 				}
 
-				detectTextInPhoto(destinationPath)
-					.then((result) => {
-						if (result && result.text.length > 10) {
-							setOcrText(result.text);
-						}
-						setIsOcrLoading(false);
-					})
-					.catch(() => {
-						setIsOcrLoading(false);
-					});
+				if (sessionToken) {
+					detectTextInPhoto(destinationPath, sessionToken)
+						.then(async (result) => {
+							if (result && result.text.length > 10) {
+								setOcrText(result.text);
+								await store.commit(
+									events.photoTextExtracted({
+										photoId,
+										extractedText: result.text,
+										confidence: result.confidence,
+									}),
+								);
+							} else {
+								await store.commit(
+									events.photoTextExtractionFailed({
+										photoId,
+										error: "No text detected",
+									}),
+								);
+							}
+							setIsOcrLoading(false);
+						})
+						.catch(async (err) => {
+							await store.commit(
+								events.photoTextExtractionFailed({
+									photoId,
+									error: err instanceof Error ? err.message : "OCR failed",
+								}),
+							);
+							setIsOcrLoading(false);
+						});
+				}
 			} catch (error) {
 				console.error("[CAMERA] Error saving photo:", error);
 			}

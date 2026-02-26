@@ -322,6 +322,53 @@ def health():
     """Health check endpoint"""
     return jsonify({"status": "healthy"})
 
+
+@app.route('/photo-ocr', methods=['POST'])
+def photo_ocr():
+    """
+    Extract text from a photo using LLM vision (with Tesseract fallback).
+    Body: multipart/form-data with 'image' field (JPEG/PNG)
+    Returns: {"text": "...", "confidence": 0.92} or {"text": null}
+    """
+    try:
+        image_file = request.files.get('image')
+        if not image_file:
+            return jsonify({"error": "Missing image field"}), 400
+
+        image_data = image_file.read()
+        image = Image.open(io.BytesIO(image_data))
+        mime_type = image_file.content_type or "image/jpeg"
+
+        print(f"[PhotoOCR] Processing image {image.size}, mime={mime_type}")
+
+        # Try LLM vision first
+        config = get_openrouter_config()
+        if config['api_key']:
+            image_base64 = base64.b64encode(image_data).decode('utf-8')
+            prompt = (
+                "Extract all visible text from this construction site photo. "
+                "Return a JSON object with exactly two fields: "
+                "'text' (string with all extracted text, or null if no text found) "
+                "and 'confidence' (number 0.0-1.0 indicating extraction confidence). "
+                "Example: {\"text\": \"Junction box - move 6 inches left\", \"confidence\": 0.95}"
+            )
+            result = call_openrouter_vision(prompt, image_base64, mime_type)
+            if result and isinstance(result, dict) and result.get('text'):
+                return jsonify({"text": result['text'], "confidence": result.get('confidence', 0.9)})
+
+        # Fallback: Tesseract
+        gray = image.convert('L')
+        raw_text = pytesseract.image_to_string(gray, config='--psm 3').strip()
+        if raw_text:
+            return jsonify({"text": raw_text, "confidence": 0.7})
+
+        return jsonify({"text": None})
+
+    except Exception as e:
+        print(f"[PhotoOCR] Error: {e}")
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/generate-images', methods=['POST'])
 def generate_images():
     """

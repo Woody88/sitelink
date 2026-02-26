@@ -409,6 +409,9 @@ export const materializers = State.SQLite.materializers(events, {
       isIssue: event.isIssue,
       capturedAt: event.capturedAt,
       capturedBy: event.capturedBy,
+      extractedText: null,
+      extractionStatus: null,
+      extractionConfidence: null,
     }),
 
   "v1.PhotoMarkedAsIssue": (event) =>
@@ -424,6 +427,20 @@ export const materializers = State.SQLite.materializers(events, {
     tables.photos.update({ remotePath: event.remotePath }).where({ id: event.photoId }),
 
   "v1.PhotoDeleted": (event) => tables.photos.delete().where({ id: event.photoId }),
+
+  "v1.PhotoTextExtracted": (event) =>
+    tables.photos
+      .update({
+        extractedText: event.extractedText,
+        extractionStatus: "done",
+        extractionConfidence: event.confidence,
+      })
+      .where({ id: event.photoId }),
+
+  "v1.PhotoTextExtractionFailed": (event) =>
+    tables.photos
+      .update({ extractionStatus: "failed" })
+      .where({ id: event.photoId }),
 
   // ===================
   // Voice note materializers
