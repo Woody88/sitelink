@@ -2,7 +2,7 @@ import { queryDb } from "@livestore/livestore";
 import { useStore } from "@livestore/react";
 import { events, tables } from "@sitelink/domain";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { MoreHorizontal, Plus, Search, UserPlus, X } from "lucide-react-native";
+import { Mail, MoreHorizontal, Plus, Search, UserPlus, X } from "lucide-react-native";
 import * as React from "react";
 import {
 	Alert,
@@ -19,6 +19,7 @@ import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import { Text } from "@/components/ui/text";
 import { useMembers } from "@/hooks/use-members";
+import { authClient } from "@/lib/auth";
 import { useSessionContext } from "@/lib/session-context";
 import { createAppStoreOptions } from "@/lib/store-config";
 
@@ -96,20 +97,34 @@ export default function MembersScreen() {
 			(u) => u.email.toLowerCase() === newMemberEmail.toLowerCase(),
 		);
 
-		if (!targetUser) {
-			Alert.alert("Error", "User not found. They must sign up first.");
-			return;
-		}
-
-		await store.commit(
-			events.memberAdded({
+		if (targetUser) {
+			// User already has an account — add them directly via LiveStore
+			await store.commit(
+				events.memberAdded({
+					organizationId,
+					userId: targetUser.id,
+					role: newMemberRole.toLowerCase(),
+					addedBy: userId,
+				}),
+			);
+			console.log("[MEMBERS] Member added:", targetUser.id);
+		} else {
+			// User doesn't have an account yet — send an invitation email
+			const result = await authClient.organization.inviteMember({
+				email: newMemberEmail.trim().toLowerCase(),
+				role: newMemberRole.toLowerCase() as "admin" | "member",
 				organizationId,
-				userId: targetUser.id,
-				role: newMemberRole.toLowerCase(),
-				addedBy: userId,
-			}),
-		);
-		console.log("[MEMBERS] Member added:", targetUser.id);
+			});
+			if (result.error) {
+				Alert.alert("Invitation Failed", result.error.message ?? "Could not send invitation");
+				return;
+			}
+			console.log("[MEMBERS] Invitation sent to:", newMemberEmail);
+			Alert.alert(
+				"Invitation Sent",
+				`An invitation email has been sent to ${newMemberEmail}. They'll be added when they accept.`,
+			);
+		}
 
 		setNewMemberEmail("");
 		setNewMemberRole("Member");
@@ -329,13 +344,16 @@ export default function MembersScreen() {
 						</View>
 
 						<View className="mt-auto gap-3">
+							<Text className="text-muted-foreground text-center text-xs">
+								If they don't have a SiteLink account, an invitation email will be sent.
+							</Text>
 							<Button onPress={handleAddMember} className="h-12">
 								<Icon
-									as={UserPlus}
+									as={newMemberEmail && !allUsers?.find((u: any) => u.email?.toLowerCase() === newMemberEmail.toLowerCase()) ? Mail : UserPlus}
 									className="text-primary-foreground mr-2 size-5"
 								/>
 								<Text className="text-primary-foreground text-base font-semibold">
-									Add Member
+									Add / Invite Member
 								</Text>
 							</Button>
 							<Button
