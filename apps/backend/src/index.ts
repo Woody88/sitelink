@@ -312,13 +312,13 @@ export default {
         // PMTiles and images are immutable once generated — cache aggressively on device.
         // Share-authenticated requests use public cache (share links are public URLs).
         // Session-authenticated requests use private cache to prevent cross-user leakage.
-        // stale-while-revalidate lets the WebView serve stale tiles instantly while
-        // revalidating in the background when the 24h max-age expires.
+        // The `immutable` directive tells WebViews never to revalidate until max-age expires,
+        // eliminating conditional GET round-trips for tiles/images that never change.
         const cacheVisibility = isShareAuth ? "public" : "private"
         headers.set(
           "Cache-Control",
           isImmutable
-            ? `${cacheVisibility}, max-age=86400, stale-while-revalidate=604800`
+            ? `${cacheVisibility}, max-age=31536000, immutable`
             : `${cacheVisibility}, max-age=300`,
         )
 
