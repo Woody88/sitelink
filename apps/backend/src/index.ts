@@ -335,6 +335,112 @@ export default {
       }
     }
 
+    // ============================================
+    // AI FEATURES
+    // ============================================
+
+    // Daily Summary Generation
+    // POST /api/projects/:id/summary
+    // Body: { photos: [{time, location, isIssue, voiceNote}], projectName, date }
+    const summaryMatch = url.pathname.match(/^\/api\/projects\/([^/]+)\/summary$/)
+    if (summaryMatch && request.method === "POST") {
+      try {
+        const authHeader = request.headers.get("authorization")
+        const authToken = authHeader?.replace("Bearer ", "") || url.searchParams.get("st")
+
+        if (!authToken) {
+          return Response.json({ error: "Authentication required" }, { status: 401 })
+        }
+
+        const sessionResult = await env.DB.prepare(
+          "SELECT s.user_id, u.name FROM session s JOIN user u ON s.user_id = u.id WHERE s.token = ? AND s.expires_at > ?",
+        )
+          .bind(authToken, Date.now())
+          .first<{ user_id: string; name: string }>()
+
+        if (!sessionResult) {
+          return Response.json({ error: "Invalid or expired session" }, { status: 401 })
+        }
+
+        if (!env.OPENROUTER_API_KEY) {
+          return Response.json({ error: "AI features not configured" }, { status: 503 })
+        }
+
+        const body = await request.json() as {
+          projectName: string
+          date: string
+          address?: string
+          photos: Array<{
+            time: string
+            location: string | null
+            isIssue: boolean
+            voiceNote?: string | null
+          }>
+        }
+
+        const { projectName, date, address, photos } = body
+
+        const photoLines = photos.length > 0
+          ? photos.map(p => [
+            `- Time: ${p.time}`,
+            `  Location: ${p.location ?? "General"}`,
+            `  Issue: ${p.isIssue ? "Yes" : "No"}`,
+            p.voiceNote ? `  Voice note: "${p.voiceNote}"` : null,
+          ].filter(Boolean).join("\n")).join("\n")
+          : "No photos captured today."
+
+        const prompt = `Generate a professional Daily Construction Report from the following data.
+
+Project: ${projectName}
+${address ? `Address: ${address}` : ""}
+Date: ${date}
+Report By: ${sessionResult.name}
+
+Photos captured today:
+${photoLines}
+
+Format the report with these sections:
+1. WORK PERFORMED - summarize by location, mention photo counts
+2. ISSUES / DELAYS - list flagged issues with any voice note quotes; omit section if none
+3. MATERIALS RECEIVED - only include if mentioned in voice notes; omit section if none
+
+Keep it professional, concise, and use construction terminology. Do not include a title header — start directly with WORK PERFORMED.`
+
+        const model = env.OPENROUTER_MODEL || "google/gemini-2.0-flash-001"
+        const llmResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${env.OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://sitelink.app",
+            "X-Title": "SiteLink",
+          },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: "user", content: prompt }],
+            max_tokens: 600,
+            temperature: 0.3,
+          }),
+        })
+
+        if (!llmResponse.ok) {
+          const err = await llmResponse.text()
+          console.error("[Summary] OpenRouter error:", err)
+          return Response.json({ error: "AI service error" }, { status: 502 })
+        }
+
+        const llmData = await llmResponse.json() as {
+          choices: Array<{ message: { content: string } }>
+        }
+        const summaryText = llmData.choices?.[0]?.message?.content?.trim() ?? ""
+
+        return Response.json({ summary: summaryText })
+      } catch (error) {
+        console.error("[Summary] Error:", error)
+        return Response.json({ error: "Failed to generate summary" }, { status: 500 })
+      }
+    }
+
     // Handle CORS preflight for viewer
     if (request.method === "OPTIONS") {
       return new Response(null, {

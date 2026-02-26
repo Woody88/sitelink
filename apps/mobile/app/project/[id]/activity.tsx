@@ -7,10 +7,11 @@ import { Icon } from "@/components/ui/icon";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
 import { useDailySummary } from "@/hooks/use-daily-summary";
+import type { SummaryPhoto } from "@/hooks/use-daily-summary";
 import { useMembers } from "@/hooks/use-members";
 import { usePhotosTimeline } from "@/hooks/use-photos-timeline";
 import { useSessionContext } from "@/lib/session-context";
-import { format, formatDistanceToNow, isToday, isYesterday } from "date-fns";
+import { format, isToday, isYesterday } from "date-fns";
 import type { PhotoWithMarker } from "@/hooks/use-photos-timeline";
 
 interface QuickActionButtonProps {
@@ -104,6 +105,26 @@ export default function ActivityScreen() {
 		return { photoCount, voiceNoteCount, issueCount };
 	}, [timelineSections]);
 
+	// Build photo list for daily summary generation
+	const todayPhotosForSummary = React.useMemo((): SummaryPhoto[] => {
+		const todaySection = timelineSections.find(
+			(section) => section.title === "Today",
+		);
+		if (!todaySection) return [];
+		return todaySection.data.flatMap((group) =>
+			group.photos.map((photo) => ({
+				time: format(new Date(photo.capturedAt), "h:mm a"),
+				location: photo.markerLabel,
+				isIssue: photo.isIssue,
+				voiceNote: null,
+			})),
+		);
+	}, [timelineSections]);
+
+	const handleGenerate = React.useCallback(() => {
+		generateSummary(todayPhotosForSummary);
+	}, [generateSummary, todayPhotosForSummary]);
+
 	// Build activity feed from recent photos
 	const recentActivity = React.useMemo(() => {
 		const allPhotos = timelineSections.flatMap((section) =>
@@ -146,7 +167,7 @@ export default function ActivityScreen() {
 				<DailySummaryBanner
 					summary={summary}
 					isLoading={isSummaryLoading}
-					onGenerate={generateSummary}
+					onGenerate={handleGenerate}
 					stats={todayStats}
 				/>
 
