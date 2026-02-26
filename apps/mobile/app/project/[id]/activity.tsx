@@ -116,7 +116,7 @@ export default function ActivityScreen() {
 				time: format(new Date(photo.capturedAt), "h:mm a"),
 				location: photo.markerLabel,
 				isIssue: photo.isIssue,
-				voiceNote: null,
+				voiceNote: photo.voiceNoteTranscription,
 			})),
 		);
 	}, [timelineSections]);
