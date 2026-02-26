@@ -23,6 +23,7 @@ import {
 import { type Plan, PlanSelector } from "@/components/plans/plan-selector";
 import { LegendDetailScreen } from "@/components/plans/legend-detail-screen";
 import { NotesDetailScreen } from "@/components/plans/notes-detail-screen";
+import { PlanInfoView } from "@/components/plans/plan-info-view";
 import { PlanSearchResults } from "@/components/plans/plan-search-results";
 import { ScheduleDetailScreen } from "@/components/plans/schedule-detail-screen";
 import { PlanViewer } from "@/components/plans/viewer";
@@ -38,7 +39,6 @@ import { Text } from "@/components/ui/text";
 import {
 	type LayoutRegion,
 	type ScheduleEntry,
-	usePlanInfo,
 } from "@/hooks/use-plan-info";
 import { useCalloutReview } from "@/hooks/use-callout-review";
 import { usePendingUploads } from "@/hooks/use-pending-uploads";
@@ -47,114 +47,10 @@ import { type Sheet, useSheets } from "@/hooks/use-sheets";
 import { cn } from "@/lib/utils";
 import { PendingUploadsList } from "@/components/plans/pending-uploads-list";
 
-// Plan Info view: full list of schedules, notes, and legends
-function PlanInfoView({
-	planInfo,
-	onSchedulePress,
-	onNotesPress,
-	onLegendPress,
-}: {
-	planInfo: ReturnType<typeof usePlanInfo>;
-	onSchedulePress: (region: LayoutRegion, entries: ScheduleEntry[], sheetNumber: string) => void;
-	onNotesPress: (region: LayoutRegion, sheetNumber: string) => void;
-	onLegendPress: (region: LayoutRegion, sheetNumber: string) => void;
-}) {
-	const schedules = planInfo.schedules;
-	const notes = planInfo.notes;
-	const legends = planInfo.legends;
-	const total = schedules.length + notes.length + legends.length;
-
-	if (total === 0) {
-		return (
-			<View className="flex-1 items-center justify-center py-20">
-				<Icon as={FileText} className="text-muted-foreground mb-4 size-16" />
-				<Text className="text-foreground mb-2 text-lg font-semibold">
-					No Plan Intelligence Yet
-				</Text>
-				<Text className="text-muted-foreground px-8 text-center text-sm">
-					Schedules, notes, and legends will appear here after plans are processed
-				</Text>
-			</View>
-		);
-	}
-
-	const renderItem = (
-		region: LayoutRegion & { _type: "schedule" | "notes" | "legend" },
-	) => {
-		const sheetNumber = planInfo.sheetNumberMap.get(region.sheetId) ?? "—";
-		const handlePress = () => {
-			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-			if (region._type === "schedule") {
-				const entries = planInfo.scheduleEntriesByRegion.get(region.id);
-				if (entries) onSchedulePress(region, entries, sheetNumber);
-			} else if (region._type === "notes") {
-				onNotesPress(region, sheetNumber);
-			} else {
-				onLegendPress(region, sheetNumber);
-			}
-		};
-
-		return (
-			<Pressable
-				key={region.id}
-				className="active:bg-muted/20 flex-row items-center px-4 py-3.5"
-				onPress={handlePress}
-			>
-				<View className="flex-1">
-					<Text className="text-foreground text-base font-medium">
-						{region.regionTitle ?? region.regionClass}
-					</Text>
-				</View>
-				<Text className="text-muted-foreground mr-3 font-mono text-sm">
-					{sheetNumber}
-				</Text>
-				<Icon as={ChevronRight} className="text-muted-foreground size-4" />
-			</Pressable>
-		);
-	};
-
-	const allRegions = [
-		...schedules.map((r) => ({ ...r, _type: "schedule" as const })),
-		...notes.map((r) => ({ ...r, _type: "notes" as const })),
-		...legends.map((r) => ({ ...r, _type: "legend" as const })),
-	];
-
-	// Group by type with section headers
-	const sections: Array<{
-		title: string;
-		items: typeof allRegions;
-	}> = [
-		{ title: `SCHEDULES (${schedules.length})`, items: allRegions.filter((r) => r._type === "schedule") },
-		{ title: `NOTES (${notes.length})`, items: allRegions.filter((r) => r._type === "notes") },
-		{ title: `LEGENDS (${legends.length})`, items: allRegions.filter((r) => r._type === "legend") },
-	].filter((s) => s.items.length > 0);
-
-	return (
-		<ScrollView className="flex-1" contentContainerClassName="px-4 pb-8">
-			{sections.map((section) => (
-				<View key={section.title} className="mb-4">
-					<Text className="text-muted-foreground mb-2 px-1 text-xs font-semibold tracking-wider">
-						{section.title}
-					</Text>
-					<View className="bg-card border-border/50 overflow-hidden rounded-2xl border">
-						{section.items.map((region, idx) => (
-							<React.Fragment key={region.id}>
-								{idx > 0 && <View className="bg-border/30 mx-4 h-px" />}
-								{renderItem(region)}
-							</React.Fragment>
-						))}
-					</View>
-				</View>
-			))}
-		</ScrollView>
-	);
-}
-
 export default function PlansScreen() {
 	const router = useRouter();
 	const { id: projectId } = useLocalSearchParams<{ id: string }>();
 	const folders = useSheets(projectId!);
-	const planInfo = usePlanInfo(projectId!);
 	const { pendingCount } = useCalloutReview(projectId!);
 	const {
 		pendingUploads,
@@ -240,6 +136,20 @@ export default function PlansScreen() {
 			}
 		},
 		[folders],
+	);
+
+	const handleRegionPress = React.useCallback(
+		(region: LayoutRegion, entries: ScheduleEntry[] | undefined, sheetNumber: string) => {
+			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+			if (region.regionClass === "schedule" && entries) {
+				setScheduleDetail({ region, entries, sheetNumber });
+			} else if (region.regionClass === "notes") {
+				setNotesDetail({ region, sheetNumber });
+			} else if (region.regionClass === "legend") {
+				setLegendDetail({ region, sheetNumber });
+			}
+		},
+		[],
 	);
 
 	const sheetToplan = (sheet: Sheet): Plan => ({
@@ -382,18 +292,7 @@ export default function PlansScreen() {
 
 			{/* Content area */}
 			{plansTab === "plan-info" ? (
-				<PlanInfoView
-					planInfo={planInfo}
-					onSchedulePress={(region, entries, sheetNumber) =>
-						setScheduleDetail({ region, entries, sheetNumber })
-					}
-					onNotesPress={(region, sheetNumber) =>
-						setNotesDetail({ region, sheetNumber })
-					}
-					onLegendPress={(region, sheetNumber) =>
-						setLegendDetail({ region, sheetNumber })
-					}
-				/>
+				<PlanInfoView onRegionPress={handleRegionPress} />
 			) : isSearchActive ? (
 				<PlanSearchResults
 					results={searchResults}
