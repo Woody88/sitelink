@@ -2,6 +2,11 @@ import * as Haptics from "expo-haptics";
 import { ChevronRight, Eye } from "lucide-react-native";
 import * as React from "react";
 import { LayoutAnimation, Pressable, View } from "react-native";
+import Animated, {
+	useAnimatedStyle,
+	useSharedValue,
+	withTiming,
+} from "react-native-reanimated";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Separator } from "@/components/ui/separator";
@@ -72,18 +77,28 @@ export function ScheduleRow({
 	const props = React.useMemo(() => parseProperties(entry.properties), [entry.properties]);
 	const summary = React.useMemo(() => getSummary(props), [props]);
 	const badge = React.useMemo(() => getConfidenceBadge(entry.confidence), [entry.confidence]);
+	const rotation = useSharedValue(controlledExpanded ? 90 : 0);
+
+	const chevronStyle = useAnimatedStyle(() => ({
+		transform: [{ rotate: `${rotation.value}deg` }],
+	}));
 
 	React.useEffect(() => {
 		if (controlledExpanded !== undefined) {
 			setExpanded(controlledExpanded);
+			rotation.value = withTiming(controlledExpanded ? 90 : 0, { duration: 200 });
 		}
-	}, [controlledExpanded]);
+	}, [controlledExpanded, rotation]);
 
 	const handlePress = React.useCallback(() => {
 		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 		LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-		setExpanded((prev) => !prev);
-	}, []);
+		setExpanded((prev) => {
+			const next = !prev;
+			rotation.value = withTiming(next ? 90 : 0, { duration: 200 });
+			return next;
+		});
+	}, [rotation]);
 
 	const handleViewOnSheet = React.useCallback(() => {
 		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -111,14 +126,9 @@ export function ScheduleRow({
 				>
 					{summary || "\u2014"}
 				</Text>
-				<View
-					className={cn(
-						"ml-2 transition-transform",
-						expanded && "rotate-90",
-					)}
-				>
+				<Animated.View className="ml-2" style={chevronStyle}>
 					<Icon as={ChevronRight} className="size-4 text-muted-foreground" />
-				</View>
+				</Animated.View>
 			</Pressable>
 
 			{expanded && (
