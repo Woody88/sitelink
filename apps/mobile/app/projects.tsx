@@ -34,6 +34,7 @@ import {
 import { Icon } from "@/components/ui/icon";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
+import { SyncStatus } from "@/components/SyncStatus";
 import { WorkspaceFAB } from "@/components/workspace/camera-fab";
 import { useProject } from "@/context/project-context";
 import { useProjects } from "@/hooks/use-projects";
@@ -218,7 +219,10 @@ function ProjectsContent({
 			<Stack.Screen
 				options={{
 					headerTitle: () => (
-						<Text className="text-foreground text-lg font-bold">Projects</Text>
+						<View className="items-center gap-0.5">
+							<Text className="text-foreground text-lg font-bold">Projects</Text>
+							<SyncStatus showText size="sm" checkInterval={15000} />
+						</View>
 					),
 					headerShown: true,
 					headerShadowVisible: false,
