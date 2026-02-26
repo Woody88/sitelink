@@ -6,7 +6,6 @@ import {
 	ChevronRight,
 	FileText,
 	Folder,
-	Layers,
 	LayoutGrid,
 	List,
 	Maximize2,
@@ -32,9 +31,9 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Text } from "@/components/ui/text";
 import {
 	type LayoutRegion,
@@ -47,6 +46,109 @@ import { usePlanSearch } from "@/hooks/use-plan-search";
 import { type Sheet, useSheets } from "@/hooks/use-sheets";
 import { cn } from "@/lib/utils";
 import { PendingUploadsList } from "@/components/plans/pending-uploads-list";
+
+// Plan Info view: full list of schedules, notes, and legends
+function PlanInfoView({
+	planInfo,
+	onSchedulePress,
+	onNotesPress,
+	onLegendPress,
+}: {
+	planInfo: ReturnType<typeof usePlanInfo>;
+	onSchedulePress: (region: LayoutRegion, entries: ScheduleEntry[], sheetNumber: string) => void;
+	onNotesPress: (region: LayoutRegion, sheetNumber: string) => void;
+	onLegendPress: (region: LayoutRegion, sheetNumber: string) => void;
+}) {
+	const schedules = planInfo.schedules;
+	const notes = planInfo.notes;
+	const legends = planInfo.legends;
+	const total = schedules.length + notes.length + legends.length;
+
+	if (total === 0) {
+		return (
+			<View className="flex-1 items-center justify-center py-20">
+				<Icon as={FileText} className="text-muted-foreground mb-4 size-16" />
+				<Text className="text-foreground mb-2 text-lg font-semibold">
+					No Plan Intelligence Yet
+				</Text>
+				<Text className="text-muted-foreground px-8 text-center text-sm">
+					Schedules, notes, and legends will appear here after plans are processed
+				</Text>
+			</View>
+		);
+	}
+
+	const renderItem = (
+		region: LayoutRegion & { _type: "schedule" | "notes" | "legend" },
+	) => {
+		const sheetNumber = planInfo.sheetNumberMap.get(region.sheetId) ?? "—";
+		const handlePress = () => {
+			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+			if (region._type === "schedule") {
+				const entries = planInfo.scheduleEntriesByRegion.get(region.id);
+				if (entries) onSchedulePress(region, entries, sheetNumber);
+			} else if (region._type === "notes") {
+				onNotesPress(region, sheetNumber);
+			} else {
+				onLegendPress(region, sheetNumber);
+			}
+		};
+
+		return (
+			<Pressable
+				key={region.id}
+				className="active:bg-muted/20 flex-row items-center px-4 py-3.5"
+				onPress={handlePress}
+			>
+				<View className="flex-1">
+					<Text className="text-foreground text-base font-medium">
+						{region.regionTitle ?? region.regionClass}
+					</Text>
+				</View>
+				<Text className="text-muted-foreground mr-3 font-mono text-sm">
+					{sheetNumber}
+				</Text>
+				<Icon as={ChevronRight} className="text-muted-foreground size-4" />
+			</Pressable>
+		);
+	};
+
+	const allRegions = [
+		...schedules.map((r) => ({ ...r, _type: "schedule" as const })),
+		...notes.map((r) => ({ ...r, _type: "notes" as const })),
+		...legends.map((r) => ({ ...r, _type: "legend" as const })),
+	];
+
+	// Group by type with section headers
+	const sections: Array<{
+		title: string;
+		items: typeof allRegions;
+	}> = [
+		{ title: `SCHEDULES (${schedules.length})`, items: allRegions.filter((r) => r._type === "schedule") },
+		{ title: `NOTES (${notes.length})`, items: allRegions.filter((r) => r._type === "notes") },
+		{ title: `LEGENDS (${legends.length})`, items: allRegions.filter((r) => r._type === "legend") },
+	].filter((s) => s.items.length > 0);
+
+	return (
+		<ScrollView className="flex-1" contentContainerClassName="px-4 pb-8">
+			{sections.map((section) => (
+				<View key={section.title} className="mb-4">
+					<Text className="text-muted-foreground mb-2 px-1 text-xs font-semibold tracking-wider">
+						{section.title}
+					</Text>
+					<View className="bg-card border-border/50 overflow-hidden rounded-2xl border">
+						{section.items.map((region, idx) => (
+							<React.Fragment key={region.id}>
+								{idx > 0 && <View className="bg-border/30 mx-4 h-px" />}
+								{renderItem(region)}
+							</React.Fragment>
+						))}
+					</View>
+				</View>
+			))}
+		</ScrollView>
+	);
+}
 
 export default function PlansScreen() {
 	const router = useRouter();
@@ -65,6 +167,7 @@ export default function PlansScreen() {
 	const searchResults = usePlanSearch(projectId!, searchQuery);
 	const isSearchActive = searchQuery.trim().length >= 2;
 	const [viewMode, setViewMode] = React.useState<"grid" | "list">("list");
+	const [plansTab, setPlansTab] = React.useState<"sheets" | "plan-info">("sheets");
 	const hasInitialized = React.useRef(false);
 	const [expandedFolders, setExpandedFolders] = React.useState<string[]>([]);
 	const [isSelectorVisible, setIsSelectorVisible] = React.useState(false);
@@ -80,7 +183,6 @@ export default function PlansScreen() {
 		region: LayoutRegion;
 		sheetNumber: string;
 	} | null>(null);
-	const [isPlanInfoExpanded, setIsPlanInfoExpanded] = React.useState(false);
 	const [legendDetail, setLegendDetail] = React.useState<{
 		region: LayoutRegion;
 		sheetNumber: string;
@@ -200,73 +302,99 @@ export default function PlansScreen() {
 				</View>
 			)}
 
-			{/* Search bar - always visible */}
-			<View className="px-4 py-4">
-				<View className="flex-row items-center gap-2">
-					<View className="relative flex-1">
-						<View className="absolute top-2.5 left-3 z-10">
-							<Icon as={Search} className="text-muted-foreground size-4" />
-						</View>
-						<Input
-							placeholder="Search plans"
-							value={searchQuery}
-							onChangeText={setSearchQuery}
-							className="bg-muted/40 h-10 rounded-xl border-transparent pl-10"
-						/>
-						<Pressable
-							className="active:bg-muted/20 absolute top-2.5 right-3 z-10 rounded p-0.5"
-							onPress={() => setIsSelectorVisible(true)}
-						>
-							<Icon as={Maximize2} className="text-muted-foreground size-4" />
-						</Pressable>
-					</View>
+			{/* Sheets / Plan Info tab toggle */}
+			<View className="px-4 pt-3 pb-2 gap-3">
+				<SegmentedControl
+					options={["Sheets", "Plan Info"]}
+					selectedIndex={plansTab === "sheets" ? 0 : 1}
+					onIndexChange={(i) => {
+						setPlansTab(i === 0 ? "sheets" : "plan-info");
+						if (i === 0) setSearchQuery("");
+					}}
+				/>
 
-					{!isSearchActive && (
-						<View className="bg-muted/20 flex-row rounded-xl p-1">
+				{/* Search bar — only visible on Sheets tab */}
+				{plansTab === "sheets" && (
+					<View className="flex-row items-center gap-2">
+						<View className="relative flex-1">
+							<View className="absolute top-2.5 left-3 z-10">
+								<Icon as={Search} className="text-muted-foreground size-4" />
+							</View>
+							<Input
+								placeholder="Search plans"
+								value={searchQuery}
+								onChangeText={setSearchQuery}
+								className="bg-muted/40 h-10 rounded-xl border-transparent pl-10"
+							/>
 							<Pressable
-								onPress={() => setViewMode("grid")}
-								className={cn(
-									"rounded-lg p-1.5",
-									viewMode === "grid"
-										? "bg-background shadow-sm"
-										: "bg-transparent",
-								)}
+								className="active:bg-muted/20 absolute top-2.5 right-3 z-10 rounded p-0.5"
+								onPress={() => setIsSelectorVisible(true)}
 							>
-								<Icon
-									as={LayoutGrid}
-									className={cn(
-										"size-4",
-										viewMode === "grid"
-											? "text-foreground"
-											: "text-muted-foreground",
-									)}
-								/>
-							</Pressable>
-							<Pressable
-								onPress={() => setViewMode("list")}
-								className={cn(
-									"rounded-lg p-1.5",
-									viewMode === "list"
-										? "bg-background shadow-sm"
-										: "bg-transparent",
-								)}
-							>
-								<Icon
-									as={List}
-									className={cn(
-										"size-4",
-										viewMode === "list"
-											? "text-foreground"
-											: "text-muted-foreground",
-									)}
-								/>
+								<Icon as={Maximize2} className="text-muted-foreground size-4" />
 							</Pressable>
 						</View>
-					)}
-				</View>
+
+						{!isSearchActive && (
+							<View className="bg-muted/20 flex-row rounded-xl p-1">
+								<Pressable
+									onPress={() => setViewMode("grid")}
+									className={cn(
+										"rounded-lg p-1.5",
+										viewMode === "grid"
+											? "bg-background shadow-sm"
+											: "bg-transparent",
+									)}
+								>
+									<Icon
+										as={LayoutGrid}
+										className={cn(
+											"size-4",
+											viewMode === "grid"
+												? "text-foreground"
+												: "text-muted-foreground",
+										)}
+									/>
+								</Pressable>
+								<Pressable
+									onPress={() => setViewMode("list")}
+									className={cn(
+										"rounded-lg p-1.5",
+										viewMode === "list"
+											? "bg-background shadow-sm"
+											: "bg-transparent",
+									)}
+								>
+									<Icon
+										as={List}
+										className={cn(
+											"size-4",
+											viewMode === "list"
+												? "text-foreground"
+												: "text-muted-foreground",
+										)}
+									/>
+								</Pressable>
+							</View>
+						)}
+					</View>
+				)}
 			</View>
 
-			{isSearchActive ? (
+			{/* Content area */}
+			{plansTab === "plan-info" ? (
+				<PlanInfoView
+					planInfo={planInfo}
+					onSchedulePress={(region, entries, sheetNumber) =>
+						setScheduleDetail({ region, entries, sheetNumber })
+					}
+					onNotesPress={(region, sheetNumber) =>
+						setNotesDetail({ region, sheetNumber })
+					}
+					onLegendPress={(region, sheetNumber) =>
+						setLegendDetail({ region, sheetNumber })
+					}
+				/>
+			) : isSearchActive ? (
 				<PlanSearchResults
 					results={searchResults}
 					query={searchQuery}
@@ -281,249 +409,154 @@ export default function PlansScreen() {
 					}}
 				/>
 			) : (
-			<ScrollView className="flex-1" contentContainerClassName="px-4 pb-8">
-				{/* Inline Plan Intelligence collapsible */}
-				{(() => {
-					const totalItems =
-						planInfo.schedules.length +
-						planInfo.notes.length +
-						planInfo.legends.length;
-					if (totalItems === 0) return null;
+				<ScrollView className="flex-1" contentContainerClassName="px-4 pb-8">
+					{isLoading && (
+						<View className="flex-1 items-center justify-center py-20">
+							<ActivityIndicator size="large" />
+						</View>
+					)}
 
-					const allRegions = [
-						...planInfo.schedules.map((r) => ({ ...r, _type: "schedule" as const })),
-						...planInfo.notes.map((r) => ({ ...r, _type: "notes" as const })),
-						...planInfo.legends.map((r) => ({ ...r, _type: "legend" as const })),
-					];
+					{!isLoading && folders.length === 0 && (
+						<View className="flex-1 items-center justify-center py-20">
+							<Icon
+								as={FileText}
+								className="text-muted-foreground mb-4 size-16"
+							/>
+							<Text className="text-foreground mb-2 text-lg font-semibold">
+								No Plans Yet
+							</Text>
+							<Text className="text-muted-foreground px-8 text-center text-sm">
+								Plans and sheets will appear here once they&apos;re uploaded to
+								this project
+							</Text>
+						</View>
+					)}
 
-					return (
-						<Collapsible
-							open={isPlanInfoExpanded}
-							onOpenChange={setIsPlanInfoExpanded}
-							className="mb-4"
-						>
-							<CollapsibleTrigger asChild>
-								<Pressable className="bg-muted/10 flex-row items-center justify-between rounded-xl px-4 py-3">
-									<View className="flex-row items-center gap-3">
-										<Icon
-											as={Layers}
-											className="text-muted-foreground size-5"
-										/>
-										<Text className="text-muted-foreground text-xs font-semibold tracking-wider">
-											PLAN INTELLIGENCE
-										</Text>
-										<Badge variant="secondary">
-											<Text className="text-secondary-foreground text-[10px] font-semibold">
-												{totalItems}
-											</Text>
-										</Badge>
-									</View>
-									<Icon
-										as={isPlanInfoExpanded ? ChevronDown : ChevronRight}
-										className="text-muted-foreground size-5"
-									/>
-								</Pressable>
-							</CollapsibleTrigger>
-							<CollapsibleContent>
-								<View className="bg-muted/10 mt-1 overflow-hidden rounded-xl">
-									{allRegions.map((region) => {
-										const sheetNumber =
-											planInfo.sheetNumberMap.get(region.sheetId) ?? "—";
-										return (
-											<Pressable
-												key={region.id}
-												className="active:bg-muted/20 flex-row items-center px-4 py-3"
-												onPress={() => {
-													Haptics.impactAsync(
-														Haptics.ImpactFeedbackStyle.Light,
-													);
-													if (region._type === "schedule") {
-														const entries =
-															planInfo.scheduleEntriesByRegion.get(
-																region.id,
-															);
-														if (entries) {
-															setScheduleDetail({
-																region,
-																entries,
-																sheetNumber,
-															});
-														}
-													} else if (region._type === "notes") {
-														setNotesDetail({ region, sheetNumber });
-													} else if (region._type === "legend") {
-														setLegendDetail({ region, sheetNumber });
-													}
-												}}
-											>
-												<View className="flex-1">
-													<Text className="text-foreground text-base font-medium">
-														{region.regionTitle ?? region.regionClass}
-													</Text>
-												</View>
-												<Text className="text-muted-foreground mr-2 text-sm">
-													{sheetNumber}
+					{!isLoading &&
+						filteredFolders.map((folder) => (
+							<Collapsible
+								key={folder.id}
+								open={expandedFolders.includes(folder.id)}
+								onOpenChange={() => toggleFolder(folder.id)}
+								className="mb-4"
+							>
+								<CollapsibleTrigger asChild>
+									<Pressable className="bg-muted/10 flex-row items-center justify-between rounded-xl px-4 py-3">
+										<View className="flex-1 flex-row items-center gap-3">
+											<Icon
+												as={Folder}
+												className="text-muted-foreground size-5"
+											/>
+											<View className="flex-1">
+												<Text
+													className="text-foreground text-base font-semibold"
+													numberOfLines={1}
+												>
+													{folder.name}
 												</Text>
-												<Icon
-													as={ChevronRight}
-													className="text-muted-foreground size-4"
-												/>
-											</Pressable>
-										);
-									})}
-								</View>
-							</CollapsibleContent>
-						</Collapsible>
-					);
-				})()}
-
-				{isLoading && (
-					<View className="flex-1 items-center justify-center py-20">
-						<ActivityIndicator size="large" />
-					</View>
-				)}
-
-				{!isLoading && folders.length === 0 && (
-					<View className="flex-1 items-center justify-center py-20">
-						<Icon
-							as={FileText}
-							className="text-muted-foreground mb-4 size-16"
-						/>
-						<Text className="text-foreground mb-2 text-lg font-semibold">
-							No Plans Yet
-						</Text>
-						<Text className="text-muted-foreground px-8 text-center text-sm">
-							Plans and sheets will appear here once they&apos;re uploaded to
-							this project
-						</Text>
-					</View>
-				)}
-
-				{!isLoading &&
-					filteredFolders.map((folder) => (
-						<Collapsible
-							key={folder.id}
-							open={expandedFolders.includes(folder.id)}
-							onOpenChange={() => toggleFolder(folder.id)}
-							className="mb-4"
-						>
-							<CollapsibleTrigger asChild>
-								<Pressable className="bg-muted/10 flex-row items-center justify-between rounded-xl px-4 py-3">
-									<View className="flex-1 flex-row items-center gap-3">
+												<Text className="text-muted-foreground text-xs">
+													{folder.sheets.length} plans
+												</Text>
+											</View>
+										</View>
 										<Icon
-											as={Folder}
+											as={
+												expandedFolders.includes(folder.id)
+													? ChevronDown
+													: ChevronRight
+											}
 											className="text-muted-foreground size-5"
 										/>
-										<View className="flex-1">
-											<Text
-												className="text-foreground text-base font-semibold"
-												numberOfLines={1}
-											>
-												{folder.name}
-											</Text>
-											<Text className="text-muted-foreground text-xs">
-												{folder.sheets.length} plans
-											</Text>
-										</View>
-									</View>
-									<Icon
-										as={
-											expandedFolders.includes(folder.id)
-												? ChevronDown
-												: ChevronRight
-										}
-										className="text-muted-foreground size-5"
-									/>
-								</Pressable>
-							</CollapsibleTrigger>
+									</Pressable>
+								</CollapsibleTrigger>
 
-							<CollapsibleContent>
-								<View className="pt-2">
-									{viewMode === "grid" ? (
-										<View className="flex-row flex-wrap gap-3">
-											{folder.sheets.map((sheet) => {
-												const plan = sheetToplan(sheet);
-												return (
-													<Pressable
-														key={sheet.id}
-														className="mb-4 w-[48%] active:opacity-80"
-														onPress={() => handleOpenPlan(plan, sheet)}
-													>
-														<View className="bg-muted/20 border-border/50 aspect-[3/2] overflow-hidden rounded-xl border">
-															{sheet.imagePath ? (
-																<Image
-																	source={{ uri: sheet.imagePath }}
-																	className="h-full w-full"
-																	resizeMode="cover"
-																/>
-															) : (
-																<View className="flex-1 items-center justify-center">
-																	<Icon
-																		as={FileText}
-																		className="text-muted-foreground size-12"
+								<CollapsibleContent>
+									<View className="pt-2">
+										{viewMode === "grid" ? (
+											<View className="flex-row flex-wrap gap-3">
+												{folder.sheets.map((sheet) => {
+													const plan = sheetToplan(sheet);
+													return (
+														<Pressable
+															key={sheet.id}
+															className="mb-4 w-[48%] active:opacity-80"
+															onPress={() => handleOpenPlan(plan, sheet)}
+														>
+															<View className="bg-muted/20 border-border/50 aspect-[3/2] overflow-hidden rounded-xl border">
+																{sheet.imagePath ? (
+																	<Image
+																		source={{ uri: sheet.imagePath }}
+																		className="h-full w-full"
+																		resizeMode="cover"
 																	/>
-																</View>
-															)}
-														</View>
-														<View className="mt-2 items-center">
-															<Text
-																className="text-foreground text-center text-sm font-bold"
-																numberOfLines={1}
-															>
-																{sheet.number}
-															</Text>
-															<Text
-																className="text-muted-foreground text-center text-[10px]"
-																numberOfLines={1}
-															>
-																{sheet.title}
-															</Text>
-														</View>
-													</Pressable>
-												);
-											})}
-										</View>
-									) : (
-										<View className="gap-1">
-											{folder.sheets.map((sheet) => {
-												const plan = sheetToplan(sheet);
-												return (
-													<Pressable
-														key={sheet.id}
-														className="active:bg-muted/10 flex-row items-center gap-4 rounded-lg px-2 py-3"
-														onPress={() => handleOpenPlan(plan, sheet)}
-													>
-														<View className="bg-muted/20 size-10 items-center justify-center rounded-lg">
-															<Icon
-																as={FileText}
-																className="text-muted-foreground size-5"
-															/>
-														</View>
-														<View className="flex-1">
-															<Text className="text-foreground text-base font-bold">
-																{sheet.number}
-															</Text>
-															<Text className="text-muted-foreground text-sm">
-																{sheet.title}
-															</Text>
-														</View>
-													</Pressable>
-												);
-											})}
-										</View>
-									)}
-									{folder.sheets.length === 0 && (
-										<View className="items-center justify-center py-8">
-											<Text className="text-muted-foreground text-sm italic">
-												No plans in this folder
-											</Text>
-										</View>
-									)}
-								</View>
-							</CollapsibleContent>
-						</Collapsible>
-					))}
-			</ScrollView>
+																) : (
+																	<View className="flex-1 items-center justify-center">
+																		<Icon
+																			as={FileText}
+																			className="text-muted-foreground size-12"
+																		/>
+																	</View>
+																)}
+															</View>
+															<View className="mt-2 items-center">
+																<Text
+																	className="text-foreground text-center text-sm font-bold font-mono"
+																	numberOfLines={1}
+																>
+																	{sheet.number}
+																</Text>
+																<Text
+																	className="text-muted-foreground text-center text-[10px]"
+																	numberOfLines={1}
+																>
+																	{sheet.title}
+																</Text>
+															</View>
+														</Pressable>
+													);
+												})}
+											</View>
+										) : (
+											<View className="gap-1">
+												{folder.sheets.map((sheet) => {
+													const plan = sheetToplan(sheet);
+													return (
+														<Pressable
+															key={sheet.id}
+															className="active:bg-muted/10 flex-row items-center gap-4 rounded-lg px-2 py-3.5"
+															onPress={() => handleOpenPlan(plan, sheet)}
+														>
+															<View className="bg-muted/20 size-11 items-center justify-center rounded-lg">
+																<Icon
+																	as={FileText}
+																	className="text-muted-foreground size-5"
+																/>
+															</View>
+															<View className="flex-1">
+																<Text className="text-foreground font-mono text-base font-bold">
+																	{sheet.number}
+																</Text>
+																<Text className="text-muted-foreground text-sm">
+																	{sheet.title}
+																</Text>
+															</View>
+														</Pressable>
+													);
+												})}
+											</View>
+										)}
+										{folder.sheets.length === 0 && (
+											<View className="items-center justify-center py-8">
+												<Text className="text-muted-foreground text-sm italic">
+													No plans in this folder
+												</Text>
+											</View>
+										)}
+									</View>
+								</CollapsibleContent>
+							</Collapsible>
+						))}
+				</ScrollView>
 			)}
 
 			{/* Plan Selector Modal */}
