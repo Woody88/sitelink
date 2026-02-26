@@ -1,6 +1,7 @@
 import { Stack } from "expo-router";
 import * as Updates from "expo-updates";
-import { Camera, Database } from "lucide-react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import { Camera, Database, LogOut } from "lucide-react-native";
 import * as React from "react";
 import {
 	Alert,
@@ -15,14 +16,45 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { Text } from "@/components/ui/text";
+import { useAuth } from "@/hooks/useAuth";
+import {
+	isBiometricAvailable,
+	isBiometricEnabled,
+	setBiometricEnabled,
+} from "@/lib/biometric";
 import { clearLiveStoreDatabase } from "@/lib/clear-database";
 
 const { DevSettings } = NativeModules;
 
 export default function ProfileScreen() {
 	const insets = useSafeAreaInsets();
+	const { signOut } = useAuth();
 	const [isClearing, setIsClearing] = React.useState(false);
+	const [biometricAvailable, setBiometricAvailable] = React.useState(false);
+	const [biometricEnabled, setBiometricEnabledState] = React.useState(false);
+
+	const biometricName = Platform.OS === "ios" ? "Face ID" : "Fingerprint";
+
+	const loadBiometricState = React.useCallback(async () => {
+		const available = await isBiometricAvailable();
+		const enabled = await isBiometricEnabled();
+		setBiometricAvailable(available);
+		setBiometricEnabledState(enabled);
+	}, []);
+
+	useFocusEffect(
+		React.useCallback(() => {
+			loadBiometricState();
+		}, [loadBiometricState]),
+	);
+
+	async function handleBiometricToggle(value: boolean) {
+		await setBiometricEnabled(value);
+		setBiometricEnabledState(value);
+	}
 
 	const handleClearDatabase = React.useCallback(async () => {
 		Alert.alert(
@@ -152,6 +184,46 @@ export default function ProfileScreen() {
 							<Text className="text-base font-semibold">Save Changes</Text>
 						</Button>
 					</View>
+				</View>
+
+				{/* Security Section */}
+				{biometricAvailable && (
+					<View className="border-border mt-10 border-t pt-8">
+						<Text className="text-foreground mb-4 text-lg font-bold">
+							Security
+						</Text>
+						<View className="gap-3">
+							<View className="flex-row items-center justify-between">
+								<Label nativeID="biometric-label">
+									<Text>{biometricName} Unlock</Text>
+								</Label>
+								<Switch
+									testID="biometric-toggle"
+									nativeID="biometric-toggle"
+									checked={biometricEnabled}
+									onCheckedChange={handleBiometricToggle}
+								/>
+							</View>
+							<Text className="text-muted-foreground text-sm">
+								Use {biometricName} to unlock SiteLink instead of your password
+							</Text>
+						</View>
+					</View>
+				)}
+
+				{/* Account Section */}
+				<View className="border-border mt-10 border-t pt-8 pb-4">
+					<Button
+						variant="destructive"
+						onPress={signOut}
+						testID="signout-button"
+						className="h-12 flex-row items-center gap-2 rounded-xl"
+					>
+						<Icon as={LogOut} className="text-destructive-foreground size-5" />
+						<Text className="text-destructive-foreground text-base font-semibold">
+							Sign Out
+						</Text>
+					</Button>
 				</View>
 
 				{/* Developer Section - Only show in development */}
