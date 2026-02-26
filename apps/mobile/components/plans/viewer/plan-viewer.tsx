@@ -148,14 +148,19 @@ export function PlanViewer({
 
 	// For now, always use backend proxy URL for WebView since WebViews can't fetch file:// URLs
 	// The local file download is for future offline support (when we implement a local HTTP server)
-	// Convert R2 URL to backend proxy URL for WebView access
+	// Convert R2 URL to backend proxy URL for WebView access, appending session token as ?st= param
+	// since WebView-based PMTiles library cannot set Authorization headers on range requests.
 	const BACKEND_URL = process.env.EXPO_PUBLIC_BETTER_AUTH_URL;
-	const pmtilesUrl = usePMTiles && remotePmtilesPath
-		? remotePmtilesPath.startsWith("https://r2.sitelink.dev/")
-			? `${BACKEND_URL}/api/r2/${remotePmtilesPath.slice("https://r2.sitelink.dev/".length)}`
-			: remotePmtilesPath.startsWith("/api/r2/")
-				? `${BACKEND_URL}${remotePmtilesPath}`
-				: remotePmtilesPath
+	const pmtilesUrl = usePMTiles && remotePmtilesPath && sessionToken
+		? (() => {
+			const baseUrl = remotePmtilesPath.startsWith("https://r2.sitelink.dev/")
+				? `${BACKEND_URL}/api/r2/${remotePmtilesPath.slice("https://r2.sitelink.dev/".length)}`
+				: remotePmtilesPath.startsWith("/api/r2/")
+					? `${BACKEND_URL}${remotePmtilesPath}`
+					: remotePmtilesPath
+			// Append session token for WebView authentication (PMTiles range requests can't use headers)
+			return baseUrl.includes("/api/r2/") ? `${baseUrl}?st=${sessionToken}` : baseUrl
+		})()
 		: null;
 
 	console.log(`[PlanViewer] PMTiles config:`, {

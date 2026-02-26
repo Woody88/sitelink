@@ -176,19 +176,60 @@ export default {
     // ============================================
 
     // Serve R2 files (for viewer to access PMTiles and images)
+    // Requires authentication: either Authorization: Bearer token or ?st= query param (for WebView)
     if (url.pathname.startsWith("/api/r2/") && request.method === "GET") {
       const r2Path = decodeURIComponent(url.pathname.replace("/api/r2/", ""))
       if (!r2Path) {
         return Response.json({ error: "Missing path" }, { status: 400 })
       }
 
+      // Authenticate: Bearer token from header, or ?st= from URL (for WebView/PMTiles use)
+      const authHeader = request.headers.get("authorization")
+      const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null
+      const queryToken = url.searchParams.get("st")
+      const authToken = bearerToken || queryToken
+
+      if (!authToken) {
+        return Response.json({ error: "Authentication required" }, { status: 401 })
+      }
+
+      const sessionResult = await env.DB.prepare(
+        "SELECT s.user_id FROM session s WHERE s.token = ? AND s.expires_at > ?",
+      )
+        .bind(authToken, Date.now())
+        .first<{ user_id: string }>()
+
+      if (!sessionResult) {
+        return Response.json({ error: "Invalid or expired session" }, { status: 401 })
+      }
+
+      // Verify the requested path is within an organization the user owns or is a member of
+      // R2 paths are organized as: organizations/{orgId}/...
+      const orgMatch = r2Path.match(/^organizations\/([^/]+)\//)
+      if (orgMatch) {
+        const orgId = orgMatch[1]!
+        const memberCheck = await env.DB.prepare(
+          "SELECT 1 FROM member WHERE organization_id = ? AND user_id = ? LIMIT 1",
+        )
+          .bind(orgId, sessionResult.user_id)
+          .first()
+
+        if (!memberCheck) {
+          return Response.json({ error: "Access denied" }, { status: 403 })
+        }
+      }
+
+      // Authenticated: serve the file without public edge caching
       const isImmutable = /\.(pmtiles|png|webp)$/i.test(r2Path)
 
-      // Check Cloudflare edge cache for immutable content
+      // Only cache authenticated responses in private cache (not shared edge cache)
       const cache = caches.default
       let cacheKey: Request | undefined
-      if (isImmutable) {
-        cacheKey = new Request(url.toString(), {
+      if (isImmutable && bearerToken) {
+        // Cache with auth token in key so different users don't share cached content
+        const cacheUrl = new URL(url.toString())
+        cacheUrl.searchParams.delete("st") // Normalize: don't include query token in cache key
+        cacheKey = new Request(cacheUrl.toString() + `#${sessionResult.user_id}`, {
           headers: { Range: request.headers.get("Range") || "" },
         })
         const cached = await cache.match(cacheKey)
@@ -223,9 +264,10 @@ export default {
         headers.set("Content-Type", object.httpMetadata?.contentType || "application/octet-stream")
         headers.set("Access-Control-Allow-Origin", "*")
         headers.set("Accept-Ranges", "bytes")
+        // Use private caching for authenticated content to prevent cross-user cache poisoning
         headers.set(
           "Cache-Control",
-          isImmutable ? "public, max-age=31536000, immutable" : "public, max-age=3600",
+          isImmutable ? "private, max-age=3600" : "private, max-age=300",
         )
 
         if (rangeStart !== undefined) {
@@ -292,7 +334,7 @@ export default {
         headers: {
           "Access-Control-Allow-Origin": "*",
           "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, Range",
+          "Access-Control-Allow-Headers": "Content-Type, Range, Authorization",
           "Access-Control-Expose-Headers": "Content-Range, Accept-Ranges, Content-Length",
         },
       })
