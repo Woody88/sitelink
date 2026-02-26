@@ -380,6 +380,54 @@ export default {
 
         const { projectName, date, address, photos } = body
 
+        // Fetch weather data if address is provided (uses free Open-Meteo + Nominatim)
+        let weatherDescription = ""
+        if (address) {
+          try {
+            // Geocode address using Nominatim (free, no API key)
+            const geoUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`
+            const geoRes = await fetch(geoUrl, {
+              headers: { "User-Agent": "SiteLink/1.0 construction-app" },
+            })
+            if (geoRes.ok) {
+              const geoData = await geoRes.json() as Array<{ lat: string; lon: string }>
+              if (geoData.length > 0) {
+                const { lat, lon } = geoData[0]
+                // Fetch current weather from Open-Meteo (free, no API key)
+                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,wind_speed_10m,precipitation&temperature_unit=celsius&wind_speed_unit=kmh&forecast_days=1`
+                const weatherRes = await fetch(weatherUrl)
+                if (weatherRes.ok) {
+                  const weatherData = await weatherRes.json() as {
+                    current: {
+                      temperature_2m: number
+                      weather_code: number
+                      wind_speed_10m: number
+                      precipitation: number
+                    }
+                  }
+                  const { temperature_2m, weather_code, wind_speed_10m, precipitation } = weatherData.current
+                  const getWeatherDesc = (code: number): string => {
+                    if (code === 0) return "Clear sky"
+                    if (code <= 3) return "Partly cloudy"
+                    if (code <= 9) return "Fog"
+                    if (code <= 29) return "Rain"
+                    if (code <= 49) return "Snow/Fog"
+                    if (code <= 69) return "Rain/Drizzle"
+                    if (code <= 79) return "Snow"
+                    if (code <= 84) return "Rain showers"
+                    if (code <= 99) return "Thunderstorm"
+                    return "Overcast"
+                  }
+                  const tempF = Math.round(temperature_2m * 9 / 5 + 32)
+                  weatherDescription = `${getWeatherDesc(weather_code)}, ${Math.round(temperature_2m)}°C (${tempF}°F), Wind ${Math.round(wind_speed_10m)} km/h${precipitation > 0 ? `, Precipitation ${precipitation}mm` : ""}`
+                }
+              }
+            }
+          } catch (weatherError) {
+            console.warn("[Summary] Weather fetch failed:", weatherError)
+          }
+        }
+
         const photoLines = photos.length > 0
           ? photos.map(p => [
             `- Time: ${p.time}`,
@@ -394,6 +442,7 @@ export default {
 Project: ${projectName}
 ${address ? `Address: ${address}` : ""}
 Date: ${date}
+${weatherDescription ? `Weather: ${weatherDescription}` : ""}
 Report By: ${sessionResult.name}
 
 Photos captured today:
