@@ -33,6 +33,8 @@ import PlansScreen from "./plans";
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const EDGE_HIT_SLOP = SCREEN_WIDTH * 0.2;
 const NAVIGATE_THRESHOLD = SCREEN_WIDTH * 0.4;
+const TAB_SWIPE_THRESHOLD = SCREEN_WIDTH * 0.3;
+const VIEWS: ActiveView[] = ["plans", "media", "activity"];
 
 type ActiveView = "plans" | "media" | "activity";
 
@@ -100,6 +102,31 @@ export default function ProjectWorkspaceLayout() {
 		opacity: overlayOpacity.value,
 	}));
 
+	// Tab swipe gesture: horizontal swipe to change tabs
+	const activeViewIndex = VIEWS.indexOf(activeView);
+
+	const changeTab = useCallback(
+		(direction: number) => {
+			const next = Math.max(0, Math.min(VIEWS.length - 1, activeViewIndex + direction));
+			if (next !== activeViewIndex) {
+				setActiveView(VIEWS[next]);
+			}
+		},
+		[activeViewIndex],
+	);
+
+	const tabSwipeGesture = Gesture.Pan()
+		.activeOffsetX([-10, 10])
+		.onEnd((e) => {
+			if (Math.abs(e.translationX) > TAB_SWIPE_THRESHOLD) {
+				const direction = e.translationX > 0 ? -1 : 1;
+				runOnJS(changeTab)(direction);
+			}
+		});
+
+	// Back gesture wins at left edge; tab swipe handles rest
+	const combinedGesture = Gesture.Exclusive(backGesture, tabSwipeGesture);
+
 	const handleMenu = useCallback(() => {
 		router.push(`/project/${params.id}/settings` as any);
 	}, [router, params.id]);
@@ -145,7 +172,7 @@ export default function ProjectWorkspaceLayout() {
 	return (
 		<>
 			<Stack.Screen options={{ headerShown: false }} />
-			<GestureDetector gesture={backGesture}>
+			<GestureDetector gesture={combinedGesture}>
 			<View className="bg-background flex-1">
 				{/* Back gesture overlay */}
 				<Animated.View
