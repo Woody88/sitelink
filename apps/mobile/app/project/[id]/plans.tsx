@@ -42,9 +42,11 @@ import {
 	usePlanInfo,
 } from "@/hooks/use-plan-info";
 import { useCalloutReview } from "@/hooks/use-callout-review";
+import { usePendingUploads } from "@/hooks/use-pending-uploads";
 import { usePlanSearch } from "@/hooks/use-plan-search";
 import { type Sheet, useSheets } from "@/hooks/use-sheets";
 import { cn } from "@/lib/utils";
+import { PendingUploadsList } from "@/components/plans/pending-uploads-list";
 
 export default function PlansScreen() {
 	const router = useRouter();
@@ -52,6 +54,13 @@ export default function PlansScreen() {
 	const folders = useSheets(projectId!);
 	const planInfo = usePlanInfo(projectId!);
 	const { pendingCount } = useCalloutReview(projectId!);
+	const {
+		pendingUploads,
+		retryUpload,
+		retryAll,
+		dismissUpload,
+		isRetrying,
+	} = usePendingUploads(projectId!);
 	const [searchQuery, setSearchQuery] = React.useState("");
 	const searchResults = usePlanSearch(projectId!, searchQuery);
 	const isSearchActive = searchQuery.trim().length >= 2;
@@ -176,6 +185,19 @@ export default function PlansScreen() {
 					</View>
 					<Icon as={ChevronRight} className="text-amber-600 size-4" />
 				</Pressable>
+			)}
+
+			{/* Pending uploads */}
+			{pendingUploads.length > 0 && (
+				<View className="px-4 pt-3">
+					<PendingUploadsList
+						uploads={pendingUploads}
+						onRetry={retryUpload}
+						onRetryAll={retryAll}
+						onDismiss={dismissUpload}
+						isRetrying={isRetrying}
+					/>
+				</View>
 			)}
 
 			{/* Search bar - always visible */}

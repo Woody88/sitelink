@@ -3,6 +3,7 @@ import * as DocumentPicker from "expo-document-picker";
 import { useCallback, useState } from "react";
 import { useSessionContext } from "@/lib/session-context";
 import { uploadPlanToBackend } from "@/services/plan-api";
+import { addPendingUpload } from "@/services/upload-queue";
 
 export interface UsePlanUploadOptions {
 	projectId: string;
@@ -29,32 +30,32 @@ export function usePlanUpload({
 			throw new Error("No session token available");
 		}
 
+		console.log("[UPLOAD] Opening document picker...");
+		const result = await DocumentPicker.getDocumentAsync({
+			type: ["application/pdf"],
+			copyToCacheDirectory: true,
+			multiple: false,
+		});
+
+		if (result.canceled) {
+			console.log("[UPLOAD] User canceled file selection");
+			return null;
+		}
+
+		const file = result.assets[0];
+		const planId = nanoid();
+		console.log("[UPLOAD] File selected:", {
+			fileName: file.name,
+			size: file.size,
+			planId,
+		});
+
+		setUploadProgress({
+			planId,
+			status: "uploading",
+		});
+
 		try {
-			console.log("[UPLOAD] Opening document picker...");
-			const result = await DocumentPicker.getDocumentAsync({
-				type: ["application/pdf"],
-				copyToCacheDirectory: true,
-				multiple: false,
-			});
-
-			if (result.canceled) {
-				console.log("[UPLOAD] User canceled file selection");
-				return null;
-			}
-
-			const file = result.assets[0];
-			const planId = nanoid();
-			console.log("[UPLOAD] File selected:", {
-				fileName: file.name,
-				size: file.size,
-				planId,
-			});
-
-			setUploadProgress({
-				planId,
-				status: "uploading",
-			});
-
 			console.log("[UPLOAD] Uploading plan to backend...");
 			const response = await uploadPlanToBackend({
 				fileUri: file.uri,
@@ -67,14 +68,8 @@ export function usePlanUpload({
 			console.log("[UPLOAD] Upload complete, backend will process:", response);
 
 			setUploadProgress((prev) =>
-				prev
-					? {
-							...prev,
-							status: "complete",
-						}
-					: null,
+				prev ? { ...prev, status: "complete" } : null,
 			);
-
 			setTimeout(() => {
 				setUploadProgress(null);
 			}, 2000);
@@ -83,8 +78,20 @@ export function usePlanUpload({
 		} catch (error) {
 			console.error("[UPLOAD] Error uploading plan:", error);
 			const err = error instanceof Error ? error : new Error(String(error));
+
+			// Queue for retry
+			await addPendingUpload({
+				id: planId,
+				fileUri: file.uri,
+				fileName: file.name,
+				fileSize: file.size,
+				projectId,
+				organizationId,
+				lastError: err.message,
+			});
+
 			setUploadProgress({
-				planId: "",
+				planId,
 				status: "error",
 				error: err,
 			});
