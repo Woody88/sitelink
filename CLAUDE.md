@@ -105,6 +105,25 @@ bun --hot ./index.ts
 
 For more information, read the Bun API docs in `node_modules/bun-types/docs/**.md`.
 
+## Environment Setup (Run at Session Start)
+
+The beads issue tracker requires a Dolt SQL server. Run this before using `bdh` commands:
+
+```bash
+export PATH="/home/node/.local/bin:$PATH"
+bash /home/node/start-dolt.sh
+```
+
+If the Dolt binary is missing, install it:
+```bash
+curl -L https://github.com/dolthub/dolt/releases/download/v1.82.6/dolt-linux-arm64.tar.gz -o /tmp/dolt.tar.gz
+mkdir -p /home/node/.local/bin && tar -xzf /tmp/dolt.tar.gz -C /tmp/
+cp /tmp/dolt-linux-arm64/bin/dolt /home/node/.local/bin/
+chmod +x /home/node/.local/bin/dolt
+dolt config --global --add user.email "orchestrator@sitelink.local"
+dolt config --global --add user.name "orchestrator"
+```
+
 <!-- BEADHUB:START -->
 ## BeadHub Coordination Rules
 
