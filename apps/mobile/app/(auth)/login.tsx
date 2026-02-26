@@ -2,17 +2,24 @@
 
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
-import { SyncStatus } from "@/components/SyncStatus";
+import {
+	KeyboardAvoidingView,
+	Platform,
+	Pressable,
+	ScrollView,
+	View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function LoginScreen() {
 	const router = useRouter();
+	const insets = useSafeAreaInsets();
 	const { signIn } = useAuth();
+	const [showEmailForm, setShowEmailForm] = useState(false);
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [error, setError] = useState<string | null>(null);
@@ -29,62 +36,52 @@ export default function LoginScreen() {
 
 		const result = await signIn(email, password);
 
-		if (result.success) {
-			// Don't redirect immediately - let _layout.tsx handle biometric check first
-			// The routing logic in _layout.tsx will redirect after biometric check completes
-		} else {
+		if (!result.success) {
 			setError(result.error || "Sign in failed");
 			setLoading(false);
 		}
 	}
 
-	return (
-		<KeyboardAvoidingView
-			behavior={Platform.OS === "ios" ? "padding" : "height"}
-			className="flex-1"
-		>
-			<ScrollView
-				contentContainerClassName="flex-1 justify-center p-6 gap-6"
-				keyboardShouldPersistTaps="handled"
+	if (showEmailForm) {
+		return (
+			<KeyboardAvoidingView
+				behavior={Platform.OS === "ios" ? "padding" : "height"}
+				className="bg-background flex-1"
 			>
-				<View className="mb-2 items-center">
-					<SyncStatus size="sm" showText={true} />
-				</View>
+				<ScrollView
+					contentContainerClassName="flex-1 justify-center px-6"
+					keyboardShouldPersistTaps="handled"
+					style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
+				>
+					<Pressable
+						onPress={() => setShowEmailForm(false)}
+						className="mb-8 self-start"
+					>
+						<Text className="text-muted-foreground text-sm">← Back</Text>
+					</Pressable>
 
-				<View className="gap-2">
-					<Text variant="h1" className="text-center">
-						Sign In
+					<Text className="text-foreground mb-1 text-2xl font-bold">
+						Sign in
 					</Text>
-					<Text variant="muted" className="text-center">
-						Enter your email and password to continue
+					<Text className="text-muted-foreground mb-8 text-sm">
+						Enter your email and password
 					</Text>
-				</View>
 
-				<View className="gap-4">
-					<View className="gap-2">
-						<Label nativeID="email-label">
-							<Text>Email</Text>
-						</Label>
+					<View className="gap-4">
 						<Input
 							testID="email-input"
-							nativeID="email-input"
 							placeholder="Email"
 							value={email}
 							onChangeText={setEmail}
 							keyboardType="email-address"
 							autoCapitalize="none"
 							autoComplete="email"
+							autoFocus
 							editable={!loading}
+							className="h-14 rounded-2xl px-4"
 						/>
-					</View>
-
-					<View className="gap-2">
-						<Label nativeID="password-label">
-							<Text>Password</Text>
-						</Label>
 						<Input
 							testID="password-input"
-							nativeID="password-input"
 							placeholder="Password"
 							value={password}
 							onChangeText={setPassword}
@@ -92,59 +89,126 @@ export default function LoginScreen() {
 							autoCapitalize="none"
 							autoComplete="password"
 							editable={!loading}
+							className="h-14 rounded-2xl px-4"
 						/>
+
+						{error && (
+							<Text className="text-destructive text-sm">{error}</Text>
+						)}
+
+						<Button
+							testID="signin-button"
+							onPress={handleSignIn}
+							disabled={loading}
+							className="mt-2 h-14 rounded-2xl"
+						>
+							<Text className="text-base font-semibold">
+								{loading ? "Signing in..." : "Sign In"}
+							</Text>
+						</Button>
 					</View>
 
-					{error && <Text className="text-destructive text-sm">{error}</Text>}
+					<View className="mt-8 flex-row justify-center gap-1">
+						<Text className="text-muted-foreground text-sm">
+							Don&apos;t have an account?
+						</Text>
+						<Pressable onPress={() => router.push("/(auth)/signup" as any)}>
+							<Text className="text-primary text-sm font-medium">Sign Up</Text>
+						</Pressable>
+					</View>
+				</ScrollView>
+			</KeyboardAvoidingView>
+		);
+	}
 
-					<Button
-						testID="signin-button"
-						onPress={handleSignIn}
-						disabled={loading}
-						className="mt-2"
-					>
-						<Text>Sign In</Text>
-					</Button>
+	return (
+		<View
+			className="bg-background flex-1"
+			style={{ paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 24) }}
+		>
+			<ScrollView
+				contentContainerClassName="flex-1 justify-between px-6"
+				showsVerticalScrollIndicator={false}
+			>
+				{/* Logo + Tagline */}
+				<View className="flex-1 items-center justify-center py-16">
+					{/* Logo mark — geometric accent dots using discipline colors */}
+					<View className="mb-6 flex-row items-center gap-1.5">
+						<View className="bg-primary size-6 rounded-md" />
+						<View className="bg-violet-500 size-6 rounded-md opacity-80" />
+						<View className="bg-amber-500 size-6 rounded-md opacity-60" />
+					</View>
+
+					{/* Wordmark */}
+					<Text className="text-foreground mb-3 text-4xl font-bold tracking-tight">
+						SiteLink
+					</Text>
+
+					{/* Tagline */}
+					<Text className="text-muted-foreground max-w-[260px] text-center text-base leading-relaxed">
+						The plan viewer that links itself
+					</Text>
 				</View>
 
-				<View className="flex-row justify-center gap-2">
-					<Text variant="muted">Don&apos;t have an account?</Text>
+				{/* Auth actions */}
+				<View className="gap-3 pb-4">
+					{/* Google OAuth */}
 					<Button
-						variant="link"
-						testID="signup-link"
-						onPress={() => router.push("/(auth)/signup" as any)}
-						disabled={loading}
-					>
-						<Text variant="link">Sign Up</Text>
-					</Button>
-				</View>
-
-				<View className="mt-4 gap-3">
-					<Button
-						variant="outline"
 						testID="oauth-google-button"
+						variant="outline"
 						disabled
-						className="opacity-50"
+						className="h-14 flex-row items-center justify-center gap-3 rounded-2xl opacity-50"
 					>
-						<Text>Continue with Google</Text>
-						<Text variant="muted" className="ml-2 text-xs">
-							(Coming Soon)
+						<Text className="text-base font-semibold">Continue with Google</Text>
+					</Button>
+
+					{/* Microsoft OAuth */}
+					<Button
+						testID="oauth-microsoft-button"
+						variant="outline"
+						disabled
+						className="h-14 flex-row items-center justify-center gap-3 rounded-2xl opacity-50"
+					>
+						<Text className="text-base font-semibold">
+							Continue with Microsoft
 						</Text>
 					</Button>
 
+					{/* Divider */}
+					<View className="flex-row items-center gap-3 py-1">
+						<View className="bg-border h-px flex-1" />
+						<Text className="text-muted-foreground text-xs">or</Text>
+						<View className="bg-border h-px flex-1" />
+					</View>
+
+					{/* Email sign in */}
 					<Button
-						variant="outline"
-						testID="oauth-microsoft-button"
-						disabled
-						className="opacity-50"
+						testID="email-signin-button"
+						variant="ghost"
+						onPress={() => setShowEmailForm(true)}
+						className="h-12 rounded-2xl"
 					>
-						<Text>Continue with Microsoft</Text>
-						<Text variant="muted" className="ml-2 text-xs">
-							(Coming Soon)
+						<Text className="text-muted-foreground text-sm font-medium">
+							Sign in with email
 						</Text>
 					</Button>
+
+					{/* Sign up link */}
+					<View className="flex-row items-center justify-center gap-1">
+						<Text className="text-muted-foreground text-sm">
+							New to SiteLink?
+						</Text>
+						<Pressable
+							testID="signup-link"
+							onPress={() => router.push("/(auth)/signup" as any)}
+						>
+							<Text className="text-primary text-sm font-semibold">
+								Create account
+							</Text>
+						</Pressable>
+					</View>
 				</View>
 			</ScrollView>
-		</KeyboardAvoidingView>
+		</View>
 	);
 }
