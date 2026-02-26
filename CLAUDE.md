@@ -1,5 +1,11 @@
 Use 'bd' for task tracking
 
+## Beads Session Close — OVERRIDE
+
+The `bd prime` hook says `bd sync --from-main` at session end. **Use `bd sync` instead** (no flags).
+`bd sync` does a full round-trip: export → commit to beads-sync → push to GitHub → pull back.
+`bd sync --from-main` only pulls — it does NOT push your new issues to GitHub.
+
 ## Product Documentation
 
 **SiteLink PRDs and product specs are in `docs/sitelink/`**
@@ -110,6 +116,44 @@ await store.commit(
 - Reading from external state/globals
 - API calls or I/O operations
 - Anything that returns different values for the same input
+
+## Demo Mode — IMPORTANT
+
+**Check `EXPO_PUBLIC_DEMO_MODE` before assuming backend connectivity.**
+
+The app supports an offline demo mode that seeds LiveStore with realistic construction data so the entire app works end-to-end without a backend connection. When `EXPO_PUBLIC_DEMO_MODE=true` in `.env`, the app:
+
+- Skips Better Auth login (injects a mock session)
+- Uses storeId `"demo-store"` instead of the real org ID
+- Disables WebSocket sync (no backend connection attempted)
+- Seeds a full demo project on first launch: 1 org, 1 project, 4 structural sheets, 14 callout markers, 8 layout regions, 40 schedule entries, 2 notes extractions, 2 legend crops
+
+### When is demo mode active?
+
+Check `.env` for `EXPO_PUBLIC_DEMO_MODE=true`. If set, **all data is local demo data** — do not attempt to debug sync, auth, or backend issues. The demo data resets by using "Clear Database & Restart" in Developer Tools.
+
+### Key files
+
+- `lib/demo-mode.ts` — Constants (`DEMO_ORG_ID`, `DEMO_PROJECT_ID`, etc.), `isDemoMode()`, `getDemoSessionContext()`, `seedDemoData(store)`
+- `app/_layout.tsx` — Overrides auth session when demo mode
+- `livestore/store.ts` — Uses "demo-store" storeId, disables sync, triggers seeding
+- `lib/image-utils.ts` — Serves bundled PNGs from `assets/demo/` for `DEMO_PLACEHOLDER_S<n>` URLs
+
+### Demo data identifiers
+
+All demo entity IDs use the `demo-` prefix: `demo-org-001`, `demo-project-001`, `demo-plan-001`, `demo-sheet-s1` through `demo-sheet-s4`, `demo-marker-*`, `demo-region-*`, `demo-se-*`.
+
+### Edge cases covered by demo data
+
+| Case | Where | What to look for |
+|------|-------|-----------------|
+| Empty schedule state | Sheet S4.0 (no regions) | "No schedules detected" |
+| 22 entries (scroll perf) | Slab schedule on S3.0 (SL1-SL22) | Scrollable list, no jank |
+| Low confidence (0.65-0.75) | SL18-SL22 | Orange/yellow badges |
+| Missing properties | SL20 (only Thickness + Concrete) | Fewer rows rendered |
+| Cross-sheet markers | S1 markers → S2, S3, S4 | "Navigate to Sheet" works |
+
+Full spec: `bd show sitelink-uklo` and `bd comments list sitelink-uklo`
 
 ## Code Style
 
