@@ -4,6 +4,7 @@ import { StoreRegistry, storeOptions } from "@livestore/livestore";
 import { makeWsSync } from "@livestore/sync-cf/client";
 import { schema } from "@sitelink/domain";
 import { unstable_batchedUpdates as batchUpdates } from "react-native";
+import { isDemoMode } from "./demo-mode";
 
 const storeId = process.env.EXPO_PUBLIC_LIVESTORE_STORE_ID;
 const syncUrl = process.env.EXPO_PUBLIC_LIVESTORE_SYNC_URL;
@@ -36,22 +37,28 @@ export function getStoreRegistry(): StoreRegistry {
  * When user authenticates, pass the new token and sync starts automatically
  */
 export function createAppStoreOptions(sessionToken?: string | null) {
-	if (!storeId) {
+	const isDemo = isDemoMode();
+	const effectiveStoreId = isDemo ? "demo-store" : storeId;
+
+	if (!effectiveStoreId) {
 		throw new Error("EXPO_PUBLIC_LIVESTORE_STORE_ID is not configured");
 	}
 
 	return storeOptions({
 		schema,
-		storeId,
+		storeId: effectiveStoreId,
 		adapter: makePersistedAdapter({
 			sync: {
 				backend:
-					syncUrl && sessionToken ? makeWsSync({ url: syncUrl }) : undefined,
+					!isDemo && syncUrl && sessionToken
+						? makeWsSync({ url: syncUrl })
+						: undefined,
 			},
 		}),
 		// Pass session token as sync payload for backend authentication
-		// If no token, works in local-only mode
-		syncPayload: sessionToken ? { authToken: sessionToken } : undefined,
+		// If no token or demo mode, works in local-only mode
+		syncPayload:
+			!isDemo && sessionToken ? { authToken: sessionToken } : undefined,
 	});
 }
 

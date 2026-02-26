@@ -222,12 +222,17 @@ export default function PMTilesViewer({
 										const canvas = document.createElement("canvas");
 										canvas.width = tileSize;
 										canvas.height = tileSize;
+										const ctx = canvas.getContext("2d");
+										if (ctx) {
+											ctx.fillStyle = "#ffffff";
+											ctx.fillRect(0, 0, tileSize, tileSize);
+										}
 										const img = new Image();
 										img.onload = () => {
 											job.image = img;
 											if (job.callback) job.callback(img, null, src);
 										};
-										img.src = canvas.toDataURL();
+										img.src = canvas.toDataURL("image/png");
 									}
 								})
 								.catch((err) => {

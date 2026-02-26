@@ -434,10 +434,12 @@ def detect_callouts_yolo(
 
         markers.append({
             "id": f"marker-{sheet_id}-{i}",
-            "label": None,
+            "label": "",
             "targetSheetRef": None,
             "x": center_x,
             "y": center_y,
+            "width": bw / w,
+            "height": bh / h,
             "confidence": det['confidence'],
             "detectionClass": det['class'],
             "needsReview": True

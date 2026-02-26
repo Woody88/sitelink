@@ -27,13 +27,14 @@ interface FileSyncState {
 const downloadingSheets = new Set<string>();
 
 function convertR2UrlToBackendProxy(r2Url: string): string {
-	// Convert https://r2.sitelink.dev/path/to/file to ${BACKEND_URL}/api/r2/path/to/file
 	const r2Host = "https://r2.sitelink.dev/";
 	if (r2Url.startsWith(r2Host)) {
 		const path = r2Url.slice(r2Host.length);
 		return `${BACKEND_URL}/api/r2/${path}`;
 	}
-	// If it's already a backend URL or different format, return as-is
+	if (r2Url.startsWith("/api/r2/")) {
+		return `${BACKEND_URL}${r2Url}`;
+	}
 	return r2Url;
 }
 

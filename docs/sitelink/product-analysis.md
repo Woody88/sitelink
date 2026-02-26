@@ -128,6 +128,55 @@
 | **AI Summaries**       | ✅                  | ❌          | ⚠️ Basic       | ❌       |
 | **Price (5 users)**    | $79/mo flat         | $195-270/mo | $675/mo        | $375+/mo |
 
+### Competitor Strengths (Honest Assessment)
+
+Understanding where competitors genuinely excel prevents blind spots and informs realistic positioning.
+
+**Fieldwire**
+| Strength | Implication for SiteLink |
+|----------|-------------------------|
+| Generous free tier (5 users, 3 projects, 100 sheets) acts as market entry wedge | SiteLink's $29 Starter tier must justify cost vs free Fieldwire |
+| Large installed base and brand recognition among field workers | SiteLink cannot win on awareness; must win on word-of-mouth from dramatic time savings |
+| Mature task management deeply integrated with plan viewing | Some users will miss task management despite our "by design" choice |
+| Strong mobile app with years of field-tested UX refinements | SiteLink's v1 mobile experience must be polished enough to compete |
+
+**Autodesk Build (PlanGrid)**
+| Strength | Implication for SiteLink |
+|----------|-------------------------|
+| Ecosystem advantage — architects use AutoCAD/Revit, creating a pipeline to Autodesk Build | SiteLink must work with any PDF, regardless of source tool |
+| BIM capabilities position them well as construction moves toward 3D digital twins | SiteLink's 2D-only approach is correct for current market but may limit future expansion |
+| Enterprise credibility and sales force for top-down adoption | SiteLink's bottom-up, field-worker adoption strategy avoids direct competition here |
+
+**Procore**
+| Strength | Implication for SiteLink |
+|----------|-------------------------|
+| Network effects — GCs often mandate Procore usage, creating captive user base | SiteLink targets companies too small for Procore mandates |
+| Deep integration ecosystem (accounting, ERP, scheduling tools) | SiteLink's "do 5 things well" approach avoids integration complexity |
+| Comprehensive project lifecycle coverage from preconstruction to closeout | SiteLink serves a narrower but underserved segment |
+
+### Competitive Positioning Map
+
+```
+                    HIGH Field-Readiness
+                           │
+                           │
+            SiteLink ●     │
+            ($79 flat,     │     ● Fieldwire
+             5 features)   │     ($195-270,
+                           │      moderate features)
+    ───────────────────────┼───────────────────────── HIGH Complexity
+                           │
+            Paper/PDF ●    │          ● Autodesk Build
+            ($0,           │          ($675+, many features)
+             no features)  │
+                           │               ● Procore
+                           │               ($375+, full platform)
+                           │
+                    LOW Field-Readiness
+```
+
+**White Space:** SiteLink occupies the "High Field-Readiness / Low Complexity" quadrant. No competitor serves field workers who want simplicity + offline + AI at a small-team price point. Paper/PDF viewers are free but offer no intelligence. Fieldwire is the closest competitor but trades simplicity for features.
+
 ---
 
 ## Phase 3: Data Model (LiveStore Events)
@@ -313,3 +362,20 @@ export const tables = {
 4. **Price** - Significantly cheaper
 5. **Simplicity** - "It just works" without training
 6. **Audit trail** - Event sourcing shows exactly what happened when
+
+---
+
+## Sources & Confidence Levels
+
+| Information | Source | Confidence |
+|---|---|---|
+| SiteLink detection accuracy (91.5% recall, 96.48% mAP50) | Internal testing on known datasets | High |
+| Fieldwire pricing | Public pricing page (fieldwire.com) | High |
+| Procore pricing ($375+/5 users) | Third-party estimate (ITQlick) | Medium |
+| Autodesk Build pricing ($675+) | Third-party estimate (SelectHub) | Medium |
+| Competitor auto-linking accuracy | Not publicly documented | Low |
+| Fieldwire user complaints | G2/Capterra reviews (self-selected sample) | Medium |
+| Market size ($6.5-7.3B rebar, 11.2% software CAGR) | Mordor Intelligence, Grand View Research | Medium |
+| Time savings estimates (15-20 hrs/week) | Internal estimates from 24 interviews, not field-validated | Low |
+| Construction rework costs (52%, $31.3B) | Revizto industry report | Medium |
+| Small contractor software adoption (70% no roadmap) | IoT Marketing report | Medium |

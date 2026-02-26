@@ -174,14 +174,31 @@ This measures actual field adoption, not just purchases. Target: 80%+ of team me
 
 ### Supporting Metrics
 
-| Metric | Target | Why It Matters |
-|--------|--------|----------------|
-| Time to First Sheet View | < 2 minutes | Validates "60-second setup" claim |
-| Callout Taps per Session | > 5 | Proves navigation value |
-| Photos per Week per User | > 10 | Validates photo documentation value |
-| Voice Notes with Transcription | > 3/week | AI feature adoption |
-| 30-Day Retention | > 70% | Product-market fit indicator |
-| NPS (structural contractors) | > 50 | Word-of-mouth growth driver |
+| Metric | Industry Baseline | Target | Timeline |
+|--------|-------------------|--------|----------|
+| Time to First Sheet View | ~15 min (Fieldwire setup) | < 2 minutes | Launch day |
+| Callout Taps per Session | N/A (new metric) | > 5 | 1 month post-launch |
+| Photos per Week per User | N/A (new metric) | > 10 | 1 month post-launch |
+| Voice Notes with Transcription | N/A (new metric) | > 3/week | 2 months post-launch |
+| 30-Day Retention | ~30% (construction field apps) | > 70% | 6 months post-launch |
+| NPS (structural contractors) | ~30 (construction software avg) | > 50 | 6 months post-launch |
+
+---
+
+## Open Questions
+
+These questions require validation before or shortly after launch. Each has a proposed validation method.
+
+| # | Question | Why It Matters | Validation Method | Owner | Target Date |
+|---|----------|----------------|-------------------|-------|-------------|
+| 1 | What is the minimum callout detection accuracy that sustains user trust? | 91.5% recall works in testing, but real-world tolerance is unknown. Below threshold = users stop trusting links | A/B test confidence thresholds (see 07-experiments.md, Exp. 2). Track callout_navigated success rate vs confidence | ML Lead | Pre-launch |
+| 2 | Will "no task management" be a sales objection from GC owners? | Sarah persona (buyer) may expect task features. "By design" won't satisfy if competitors offer it | Interview 10 GC owners specifically about task management expectations. Track feature requests post-launch | Product Lead | Month 1 |
+| 3 | Is $79/month the optimal price point? | $49 might dramatically expand addressable segment; $79 might limit to price-insensitive early adopters | Price sensitivity test (see 07-experiments.md, Exp. 4). Start with $79, test $49 promotion after 100 signups | Product Lead | Month 2 |
+| 4 | What % of target segment uses any digital plan viewer vs paper-only? | Affects go-to-market messaging: "switch from Fieldwire" vs "replace paper plans" | Survey at 3 trade shows. Track signup source ("switching from" question in onboarding) | Product Lead | Pre-launch |
+| 5 | How do competitor auto-linking accuracy numbers compare? | If Fieldwire's undocumented accuracy is comparable, our 91.5% is not a differentiator | Benchmark test: upload same plan set to Fieldwire free tier, count correct vs incorrect links | Engineering | Pre-launch |
+| 6 | Are 24 interviews sufficient to generalize? | Sample size may not represent full diversity of structural contractors (regions, project types, company sizes) | Launch closed beta with 5 contractors from underrepresented segments. Compare their behavior to interview predictions | Product Lead | Month 1 |
+| 7 | Will workers adopt voice notes, or prefer typing/not documenting? | Voice features are a key differentiator but adoption is uncertain with construction workers | Track voice_note_recorded adoption rate in first month. Compare to photo_captured rate | Product Lead | Month 1 |
+| 8 | Should demo project auto-open on first launch? | Affects onboarding conversion. Demo-first shows value but may delay real usage | A/B test (see 07-experiments.md, Exp. 1) | Product Lead | Pre-launch |
 
 ---
 

@@ -5,6 +5,7 @@ import {
 	ChevronRight,
 	FileText,
 	Folder,
+	Layers,
 	LayoutGrid,
 	List,
 	Maximize2,
@@ -19,7 +20,6 @@ import {
 	ScrollView,
 	View,
 } from "react-native";
-import { PlanInfoView } from "@/components/plans/plan-info-view";
 import { type Plan, PlanSelector } from "@/components/plans/plan-selector";
 import { LegendDetailScreen } from "@/components/plans/legend-detail-screen";
 import { NotesDetailScreen } from "@/components/plans/notes-detail-screen";
@@ -31,21 +31,23 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
-import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Text } from "@/components/ui/text";
-import type { LayoutRegion, ScheduleEntry } from "@/hooks/use-plan-info";
+import {
+	type LayoutRegion,
+	type ScheduleEntry,
+	usePlanInfo,
+} from "@/hooks/use-plan-info";
 import { usePlanSearch } from "@/hooks/use-plan-search";
 import { type Sheet, useSheets } from "@/hooks/use-sheets";
 import { cn } from "@/lib/utils";
 
-type PlansTab = "sheets" | "plan-info";
-
 export default function PlansScreen() {
 	const { id: projectId } = useLocalSearchParams<{ id: string }>();
 	const folders = useSheets(projectId!);
-	const [plansTab, setPlansTab] = React.useState<PlansTab>("sheets");
+	const planInfo = usePlanInfo(projectId!);
 	const [searchQuery, setSearchQuery] = React.useState("");
 	const searchResults = usePlanSearch(projectId!, searchQuery);
 	const isSearchActive = searchQuery.trim().length >= 2;
@@ -65,6 +67,7 @@ export default function PlansScreen() {
 		region: LayoutRegion;
 		sheetNumber: string;
 	} | null>(null);
+	const [isPlanInfoExpanded, setIsPlanInfoExpanded] = React.useState(false);
 	const [legendDetail, setLegendDetail] = React.useState<{
 		region: LayoutRegion;
 		sheetNumber: string;
@@ -151,7 +154,7 @@ export default function PlansScreen() {
 	return (
 		<View className="bg-background flex-1">
 			{/* Search bar - always visible */}
-			<View className="px-4 py-3">
+			<View className="px-4 py-4">
 				<View className="flex-row items-center gap-2">
 					<View className="relative flex-1">
 						<View className="absolute top-2.5 left-3 z-10">
@@ -171,7 +174,7 @@ export default function PlansScreen() {
 						</Pressable>
 					</View>
 
-					{!isSearchActive && plansTab === "sheets" && (
+					{!isSearchActive && (
 						<View className="bg-muted/20 flex-row rounded-xl p-1">
 							<Pressable
 								onPress={() => setViewMode("grid")}
@@ -231,33 +234,102 @@ export default function PlansScreen() {
 					}}
 				/>
 			) : (
-			<>
-			{/* Segmented control */}
-			<View className="items-center py-2">
-				<SegmentedControl
-					options={["Sheets", "Plan Info"]}
-					selectedIndex={plansTab === "sheets" ? 0 : 1}
-					onIndexChange={(index) =>
-						setPlansTab(index === 0 ? "sheets" : "plan-info")
-					}
-				/>
-			</View>
-
-			{plansTab === "plan-info" ? (
-				<PlanInfoView
-					onRegionPress={(region, entries, sheetNumber) => {
-						Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-						if (region.regionClass === "schedule" && entries) {
-							setScheduleDetail({ region, entries, sheetNumber });
-						} else if (region.regionClass === "notes") {
-							setNotesDetail({ region, sheetNumber });
-						} else if (region.regionClass === "legend") {
-							setLegendDetail({ region, sheetNumber });
-						}
-					}}
-				/>
-			) : (
 			<ScrollView className="flex-1" contentContainerClassName="px-4 pb-8">
+				{/* Inline Plan Intelligence collapsible */}
+				{(() => {
+					const totalItems =
+						planInfo.schedules.length +
+						planInfo.notes.length +
+						planInfo.legends.length;
+					if (totalItems === 0) return null;
+
+					const allRegions = [
+						...planInfo.schedules.map((r) => ({ ...r, _type: "schedule" as const })),
+						...planInfo.notes.map((r) => ({ ...r, _type: "notes" as const })),
+						...planInfo.legends.map((r) => ({ ...r, _type: "legend" as const })),
+					];
+
+					return (
+						<Collapsible
+							open={isPlanInfoExpanded}
+							onOpenChange={setIsPlanInfoExpanded}
+							className="mb-4"
+						>
+							<CollapsibleTrigger asChild>
+								<Pressable className="bg-muted/10 flex-row items-center justify-between rounded-xl px-4 py-3">
+									<View className="flex-row items-center gap-3">
+										<Icon
+											as={Layers}
+											className="text-muted-foreground size-5"
+										/>
+										<Text className="text-muted-foreground text-xs font-semibold tracking-wider">
+											PLAN INTELLIGENCE
+										</Text>
+										<Badge variant="secondary">
+											<Text className="text-secondary-foreground text-[10px] font-semibold">
+												{totalItems}
+											</Text>
+										</Badge>
+									</View>
+									<Icon
+										as={isPlanInfoExpanded ? ChevronDown : ChevronRight}
+										className="text-muted-foreground size-5"
+									/>
+								</Pressable>
+							</CollapsibleTrigger>
+							<CollapsibleContent>
+								<View className="bg-muted/10 mt-1 overflow-hidden rounded-xl">
+									{allRegions.map((region) => {
+										const sheetNumber =
+											planInfo.sheetNumberMap.get(region.sheetId) ?? "—";
+										return (
+											<Pressable
+												key={region.id}
+												className="active:bg-muted/20 flex-row items-center px-4 py-3"
+												onPress={() => {
+													Haptics.impactAsync(
+														Haptics.ImpactFeedbackStyle.Light,
+													);
+													if (region._type === "schedule") {
+														const entries =
+															planInfo.scheduleEntriesByRegion.get(
+																region.id,
+															);
+														if (entries) {
+															setScheduleDetail({
+																region,
+																entries,
+																sheetNumber,
+															});
+														}
+													} else if (region._type === "notes") {
+														setNotesDetail({ region, sheetNumber });
+													} else if (region._type === "legend") {
+														setLegendDetail({ region, sheetNumber });
+													}
+												}}
+											>
+												<View className="flex-1">
+													<Text className="text-foreground text-base font-medium">
+														{region.regionTitle ?? region.regionClass}
+													</Text>
+												</View>
+												<Text className="text-muted-foreground mr-2 text-sm">
+													{sheetNumber}
+												</Text>
+												<Icon
+													as={ChevronRight}
+													className="text-muted-foreground size-4"
+												/>
+											</Pressable>
+										);
+									})}
+								</View>
+							</CollapsibleContent>
+						</Collapsible>
+					);
+				})()}
+
 				{isLoading && (
 					<View className="flex-1 items-center justify-center py-20">
 						<ActivityIndicator size="large" />
@@ -405,8 +477,6 @@ export default function PlansScreen() {
 						</Collapsible>
 					))}
 			</ScrollView>
-			)}
-			</>
 			)}
 
 			{/* Plan Selector Modal */}
