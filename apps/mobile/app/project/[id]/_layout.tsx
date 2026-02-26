@@ -9,7 +9,15 @@ import {
 } from "expo-router";
 import { Camera, Plus } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Modal, View } from "react-native";
+import { ActivityIndicator, Alert, Dimensions, Modal, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, {
+	interpolate,
+	runOnJS,
+	useAnimatedStyle,
+	useSharedValue,
+	withTiming,
+} from "react-native-reanimated";
 import { UploadPlanSheet } from "@/components/plans/upload-plan-sheet";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Text } from "@/components/ui/text";
@@ -21,6 +29,10 @@ import { useAppStore } from "@/livestore/store";
 import ActivityScreen from "./activity";
 import MediaScreen from "./media";
 import PlansScreen from "./plans";
+
+const SCREEN_WIDTH = Dimensions.get("window").width;
+const EDGE_HIT_SLOP = SCREEN_WIDTH * 0.2;
+const NAVIGATE_THRESHOLD = SCREEN_WIDTH * 0.4;
 
 type ActiveView = "plans" | "media" | "activity";
 
@@ -55,6 +67,38 @@ export default function ProjectWorkspaceLayout() {
 	const handleBack = useCallback(() => {
 		router.back();
 	}, [router]);
+
+	// Back gesture: swipe from left edge to navigate back
+	const overlayOpacity = useSharedValue(0);
+
+	const navigateBack = useCallback(() => {
+		router.back();
+	}, [router]);
+
+	const backGesture = Gesture.Pan()
+		.activeOffsetX(10)
+		.hitSlop({ left: 0, top: 0, width: EDGE_HIT_SLOP })
+		.onUpdate((e) => {
+			if (e.translationX > 0) {
+				overlayOpacity.value = interpolate(
+					e.translationX,
+					[0, SCREEN_WIDTH],
+					[0, 0.4],
+				);
+			}
+		})
+		.onEnd((e) => {
+			if (e.translationX > NAVIGATE_THRESHOLD) {
+				overlayOpacity.value = withTiming(0, { duration: 150 });
+				runOnJS(navigateBack)();
+			} else {
+				overlayOpacity.value = withTiming(0, { duration: 200 });
+			}
+		});
+
+	const overlayStyle = useAnimatedStyle(() => ({
+		opacity: overlayOpacity.value,
+	}));
 
 	const handleMenu = useCallback(() => {
 		router.push(`/project/${params.id}/settings` as any);
@@ -101,7 +145,14 @@ export default function ProjectWorkspaceLayout() {
 	return (
 		<>
 			<Stack.Screen options={{ headerShown: false }} />
+			<GestureDetector gesture={backGesture}>
 			<View className="bg-background flex-1">
+				{/* Back gesture overlay */}
+				<Animated.View
+					pointerEvents="none"
+					className="absolute inset-0 z-50 bg-black"
+					style={overlayStyle}
+				/>
 				<WorkspaceHeader
 					onBack={handleBack}
 					onMenu={handleMenu}
@@ -152,6 +203,7 @@ export default function ProjectWorkspaceLayout() {
 					</View>
 				</Modal>
 			</View>
+			</GestureDetector>
 		</>
 	);
 }
