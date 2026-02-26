@@ -47,6 +47,27 @@ import { type Sheet, useSheets } from "@/hooks/use-sheets";
 import { cn } from "@/lib/utils";
 import { PendingUploadsList } from "@/components/plans/pending-uploads-list";
 
+// Discipline color palette — the app's core visual identity
+const DISCIPLINE_COLORS: Record<string, string> = {
+	ARCH: "#3B82F6",
+	ELEC: "#F59E0B",
+	STRC: "#8B5CF6",
+	MECH: "#10B981",
+	PLMB: "#06B6D4",
+	CIVIL: "#64748B",
+	LAND: "#22C55E",
+	FIRE: "#EF4444",
+};
+
+function getDisciplineColor(discipline?: string | null): string {
+	const key = discipline?.toUpperCase()?.slice(0, 5) ?? "";
+	return DISCIPLINE_COLORS[key] ?? "#6B7280";
+}
+
+function getDisciplineLabel(discipline?: string | null): string {
+	return discipline?.toUpperCase()?.slice(0, 4) ?? "???";
+}
+
 export default function PlansScreen() {
 	const router = useRouter();
 	const { id: projectId } = useLocalSearchParams<{ id: string }>();
@@ -397,7 +418,7 @@ export default function PlansScreen() {
 																	</View>
 																)}
 															</View>
-															<View className="mt-2 items-center">
+															<View className="mt-2 items-center gap-0.5">
 																<Text
 																	className="text-foreground text-center text-sm font-bold font-mono"
 																	numberOfLines={1}
@@ -410,6 +431,22 @@ export default function PlansScreen() {
 																>
 																	{sheet.title}
 																</Text>
+																<View
+																	className="mt-0.5 rounded px-1.5 py-0.5"
+																	style={{
+																		backgroundColor:
+																			getDisciplineColor(sheet.discipline) + "22",
+																	}}
+																>
+																	<Text
+																		className="text-[9px] font-bold"
+																		style={{
+																			color: getDisciplineColor(sheet.discipline),
+																		}}
+																	>
+																		{getDisciplineLabel(sheet.discipline)}
+																	</Text>
+																</View>
 															</View>
 														</Pressable>
 													);
@@ -425,11 +462,21 @@ export default function PlansScreen() {
 															className="active:bg-muted/10 flex-row items-center gap-4 rounded-lg px-2 py-3.5"
 															onPress={() => handleOpenPlan(plan, sheet)}
 														>
-															<View className="bg-muted/20 size-11 items-center justify-center rounded-lg">
-																<Icon
-																	as={FileText}
-																	className="text-muted-foreground size-5"
-																/>
+															<View
+																className="size-11 items-center justify-center rounded-lg"
+																style={{
+																	backgroundColor:
+																		getDisciplineColor(sheet.discipline) + "22",
+																}}
+															>
+																<Text
+																	className="text-[11px] font-bold"
+																	style={{
+																		color: getDisciplineColor(sheet.discipline),
+																	}}
+																>
+																	{getDisciplineLabel(sheet.discipline)}
+																</Text>
 															</View>
 															<View className="flex-1">
 																<Text className="text-foreground font-mono text-base font-bold">

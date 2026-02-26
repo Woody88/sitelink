@@ -7,8 +7,9 @@ import {
 	useRouter,
 	useSegments,
 } from "expo-router";
-import { Camera, Plus } from "lucide-react-native";
-import { useCallback, useMemo, useState } from "react";
+import * as Network from "expo-network";
+import { Camera, Plus, WifiOff } from "lucide-react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Dimensions, Modal, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -21,6 +22,7 @@ import Animated, {
 import { UploadPlanSheet } from "@/components/plans/upload-plan-sheet";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Text } from "@/components/ui/text";
+import { Icon } from "@/components/ui/icon";
 import { WorkspaceFAB } from "@/components/workspace/camera-fab";
 import { WorkspaceHeader } from "@/components/workspace/workspace-header";
 import { usePlanUpload } from "@/hooks/use-plan-upload";
@@ -161,6 +163,24 @@ export default function ProjectWorkspaceLayout() {
 		return Camera;
 	};
 
+	// Network status — tracked independently from upload retry logic
+	const [isOffline, setIsOffline] = useState(false);
+	const networkChecked = useRef(false);
+
+	useEffect(() => {
+		Network.getNetworkStateAsync().then((state) => {
+			if (!networkChecked.current) {
+				networkChecked.current = true;
+				setIsOffline(!(state.isConnected && state.isInternetReachable));
+			}
+		});
+
+		const sub = Network.addNetworkStateListener((state) => {
+			setIsOffline(!(state.isConnected && state.isInternetReachable));
+		});
+		return () => sub.remove();
+	}, []);
+
 	const projectName = projectData?.name || "Loading...";
 	const projectAddress = projectData?.address || undefined;
 
@@ -198,6 +218,16 @@ export default function ProjectWorkspaceLayout() {
 						}}
 					/>
 				</WorkspaceHeader>
+
+				{/* Offline banner — construction sites often have poor signal */}
+				{isOffline && (
+					<View className="flex-row items-center gap-2 bg-amber-500 px-4 py-2">
+						<Icon as={WifiOff} className="text-white size-4 flex-shrink-0" />
+						<Text className="text-white text-xs font-semibold flex-1">
+							Working offline — changes will sync when connected
+						</Text>
+					</View>
+				)}
 
 				{activeView === "plans" && <PlansScreen />}
 				{activeView === "media" && <MediaScreen />}
