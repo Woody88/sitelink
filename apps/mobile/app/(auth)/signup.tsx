@@ -2,16 +2,22 @@
 
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
-import { SyncStatus } from "@/components/SyncStatus";
+import {
+	KeyboardAvoidingView,
+	Platform,
+	Pressable,
+	ScrollView,
+	View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function SignUpScreen() {
 	const router = useRouter();
+	const insets = useSafeAreaInsets();
 	const { signUp } = useAuth();
 	const [name, setName] = useState("");
 	const [email, setEmail] = useState("");
@@ -39,9 +45,6 @@ export default function SignUpScreen() {
 
 		if (result.success) {
 			console.log("[SIGNUP] Success! Waiting for session refresh...");
-			// Don't navigate - let the layout auto-redirect after session is refreshed
-			// The signUp function clears cache and refetches session with activeOrganizationId
-			// When useSession updates, layout will see authenticated state and redirect
 		} else {
 			setError(result.error || "Sign up failed");
 			setLoading(false);
@@ -51,140 +54,98 @@ export default function SignUpScreen() {
 	return (
 		<KeyboardAvoidingView
 			behavior={Platform.OS === "ios" ? "padding" : "height"}
-			className="flex-1"
+			className="bg-background flex-1"
 		>
 			<ScrollView
-				contentContainerClassName="flex-1 justify-center p-6 gap-6"
+				contentContainerClassName="flex-grow justify-center px-6"
 				keyboardShouldPersistTaps="handled"
+				style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
 			>
-				<View className="mb-2 items-center">
-					<SyncStatus size="sm" showText={true} />
-				</View>
+				<Pressable
+					onPress={() => router.back()}
+					className="mb-8 self-start pt-2"
+				>
+					<Text className="text-muted-foreground text-sm">← Back</Text>
+				</Pressable>
 
-				<View className="gap-2">
-					<Text variant="h1" className="text-center">
-						Create Account
-					</Text>
-					<Text variant="muted" className="text-center">
-						Sign up to get started with SiteLink
-					</Text>
-				</View>
+				<Text className="text-foreground mb-1 text-2xl font-bold">
+					Create account
+				</Text>
+				<Text className="text-muted-foreground mb-8 text-sm">
+					Get started with a 14-day free trial
+				</Text>
 
 				<View className="gap-4">
-					<View className="gap-2">
-						<Label nativeID="name-label">
-							<Text>Name</Text>
-						</Label>
-						<Input
-							testID="name-input"
-							nativeID="name-input"
-							placeholder="Name"
-							value={name}
-							onChangeText={setName}
-							autoCapitalize="words"
-							autoComplete="name"
-							editable={!loading}
-						/>
-					</View>
+					<Input
+						testID="name-input"
+						placeholder="Full Name"
+						value={name}
+						onChangeText={setName}
+						autoCapitalize="words"
+						autoComplete="name"
+						autoFocus
+						editable={!loading}
+						className="h-14 rounded-2xl px-4"
+					/>
+					<Input
+						testID="organization-input"
+						placeholder="Company or Organization"
+						value={organizationName}
+						onChangeText={setOrganizationName}
+						autoCapitalize="words"
+						autoComplete="organization"
+						editable={!loading}
+						className="h-14 rounded-2xl px-4"
+					/>
+					<Input
+						testID="email-input"
+						placeholder="Email"
+						value={email}
+						onChangeText={setEmail}
+						keyboardType="email-address"
+						autoCapitalize="none"
+						autoComplete="email"
+						editable={!loading}
+						className="h-14 rounded-2xl px-4"
+					/>
+					<Input
+						testID="password-input"
+						placeholder="Password (8+ characters)"
+						value={password}
+						onChangeText={setPassword}
+						secureTextEntry
+						autoCapitalize="none"
+						autoComplete="password-new"
+						editable={!loading}
+						className="h-14 rounded-2xl px-4"
+					/>
 
-					<View className="gap-2">
-						<Label nativeID="email-label">
-							<Text>Email</Text>
-						</Label>
-						<Input
-							testID="email-input"
-							nativeID="email-input"
-							placeholder="Email"
-							value={email}
-							onChangeText={setEmail}
-							keyboardType="email-address"
-							autoCapitalize="none"
-							autoComplete="email"
-							editable={!loading}
-						/>
-					</View>
-
-					<View className="gap-2">
-						<Label nativeID="password-label">
-							<Text>Password</Text>
-						</Label>
-						<Input
-							testID="password-input"
-							nativeID="password-input"
-							placeholder="Password"
-							value={password}
-							onChangeText={setPassword}
-							secureTextEntry
-							autoCapitalize="none"
-							autoComplete="password-new"
-							editable={!loading}
-						/>
-					</View>
-
-					<View className="gap-2">
-						<Label nativeID="organization-label">
-							<Text>Organization Name</Text>
-						</Label>
-						<Input
-							testID="organization-input"
-							nativeID="organization-input"
-							placeholder="Organization Name"
-							value={organizationName}
-							onChangeText={setOrganizationName}
-							autoCapitalize="words"
-							autoComplete="organization"
-							editable={!loading}
-						/>
-					</View>
-
-					{error && <Text className="text-destructive text-sm">{error}</Text>}
+					{error && (
+						<Text className="text-destructive text-sm">{error}</Text>
+					)}
 
 					<Button
 						testID="signup-button"
 						onPress={handleSignUp}
 						disabled={loading}
-						className="mt-2"
+						className="mt-2 h-14 rounded-2xl"
 					>
-						<Text>Sign Up</Text>
+						<Text className="text-base font-semibold">
+							{loading ? "Creating account..." : "Create Account"}
+						</Text>
 					</Button>
 				</View>
 
-				<View className="flex-row justify-center gap-2">
-					<Text variant="muted">Already have an account?</Text>
-					<Button
-						variant="link"
+				<View className="mt-8 flex-row justify-center gap-1 pb-8">
+					<Text className="text-muted-foreground text-sm">
+						Already have an account?
+					</Text>
+					<Pressable
 						testID="login-link"
 						onPress={() => router.push("/(auth)/login" as any)}
-						disabled={loading}
 					>
-						<Text variant="link">Sign In</Text>
-					</Button>
-				</View>
-
-				<View className="mt-4 gap-3">
-					<Button
-						variant="outline"
-						testID="oauth-google-button"
-						disabled
-						className="opacity-50"
-					>
-						<Text>Continue with Google</Text>
-						<Text variant="muted" className="ml-2 text-xs">
-							(Coming Soon)
-						</Text>
-					</Button>
-
-					<Button
-						variant="outline"
-						testID="oauth-microsoft-button"
-						disabled
-						className="opacity-50"
-					>
-						<Text>Continue with Microsoft</Text>
-						<Text variant="muted" className="ml-2 text-xs">
-							(Coming Soon)
-						</Text>
-					</Button>
+						<Text className="text-primary text-sm font-semibold">Sign In</Text>
+					</Pressable>
 				</View>
 			</ScrollView>
 		</KeyboardAvoidingView>
