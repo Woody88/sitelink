@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { ProjectProvider } from "@/context/project-context";
 import { authClient } from "@/lib/auth";
+import { isDemoMode, getDemoSessionContext } from "@/lib/demo-mode";
 import {
 	authenticateWithBiometric,
 	isBiometricAvailable,
@@ -49,15 +50,21 @@ export default function RootLayout() {
 
 	const inAuthGroup = segments[0] === "(auth)";
 
+	// In demo mode, override auth session with mock data
+	const isDemo = isDemoMode();
+	const sessionData = isDemo ? getDemoSessionContext() : data;
+	const sessionIsPending = isDemo ? false : isPending;
+	const sessionRefetch = isDemo ? async () => {} : refetch;
+
 	React.useEffect(() => {
-		if (!isPending) {
+		if (!sessionIsPending) {
 			SplashScreen.hideAsync();
 		}
-	}, [isPending]);
+	}, [sessionIsPending]);
 
 	// Wrap entire app with SessionProvider so auth screens can access it
 	return (
-		<SessionProvider sessionData={data} isPending={isPending} refetch={refetch}>
+		<SessionProvider sessionData={sessionData} isPending={sessionIsPending} refetch={sessionRefetch}>
 			<RootLayoutContent theme={theme} inAuthGroup={inAuthGroup} />
 		</SessionProvider>
 	);

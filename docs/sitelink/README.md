@@ -18,7 +18,7 @@ This directory contains the modular PRD and supporting documentation for SiteLin
 | [03-product.md](./03-product.md) | Feature specifications, screens, flows | Draft |
 | [04-architecture.md](./04-architecture.md) | Technical architecture, processing pipeline, offline model | Draft |
 | [05-ai-features.md](./05-ai-features.md) | Plan Assistant, extraction pipeline, query system | Draft |
-| 06-implementation.md | Phases, success metrics, risks | TODO |
+| [06-implementation.md](./06-implementation.md) | Risks, dependencies, open questions, timeline, launch readiness | Draft |
 
 ### Legacy Documents (To Be Deprecated)
 

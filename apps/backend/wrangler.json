@@ -1,88 +1,109 @@
 {
-  "name": "sitelink-backend",
-  "main": "src/index.ts",
-  "compatibility_date": "2024-12-01",
-  "compatibility_flags": ["nodejs_compat"],
-  "rules": [
-    {
-      "type": "CompiledWasm",
-      "globs": ["**/*.wasm"],
-      "fallthrough": true
-    }
-  ],
-  "define": {
-    "process.env.NODE_ENV": "\"production\""
-  },
-  "logpush": false,
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "sitelink-db",
-      "database_id": "9b97a3b7-f357-48a2-83fe-d041c393820f",
-      "preview_database_id": "29203158-8ecf-4082-844d-07d4baae4e9c"
-    }
-  ],
-  "r2_buckets": [
-    {
-      "binding": "R2_BUCKET",
-      "bucket_name": "sitelink-files",
-      "preview_bucket_name": "sitelink-files-preview"
-    }
-  ],
-  "durable_objects": {
-    "bindings": [
-      {
-        "name": "SYNC_BACKEND_DO",
-        "class_name": "SyncBackendDO",
-        "script_name": "sitelink-backend"
-      },
-      {
-        "name": "LIVESTORE_CLIENT_DO",
-        "class_name": "LiveStoreClientDO",
-        "script_name": "sitelink-backend"
-      },
-      {
-        "name": "PDF_PROCESSOR",
-        "class_name": "PdfProcessor"
-      }
-    ]
-  },
-  "containers": [
-    {
-      "class_name": "PdfProcessor",
-      "image": "./container/Dockerfile",
-      "max_instances": 5
-    }
-  ],
-  "migrations": [
-    {
-      "tag": "v1",
-      "new_sqlite_classes": ["SyncBackendDO", "LiveStoreClientDO"]
-    },
-    {
-      "tag": "v2",
-      "new_sqlite_classes": ["PlanCoordinator"]
-    },
-    {
-      "tag": "v3",
-      "new_sqlite_classes": ["PdfProcessor"]
-    },
-    {
-      "tag": "v4",
-      "deleted_classes": ["PlanCoordinator"]
-    }
-  ],
-  "workflows": [
-    {
-      "name": "plan-processing",
-      "binding": "PLAN_PROCESSING_WORKFLOW",
-      "class_name": "PlanProcessingWorkflow"
-    }
-  ],
-  "observability": {
-    "enabled": true
-  },
-  "vars": {
-    "LOCAL_CONTAINER_URL": "http://localhost:3001"
-  }
+	"name": "sitelink-backend",
+	"main": "src/index.ts",
+	"compatibility_date": "2024-12-01",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"rules": [
+		{
+			"type": "CompiledWasm",
+			"globs": [
+				"**/*.wasm"
+			],
+			"fallthrough": true
+		}
+	],
+	"define": {
+		"process.env.NODE_ENV": "\"production\""
+	},
+	"logpush": false,
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "sitelink-db",
+			"database_id": "9b97a3b7-f357-48a2-83fe-d041c393820f",
+			"preview_database_id": "29203158-8ecf-4082-844d-07d4baae4e9c"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "R2_BUCKET",
+			"bucket_name": "sitelink-files",
+			"preview_bucket_name": "sitelink-files-preview"
+		},
+		{
+			"bucket_name": "sitelink-files-preview",
+			"binding": "sitelink_files_preview",
+			"remote": true
+		}
+	],
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "SYNC_BACKEND_DO",
+				"class_name": "SyncBackendDO",
+				"script_name": "sitelink-backend"
+			},
+			{
+				"name": "LIVESTORE_CLIENT_DO",
+				"class_name": "LiveStoreClientDO",
+				"script_name": "sitelink-backend"
+			},
+			{
+				"name": "PDF_PROCESSOR",
+				"class_name": "PdfProcessor"
+			}
+		]
+	},
+	"containers": [
+		{
+			"class_name": "PdfProcessor",
+			"image": "./container/Dockerfile",
+			"max_instances": 5,
+			"instance_type": {
+				"vcpu": 1,
+				"memory_mib": 3072,
+				"disk_mb": 4000
+			}
+		}
+	],
+	"migrations": [
+		{
+			"tag": "v1",
+			"new_sqlite_classes": [
+				"SyncBackendDO",
+				"LiveStoreClientDO"
+			]
+		},
+		{
+			"tag": "v2",
+			"new_sqlite_classes": [
+				"PlanCoordinator"
+			]
+		},
+		{
+			"tag": "v3",
+			"new_sqlite_classes": [
+				"PdfProcessor"
+			]
+		},
+		{
+			"tag": "v4",
+			"deleted_classes": [
+				"PlanCoordinator"
+			]
+		}
+	],
+	"workflows": [
+		{
+			"name": "plan-processing",
+			"binding": "PLAN_PROCESSING_WORKFLOW",
+			"class_name": "PlanProcessingWorkflow"
+		}
+	],
+	"observability": {
+		"enabled": true
+	},
+	"vars": {}
 }

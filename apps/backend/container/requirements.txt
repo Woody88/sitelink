@@ -1,16 +1,15 @@
+# Core inference dependencies only (no training/visualization bloat)
 flask==3.0.0
 gunicorn==21.2.0
-opencv-python-headless==4.9.0.80
 numpy==1.26.4
 Pillow==10.2.0
 pytesseract==0.3.10
 pyvips>=2.2.3
 requests==2.31.0
-ultralytics>=8.3.0
-torch>=2.0.0,<2.5.0
-torchvision>=0.15.0,<0.20.0
-PyMuPDF>=1.23.0
-scipy>=1.10.0
 httpx>=0.25.0
-doclayout-yolo>=0.0.1
+PyMuPDF>=1.23.0
+opencv-python-headless==4.9.0.80
+pyyaml>=5.3.1
+tqdm>=4.64.0
+psutil>=5.8.0
 huggingface_hub

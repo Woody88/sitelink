@@ -23,9 +23,9 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
 	const insets = useSafeAreaInsets();
 
 	return (
-		<View className="bg-background" style={{ paddingTop: insets.top }}>
+		<View className="bg-background" style={{ paddingTop: insets.top + 8 }}>
 			{/* Row 1: Navigation & Info */}
-			<View className="min-h-[56px] flex-row items-center justify-between px-0.5">
+			<View className="min-h-[56px] flex-row items-center justify-between px-4">
 				{/* Back Button - Icon Only */}
 				<Pressable
 					onPress={onBack}
@@ -39,7 +39,10 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
 
 				{/* Center: Project Info (Wrapped & Centered) */}
 				<View className="flex-1 items-center justify-center px-2">
-					<Text className="text-foreground text-center text-lg leading-tight font-bold">
+					<Text
+						className="text-foreground text-center text-base leading-tight font-bold"
+						numberOfLines={1}
+					>
 						{projectName}
 					</Text>
 					{address && (
@@ -62,7 +65,7 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({
 			</View>
 
 			{/* Row 2: Tabs (Centered) */}
-			<View className="items-center pb-3">{children}</View>
+			<View className="items-center pt-3 pb-4">{children}</View>
 		</View>
 	);
 });
