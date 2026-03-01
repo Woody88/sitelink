@@ -215,9 +215,9 @@ export default function PMTilesViewer({
 				const tileCache = getTileCache(pmtilesUrl);
 
 				const mimeType =
-					header.tileType === 1
+					header.tileType === 2
 						? "image/png"
-						: header.tileType === 2
+						: header.tileType === 3
 							? "image/jpeg"
 							: "image/webp";
 

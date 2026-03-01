@@ -409,10 +409,9 @@ def detect_callouts_yolo(
 
     for i, det in enumerate(filtered):
         x, y, bw, bh = det['bbox']
-        x, y, bw, bh = int(x), int(y), int(bw), int(bh)
 
         # Crop from original high-res image for better Gemini OCR
-        # Scale bbox coordinates back to original resolution
+        # Scale bbox coordinates back to original resolution (int only for array slicing)
         x_orig = int(x * upscale_factor)
         y_orig = int(y * upscale_factor)
         bw_orig = int(bw * upscale_factor)
