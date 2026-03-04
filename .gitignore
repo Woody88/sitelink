@@ -42,6 +42,29 @@ wrangler.dev.json
 # Model weights
 apps/backend/container/weights/
 *.pt
+*.pth
+*.onnx
+*.pth.tar
 
-# GroundingDINO weights
-packages/callout-processor-v5/weights/*.pth
+# PDFs (stored in Cloudflare R2 bucket sitelink-files/reference-docs/)
+*.pdf
+
+# Dataset archives
+*.yolo26.zip
+
+# Experimental/research outputs
+packages/callout-processor-v4/*_output/
+packages/callout-processor-v5/*_output/
+packages/callout-processor-v5/comparison_*.png
+packages/callout-processor-v5/validation_*.png
+packages/callout-processor-v6-experimental/active_learning/
+packages/callout-processor-v6-experimental/poc_doclayout_results/
+packages/callout-processor-v6-experimental/test_*_output/
+packages/callout-processor-v6-experimental/validation_results/
+
+# Large test/debug output images
+**/annotated.png
+**/direct_test_output.png
+
+# Wrangler local state
+.wrangler/
