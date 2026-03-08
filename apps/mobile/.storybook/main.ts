@@ -35,7 +35,7 @@ function uniwindRewritePlugin(): Plugin {
 }
 
 const config: StorybookConfig = {
-	stories: ["../components/**/*.stories.tsx"],
+	stories: ["../components/**/*.stories.tsx", "../app/**/*.stories.tsx"],
 	framework: "@storybook/react-native-web-vite",
 	async viteFinal(config) {
 		const tailwindcss = (await import("@tailwindcss/vite")).default;
