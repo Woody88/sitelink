@@ -13,7 +13,8 @@
     "adb:reverse": "adb -s $DEVICE reverse tcp:8787 tcp:8787 && adb -s $DEVICE reverse tcp:8081 tcp:8081 && adb -s $DEVICE reverse --list",
     "clean": "rm -rf .expo node_modules",
     "clean:db": "bash delete_db.sh",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "storybook": "storybook dev -p 6006"
   },
   "dependencies": {
     "@better-auth/expo": "^1.4.10",
@@ -104,6 +105,10 @@
   "devDependencies": {
     "@babel/core": "^7.26.0",
     "@babel/plugin-syntax-import-attributes": "^7.27.1",
+    "@storybook/react": "^10.2.16",
+    "@storybook/react-native-web-vite": "^10.2.16",
+    "@tailwindcss/postcss": "^4.2.1",
+    "@tailwindcss/vite": "^4.2.1",
     "@types/openseadragon": "^5.0.1",
     "@types/react": "~19.1.10",
     "babel-plugin-transform-vite-meta-env": "^1.0.3",
@@ -114,7 +119,9 @@
     "eslint-plugin-react-compiler": "^19.1.0-rc.2",
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.6.14",
-    "typescript": "~5.9.2"
+    "storybook": "^10.2.16",
+    "typescript": "~5.9.2",
+    "vite": "^7.3.1"
   },
   "private": true
 }
