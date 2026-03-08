@@ -180,7 +180,7 @@ function ProjectsScreen({
 	}, [activeFilter, displayProjects]);
 
 	return (
-		<View className="bg-background flex-1">
+		<View className="bg-background" style={{ minHeight: "100vh", position: "relative" } as any}>
 			{/* Header */}
 			<View className="border-border flex-row items-center justify-between border-b px-4 py-3">
 				<Pressable
@@ -239,9 +239,10 @@ function ProjectsScreen({
 						/>
 					)}
 					keyExtractor={(item) => item.id}
+					style={{ flex: 1 }}
 				/>
 			) : (
-				<Empty>
+				<Empty className="mx-4 mb-4">
 					<EmptyHeader>
 						<EmptyMedia variant="icon">
 							<Icon
