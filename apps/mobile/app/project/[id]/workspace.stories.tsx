@@ -9,13 +9,16 @@ import {
 	Folder,
 	LayoutGrid,
 	List,
+	MapPin,
+	Mic,
+	Play,
 	Plus,
 	Search,
 	Settings,
 	Share2,
 } from "lucide-react-native";
 import * as React from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Image, Pressable, ScrollView, View } from "react-native";
 import {
 	Collapsible,
 	CollapsibleContent,
@@ -123,6 +126,165 @@ const MOCK_ACTIVITY = [
 	{ id: "4", time: "Yesterday 4:20 PM", message: "David uploaded new plan sheet" },
 	{ id: "5", time: "Yesterday 2:10 PM", message: "Emily shared project with client" },
 ];
+
+const MOCK_PHOTOS = [
+	{
+		title: "Today",
+		groups: [
+			{
+				markerLabel: "5/A7 - Electrical Junction",
+				hasIssue: true,
+				voiceNote: {
+					duration: "0:15",
+					transcript: "Junction box needs to move about six inches to the left to clear the conduit run",
+				},
+				photos: [
+					{ id: "p1", seed: "elect1", time: "2:30 PM", isIssue: false },
+					{ id: "p2", seed: "elect2", time: "1:30 PM", isIssue: true, hasVoiceNote: true },
+					{ id: "p3", seed: "elect3", time: "12:00 PM", isIssue: false },
+				],
+			},
+			{
+				markerLabel: "3/A2 - Panel Rough-in",
+				hasIssue: false,
+				photos: [
+					{ id: "p4", seed: "panel1", time: "11:00 AM", isIssue: false },
+					{ id: "p5", seed: "panel2", time: "10:30 AM", isIssue: false },
+				],
+			},
+		],
+	},
+	{
+		title: "Yesterday",
+		groups: [
+			{
+				markerLabel: "2/A1 - HVAC Duct",
+				hasIssue: false,
+				photos: [
+					{ id: "p6", seed: "hvac1", time: "4:15 PM", isIssue: false },
+					{ id: "p7", seed: "hvac2", time: "3:00 PM", isIssue: false },
+				],
+			},
+		],
+	},
+];
+
+function PhotoThumbnailStory({
+	seed,
+	time,
+	isIssue,
+	hasVoiceNote,
+}: {
+	seed: string;
+	time: string;
+	isIssue?: boolean;
+	hasVoiceNote?: boolean;
+}) {
+	return (
+		<Pressable
+			className="bg-muted relative overflow-hidden rounded-xl"
+			style={{ width: 160, height: 160 }}
+		>
+			<Image
+				source={{ uri: `https://picsum.photos/seed/${seed}/300/300` }}
+				className="h-full w-full"
+				resizeMode="cover"
+			/>
+			{isIssue && (
+				<View
+					className="bg-destructive absolute top-2 right-2 items-center justify-center rounded-full"
+					style={{ width: 20, height: 20 }}
+				>
+					<Text className="text-[12px] font-bold text-white">!</Text>
+				</View>
+			)}
+			{hasVoiceNote && (
+				<View
+					className="absolute right-2 bottom-2 items-center justify-center rounded-full bg-blue-500"
+					style={{ width: 20, height: 20 }}
+				>
+					<Icon as={Mic} className="size-3 text-white" />
+				</View>
+			)}
+			<View className="absolute bottom-2 left-2">
+				<View className="rounded bg-black/40 px-1.5 py-0.5">
+					<Text className="text-[11px] font-medium text-white">{time}</Text>
+				</View>
+			</View>
+		</Pressable>
+	);
+}
+
+function MediaTabPopulated() {
+	return (
+		<ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+			{MOCK_PHOTOS.map((section) => (
+				<View key={section.title}>
+					<View className="bg-background px-4 pt-6 pb-2">
+						<Text className="text-foreground text-base font-bold">{section.title}</Text>
+					</View>
+					{section.groups.map((group, groupIdx) => (
+						<React.Fragment key={group.markerLabel}>
+							<View className="py-4">
+								<View className="mb-3 px-4">
+									<View className="mb-2 flex-row items-center gap-2">
+										<Icon as={MapPin} className="text-muted-foreground size-4" />
+										<Text className="text-foreground text-sm font-semibold">
+											{group.markerLabel}
+										</Text>
+										<Text className="text-muted-foreground text-xs">
+											({group.photos.length} photos)
+										</Text>
+									</View>
+									{group.hasIssue && (
+										<Pressable className="bg-primary/10 flex-row items-center gap-1.5 self-start rounded-full px-3 py-1.5 active:opacity-70">
+											<Icon as={FileText} className="text-primary size-3.5" />
+											<Text className="text-primary text-xs font-medium">Generate RFI</Text>
+										</Pressable>
+									)}
+								</View>
+								<ScrollView
+									horizontal
+									showsHorizontalScrollIndicator={false}
+									contentContainerClassName="px-4 gap-3"
+								>
+									{group.photos.map((photo) => (
+										<PhotoThumbnailStory
+											key={photo.id}
+											seed={photo.seed}
+											time={photo.time}
+											isIssue={photo.isIssue}
+											hasVoiceNote={photo.hasVoiceNote}
+										/>
+									))}
+								</ScrollView>
+								{group.voiceNote && (
+									<View className="mt-3 px-4">
+										<View className="bg-muted/20 flex-row items-start gap-2 rounded-lg p-3">
+											<Icon as={Mic} className="text-primary mt-0.5 size-4" />
+											<View className="flex-1">
+												<Text className="text-muted-foreground mb-1 text-xs">
+													{group.voiceNote.duration}
+												</Text>
+												<Text className="text-foreground text-sm leading-relaxed">
+													"{group.voiceNote.transcript}"
+												</Text>
+											</View>
+											<Pressable className="p-1">
+												<Icon as={Play} className="text-primary size-4" />
+											</Pressable>
+										</View>
+									</View>
+								)}
+							</View>
+							{groupIdx < section.groups.length - 1 && <Separator className="ml-4" />}
+						</React.Fragment>
+					))}
+				</View>
+			))}
+		</ScrollView>
+	);
+}
 
 function PlansTab() {
 	const [searchQuery, setSearchQuery] = React.useState("");
@@ -235,7 +397,10 @@ function PlansTab() {
 	);
 }
 
-function MediaTab() {
+function MediaTab({ isEmpty = true }: { isEmpty?: boolean }) {
+	if (!isEmpty) {
+		return <MediaTabPopulated />;
+	}
 	return (
 		<Empty className="mx-4 mb-4">
 			<EmptyHeader>
@@ -335,8 +500,10 @@ type ActiveView = "plans" | "media" | "activity";
 
 function ProjectWorkspace({
 	initialTab = "plans",
+	mediaEmpty = true,
 }: {
 	initialTab?: ActiveView;
+	mediaEmpty?: boolean;
 }) {
 	const [activeView, setActiveView] = React.useState<ActiveView>(initialTab);
 
@@ -381,7 +548,7 @@ function ProjectWorkspace({
 
 			{/* Tab Content */}
 			{activeView === "plans" && <PlansTab />}
-			{activeView === "media" && <MediaTab />}
+			{activeView === "media" && <MediaTab isEmpty={mediaEmpty} />}
 			{activeView === "activity" && <ActivityTab />}
 
 			{/* FAB */}
@@ -423,7 +590,11 @@ export const PlansView: Story = {
 };
 
 export const MediaView: Story = {
-	args: { initialTab: "media" },
+	args: { initialTab: "media", mediaEmpty: false },
+};
+
+export const MediaEmptyView: Story = {
+	args: { initialTab: "media", mediaEmpty: true },
 };
 
 export const ActivityView: Story = {
