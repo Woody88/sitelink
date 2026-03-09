@@ -4,7 +4,6 @@ import {
 	Camera,
 	Check,
 	FileText,
-	MapPin,
 	Mic,
 	Search,
 	Shield,
@@ -22,9 +21,6 @@ function WelcomeScreen({ onGetStarted }: { onGetStarted: () => void }) {
 		<View className="bg-background flex-1 justify-between px-6 py-12">
 			<View className="flex-1 items-center justify-center gap-8">
 				<View className="items-center gap-4">
-					<View className="bg-primary/10 size-24 items-center justify-center rounded-3xl">
-						<Icon as={MapPin} className="text-primary size-12" />
-					</View>
 					<View className="flex-row items-baseline gap-1.5">
 						<Text className="text-foreground text-4xl font-black tracking-tight">
 							Site
@@ -124,9 +120,6 @@ function TrialStartScreen({
 			contentContainerClassName="px-6 py-12"
 		>
 			<View className="items-center gap-2">
-				<View className="bg-primary/10 size-16 items-center justify-center rounded-2xl">
-					<Icon as={MapPin} className="text-primary size-8" />
-				</View>
 				<View className="flex-row items-baseline gap-1">
 					<Text className="text-foreground text-2xl font-black tracking-tight">
 						Site
@@ -167,7 +160,7 @@ function TrialStartScreen({
 				</View>
 				{[
 					{ label: "5 projects", icon: FileText },
-					{ label: "15 team members", icon: MapPin },
+					{ label: "15 team members", icon: Check },
 					{ label: "Unlimited sheets", icon: FileText },
 					{ label: "Auto callout detection (96% accuracy)", icon: Zap },
 					{ label: "Voice notes + transcription", icon: Mic },

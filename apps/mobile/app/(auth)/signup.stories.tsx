@@ -1,9 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { MapPin } from "lucide-react-native";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { Button } from "@/components/ui/button";
-import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
@@ -38,9 +36,6 @@ function LoginInline({
 				keyboardShouldPersistTaps="handled"
 			>
 				<View className="mb-4 items-center gap-3">
-					<View className="bg-primary/10 size-16 items-center justify-center rounded-2xl">
-						<Icon as={MapPin} className="text-primary size-8" />
-					</View>
 					<View className="flex-row items-baseline gap-1">
 						<Text className="text-foreground text-2xl font-black tracking-tight">Site</Text>
 						<Text className="text-primary text-2xl font-black tracking-tight">Link</Text>
@@ -118,9 +113,6 @@ function SignUpScreen({
 				keyboardShouldPersistTaps="handled"
 			>
 				<View className="mb-4 items-center gap-3">
-					<View className="bg-primary/10 size-16 items-center justify-center rounded-2xl">
-						<Icon as={MapPin} className="text-primary size-8" />
-					</View>
 					<View className="flex-row items-baseline gap-1">
 						<Text className="text-foreground text-2xl font-black tracking-tight">Site</Text>
 						<Text className="text-primary text-2xl font-black tracking-tight">Link</Text>
