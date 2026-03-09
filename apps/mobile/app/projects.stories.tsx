@@ -1,14 +1,27 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import {
+	ArrowLeft,
 	Bell,
+	Camera,
+	ChevronDown,
+	ChevronRight,
+	FileText,
+	Folder,
 	FolderOpen,
 	MapPin,
 	Moon,
 	Plus,
+	Search,
+	Settings,
 } from "lucide-react-native";
 import * as React from "react";
 import { FlatList, Pressable, ScrollView, View } from "react-native";
 import { Button } from "@/components/ui/button";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
 	Empty,
 	EmptyContent,
@@ -18,6 +31,7 @@ import {
 	EmptyTitle,
 } from "@/components/ui/empty";
 import { Icon } from "@/components/ui/icon";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
@@ -109,15 +123,18 @@ function FilterChip({
 function ProjectListItem({
 	project,
 	isLast = false,
+	onPress,
 }: {
 	project: Project;
 	isLast?: boolean;
+	onPress?: () => void;
 }) {
 	const todayActivity = project.id === "1" ? { photos: 12, issues: 1 } : null;
 
 	return (
 		<>
 			<Pressable
+				onPress={onPress}
 				className="active:bg-muted/50 px-4 py-5"
 				style={{ minHeight: 80 }}
 			>
@@ -164,6 +181,260 @@ function ProjectListItem({
 	);
 }
 
+const MOCK_FOLDERS = [
+	{
+		id: "f1",
+		name: "Structural Plans",
+		sheets: [
+			{ id: "s1", number: "S1.0", title: "Foundation Plan" },
+			{ id: "s2", number: "S2.0", title: "Second Floor Framing" },
+			{ id: "s3", number: "S3.0", title: "Slab on Grade Schedule" },
+			{ id: "s4", number: "S4.0", title: "Roof Framing Plan" },
+		],
+	},
+	{
+		id: "f2",
+		name: "Architectural Plans",
+		sheets: [
+			{ id: "a1", number: "A1.0", title: "Site Plan" },
+			{ id: "a2", number: "A2.0", title: "Floor Plan - Level 1" },
+			{ id: "a3", number: "A3.0", title: "Floor Plan - Level 2" },
+		],
+	},
+	{
+		id: "f3",
+		name: "Electrical Plans",
+		sheets: [
+			{ id: "e1", number: "E1.0", title: "Lighting Plan" },
+			{ id: "e2", number: "E2.0", title: "Power Plan" },
+		],
+	},
+];
+
+function StorySegmentedControl({
+	options,
+	selectedIndex,
+	onIndexChange,
+}: {
+	options: string[];
+	selectedIndex: number;
+	onIndexChange: (index: number) => void;
+}) {
+	return (
+		<View
+			className="bg-muted/40 border-border/10 flex-row self-center rounded-full border p-1"
+			style={{ height: 40 }}
+		>
+			{options.map((option, index) => {
+				const isSelected = index === selectedIndex;
+				return (
+					<Pressable
+						key={index}
+						onPress={() => onIndexChange(index)}
+						className={cn(
+							"items-center justify-center rounded-full px-5",
+							isSelected && "bg-foreground/10 border border-white/5",
+						)}
+						style={{ height: 32 }}
+					>
+						<Text
+							className={cn(
+								"text-sm",
+								isSelected
+									? "text-foreground font-semibold"
+									: "text-muted-foreground font-medium",
+							)}
+							numberOfLines={1}
+						>
+							{option}
+						</Text>
+					</Pressable>
+				);
+			})}
+		</View>
+	);
+}
+
+function PlansTab() {
+	const [searchQuery, setSearchQuery] = React.useState("");
+	const [expandedFolders, setExpandedFolders] = React.useState<string[]>(["f1"]);
+
+	const toggleFolder = (id: string) => {
+		setExpandedFolders((prev) =>
+			prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id],
+		);
+	};
+
+	return (
+		<View className="flex-1">
+			<View className="px-4 py-4">
+				<View className="relative flex-1">
+					<View className="absolute top-2.5 left-3 z-10">
+						<Icon as={Search} className="text-muted-foreground size-4" />
+					</View>
+					<Input
+						placeholder="Search plans"
+						value={searchQuery}
+						onChangeText={setSearchQuery}
+						className="bg-muted/40 h-10 rounded-xl border-transparent pl-10"
+					/>
+				</View>
+			</View>
+
+			<ScrollView className="flex-1" contentContainerClassName="px-4 pb-8">
+				{MOCK_FOLDERS.map((folder) => (
+					<Collapsible
+						key={folder.id}
+						open={expandedFolders.includes(folder.id)}
+						onOpenChange={() => toggleFolder(folder.id)}
+						className="mb-4"
+					>
+						<CollapsibleTrigger asChild>
+							<Pressable className="bg-muted/10 flex-row items-center justify-between rounded-xl px-4 py-3">
+								<View className="flex-1 flex-row items-center gap-3">
+									<Icon as={Folder} className="text-muted-foreground size-5" />
+									<View className="flex-1">
+										<Text className="text-foreground text-base font-semibold" numberOfLines={1}>
+											{folder.name}
+										</Text>
+										<Text className="text-muted-foreground text-xs">
+											{folder.sheets.length} plans
+										</Text>
+									</View>
+								</View>
+								<Icon
+									as={expandedFolders.includes(folder.id) ? ChevronDown : ChevronRight}
+									className="text-muted-foreground size-5"
+								/>
+							</Pressable>
+						</CollapsibleTrigger>
+						<CollapsibleContent>
+							<View className="gap-1 pt-2">
+								{folder.sheets.map((sheet) => (
+									<Pressable
+										key={sheet.id}
+										className="active:bg-muted/10 flex-row items-center gap-4 rounded-lg px-2 py-3"
+									>
+										<View className="bg-muted/20 size-10 items-center justify-center rounded-lg">
+											<Icon as={FileText} className="text-muted-foreground size-5" />
+										</View>
+										<View className="flex-1">
+											<Text className="text-foreground text-base font-bold">
+												{sheet.number}
+											</Text>
+											<Text className="text-muted-foreground text-sm">
+												{sheet.title}
+											</Text>
+										</View>
+									</Pressable>
+								))}
+							</View>
+						</CollapsibleContent>
+					</Collapsible>
+				))}
+			</ScrollView>
+		</View>
+	);
+}
+
+function InlineWorkspace({
+	project,
+	onBack,
+}: {
+	project: Project;
+	onBack: () => void;
+}) {
+	const [activeTab, setActiveTab] = React.useState(0);
+
+	return (
+		<View className="bg-background" style={{ minHeight: "100vh", position: "relative" } as any}>
+			{/* Header */}
+			<View className="bg-background" style={{ paddingTop: 8 }}>
+				<View className="min-h-[56px] flex-row items-center justify-between px-4">
+					<Pressable
+						onPress={onBack}
+						className="-ml-1 items-center justify-center"
+						style={{ width: 44, height: 44 }}
+					>
+						<Icon as={ArrowLeft} className="text-foreground size-6" />
+					</Pressable>
+					<View className="flex-1 items-center justify-center px-2">
+						<Text className="text-foreground text-center text-base leading-tight font-bold" numberOfLines={1}>
+							{project.name}
+						</Text>
+						{project.address && (
+							<Text className="text-muted-foreground mt-0.5 text-center text-[11px] leading-snug">
+								{project.address}
+							</Text>
+						)}
+					</View>
+					<Pressable
+						className="-mr-1 items-center justify-center"
+						style={{ width: 44, height: 44 }}
+					>
+						<Icon as={Settings} className="text-foreground size-5" />
+					</Pressable>
+				</View>
+				<View className="items-center pt-3 pb-4">
+					<StorySegmentedControl
+						options={["Plans", "Media", "Activity"]}
+						selectedIndex={activeTab}
+						onIndexChange={setActiveTab}
+					/>
+				</View>
+			</View>
+
+			{/* Tab Content */}
+			{activeTab === 0 && <PlansTab />}
+			{activeTab === 1 && (
+				<Empty className="mx-4 mb-4">
+					<EmptyHeader>
+						<EmptyMedia variant="icon">
+							<Icon as={Camera} className="text-muted-foreground size-8" />
+						</EmptyMedia>
+						<EmptyTitle>No Media Yet</EmptyTitle>
+						<EmptyDescription>
+							Photos and recordings from this project will appear here as they are captured.
+						</EmptyDescription>
+					</EmptyHeader>
+				</Empty>
+			)}
+			{activeTab === 2 && (
+				<View className="p-4">
+					<View className="bg-muted/10 rounded-xl p-4">
+						<Text className="text-foreground mb-1 text-base font-bold">
+							{"Today's Summary"}
+						</Text>
+						<Text className="text-muted-foreground text-sm">
+							{project.photoCount} photos captured, {project.memberCount} team members active
+						</Text>
+					</View>
+				</View>
+			)}
+
+			{/* FAB */}
+			<View
+				style={{
+					position: "absolute",
+					bottom: 16,
+					right: 16,
+					width: 56,
+					height: 56,
+					zIndex: 50,
+				}}
+			>
+				<Pressable className="bg-primary h-14 w-14 items-center justify-center rounded-full">
+					<Icon
+						as={activeTab === 0 ? Plus : Camera}
+						className="text-primary-foreground size-6"
+						strokeWidth={2.5}
+					/>
+				</Pressable>
+			</View>
+		</View>
+	);
+}
+
 function ProjectsScreen({
 	projects = MOCK_PROJECTS,
 	isEmpty = false,
@@ -172,12 +443,22 @@ function ProjectsScreen({
 	isEmpty?: boolean;
 }) {
 	const [activeFilter, setActiveFilter] = React.useState("all");
+	const [activeProject, setActiveProject] = React.useState<Project | null>(null);
 	const displayProjects = isEmpty ? [] : projects;
 
 	const filteredProjects = React.useMemo(() => {
 		if (activeFilter === "all") return displayProjects;
 		return displayProjects.filter((p) => p.status === activeFilter);
 	}, [activeFilter, displayProjects]);
+
+	if (activeProject) {
+		return (
+			<InlineWorkspace
+				project={activeProject}
+				onBack={() => setActiveProject(null)}
+			/>
+		);
+	}
 
 	return (
 		<View className="bg-background" style={{ minHeight: "100vh", position: "relative" } as any}>
@@ -236,6 +517,7 @@ function ProjectsScreen({
 						<ProjectListItem
 							project={item}
 							isLast={index === filteredProjects.length - 1}
+							onPress={() => setActiveProject(item)}
 						/>
 					)}
 					keyExtractor={(item) => item.id}
