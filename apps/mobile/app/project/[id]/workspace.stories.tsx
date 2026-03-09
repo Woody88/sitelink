@@ -23,7 +23,6 @@ import {
 } from "@/components/ui/collapsible";
 import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
-import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
 import {
@@ -34,6 +33,50 @@ import {
 	EmptyTitle,
 } from "@/components/ui/empty";
 import { cn } from "@/lib/utils";
+
+function StorySegmentedControl({
+	options,
+	selectedIndex,
+	onIndexChange,
+}: {
+	options: string[];
+	selectedIndex: number;
+	onIndexChange: (index: number) => void;
+}) {
+	return (
+		<View
+			className="bg-muted/40 border-border/10 flex-row self-center rounded-full border p-1"
+			style={{ height: 40 }}
+		>
+			{options.map((option, index) => {
+				const isSelected = index === selectedIndex;
+				return (
+					<Pressable
+						key={index}
+						onPress={() => onIndexChange(index)}
+						className={cn(
+							"items-center justify-center rounded-full px-5",
+							isSelected && "bg-foreground/10 border border-white/5",
+						)}
+						style={{ height: 32 }}
+					>
+						<Text
+							className={cn(
+								"text-sm",
+								isSelected
+									? "text-foreground font-semibold"
+									: "text-muted-foreground font-medium",
+							)}
+							numberOfLines={1}
+						>
+							{option}
+						</Text>
+					</Pressable>
+				);
+			})}
+		</View>
+	);
+}
 
 const MOCK_FOLDERS = [
 	{
@@ -324,7 +367,7 @@ function ProjectWorkspace({
 					</Pressable>
 				</View>
 				<View className="items-center pt-3 pb-4">
-					<SegmentedControl
+					<StorySegmentedControl
 						options={["Plans", "Media", "Activity"]}
 						selectedIndex={activeView === "plans" ? 0 : activeView === "media" ? 1 : 2}
 						onIndexChange={(index) => {
