@@ -8,6 +8,7 @@ import {
 	Maximize,
 	Plus,
 	ScanLine,
+	TableProperties,
 	X,
 	ZoomIn,
 	ZoomOut,
@@ -234,6 +235,11 @@ function PlanViewerScreen({
 				{/* Region toggle */}
 				<GlassButton>
 					<Icon as={ScanLine} className="size-5 text-white" />
+				</GlassButton>
+
+				{/* Schedule drawer */}
+				<GlassButton>
+					<Icon as={TableProperties} className="size-5 text-white" />
 				</GlassButton>
 
 				{/* Add marker */}
