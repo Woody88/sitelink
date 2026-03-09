@@ -158,9 +158,11 @@ function MarkerOverlay({
 function MarkerDetailSheet({
 	marker,
 	onClose,
+	onTakePhoto,
 }: {
 	marker: Marker;
 	onClose: () => void;
+	onTakePhoto?: () => void;
 }) {
 	return (
 		<View
@@ -216,7 +218,10 @@ function MarkerDetailSheet({
 					<Icon as={ExternalLink} className="text-foreground size-4" />
 					<Text className="text-foreground text-sm font-semibold">Go to Sheet</Text>
 				</Pressable>
-				<Pressable className="bg-primary flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3">
+				<Pressable
+					onPress={onTakePhoto}
+					className="bg-primary flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3"
+				>
 					<Icon as={Camera} className="text-primary-foreground size-4" />
 					<Text className="text-primary-foreground text-sm font-semibold">Take Photo Here</Text>
 				</Pressable>
@@ -415,9 +420,13 @@ function ScheduleDrawerPanel({ onClose }: { onClose: () => void }) {
 function PlanViewerScreen({
 	initialMarker,
 	initialDrawer = false,
+	onClose,
+	onTakePhoto,
 }: {
 	initialMarker?: string;
 	initialDrawer?: boolean;
+	onClose?: () => void;
+	onTakePhoto?: () => void;
 }) {
 	const [selectedMarkerId, setSelectedMarkerId] = React.useState<string | undefined>(initialMarker);
 	const [showScheduleDrawer, setShowScheduleDrawer] = React.useState(initialDrawer);
@@ -457,7 +466,7 @@ function PlanViewerScreen({
 
 			{/* Close button — top left */}
 			<View style={{ position: "absolute", top: 16, left: 16, zIndex: 20 }}>
-				<GlassButton>
+				<GlassButton onPress={onClose}>
 					<Icon as={X} className="size-5 text-white" strokeWidth={2.5} />
 				</GlassButton>
 			</View>
@@ -550,6 +559,7 @@ function PlanViewerScreen({
 				<MarkerDetailSheet
 					marker={selectedMarker}
 					onClose={() => setSelectedMarkerId(undefined)}
+					onTakePhoto={onTakePhoto}
 				/>
 			)}
 

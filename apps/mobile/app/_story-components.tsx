@@ -980,10 +980,14 @@ const PROCESSING_STAGES: {
 	{ key: "completed", label: "Ready", icon: CheckCircle, color: "#22c55e" },
 ];
 
-export function ProcessingOverlay({ onClose }: { onClose: () => void }) {
-	const [stageIndex, setStageIndex] = React.useState(0);
+export function useProcessingState() {
+	const [stageIndex, setStageIndex] = React.useState(-1);
+	const isProcessing = stageIndex >= 0;
+	const isCompleted =
+		isProcessing && PROCESSING_STAGES[stageIndex]?.key === "completed";
 
 	React.useEffect(() => {
+		if (!isProcessing || isCompleted) return;
 		const timer = setInterval(() => {
 			setStageIndex((prev) => {
 				if (prev >= PROCESSING_STAGES.length - 1) return prev;
@@ -991,7 +995,83 @@ export function ProcessingOverlay({ onClose }: { onClose: () => void }) {
 			});
 		}, 2000);
 		return () => clearInterval(timer);
-	}, []);
+	}, [isProcessing, isCompleted]);
+
+	return {
+		stageIndex,
+		start: () => setStageIndex(0),
+		reset: () => setStageIndex(-1),
+		isProcessing,
+		isCompleted,
+		currentStage: isProcessing ? PROCESSING_STAGES[stageIndex] : null,
+	};
+}
+
+export function ProcessingBanner({
+	stageIndex,
+	onPress,
+}: {
+	stageIndex: number;
+	onPress: () => void;
+}) {
+	const stage = PROCESSING_STAGES[stageIndex];
+	if (!stage) return null;
+	const isCompleted = stage.key === "completed";
+
+	return (
+		<Pressable
+			onPress={onPress}
+			className="mx-4 mb-3 flex-row items-center gap-3 rounded-xl px-4 py-3 active:opacity-80"
+			style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
+		>
+			<View
+				className="items-center justify-center rounded-full"
+				style={{
+					width: 28,
+					height: 28,
+					backgroundColor: stage.color + "20",
+				}}
+			>
+				<Icon
+					as={stage.icon}
+					style={{ color: stage.color }}
+					className="size-4"
+				/>
+			</View>
+			<View className="flex-1">
+				<Text className="text-foreground text-sm font-semibold">
+					{isCompleted ? "Plan Ready" : "Processing Plan..."}
+				</Text>
+				<Text className="text-muted-foreground text-xs">
+					{stage.label}
+				</Text>
+			</View>
+			<Icon as={ChevronRight} className="text-muted-foreground size-4" />
+		</Pressable>
+	);
+}
+
+export function ProcessingOverlay({
+	onClose,
+	stageIndex: externalStageIndex,
+}: {
+	onClose: () => void;
+	stageIndex?: number;
+}) {
+	const [internalStageIndex, setInternalStageIndex] = React.useState(0);
+	const stageIndex =
+		externalStageIndex !== undefined ? externalStageIndex : internalStageIndex;
+
+	React.useEffect(() => {
+		if (externalStageIndex !== undefined) return;
+		const timer = setInterval(() => {
+			setInternalStageIndex((prev) => {
+				if (prev >= PROCESSING_STAGES.length - 1) return prev;
+				return prev + 1;
+			});
+		}, 2000);
+		return () => clearInterval(timer);
+	}, [externalStageIndex]);
 
 	const currentStage = PROCESSING_STAGES[stageIndex];
 	const isCompleted = currentStage.key === "completed";

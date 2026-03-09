@@ -64,11 +64,13 @@ import {
 	CreateProjectOverlay,
 	MembersScreen,
 	NotificationsScreen,
+	ProcessingBanner,
 	ProcessingOverlay,
 	ProfileScreen,
 	ProjectSettingsScreen,
 	StorySegmentedControl,
 	UploadPlanOverlay,
+	useProcessingState,
 } from "./_story-components";
 
 interface Project {
@@ -1506,7 +1508,9 @@ function InlineWorkspace({
 	onNavigate: (screen: Screen) => void;
 }) {
 	const [activeTab, setActiveTab] = React.useState(0);
-	const [modal, setModal] = React.useState<"upload-plan" | "processing" | null>(null);
+	const [modal, setModal] = React.useState<"upload-plan" | null>(null);
+	const processing = useProcessingState();
+	const [showProcessingOverlay, setShowProcessingOverlay] = React.useState(false);
 
 	return (
 		<View
@@ -1557,11 +1561,19 @@ function InlineWorkspace({
 
 			{/* Tab Content */}
 			{activeTab === 0 && (
-				<PlansTab
-					onSheetPress={(sheet) =>
-						onNavigate({ type: "plan-viewer", project, sheet })
-					}
-				/>
+				<>
+					{processing.isProcessing && !showProcessingOverlay && (
+						<ProcessingBanner
+							stageIndex={processing.stageIndex}
+							onPress={() => setShowProcessingOverlay(true)}
+						/>
+					)}
+					<PlansTab
+						onSheetPress={(sheet) =>
+							onNavigate({ type: "plan-viewer", project, sheet })
+						}
+					/>
+				</>
 			)}
 			{activeTab === 1 && (
 				<Empty className="mx-4 mb-4">
@@ -1642,11 +1654,18 @@ function InlineWorkspace({
 			{modal === "upload-plan" && (
 				<UploadPlanOverlay
 					onClose={() => setModal(null)}
-					onDeviceStorage={() => setModal("processing")}
+					onDeviceStorage={() => {
+						setModal(null);
+						processing.start();
+						setShowProcessingOverlay(true);
+					}}
 				/>
 			)}
-			{modal === "processing" && (
-				<ProcessingOverlay onClose={() => setModal(null)} />
+			{showProcessingOverlay && processing.isProcessing && (
+				<ProcessingOverlay
+					onClose={() => setShowProcessingOverlay(false)}
+					stageIndex={processing.stageIndex}
+				/>
 			)}
 		</View>
 	);
