@@ -386,9 +386,7 @@ const meta: Meta<typeof OnboardingFlow> = {
 export default meta;
 type Story = StoryObj<typeof OnboardingFlow>;
 
-export const Welcome: Story = {
-	render: () => <WelcomeScreen onGetStarted={() => {}} />,
-};
+export const Default: Story = {};
 
 export const TrialStart: Story = {
 	render: () => <TrialStartScreen onCreateProject={() => {}} onSkip={() => {}} />,
@@ -397,5 +395,3 @@ export const TrialStart: Story = {
 export const SignUp: Story = {
 	render: () => <SignUpScreen onSignUp={() => {}} />,
 };
-
-export const Flow: Story = {};

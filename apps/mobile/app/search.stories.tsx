@@ -11,6 +11,7 @@ import {
 } from "lucide-react-native";
 import * as React from "react";
 import { Pressable, ScrollView, View } from "react-native";
+import { StoryHeader } from "@/app/_story-components";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
@@ -198,7 +199,7 @@ function SearchResultRow({
 	);
 }
 
-function PlanSearchScreen({ initialQuery = "" }: { initialQuery?: string }) {
+export function PlanSearchScreen({ initialQuery = "", onBack }: { initialQuery?: string; onBack?: () => void }) {
 	const [query, setQuery] = React.useState(initialQuery);
 	const [displayedResults, setDisplayedResults] = React.useState<
 		SearchResult[]
@@ -260,24 +261,16 @@ function PlanSearchScreen({ initialQuery = "" }: { initialQuery?: string }) {
 			className="bg-background flex-1"
 			style={{ minHeight: "100vh" } as any}
 		>
-			<View className="bg-background" style={{ paddingTop: 8 }}>
-				<View className="min-h-[56px] flex-row items-center justify-between px-4">
-					<View style={{ width: 44 }} />
-					<View className="flex-row items-center gap-2 px-2">
-						<Text className="text-foreground text-center text-base leading-tight font-bold">
-							Plan Search
-						</Text>
-						<Badge
-							variant="secondary"
-							className="bg-primary/10 border-transparent"
-						>
-							<Text className="text-primary text-[10px] font-bold">
-								PRO FEATURE
-							</Text>
-						</Badge>
-					</View>
-					<View style={{ width: 44 }} />
-				</View>
+			<StoryHeader title="Plan Search" onBack={onBack} />
+			<View className="px-4 pt-1 pb-2">
+				<Badge
+					variant="secondary"
+					className="bg-primary/10 self-start border-transparent"
+				>
+					<Text className="text-primary text-[10px] font-bold">
+						PRO FEATURE
+					</Text>
+				</Badge>
 			</View>
 
 			<View className="border-border/50 border-b px-4 py-2">

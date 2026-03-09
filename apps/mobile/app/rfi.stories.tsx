@@ -9,7 +9,7 @@ import {
 } from "lucide-react-native";
 import * as React from "react";
 import { ScrollView, View } from "react-native";
-import { StoryHeader } from "@/app/_story-components";
+import { StoryHeader, StoryToast } from "@/app/_story-components";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -240,23 +240,23 @@ function GeneratedRfi() {
 	);
 }
 
-function ActionButtons() {
+function ActionButtons({ onShowToast }: { onShowToast?: (msg: string) => void }) {
 	return (
 		<View className="gap-3 pt-2 pb-4">
-			<Button className="h-12 rounded-xl">
+			<Button className="h-12 rounded-xl" onPress={() => onShowToast?.("Opening editor...")}>
 				<Icon as={Edit2} className="text-primary-foreground mr-2 size-5" />
 				<Text className="text-primary-foreground text-base font-semibold">
 					Edit Draft
 				</Text>
 			</Button>
 			<View className="flex-row gap-3">
-				<Button variant="secondary" className="h-12 flex-1 rounded-xl">
+				<Button variant="secondary" className="h-12 flex-1 rounded-xl" onPress={() => onShowToast?.("RFI copied to clipboard")}>
 					<Icon as={Copy} className="text-secondary-foreground mr-2 size-4" />
 					<Text className="text-secondary-foreground text-sm font-semibold">
 						Copy to Clipboard
 					</Text>
 				</Button>
-				<Button variant="secondary" className="h-12 flex-1 rounded-xl">
+				<Button variant="secondary" className="h-12 flex-1 rounded-xl" onPress={() => onShowToast?.("Share link created")}>
 					<Icon as={Share2} className="text-secondary-foreground mr-2 size-4" />
 					<Text className="text-secondary-foreground text-sm font-semibold">
 						Share
@@ -269,12 +269,15 @@ function ActionButtons() {
 
 type RfiState = "idle" | "loading" | "generated";
 
-function RfiDraftScreen({
+export function RfiDraftScreen({
 	initialState = "idle",
+	onBack,
 }: {
 	initialState?: RfiState;
+	onBack?: () => void;
 }) {
 	const [state, setState] = React.useState<RfiState>(initialState);
+	const [toastMsg, setToastMsg] = React.useState<string | null>(null);
 
 	React.useEffect(() => {
 		if (state !== "loading") return;
@@ -287,7 +290,7 @@ function RfiDraftScreen({
 			className="bg-background flex-1"
 			style={{ minHeight: "100vh" } as any}
 		>
-			<StoryHeader title="Generate RFI" />
+			<StoryHeader title="Generate RFI" onBack={onBack} />
 
 			<View className="px-4 pt-2">
 				<Badge
@@ -332,45 +335,32 @@ function RfiDraftScreen({
 				{state === "generated" && (
 					<>
 						<GeneratedRfi />
-						<ActionButtons />
+						<ActionButtons onShowToast={setToastMsg} />
 					</>
 				)}
 			</ScrollView>
+			<StoryToast
+				message={toastMsg ?? ""}
+				visible={!!toastMsg}
+				onDismiss={() => setToastMsg(null)}
+			/>
 		</View>
 	);
 }
 
-function RfiDraftDefault() {
-	return <RfiDraftScreen initialState="idle" />;
-}
-
-function RfiDraftGenerated() {
-	return <RfiDraftScreen initialState="generated" />;
-}
-
-function RfiDraftFlow() {
-	return <RfiDraftScreen initialState="idle" />;
-}
-
-const meta: Meta<typeof RfiDraftDefault> = {
+const meta: Meta<typeof RfiDraftScreen> = {
 	title: "Screens/RFI Draft",
-	component: RfiDraftDefault,
+	component: RfiDraftScreen,
 	parameters: {
 		layout: "fullscreen",
 	},
 };
 
 export default meta;
-type Story = StoryObj<typeof RfiDraftDefault>;
+type Story = StoryObj<typeof RfiDraftScreen>;
 
-export const Default: Story = {
-	render: () => <RfiDraftDefault />,
-};
+export const Default: Story = {};
 
 export const Generated: Story = {
-	render: () => <RfiDraftGenerated />,
-};
-
-export const Flow: Story = {
-	render: () => <RfiDraftFlow />,
+	args: { initialState: "generated" },
 };

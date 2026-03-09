@@ -64,6 +64,7 @@ import {
 	UploadPlanOverlay,
 	useProcessingState,
 } from "@/app/_story-components";
+import { RfiDraftScreen } from "@/app/rfi.stories";
 
 interface Sheet {
 	id: string;
@@ -316,7 +317,8 @@ type WorkspaceScreen =
 	| { type: "members" }
 	| { type: "plan-viewer"; sheet: Sheet }
 	| { type: "camera" }
-	| { type: "photo-preview"; seed: string; metadata?: PhotoMetadata };
+	| { type: "photo-preview"; seed: string; metadata?: PhotoMetadata }
+	| { type: "rfi"; markerLabel: string };
 
 function PhotoThumbnailStory({
 	seed,
@@ -369,8 +371,10 @@ function PhotoThumbnailStory({
 
 function MediaTabPopulated({
 	onPhotoPress,
+	onGenerateRfi,
 }: {
 	onPhotoPress?: (seed: string, metadata?: PhotoMetadata) => void;
+	onGenerateRfi?: (markerLabel: string) => void;
 }) {
 	return (
 		<ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
@@ -398,7 +402,10 @@ function MediaTabPopulated({
 										</Text>
 									</View>
 									{group.hasIssue && (
-										<Pressable className="bg-primary/10 flex-row items-center gap-1.5 self-start rounded-full px-3 py-1.5 active:opacity-70">
+										<Pressable
+											onPress={() => onGenerateRfi?.(group.markerLabel)}
+											className="bg-primary/10 flex-row items-center gap-1.5 self-start rounded-full px-3 py-1.5 active:opacity-70"
+										>
 											<Icon
 												as={FileText}
 												className="text-primary size-3.5"
@@ -653,12 +660,14 @@ function PlansTab({
 function MediaTab({
 	isEmpty = true,
 	onPhotoPress,
+	onGenerateRfi,
 }: {
 	isEmpty?: boolean;
 	onPhotoPress?: (seed: string, metadata?: PhotoMetadata) => void;
+	onGenerateRfi?: (markerLabel: string) => void;
 }) {
 	if (!isEmpty) {
-		return <MediaTabPopulated onPhotoPress={onPhotoPress} />;
+		return <MediaTabPopulated onPhotoPress={onPhotoPress} onGenerateRfi={onGenerateRfi} />;
 	}
 	return (
 		<Empty className="mx-4 mb-4">
@@ -1876,6 +1885,17 @@ function ProjectWorkspace({
 		);
 	}
 
+	if (screen.type === "rfi") {
+		return (
+			<RfiDraftScreen
+				onBack={() => {
+					setScreen({ type: "workspace" });
+					setActiveView("media");
+				}}
+			/>
+		);
+	}
+
 	return (
 		<View
 			className="bg-background"
@@ -1948,6 +1968,9 @@ function ProjectWorkspace({
 					isEmpty={mediaEmpty}
 					onPhotoPress={(seed, metadata) =>
 						setScreen({ type: "photo-preview", seed, metadata })
+					}
+					onGenerateRfi={(markerLabel) =>
+						setScreen({ type: "rfi", markerLabel })
 					}
 				/>
 			)}
