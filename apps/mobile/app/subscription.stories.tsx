@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import {
-	ArrowLeft,
 	Check,
 	Crown,
 	X,
@@ -10,6 +9,7 @@ import { Pressable, ScrollView, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
+import { StoryHeader } from "./_story-components";
 
 const TIERS = [
 	{
@@ -72,7 +72,7 @@ const TIERS = [
 	},
 ];
 
-function SubscriptionScreen() {
+export function SubscriptionScreen({ onBack }: { onBack?: () => void }) {
 	const [selectedTier, setSelectedTier] = React.useState("Pro");
 
 	return (
@@ -80,18 +80,7 @@ function SubscriptionScreen() {
 			className="bg-background flex-1"
 			style={{ minHeight: "100vh" } as any}
 		>
-			<View className="flex-row items-center justify-between px-4 py-3">
-				<Pressable
-					className="items-center justify-center"
-					style={{ width: 44, height: 44 }}
-				>
-					<Icon as={ArrowLeft} className="text-foreground size-6" />
-				</Pressable>
-				<Text className="text-foreground text-base font-bold">
-					Subscription
-				</Text>
-				<View style={{ width: 44 }} />
-			</View>
+			<StoryHeader title="Subscription" onBack={onBack} />
 
 			<ScrollView contentContainerClassName="px-4 pb-8">
 				<View

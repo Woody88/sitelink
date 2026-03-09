@@ -9,6 +9,7 @@ import {
 	ChevronRight,
 	Clock,
 	Cloud,
+	CreditCard,
 	FileText,
 	HardDrive,
 	ImageIcon,
@@ -128,6 +129,46 @@ export function StoryHeader({
 				) : (
 					<View style={{ width: 44 }} />
 				)}
+			</View>
+		</View>
+	);
+}
+
+export function StoryToast({
+	message,
+	visible,
+	onDismiss,
+}: {
+	message: string;
+	visible: boolean;
+	onDismiss: () => void;
+}) {
+	React.useEffect(() => {
+		if (visible) {
+			const timer = setTimeout(onDismiss, 2000);
+			return () => clearTimeout(timer);
+		}
+	}, [visible, onDismiss]);
+
+	if (!visible) return null;
+
+	return (
+		<View
+			style={{
+				position: "absolute",
+				bottom: 80,
+				left: 16,
+				right: 16,
+				zIndex: 200,
+			}}
+		>
+			<View
+				className="items-center rounded-xl px-5 py-3"
+				style={{ backgroundColor: "rgba(0,0,0,0.85)" }}
+			>
+				<Text className="text-center text-sm font-medium text-white">
+					{message}
+				</Text>
 			</View>
 		</View>
 	);
@@ -363,6 +404,10 @@ export function UploadPlanOverlay({
 }
 
 export function NotificationsScreen({ onBack }: { onBack?: () => void }) {
+	const [readIds, setReadIds] = React.useState<Set<string>>(
+		new Set(["3", "4"]),
+	);
+
 	const notifications = [
 		{
 			id: "1",
@@ -416,50 +461,101 @@ export function NotificationsScreen({ onBack }: { onBack?: () => void }) {
 		}
 	};
 
+	const hasUnread = notifications.some((n) => !readIds.has(n.id));
+
 	return (
 		<View
 			className="bg-background"
 			style={{ minHeight: "100vh" } as any}
 		>
-			<StoryHeader title="Notifications" onBack={onBack} />
+			<StoryHeader
+				title="Notifications"
+				onBack={onBack}
+			/>
 			<ScrollView className="flex-1">
-				<View className="px-4 py-4">
+				<View className="flex-row items-center justify-between px-4 py-4">
 					<Text className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
 						This Week
 					</Text>
+					{hasUnread && (
+						<Pressable
+							onPress={() =>
+								setReadIds(new Set(notifications.map((n) => n.id)))
+							}
+						>
+							<Text className="text-primary text-xs font-semibold">
+								Mark All Read
+							</Text>
+						</Pressable>
+					)}
 				</View>
-				{notifications.map((item) => (
-					<Pressable
-						key={item.id}
-						className="active:bg-muted/30 flex-row gap-4 px-4 py-4"
-					>
-						<View className="bg-muted/20 size-8 items-center justify-center rounded-full">
-							<Icon
-								as={getIcon(item.type)}
-								className={cn("size-4", getColor(item.type))}
-							/>
-						</View>
-						<View className="flex-1 gap-0.5">
-							<View className="flex-row items-start justify-between">
-								<Text className="flex-1 pr-2 text-base leading-tight font-semibold">
-									{item.title}
-								</Text>
-								<Text className="text-muted-foreground mt-0.5 text-xs">
-									{item.time}
+				{notifications.map((item) => {
+					const isRead = readIds.has(item.id);
+					return (
+						<Pressable
+							key={item.id}
+							onPress={() =>
+								setReadIds((prev) => new Set([...prev, item.id]))
+							}
+							className="active:bg-muted/30 flex-row gap-4 px-4 py-4"
+						>
+							{!isRead && (
+								<View
+									className="absolute top-0 bottom-0 left-0"
+									style={{
+										width: 3,
+										backgroundColor: "#3b82f6",
+										borderTopRightRadius: 2,
+										borderBottomRightRadius: 2,
+									}}
+								/>
+							)}
+							<View className="bg-muted/20 size-8 items-center justify-center rounded-full">
+								<Icon
+									as={getIcon(item.type)}
+									className={cn("size-4", getColor(item.type))}
+								/>
+							</View>
+							<View className="flex-1 gap-0.5">
+								<View className="flex-row items-start justify-between">
+									<Text
+										className={cn(
+											"flex-1 pr-2 text-base leading-tight",
+											isRead ? "font-medium" : "font-bold",
+										)}
+									>
+										{item.title}
+									</Text>
+									<Text className="text-muted-foreground mt-0.5 text-xs">
+										{item.time}
+									</Text>
+								</View>
+								<Text
+									className={cn(
+										"text-sm leading-snug",
+										isRead
+											? "text-muted-foreground/60"
+											: "text-muted-foreground",
+									)}
+								>
+									{item.body}
 								</Text>
 							</View>
-							<Text className="text-muted-foreground text-sm leading-snug">
-								{item.body}
-							</Text>
-						</View>
-					</Pressable>
-				))}
+						</Pressable>
+					);
+				})}
 			</ScrollView>
 		</View>
 	);
 }
 
-export function ProfileScreen({ onBack }: { onBack?: () => void }) {
+export function ProfileScreen({
+	onBack,
+	onNavigate,
+}: {
+	onBack?: () => void;
+	onNavigate?: (screen: string) => void;
+}) {
 	const [saved, setSaved] = React.useState(false);
 
 	const handleSave = () => {
@@ -525,7 +621,30 @@ export function ProfileScreen({ onBack }: { onBack?: () => void }) {
 							defaultValue="Smith Electrical LLC"
 						/>
 					</View>
-					<View className="mt-6">
+
+					<Separator />
+
+					<Pressable
+						onPress={() => onNavigate?.("subscription")}
+						className="active:bg-muted/30 flex-row items-center justify-between py-2"
+					>
+						<View className="flex-row items-center gap-3">
+							<View className="bg-muted size-10 items-center justify-center rounded-full">
+								<Icon as={CreditCard} className="text-foreground size-5" />
+							</View>
+							<View>
+								<Text className="text-foreground text-base font-medium">
+									Subscription
+								</Text>
+								<Text className="text-muted-foreground text-sm">
+									Pro Trial · 12 days left
+								</Text>
+							</View>
+						</View>
+						<Icon as={ChevronRight} className="text-muted-foreground size-5" />
+					</Pressable>
+
+					<View className="mt-2">
 						<Button className="h-12 rounded-xl" onPress={handleSave}>
 							<Text className="text-primary-foreground text-base font-semibold">
 								{saved ? "Saved!" : "Save Changes"}

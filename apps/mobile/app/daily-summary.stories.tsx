@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import {
 	AlertTriangle,
-	ArrowLeft,
 	Calendar,
 	Camera,
 	Cloud,
@@ -18,6 +17,7 @@ import { Image, Pressable, ScrollView, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
+import { StoryHeader } from "./_story-components";
 
 const REPORT_TEXT = {
 	workPerformed: [
@@ -49,18 +49,7 @@ function DailySummaryReport() {
 			className="bg-background flex-1"
 			style={{ minHeight: "100vh" } as any}
 		>
-			<View className="flex-row items-center justify-between px-4 py-3">
-				<Pressable
-					className="items-center justify-center"
-					style={{ width: 44, height: 44 }}
-				>
-					<Icon as={ArrowLeft} className="text-foreground size-6" />
-				</Pressable>
-				<Text className="text-foreground text-base font-bold">
-					Daily Summary
-				</Text>
-				<View style={{ width: 44 }} />
-			</View>
+			<StoryHeader title="Daily Summary" />
 
 			<ScrollView className="flex-1" contentContainerClassName="px-4 pb-8">
 				{/* Report Header */}

@@ -3,7 +3,10 @@ import {
 	ArrowRight,
 	Camera,
 	Check,
+	Eye,
+	EyeOff,
 	FileText,
+	FolderOpen,
 	Mic,
 	Search,
 	Shield,
@@ -14,6 +17,8 @@ import * as React from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
 
 function WelcomeScreen({ onGetStarted }: { onGetStarted: () => void }) {
@@ -111,8 +116,10 @@ function WelcomeScreen({ onGetStarted }: { onGetStarted: () => void }) {
 
 function TrialStartScreen({
 	onCreateProject,
+	onSkip,
 }: {
 	onCreateProject: () => void;
+	onSkip: () => void;
 }) {
 	return (
 		<ScrollView
@@ -193,7 +200,7 @@ function TrialStartScreen({
 						/>
 					</View>
 				</Button>
-				<Pressable>
+				<Pressable onPress={onSkip}>
 					<Text className="text-muted-foreground text-center text-sm underline">
 						Skip for now
 					</Text>
@@ -212,11 +219,157 @@ function TrialStartScreen({
 	);
 }
 
+function SignUpScreen({ onSignUp }: { onSignUp: () => void }) {
+	const [name, setName] = React.useState("");
+	const [email, setEmail] = React.useState("");
+	const [password, setPassword] = React.useState("");
+	const [showPassword, setShowPassword] = React.useState(false);
+
+	return (
+		<ScrollView
+			className="bg-background flex-1"
+			contentContainerClassName="px-6 py-12"
+		>
+			<View className="items-center gap-2">
+				<View className="flex-row items-baseline gap-1">
+					<Text className="text-foreground text-2xl font-black tracking-tight">
+						Site
+					</Text>
+					<Text className="text-primary text-2xl font-black tracking-tight">
+						Link
+					</Text>
+				</View>
+			</View>
+
+			<View className="mt-8 items-center gap-2">
+				<Text className="text-foreground text-2xl font-bold">
+					Create Your Account
+				</Text>
+				<Text className="text-muted-foreground text-center text-sm leading-relaxed">
+					Start your 14-day Pro trial today
+				</Text>
+			</View>
+
+			<View className="mt-8 gap-5">
+				<View className="gap-2">
+					<Label nativeID="onboardingName">Full Name</Label>
+					<Input
+						nativeID="onboardingName"
+						className="h-12 rounded-xl"
+						placeholder="John Smith"
+						value={name}
+						onChangeText={setName}
+					/>
+				</View>
+				<View className="gap-2">
+					<Label nativeID="onboardingEmail">Email</Label>
+					<Input
+						nativeID="onboardingEmail"
+						className="h-12 rounded-xl"
+						placeholder="john@company.com"
+						value={email}
+						onChangeText={setEmail}
+						autoCapitalize="none"
+						keyboardType="email-address"
+					/>
+				</View>
+				<View className="gap-2">
+					<Label nativeID="onboardingPassword">Password</Label>
+					<View className="relative">
+						<Input
+							nativeID="onboardingPassword"
+							className="h-12 rounded-xl pr-12"
+							placeholder="Minimum 8 characters"
+							value={password}
+							onChangeText={setPassword}
+							secureTextEntry={!showPassword}
+						/>
+						<Pressable
+							onPress={() => setShowPassword((s) => !s)}
+							className="absolute right-3 top-3"
+						>
+							<Icon
+								as={showPassword ? EyeOff : Eye}
+								className="text-muted-foreground size-5"
+							/>
+						</Pressable>
+					</View>
+				</View>
+			</View>
+
+			<View className="mt-8 gap-4">
+				<Button onPress={onSignUp}>
+					<View className="flex-row items-center gap-2">
+						<Text className="text-primary-foreground font-bold">
+							Create Account
+						</Text>
+						<Icon
+							as={ArrowRight}
+							className="text-primary-foreground size-4"
+						/>
+					</View>
+				</Button>
+				<Text className="text-muted-foreground text-center text-xs leading-relaxed">
+					By signing up you agree to our Terms of Service{"\n"}and Privacy Policy
+				</Text>
+			</View>
+		</ScrollView>
+	);
+}
+
+function EmptyProjectsScreen() {
+	return (
+		<View
+			className="bg-background flex-1"
+			style={{ minHeight: "100vh" } as any}
+		>
+			<View className="flex-row items-center justify-between px-4 py-3">
+				<View style={{ width: 44 }} />
+				<Text className="text-foreground text-lg font-bold">Projects</Text>
+				<View style={{ width: 44 }} />
+			</View>
+
+			<View className="flex-1 items-center justify-center px-8">
+				<View className="bg-muted/20 mb-6 size-20 items-center justify-center rounded-full">
+					<Icon as={FolderOpen} className="text-muted-foreground size-10" />
+				</View>
+				<Text className="text-foreground mb-2 text-xl font-bold">
+					Welcome to SiteLink
+				</Text>
+				<Text className="text-muted-foreground mb-8 text-center text-sm leading-relaxed">
+					Create your first project to start managing construction plans with
+					AI-powered intelligence.
+				</Text>
+				<Button className="h-12 rounded-xl px-8">
+					<Text className="text-primary-foreground text-base font-bold">
+						Create Project
+					</Text>
+				</Button>
+			</View>
+		</View>
+	);
+}
+
 function OnboardingFlow() {
-	const [step, setStep] = React.useState<"welcome" | "trial">("welcome");
+	const [step, setStep] = React.useState<
+		"welcome" | "trial" | "signup" | "projects"
+	>("welcome");
+
+	if (step === "projects") {
+		return <EmptyProjectsScreen />;
+	}
+
+	if (step === "signup") {
+		return <SignUpScreen onSignUp={() => setStep("projects")} />;
+	}
 
 	if (step === "trial") {
-		return <TrialStartScreen onCreateProject={() => setStep("welcome")} />;
+		return (
+			<TrialStartScreen
+				onCreateProject={() => setStep("signup")}
+				onSkip={() => setStep("signup")}
+			/>
+		);
 	}
 
 	return <WelcomeScreen onGetStarted={() => setStep("trial")} />;
@@ -238,7 +391,11 @@ export const Welcome: Story = {
 };
 
 export const TrialStart: Story = {
-	render: () => <TrialStartScreen onCreateProject={() => {}} />,
+	render: () => <TrialStartScreen onCreateProject={() => {}} onSkip={() => {}} />,
+};
+
+export const SignUp: Story = {
+	render: () => <SignUpScreen onSignUp={() => {}} />,
 };
 
 export const Flow: Story = {};

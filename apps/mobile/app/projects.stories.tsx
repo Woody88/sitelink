@@ -72,6 +72,7 @@ import {
 	UploadPlanOverlay,
 	useProcessingState,
 } from "./_story-components";
+import { SubscriptionScreen } from "./subscription.stories";
 
 interface Project {
 	id: string;
@@ -229,6 +230,7 @@ type Screen =
 	| { type: "projects" }
 	| { type: "notifications" }
 	| { type: "profile" }
+	| { type: "subscription" }
 	| { type: "workspace"; project: Project }
 	| { type: "project-settings"; project: Project }
 	| { type: "members"; project: Project }
@@ -1699,8 +1701,19 @@ function ProjectsScreen({
 
 	if (screen.type === "profile") {
 		return (
-			<ProfileScreen onBack={() => setScreen({ type: "projects" })} />
+			<ProfileScreen
+				onBack={() => setScreen({ type: "projects" })}
+				onNavigate={(target) => {
+					if (target === "subscription") {
+						setScreen({ type: "subscription" });
+					}
+				}}
+			/>
 		);
+	}
+
+	if (screen.type === "subscription") {
+		return <SubscriptionScreen onBack={() => setScreen({ type: "profile" })} />;
 	}
 
 	if (screen.type === "workspace" || screen.type === "project-settings" || screen.type === "members" || screen.type === "plan-viewer" || screen.type === "camera") {
@@ -1917,4 +1930,51 @@ export const EmptyState: Story = {
 	args: {
 		isEmpty: true,
 	},
+};
+
+function ProjectsLoading() {
+	return (
+		<View
+			className="bg-background"
+			style={{ minHeight: "100vh" } as any}
+		>
+			<View className="border-border flex-row items-center justify-between border-b px-4 py-3">
+				<View style={{ width: 44, height: 44 }} />
+				<Text className="text-foreground text-lg font-bold">Projects</Text>
+				<View style={{ width: 44, height: 44 }} />
+			</View>
+			<View className="px-4 py-2">
+				<View className="flex-row gap-2">
+					<Skeleton className="h-8 w-12 rounded-full" />
+					<Skeleton className="h-8 w-16 rounded-full" />
+					<Skeleton className="h-8 w-20 rounded-full" />
+				</View>
+			</View>
+			<View className="gap-0">
+				{[1, 2, 3, 4].map((i) => (
+					<View key={i} className="gap-3 px-4 py-5">
+						<View className="flex-row items-start justify-between">
+							<View className="flex-1 gap-2">
+								<Skeleton className="h-5 w-[70%]" />
+								<Skeleton className="h-3.5 w-[55%]" />
+								<Skeleton className="h-3 w-[40%]" />
+							</View>
+							<Skeleton className="h-3 w-10" />
+						</View>
+						{i === 1 && (
+							<View className="flex-row items-center gap-2 pt-2">
+								<Skeleton className="size-2 rounded-full" />
+								<Skeleton className="h-3 w-[45%]" />
+							</View>
+						)}
+						{i < 4 && <Separator className="mt-3" />}
+					</View>
+				))}
+			</View>
+		</View>
+	);
+}
+
+export const Loading: StoryObj<typeof ProjectsLoading> = {
+	render: () => <ProjectsLoading />,
 };

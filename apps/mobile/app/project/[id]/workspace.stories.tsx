@@ -60,6 +60,7 @@ import {
 	ProcessingOverlay,
 	ProjectSettingsScreen,
 	StorySegmentedControl,
+	StoryToast,
 	UploadPlanOverlay,
 	useProcessingState,
 } from "@/app/_story-components";
@@ -675,7 +676,11 @@ function MediaTab({
 	);
 }
 
-function StoryDailySummary() {
+function StoryDailySummary({
+	onViewFullReport,
+}: {
+	onViewFullReport?: () => void;
+}) {
 	const [state, setState] = React.useState<
 		"default" | "loading" | "generated"
 	>("default");
@@ -729,18 +734,34 @@ function StoryDailySummary() {
 								<Text className="text-muted-foreground text-xs">
 									Generated just now
 								</Text>
-								<Pressable
-									onPress={handleGenerate}
-									className="flex-row items-center gap-1.5 p-1 active:opacity-70"
-								>
-									<Icon
-										as={RefreshCcw}
-										className="text-muted-foreground size-3.5"
-									/>
-									<Text className="text-muted-foreground text-xs">
-										Refresh
-									</Text>
-								</Pressable>
+								<View className="flex-row items-center gap-3">
+									{onViewFullReport && (
+										<Pressable
+											onPress={onViewFullReport}
+											className="flex-row items-center gap-1.5 p-1 active:opacity-70"
+										>
+											<Icon
+												as={ExternalLink}
+												className="text-primary size-3.5"
+											/>
+											<Text className="text-primary text-xs font-medium">
+												View Full Report
+											</Text>
+										</Pressable>
+									)}
+									<Pressable
+										onPress={handleGenerate}
+										className="flex-row items-center gap-1.5 p-1 active:opacity-70"
+									>
+										<Icon
+											as={RefreshCcw}
+											className="text-muted-foreground size-3.5"
+										/>
+										<Text className="text-muted-foreground text-xs">
+											Refresh
+										</Text>
+									</Pressable>
+								</View>
 							</View>
 						</View>
 					) : (
@@ -775,27 +796,57 @@ function StoryDailySummary() {
 	);
 }
 
-function ActivityTab({ onManagePress }: { onManagePress?: () => void }) {
+function ActivityTab({
+	onManagePress,
+	onShowToast,
+	onViewFullReport,
+}: {
+	onManagePress?: () => void;
+	onShowToast?: (msg: string) => void;
+	onViewFullReport?: () => void;
+}) {
+	const [offlineDownloaded, setOfflineDownloaded] = React.useState(false);
 	return (
 		<ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
 			<View className="gap-6 p-4">
-				<StoryDailySummary />
+				<StoryDailySummary onViewFullReport={onViewFullReport} />
 
 				<View>
 					<Text className="text-foreground mb-3 text-lg font-bold">
 						Quick Actions
 					</Text>
 					<View className="flex-row gap-2">
-						<Pressable className="bg-muted/20 flex-1 items-center justify-center rounded-full px-3 py-2 active:opacity-70">
+						<Pressable
+							onPress={() =>
+								onShowToast?.("Report link copied to clipboard")
+							}
+							className="bg-muted/20 flex-1 items-center justify-center rounded-full px-3 py-2 active:opacity-70"
+						>
 							<Icon as={Share2} className="text-foreground mb-1 size-4" />
 							<Text className="text-foreground text-center text-[11px] leading-tight font-medium">
-								Share
+								Share Report
 							</Text>
 						</Pressable>
-						<Pressable className="bg-muted/20 flex-1 items-center justify-center rounded-full px-3 py-2 active:opacity-70">
-							<Icon as={Download} className="text-foreground mb-1 size-4" />
+						<Pressable
+							onPress={() => {
+								if (!offlineDownloaded) {
+									setOfflineDownloaded(true);
+									onShowToast?.("Project available offline");
+								}
+							}}
+							className="bg-muted/20 flex-1 items-center justify-center rounded-full px-3 py-2 active:opacity-70"
+						>
+							<Icon
+								as={offlineDownloaded ? Check : Download}
+								className={cn(
+									"mb-1 size-4",
+									offlineDownloaded
+										? "text-green-500"
+										: "text-foreground",
+								)}
+							/>
 							<Text className="text-foreground text-center text-[11px] leading-tight font-medium">
-								Offline
+								{offlineDownloaded ? "Available Offline" : "Offline"}
 							</Text>
 						</Pressable>
 					</View>
@@ -899,10 +950,18 @@ function InlinePlanViewer({
 }) {
 	const [selectedMarkerId, setSelectedMarkerId] = React.useState<string>();
 	const [showScheduleDrawer, setShowScheduleDrawer] = React.useState(false);
+	const [toastMsg, setToastMsg] = React.useState<string | null>(null);
 
 	const selectedMarker = selectedMarkerId
 		? MOCK_MARKERS.find((m) => m.id === selectedMarkerId)
 		: undefined;
+
+	const handleGoToSheet = () => {
+		const refSheet =
+			selectedMarker?.description.match(/Sheet (S\d+\.\d+)/)?.[1] ?? "S2.0";
+		setToastMsg(`Navigate to Sheet ${refSheet}`);
+		setSelectedMarkerId(undefined);
+	};
 
 	return (
 		<View
@@ -1157,6 +1216,7 @@ function InlinePlanViewer({
 					</Text>
 					<View className="flex-row gap-3">
 						<Pressable
+							onPress={handleGoToSheet}
 							className="flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3"
 							style={{ backgroundColor: "rgba(255,255,255,0.08)" }}
 						>
@@ -1177,6 +1237,12 @@ function InlinePlanViewer({
 					</View>
 				</View>
 			)}
+
+			<StoryToast
+				message={toastMsg ?? ""}
+				visible={!!toastMsg}
+				onDismiss={() => setToastMsg(null)}
+			/>
 
 			{showScheduleDrawer && (
 				<View
@@ -1765,6 +1831,7 @@ function ProjectWorkspace({
 	const processing = useProcessingState();
 	const [showProcessingOverlay, setShowProcessingOverlay] =
 		React.useState(false);
+	const [toastMsg, setToastMsg] = React.useState<string | null>(null);
 
 	if (screen.type === "project-settings") {
 		return (
@@ -1817,6 +1884,7 @@ function ProjectWorkspace({
 			<View className="bg-background" style={{ paddingTop: 8 }}>
 				<View className="min-h-[56px] flex-row items-center justify-between px-4">
 					<Pressable
+						onPress={() => setToastMsg("Back to Projects")}
 						className="-ml-1 items-center justify-center"
 						style={{ width: 44, height: 44 }}
 					>
@@ -1886,6 +1954,10 @@ function ProjectWorkspace({
 			{activeView === "activity" && (
 				<ActivityTab
 					onManagePress={() => setScreen({ type: "members" })}
+					onShowToast={setToastMsg}
+					onViewFullReport={() =>
+						setToastMsg("Navigate to Daily Summary Report")
+					}
 				/>
 			)}
 
@@ -1932,6 +2004,11 @@ function ProjectWorkspace({
 					stageIndex={processing.stageIndex}
 				/>
 			)}
+			<StoryToast
+				message={toastMsg ?? ""}
+				visible={!!toastMsg}
+				onDismiss={() => setToastMsg(null)}
+			/>
 		</View>
 	);
 }
@@ -1961,4 +2038,174 @@ export const MediaEmptyView: Story = {
 
 export const ActivityView: Story = {
 	args: { initialTab: "activity" },
+};
+
+function PlansEmptyState() {
+	return (
+		<View
+			className="bg-background"
+			style={{ minHeight: "100vh", position: "relative" } as any}
+		>
+			<View className="bg-background" style={{ paddingTop: 8 }}>
+				<View className="min-h-[56px] flex-row items-center justify-between px-4">
+					<View style={{ width: 44, height: 44 }} />
+					<Text className="text-foreground text-base font-bold">
+						Holabird Ave Warehouse
+					</Text>
+					<View style={{ width: 44, height: 44 }} />
+				</View>
+				<View className="items-center pt-3 pb-4">
+					<StorySegmentedControl
+						options={["Plans", "Media", "Activity"]}
+						selectedIndex={0}
+						onIndexChange={() => {}}
+					/>
+				</View>
+			</View>
+			<Empty className="mx-4 mb-4">
+				<EmptyHeader>
+					<EmptyMedia variant="icon">
+						<Icon as={FileText} className="text-muted-foreground size-8" />
+					</EmptyMedia>
+					<EmptyTitle>No Plans Yet</EmptyTitle>
+					<EmptyDescription>
+						Upload your first construction plan to get started with AI-powered
+						detection and search.
+					</EmptyDescription>
+				</EmptyHeader>
+			</Empty>
+		</View>
+	);
+}
+
+export const PlansEmpty: StoryObj<typeof PlansEmptyState> = {
+	render: () => <PlansEmptyState />,
+};
+
+function ActivityEmptyState() {
+	return (
+		<View
+			className="bg-background"
+			style={{ minHeight: "100vh", position: "relative" } as any}
+		>
+			<View className="bg-background" style={{ paddingTop: 8 }}>
+				<View className="min-h-[56px] flex-row items-center justify-between px-4">
+					<View style={{ width: 44, height: 44 }} />
+					<Text className="text-foreground text-base font-bold">
+						Holabird Ave Warehouse
+					</Text>
+					<View style={{ width: 44, height: 44 }} />
+				</View>
+				<View className="items-center pt-3 pb-4">
+					<StorySegmentedControl
+						options={["Plans", "Media", "Activity"]}
+						selectedIndex={2}
+						onIndexChange={() => {}}
+					/>
+				</View>
+			</View>
+			<Empty className="mx-4 mb-4">
+				<EmptyHeader>
+					<EmptyMedia variant="icon">
+						<Icon as={Layers} className="text-muted-foreground size-8" />
+					</EmptyMedia>
+					<EmptyTitle>No Activity Yet</EmptyTitle>
+					<EmptyDescription>
+						Activity will appear here as your team works on this project.
+					</EmptyDescription>
+				</EmptyHeader>
+			</Empty>
+		</View>
+	);
+}
+
+export const ActivityEmpty: StoryObj<typeof ActivityEmptyState> = {
+	render: () => <ActivityEmptyState />,
+};
+
+function WorkspaceLoading() {
+	return (
+		<View
+			className="bg-background"
+			style={{ minHeight: "100vh", position: "relative" } as any}
+		>
+			<View className="bg-background" style={{ paddingTop: 8 }}>
+				<View className="min-h-[56px] flex-row items-center justify-between px-4">
+					<View style={{ width: 44, height: 44 }} />
+					<View className="items-center">
+						<Skeleton className="mb-1 h-4 w-40" />
+						<Skeleton className="h-3 w-48" />
+					</View>
+					<View style={{ width: 44, height: 44 }} />
+				</View>
+				<View className="items-center pt-3 pb-4">
+					<Skeleton className="h-10 w-64 rounded-full" />
+				</View>
+			</View>
+			<View className="gap-4 px-4">
+				{[1, 2].map((i) => (
+					<View key={i}>
+						<Skeleton className="mb-2 h-12 w-full rounded-xl" />
+						<View className="gap-1">
+							{[1, 2, 3].map((j) => (
+								<View key={j} className="flex-row items-center gap-4 px-2 py-3">
+									<Skeleton className="size-10 rounded-lg" />
+									<View className="flex-1 gap-1">
+										<Skeleton className="h-4 w-16" />
+										<Skeleton className="h-3 w-32" />
+									</View>
+								</View>
+							))}
+						</View>
+					</View>
+				))}
+			</View>
+		</View>
+	);
+}
+
+export const Loading: StoryObj<typeof WorkspaceLoading> = {
+	render: () => <WorkspaceLoading />,
+};
+
+function MediaLoading() {
+	return (
+		<View
+			className="bg-background"
+			style={{ minHeight: "100vh", position: "relative" } as any}
+		>
+			<View className="bg-background" style={{ paddingTop: 8 }}>
+				<View className="min-h-[56px] flex-row items-center justify-between px-4">
+					<View style={{ width: 44, height: 44 }} />
+					<Text className="text-foreground text-base font-bold">
+						Holabird Ave Warehouse
+					</Text>
+					<View style={{ width: 44, height: 44 }} />
+				</View>
+				<View className="items-center pt-3 pb-4">
+					<StorySegmentedControl
+						options={["Plans", "Media", "Activity"]}
+						selectedIndex={1}
+						onIndexChange={() => {}}
+					/>
+				</View>
+			</View>
+			<View className="p-4">
+				<Skeleton className="mb-4 h-5 w-16" />
+				<View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+					{[1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
+						<Skeleton
+							key={i}
+							className="rounded-xl"
+							style={{ width: "31%", aspectRatio: 1 }}
+						/>
+					))}
+				</View>
+			</View>
+		</View>
+	);
+}
+
+export const MediaLoadingView: StoryObj<typeof MediaLoading> = {
+	render: () => <MediaLoading />,
 };
