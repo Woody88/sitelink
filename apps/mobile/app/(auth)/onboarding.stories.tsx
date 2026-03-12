@@ -15,6 +15,10 @@ import {
 } from "lucide-react-native";
 import * as React from "react";
 import { Pressable, ScrollView, View } from "react-native";
+import {
+	CreateProjectOverlay,
+	StoryToast,
+} from "@/app/_story-components";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
@@ -223,6 +227,7 @@ function SignUpScreen({ onSignUp }: { onSignUp: () => void }) {
 	const [name, setName] = React.useState("");
 	const [email, setEmail] = React.useState("");
 	const [password, setPassword] = React.useState("");
+	const [orgName, setOrgName] = React.useState("");
 	const [showPassword, setShowPassword] = React.useState(false);
 
 	return (
@@ -250,7 +255,28 @@ function SignUpScreen({ onSignUp }: { onSignUp: () => void }) {
 				</Text>
 			</View>
 
-			<View className="mt-8 gap-5">
+			<View className="mt-8 gap-3">
+				<Button variant="outline" onPress={onSignUp}>
+					<Text className="text-foreground font-medium">
+						Continue with Google
+					</Text>
+				</Button>
+				<Button variant="outline" onPress={onSignUp}>
+					<Text className="text-foreground font-medium">
+						Continue with Microsoft
+					</Text>
+				</Button>
+			</View>
+
+			<View className="my-6 flex-row items-center gap-4">
+				<View className="bg-border h-px flex-1" />
+				<Text className="text-muted-foreground text-xs uppercase tracking-wider">
+					or
+				</Text>
+				<View className="bg-border h-px flex-1" />
+			</View>
+
+			<View className="gap-5">
 				<View className="gap-2">
 					<Label nativeID="onboardingName">Full Name</Label>
 					<Input
@@ -295,6 +321,16 @@ function SignUpScreen({ onSignUp }: { onSignUp: () => void }) {
 						</Pressable>
 					</View>
 				</View>
+				<View className="gap-2">
+					<Label nativeID="onboardingOrg">Organization Name</Label>
+					<Input
+						nativeID="onboardingOrg"
+						className="h-12 rounded-xl"
+						placeholder="Acme Construction"
+						value={orgName}
+						onChangeText={setOrgName}
+					/>
+				</View>
 			</View>
 
 			<View className="mt-8 gap-4">
@@ -317,7 +353,7 @@ function SignUpScreen({ onSignUp }: { onSignUp: () => void }) {
 	);
 }
 
-function EmptyProjectsScreen() {
+function EmptyProjectsScreen({ onCreateProject }: { onCreateProject?: () => void }) {
 	return (
 		<View
 			className="bg-background flex-1"
@@ -340,7 +376,7 @@ function EmptyProjectsScreen() {
 					Create your first project to start managing construction plans with
 					AI-powered intelligence.
 				</Text>
-				<Button className="h-12 rounded-xl px-8">
+				<Button className="h-12 rounded-xl px-8" onPress={onCreateProject}>
 					<Text className="text-primary-foreground text-base font-bold">
 						Create Project
 					</Text>
@@ -350,13 +386,74 @@ function EmptyProjectsScreen() {
 	);
 }
 
+function OnboardingWorkspace({ projectName }: { projectName: string }) {
+	return (
+		<View
+			className="bg-background flex-1"
+			style={{ minHeight: "100vh" } as any}
+		>
+			<View className="flex-row items-center justify-between px-4 py-3">
+				<View style={{ width: 44 }} />
+				<Text className="text-foreground text-base font-bold" numberOfLines={1}>
+					{projectName}
+				</Text>
+				<View style={{ width: 44 }} />
+			</View>
+			<View className="flex-1 items-center justify-center px-8">
+				<View className="bg-primary/15 mb-4 size-16 items-center justify-center rounded-full">
+					<Icon as={Check} className="text-primary size-8" />
+				</View>
+				<Text className="text-foreground mb-2 text-xl font-bold">
+					{"You're All Set!"}
+				</Text>
+				<Text className="text-muted-foreground text-center text-sm leading-relaxed">
+					Your project is ready. Upload a plan to get started with
+					AI-powered callout detection and schedule extraction.
+				</Text>
+			</View>
+		</View>
+	);
+}
+
 function OnboardingFlow() {
 	const [step, setStep] = React.useState<
-		"welcome" | "trial" | "signup" | "projects"
+		"welcome" | "trial" | "signup" | "projects" | "create-project" | "workspace"
 	>("welcome");
+	const [toastMsg, setToastMsg] = React.useState("");
+	const [createdProjectName, setCreatedProjectName] = React.useState("");
+
+	if (step === "workspace") {
+		return (
+			<View className="flex-1" style={{ position: "relative" } as any}>
+				<OnboardingWorkspace projectName={createdProjectName} />
+				<StoryToast message={toastMsg} visible={!!toastMsg} onDismiss={() => setToastMsg("")} />
+			</View>
+		);
+	}
+
+	if (step === "create-project") {
+		return (
+			<View className="flex-1" style={{ position: "relative" } as any}>
+				<EmptyProjectsScreen />
+				<CreateProjectOverlay
+					onClose={() => setStep("projects")}
+					onCreated={(data) => {
+						setCreatedProjectName(data.name);
+						setToastMsg("Project created! Welcome to SiteLink");
+						setStep("workspace");
+					}}
+				/>
+			</View>
+		);
+	}
 
 	if (step === "projects") {
-		return <EmptyProjectsScreen />;
+		return (
+			<View className="flex-1" style={{ position: "relative" } as any}>
+				<EmptyProjectsScreen onCreateProject={() => setStep("create-project")} />
+				<StoryToast message={toastMsg} visible={!!toastMsg} onDismiss={() => setToastMsg("")} />
+			</View>
+		);
 	}
 
 	if (step === "signup") {

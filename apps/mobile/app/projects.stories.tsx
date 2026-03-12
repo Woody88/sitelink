@@ -69,6 +69,7 @@ import {
 	ProfileScreen,
 	ProjectSettingsScreen,
 	StorySegmentedControl,
+	StoryToast,
 	UploadPlanOverlay,
 	useProcessingState,
 } from "./_story-components";
@@ -1402,7 +1403,7 @@ function InlineCamera({
 	);
 }
 
-function StoryDailySummary() {
+function StoryDailySummary({ onShowToast }: { onShowToast?: (msg: string) => void }) {
 	const [state, setState] = React.useState<
 		"default" | "loading" | "generated"
 	>("default");
@@ -1426,7 +1427,10 @@ function StoryDailySummary() {
 					</Text>
 				</View>
 				{state === "generated" && !isCollapsed && (
-					<Pressable className="bg-foreground/5 flex-row items-center gap-1.5 rounded-full px-3 py-1.5 active:opacity-70">
+					<Pressable
+						onPress={() => onShowToast?.("Report link copied to clipboard")}
+						className="bg-foreground/5 flex-row items-center gap-1.5 rounded-full px-3 py-1.5 active:opacity-70"
+					>
 						<Icon as={ExternalLink} className="text-foreground size-4" />
 						<Text className="text-foreground text-sm font-medium">Share</Text>
 					</Pressable>
@@ -1513,6 +1517,7 @@ function InlineWorkspace({
 	const [modal, setModal] = React.useState<"upload-plan" | null>(null);
 	const processing = useProcessingState();
 	const [showProcessingOverlay, setShowProcessingOverlay] = React.useState(false);
+	const [toastMsg, setToastMsg] = React.useState("");
 
 	return (
 		<View
@@ -1594,19 +1599,25 @@ function InlineWorkspace({
 			{activeTab === 2 && (
 				<ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
 					<View className="gap-6 p-4">
-						<StoryDailySummary />
+						<StoryDailySummary onShowToast={setToastMsg} />
 						<View>
 							<Text className="text-foreground mb-3 text-lg font-bold">
 								Quick Actions
 							</Text>
 							<View className="flex-row gap-2">
-								<Pressable className="bg-muted/20 flex-1 items-center justify-center rounded-full px-3 py-2 active:opacity-70">
+								<Pressable
+									onPress={() => setToastMsg("Report link copied to clipboard")}
+									className="bg-muted/20 flex-1 items-center justify-center rounded-full px-3 py-2 active:opacity-70"
+								>
 									<Icon as={Share2} className="text-foreground mb-1 size-4" />
 									<Text className="text-foreground text-center text-[11px] leading-tight font-medium">
 										Share
 									</Text>
 								</Pressable>
-								<Pressable className="bg-muted/20 flex-1 items-center justify-center rounded-full px-3 py-2 active:opacity-70">
+								<Pressable
+									onPress={() => setToastMsg("Project available offline")}
+									className="bg-muted/20 flex-1 items-center justify-center rounded-full px-3 py-2 active:opacity-70"
+								>
 									<Icon as={Download} className="text-foreground mb-1 size-4" />
 									<Text className="text-foreground text-center text-[11px] leading-tight font-medium">
 										Offline
@@ -1669,6 +1680,7 @@ function InlineWorkspace({
 					stageIndex={processing.stageIndex}
 				/>
 			)}
+			<StoryToast message={toastMsg} visible={!!toastMsg} onDismiss={() => setToastMsg("")} />
 		</View>
 	);
 }
@@ -1684,12 +1696,14 @@ function ProjectsScreen({
 	const [modal, setModal] = React.useState<"create-project" | null>(null);
 	const [activeFilter, setActiveFilter] = React.useState("all");
 	const [darkMode, setDarkMode] = React.useState(false);
-	const displayProjects = isEmpty ? [] : projects;
+	const [projectsList, setProjectsList] = React.useState(() =>
+		isEmpty ? [] : projects,
+	);
 
 	const filteredProjects = React.useMemo(() => {
-		if (activeFilter === "all") return displayProjects;
-		return displayProjects.filter((p) => p.status === activeFilter);
-	}, [activeFilter, displayProjects]);
+		if (activeFilter === "all") return projectsList;
+		return projectsList.filter((p) => p.status === activeFilter);
+	}, [activeFilter, projectsList]);
 
 	if (screen.type === "notifications") {
 		return (
@@ -1907,7 +1921,23 @@ function ProjectsScreen({
 
 			{/* Create Project Overlay */}
 			{modal === "create-project" && (
-				<CreateProjectOverlay onClose={() => setModal(null)} />
+				<CreateProjectOverlay
+					onClose={() => setModal(null)}
+					onCreated={(data) => {
+						const newProject: Project = {
+							id: `proj-${Date.now()}`,
+							name: data.name,
+							address: data.address,
+							status: "active",
+							sheetsCount: 0,
+							membersCount: 1,
+							lastUpdated: "Just now",
+						};
+						setProjectsList((prev) => [newProject, ...prev]);
+						setModal(null);
+						setScreen({ type: "workspace", project: newProject });
+					}}
+				/>
 			)}
 		</View>
 	);

@@ -186,10 +186,14 @@ export function CreateProjectOverlay({
 
 	const handleSubmit = () => {
 		if (!name.trim()) return;
-		onCreated?.({ name, address: address || undefined });
+		const data = { name, address: address || undefined };
 		setName("");
 		setAddress("");
-		onClose();
+		if (onCreated) {
+			onCreated(data);
+		} else {
+			onClose();
+		}
 	};
 
 	return (

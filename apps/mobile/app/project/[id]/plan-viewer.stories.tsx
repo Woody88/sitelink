@@ -420,11 +420,13 @@ function ScheduleDrawerPanel({ onClose }: { onClose: () => void }) {
 function PlanViewerScreen({
 	initialMarker,
 	initialDrawer = false,
+	showMarkers = true,
 	onClose,
 	onTakePhoto,
 }: {
 	initialMarker?: string;
 	initialDrawer?: boolean;
+	showMarkers?: boolean;
 	onClose?: () => void;
 	onTakePhoto?: () => void;
 }) {
@@ -455,7 +457,7 @@ function PlanViewerScreen({
 			/>
 
 			{/* Marker overlays */}
-			{MOCK_MARKERS.map((marker) => (
+			{showMarkers && MOCK_MARKERS.map((marker) => (
 				<MarkerOverlay
 					key={marker.id}
 					marker={marker}
@@ -541,6 +543,7 @@ function PlanViewerScreen({
 							<Icon as={ChevronDown} className="size-3.5 text-white/40" />
 						</Pressable>
 
+						{showMarkers && (
 						<View
 							className="flex-row items-center gap-1.5 rounded-xl px-3 py-2"
 							style={{ backgroundColor: "rgba(245,245,245,0.15)" }}
@@ -550,6 +553,7 @@ function PlanViewerScreen({
 								{MOCK_MARKERS.length}
 							</Text>
 						</View>
+					)}
 					</View>
 				</View>
 			)}
@@ -582,7 +586,11 @@ const meta: Meta<typeof PlanViewerScreen> = {
 export default meta;
 type Story = StoryObj<typeof PlanViewerScreen>;
 
-export const Default: Story = {};
+export const Default: Story = {
+	args: {
+		showMarkers: false,
+	},
+};
 
 export const MarkerSelected: Story = {
 	args: {

@@ -73,7 +73,7 @@ function SignUpInline({
 						<Text>Sign Up</Text>
 					</Button>
 				</View>
-				<View className="flex-row justify-center gap-2">
+				<View className="flex-row items-center justify-center gap-2">
 					<Text variant="muted">Already have an account?</Text>
 					<Button variant="link" disabled={loading} onPress={onSwitchToLogin}>
 						<Text variant="link">Sign In</Text>
@@ -181,7 +181,7 @@ function LoginScreen({
 					</Button>
 				</View>
 
-				<View className="flex-row justify-center gap-2">
+				<View className="flex-row items-center justify-center gap-2">
 					<Text variant="muted">Don&apos;t have an account?</Text>
 					<Button
 						variant="link"

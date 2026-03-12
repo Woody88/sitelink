@@ -9,7 +9,7 @@ import { Pressable, ScrollView, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
-import { StoryHeader } from "./_story-components";
+import { StoryHeader, StoryToast } from "./_story-components";
 
 const TIERS = [
 	{
@@ -74,11 +74,12 @@ const TIERS = [
 
 export function SubscriptionScreen({ onBack }: { onBack?: () => void }) {
 	const [selectedTier, setSelectedTier] = React.useState("Pro");
+	const [toastMsg, setToastMsg] = React.useState("");
 
 	return (
 		<View
 			className="bg-background flex-1"
-			style={{ minHeight: "100vh" } as any}
+			style={{ minHeight: "100vh", position: "relative" } as any}
 		>
 			<StoryHeader title="Subscription" onBack={onBack} />
 
@@ -199,7 +200,7 @@ export function SubscriptionScreen({ onBack }: { onBack?: () => void }) {
 				</View>
 
 				<View className="mt-6 gap-3">
-					<Button>
+					<Button onPress={() => setToastMsg(`Subscribed to ${selectedTier}!`)}>
 						<Text className="text-primary-foreground font-bold">
 							Subscribe to {selectedTier} — ${TIERS.find((t) => t.name === selectedTier)?.price}/mo
 						</Text>
@@ -210,6 +211,7 @@ export function SubscriptionScreen({ onBack }: { onBack?: () => void }) {
 					</Text>
 				</View>
 			</ScrollView>
+			<StoryToast message={toastMsg} visible={!!toastMsg} onDismiss={() => setToastMsg("")} />
 		</View>
 	);
 }

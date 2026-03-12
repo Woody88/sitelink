@@ -17,7 +17,7 @@ import { Image, Pressable, ScrollView, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
-import { StoryHeader } from "./_story-components";
+import { StoryHeader, StoryToast } from "./_story-components";
 
 const REPORT_TEXT = {
 	workPerformed: [
@@ -44,6 +44,8 @@ const REPORT_TEXT = {
 };
 
 function DailySummaryReport() {
+	const [toastMsg, setToastMsg] = React.useState("");
+
 	return (
 		<View
 			className="bg-background flex-1"
@@ -289,23 +291,24 @@ function DailySummaryReport() {
 				className="flex-row items-center justify-around border-t px-4 py-3"
 				style={{ borderColor: "rgba(255,255,255,0.08)" }}
 			>
-				<Pressable className="items-center gap-1">
+				<Pressable className="items-center gap-1" onPress={() => setToastMsg("Report regenerated")}>
 					<Icon as={RefreshCcw} className="text-foreground size-5" />
 					<Text className="text-foreground text-[10px]">Regenerate</Text>
 				</Pressable>
-				<Pressable className="items-center gap-1">
+				<Pressable className="items-center gap-1" onPress={() => setToastMsg("Report copied to clipboard")}>
 					<Icon as={Copy} className="text-foreground size-5" />
 					<Text className="text-foreground text-[10px]">Copy</Text>
 				</Pressable>
-				<Pressable className="items-center gap-1">
+				<Pressable className="items-center gap-1" onPress={() => setToastMsg("Share link created")}>
 					<Icon as={Share2} className="text-foreground size-5" />
 					<Text className="text-foreground text-[10px]">Share</Text>
 				</Pressable>
-				<Pressable className="items-center gap-1">
+				<Pressable className="items-center gap-1" onPress={() => setToastMsg("PDF downloaded")}>
 					<Icon as={Download} className="text-foreground size-5" />
 					<Text className="text-foreground text-[10px]">PDF</Text>
 				</Pressable>
 			</View>
+			<StoryToast message={toastMsg} visible={!!toastMsg} onDismiss={() => setToastMsg("")} />
 		</View>
 	);
 }

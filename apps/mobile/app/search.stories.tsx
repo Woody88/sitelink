@@ -11,7 +11,7 @@ import {
 } from "lucide-react-native";
 import * as React from "react";
 import { Pressable, ScrollView, View } from "react-native";
-import { StoryHeader } from "@/app/_story-components";
+import { StoryHeader, StoryToast } from "@/app/_story-components";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
@@ -155,14 +155,16 @@ function HighlightedSnippet({ text, term }: { text: string; term: string }) {
 function SearchResultRow({
 	item,
 	query,
+	onPress,
 }: {
 	item: SearchResult;
 	query: string;
+	onPress?: () => void;
 }) {
 	const config = TYPE_CONFIG[item.type];
 
 	return (
-		<Pressable className="active:bg-muted/10 flex-row items-center gap-3 px-4 py-3">
+		<Pressable onPress={onPress} className="active:bg-muted/10 flex-row items-center gap-3 px-4 py-3">
 			<View
 				className="size-10 items-center justify-center rounded-lg"
 				style={{ backgroundColor: config.bg }}
@@ -201,6 +203,7 @@ function SearchResultRow({
 
 export function PlanSearchScreen({ initialQuery = "", onBack }: { initialQuery?: string; onBack?: () => void }) {
 	const [query, setQuery] = React.useState(initialQuery);
+	const [toastMsg, setToastMsg] = React.useState("");
 	const [displayedResults, setDisplayedResults] = React.useState<
 		SearchResult[]
 	>(() => {
@@ -362,7 +365,12 @@ export function PlanSearchScreen({ initialQuery = "", onBack }: { initialQuery?:
 							</Text>
 						</View>
 						{displayedResults.map((item) => (
-							<SearchResultRow key={item.id} item={item} query={query} />
+							<SearchResultRow
+								key={item.id}
+								item={item}
+								query={query}
+								onPress={() => setToastMsg(`Opening ${item.title}...`)}
+							/>
 						))}
 					</View>
 				)}
@@ -388,6 +396,7 @@ export function PlanSearchScreen({ initialQuery = "", onBack }: { initialQuery?:
 					</View>
 				)}
 			</ScrollView>
+			<StoryToast message={toastMsg} visible={!!toastMsg} onDismiss={() => setToastMsg("")} />
 		</View>
 	);
 }
