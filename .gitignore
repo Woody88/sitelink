@@ -68,3 +68,7 @@ packages/callout-processor-v6-experimental/validation_results/
 
 # Wrangler local state
 .wrangler/
+
+# Dolt database files (added by bd init)
+.dolt/
+*.db

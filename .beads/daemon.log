@@ -5041,3 +5041,19 @@ time=2026-02-18T13:05:28.081-05:00 level=INFO msg="Git ref change detected: %s" 
 time=2026-02-18T13:05:29.082-05:00 level=INFO msg="Import triggered by file change"
 time=2026-02-18T13:05:29.083-05:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
 time=2026-02-18T13:05:29.083-05:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-03-16T16:05:41.772-04:00 level=INFO msg="Daemon started (interval: %v, auto-commit: %v, auto-push: %v)" !BADKEY=5s !BADKEY=false !BADKEY=false
+time=2026-03-16T16:05:41.773-04:00 level=INFO msg="using database" path=/home/woodson/Code/projects/sitelink/.beads/beads.db
+time=2026-03-16T16:05:41.788-04:00 level=INFO msg="database opened" path=/home/woodson/Code/projects/sitelink/.beads/beads.db freshness_checking=true
+time=2026-03-16T16:05:41.799-04:00 level=INFO msg="Repository fingerprint validated: %s" !BADKEY=b47a2306
+time=2026-03-16T16:05:41.800-04:00 level=INFO msg="starting RPC server" socket=/home/woodson/Code/projects/sitelink/.beads/bd.sock
+time=2026-03-16T16:05:41.802-04:00 level=INFO msg="RPC server ready (socket listening)"
+time=2026-03-16T16:05:41.804-04:00 level=INFO msg="registered in global registry"
+time=2026-03-16T16:05:41.804-04:00 level=INFO msg="Starting %s..." !BADKEY="sync cycle"
+time=2026-03-16T16:05:41.830-04:00 level=INFO msg="Exported to JSONL"
+time=2026-03-16T16:05:43.514-04:00 level=INFO msg="Pulled sync branch %s" !BADKEY=beads-sync
+time=2026-03-16T16:05:43.515-04:00 level=INFO msg="Synced JSONL from sync branch to main repo"
+time=2026-03-16T16:05:43.569-04:00 level=INFO msg="Imported from JSONL"
+time=2026-03-16T16:05:43.588-04:00 level=INFO msg="Sync cycle complete"
+time=2026-03-16T16:05:43.588-04:00 level=INFO msg="monitoring parent process" pid=0
+time=2026-03-16T16:05:43.588-04:00 level=INFO msg="using event-driven mode"
+time=2026-03-16T16:05:43.588-04:00 level=INFO msg="Auto-pull disabled: use 'git pull' manually to sync remote changes"
