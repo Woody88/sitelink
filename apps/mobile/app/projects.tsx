@@ -22,6 +22,8 @@ import { Text } from "@/components/ui/text"
 import { WorkspaceFAB } from "@/components/workspace/camera-fab"
 import { useProject } from "@/context/project-context"
 import { useProjects } from "@/hooks/use-projects"
+import { MOCK_PROJECTS } from "@/lib/mock-data"
+import { isPrototypeMode } from "@/lib/prototype-mode"
 import { useSessionContext } from "@/lib/session-context"
 import { cn } from "@/lib/utils"
 
@@ -115,6 +117,11 @@ const ProjectListItem = React.memo(function ProjectListItem({
 })
 
 export default function ProjectsScreen() {
+  if (isPrototypeMode()) return <PrototypeProjectsScreen />
+  return <LiveProjectsScreen />
+}
+
+function LiveProjectsScreen() {
   const { organizationId, userId, isReady } = useSessionContext()
 
   if (!organizationId || !userId || !isReady) {
@@ -137,6 +144,146 @@ export default function ProjectsScreen() {
   }
 
   return <ProjectsContent organizationId={organizationId} userId={userId} />
+}
+
+function PrototypeProjectsScreen() {
+  const router = useRouter()
+  const { setActiveProjectId } = useProject()
+  const { theme } = useUniwind()
+  const [activeFilter, setActiveFilter] = React.useState("all")
+
+  // Secret 5-tap on title to launch onboarding flow
+  const tapCountRef = React.useRef(0)
+  const tapTimerRef = React.useRef<ReturnType<typeof setTimeout>>()
+  const handleSecretTap = React.useCallback(() => {
+    tapCountRef.current++
+    if (tapTimerRef.current) clearTimeout(tapTimerRef.current)
+    if (tapCountRef.current >= 5) {
+      tapCountRef.current = 0
+      router.push("/(onboarding)/welcome" as any)
+      return
+    }
+    tapTimerRef.current = setTimeout(() => {
+      tapCountRef.current = 0
+    }, 1500)
+  }, [router])
+
+  const projects: Project[] = MOCK_PROJECTS.map((p) => ({
+    id: p.id,
+    name: p.name,
+    address: p.address,
+    sheetCount: p.sheetCount,
+    photoCount: p.photoCount,
+    memberCount: p.memberCount,
+    updatedAt: p.updatedAt,
+    status: p.status as Project["status"],
+  }))
+
+  const toggleTheme = React.useCallback(() => {
+    Appearance.setColorScheme(theme === "dark" ? "light" : "dark")
+  }, [theme])
+
+  const filteredProjects = React.useMemo(() => {
+    if (activeFilter === "all") return projects
+    return projects.filter((p) => p.status === activeFilter)
+  }, [activeFilter, projects])
+
+  const handleProjectPress = React.useCallback(
+    (project: Project) => {
+      setActiveProjectId(project.id)
+      router.push(`/project/${project.id}/` as any)
+    },
+    [setActiveProjectId, router],
+  )
+
+  return (
+    <>
+      <Stack.Screen
+        options={{
+          headerTitle: () => (
+            <Pressable onPress={handleSecretTap}>
+              <Text className="text-foreground text-lg font-bold">Projects</Text>
+            </Pressable>
+          ),
+          headerShown: true,
+          headerShadowVisible: false,
+          headerTitleAlign: "center",
+          headerLeft: () => (
+            <Pressable
+              onPress={() => router.push("/notifications" as any)}
+              className="-ml-2 items-center justify-center"
+              style={{ width: 44, height: 44 }}
+            >
+              <Icon as={Bell} className="text-foreground size-6" />
+            </Pressable>
+          ),
+          headerRight: () => (
+            <View className="flex-row items-center pr-1">
+              <Pressable
+                onPress={() => router.push("/settings" as any)}
+                className="items-center justify-center"
+                style={{ width: 44, height: 44 }}
+              >
+                <Icon as={User} className="text-foreground size-6" />
+              </Pressable>
+              <Pressable
+                onPress={toggleTheme}
+                className="-mr-2 items-center justify-center"
+                style={{ width: 44, height: 44 }}
+              >
+                <Icon as={theme === "dark" ? Sun : Moon} className="text-foreground size-6" />
+              </Pressable>
+            </View>
+          ),
+        }}
+      />
+
+      <View className="bg-background flex-1">
+        <View className="px-4 py-2">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerClassName="gap-2"
+          >
+            <FilterChip
+              label="All"
+              isActive={activeFilter === "all"}
+              onPress={() => setActiveFilter("all")}
+            />
+            <FilterChip
+              label="Active"
+              isActive={activeFilter === "active"}
+              onPress={() => setActiveFilter("active")}
+            />
+            <FilterChip
+              label="Completed"
+              isActive={activeFilter === "completed"}
+              onPress={() => setActiveFilter("completed")}
+            />
+            <FilterChip
+              label="Archived"
+              isActive={activeFilter === "archived"}
+              onPress={() => setActiveFilter("archived")}
+            />
+          </ScrollView>
+        </View>
+
+        <FlatList
+          data={filteredProjects}
+          renderItem={({ item, index }) => (
+            <ProjectListItem
+              project={item}
+              onPress={handleProjectPress}
+              isLast={index === filteredProjects.length - 1}
+            />
+          )}
+          keyExtractor={(item) => item.id}
+        />
+      </View>
+
+      <WorkspaceFAB onPress={() => {}} icon={Plus} />
+    </>
+  )
 }
 
 function ProjectsContent({ organizationId, userId }: { organizationId: string; userId: string }) {
