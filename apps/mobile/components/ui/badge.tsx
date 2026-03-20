@@ -1,36 +1,68 @@
-import { cva, type VariantProps } from "class-variance-authority";
-import * as React from "react";
-import { View, type ViewProps } from "react-native";
-import { cn } from "@/lib/utils";
+import { cva, type VariantProps } from "class-variance-authority"
+import * as React from "react"
+import { View, type ViewProps } from "react-native"
+import { TextClassContext } from "@/components/ui/text"
+import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-	"focus:ring-ring inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none",
-	{
-		variants: {
-			variant: {
-				default:
-					"bg-primary text-primary-foreground hover:bg-primary/80 border-transparent",
-				secondary:
-					"bg-secondary text-secondary-foreground hover:bg-secondary/80 border-transparent",
-				destructive:
-					"bg-destructive text-destructive-foreground hover:bg-destructive/80 border-transparent",
-				outline: "text-foreground",
-			},
-		},
-		defaultVariants: {
-			variant: "default",
-		},
-	},
-);
+  "inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground border-transparent",
+        secondary: "bg-secondary text-secondary-foreground border-transparent",
+        destructive: "bg-destructive border-transparent",
+        outline: "text-foreground",
+        success: "bg-success/15 text-success border-transparent",
+        warning: "bg-warning/15 text-warning border-transparent",
+        info: "bg-info/15 text-info border-transparent",
+        ai: "bg-ai/15 text-ai border-transparent",
+      },
+      size: {
+        sm: "px-2 py-px text-[10px]",
+        default: "px-2.5 py-0.5 text-xs",
+        lg: "px-3 py-1 text-sm",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  },
+)
 
-export interface BadgeProps
-	extends ViewProps,
-		VariantProps<typeof badgeVariants> {}
+const badgeTextVariants = cva("font-semibold", {
+  variants: {
+    variant: {
+      default: "text-primary-foreground",
+      secondary: "text-secondary-foreground",
+      destructive: "text-destructive-foreground",
+      outline: "text-foreground",
+      success: "text-success",
+      warning: "text-warning",
+      info: "text-info",
+      ai: "text-ai",
+    },
+    size: {
+      sm: "text-[10px]",
+      default: "text-xs",
+      lg: "text-sm",
+    },
+  },
+  defaultVariants: {
+    variant: "default",
+    size: "default",
+  },
+})
 
-function Badge({ className, variant, ...props }: BadgeProps) {
-	return (
-		<View className={cn(badgeVariants({ variant }), className)} {...props} />
-	);
+export interface BadgeProps extends ViewProps, VariantProps<typeof badgeVariants> {}
+
+function Badge({ className, variant, size, ...props }: BadgeProps) {
+  return (
+    <TextClassContext.Provider value={badgeTextVariants({ variant, size })}>
+      <View className={cn(badgeVariants({ variant, size }), className)} {...props} />
+    </TextClassContext.Provider>
+  )
 }
 
-export { Badge, badgeVariants };
+export { Badge, badgeVariants }

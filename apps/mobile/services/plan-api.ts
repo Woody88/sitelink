@@ -1,10 +1,10 @@
-import { fetch } from 'expo/fetch'
-import { File } from 'expo-file-system/next'
+import { fetch } from "expo/fetch"
+import { File } from "expo-file-system/next"
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BETTER_AUTH_URL
 
 if (!BACKEND_URL) {
-  throw new Error('EXPO_PUBLIC_BETTER_AUTH_URL is not defined')
+  throw new Error("EXPO_PUBLIC_BETTER_AUTH_URL is not defined")
 }
 
 export interface UploadPlanToBackendOptions {
@@ -22,11 +22,11 @@ export interface UploadPlanResponse {
 }
 
 export async function uploadPlanToBackend(
-  options: UploadPlanToBackendOptions
+  options: UploadPlanToBackendOptions,
 ): Promise<UploadPlanResponse> {
   const { fileUri, fileName, projectId, organizationId, sessionToken } = options
 
-  console.log('[UPLOAD-API] Starting upload:', {
+  console.log("[UPLOAD-API] Starting upload:", {
     fileUri: fileUri?.substring(0, 80),
     fileName,
     projectId,
@@ -36,20 +36,20 @@ export async function uploadPlanToBackend(
 
   const file = new File(fileUri)
   const formData = new FormData()
-  formData.append('file', file as unknown as Blob, fileName)
-  formData.append('fileName', fileName)
-  formData.append('projectId', projectId)
-  formData.append('organizationId', organizationId)
+  formData.append("file", file as unknown as Blob, fileName)
+  formData.append("fileName", fileName)
+  formData.append("projectId", projectId)
+  formData.append("organizationId", organizationId)
 
   const response = await fetch(`${BACKEND_URL}/api/plans/upload`, {
-    method: 'POST',
+    method: "POST",
     headers: {
       Authorization: `Bearer ${sessionToken}`,
     },
     body: formData,
   })
 
-  console.log('[UPLOAD-API] Response status:', response.status)
+  console.log("[UPLOAD-API] Response status:", response.status)
 
   if (!response.ok) {
     const errorText = await response.text()

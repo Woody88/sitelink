@@ -1,191 +1,163 @@
-import { Stack } from "expo-router";
-import * as Updates from "expo-updates";
-import { Camera, Database } from "lucide-react-native";
-import * as React from "react";
+import { Stack, useRouter } from "expo-router"
 import {
-	Alert,
-	NativeModules,
-	Platform,
-	Pressable,
-	ScrollView,
-	View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Button } from "@/components/ui/button";
-import { Icon } from "@/components/ui/icon";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Text } from "@/components/ui/text";
-import { clearLiveStoreDatabase } from "@/lib/clear-database";
+  Bell,
+  Camera,
+  CreditCard,
+  Download,
+  FileText,
+  HelpCircle,
+  Lightbulb,
+  LogOut,
+  Trash2,
+} from "lucide-react-native"
+import * as React from "react"
+import { Platform, ScrollView, View } from "react-native"
+import { Avatar } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import { FormField } from "@/components/ui/form-field"
+import { Icon } from "@/components/ui/icon"
+import { Input } from "@/components/ui/input"
+import { ListRow } from "@/components/ui/list-row"
+import { ListSection } from "@/components/ui/list-section"
+import { Switch } from "@/components/ui/switch"
+import { Text } from "@/components/ui/text"
+import { Toast } from "@/components/ui/toast"
+import { isPrototypeMode } from "@/lib/prototype-mode"
 
-const { DevSettings } = NativeModules;
+export default function SettingsScreen() {
+  if (isPrototypeMode()) return <PrototypeSettingsScreen />
+  return <PrototypeSettingsScreen />
+}
 
-export default function ProfileScreen() {
-	const insets = useSafeAreaInsets();
-	const [isClearing, setIsClearing] = React.useState(false);
+function PrototypeSettingsScreen() {
+  const router = useRouter()
+  const [saved, setSaved] = React.useState(false)
+  const [name, setName] = React.useState("John Smith")
+  const [phone, setPhone] = React.useState("(555) 123-4567")
+  const [company, setCompany] = React.useState("Smith Electrical LLC")
 
-	const handleClearDatabase = React.useCallback(async () => {
-		Alert.alert(
-			"Clear Database",
-			"This will delete all local data and restart the app. The app will resync from the server on next launch.\n\nAre you sure?",
-			[
-				{ text: "Cancel", style: "cancel" },
-				{
-					text: "Clear & Restart",
-					style: "destructive",
-					onPress: async () => {
-						try {
-							setIsClearing(true);
-							const success = await clearLiveStoreDatabase();
-							if (success) {
-								Alert.alert(
-									"Database Cleared",
-									"Local database has been cleared. Please close and restart the app manually.",
-									[
-										{
-											text: "OK",
-											onPress: () => {
-												// In development, use DevSettings to reload
-												if (__DEV__ && DevSettings) {
-													DevSettings.reload();
-												} else {
-													// In production with OTA updates
-													Updates.reloadAsync().catch((err) => {
-														console.error("Failed to reload:", err);
-													});
-												}
-											},
-										},
-									],
-								);
-							} else {
-								Alert.alert("Error", "Failed to clear database");
-								setIsClearing(false);
-							}
-						} catch (error) {
-							console.error("Error clearing database:", error);
-							Alert.alert("Error", "Failed to clear database");
-							setIsClearing(false);
-						}
-					},
-				},
-			],
-		);
-	}, []);
+  const [notifyPlans, setNotifyPlans] = React.useState(true)
+  const [notifyPhotos, setNotifyPhotos] = React.useState(true)
+  const [notifyReports, setNotifyReports] = React.useState(false)
+  const [autoDownload, setAutoDownload] = React.useState(true)
 
-	return (
-		<View className="bg-background flex-1">
-			<Stack.Screen
-				options={{
-					headerTitle: () => (
-						<Text className="text-foreground text-lg font-bold">Profile</Text>
-					),
-					headerShown: true,
-					headerShadowVisible: false,
-					headerTitleAlign: "center",
-				}}
-			/>
+  const handleSave = () => {
+    setSaved(true)
+  }
 
-			<ScrollView
-				className="flex-1"
-				contentContainerClassName="px-6 pb-12"
-				showsVerticalScrollIndicator={false}
-			>
-				{/* Avatar Section */}
-				<View className="items-center pt-4 pb-8">
-					<View className="relative">
-						<View className="bg-primary/10 border-background size-24 items-center justify-center rounded-full border-4">
-							<Text className="text-primary text-3xl font-bold">JS</Text>
-						</View>
-						<Pressable className="bg-secondary border-background absolute right-0 bottom-0 rounded-full border-4 p-2">
-							<Icon as={Camera} className="text-secondary-foreground size-4" />
-						</Pressable>
-					</View>
-				</View>
+  const handleDismissToast = React.useCallback(() => {
+    setSaved(false)
+  }, [])
 
-				{/* Form Section */}
-				<View className="gap-6">
-					<View className="gap-2">
-						<Label nativeID="fullName">Full Name</Label>
-						<Input
-							nativeID="fullName"
-							className="h-12 rounded-xl"
-							defaultValue="John Smith"
-						/>
-					</View>
+  const webMinHeight = Platform.select({
+    web: { minHeight: "100vh" as any },
+    default: undefined,
+  })
 
-					<View className="gap-2">
-						<Label nativeID="email">Email</Label>
-						<Input
-							nativeID="email"
-							className="h-12 rounded-xl opacity-50"
-							defaultValue="john@sitelink.com"
-							editable={false}
-						/>
-						<Text className="text-muted-foreground px-1 text-xs">
-							Email cannot be changed.
-						</Text>
-					</View>
+  return (
+    <View className="bg-background flex-1" style={webMinHeight}>
+      <Stack.Screen
+        options={{
+          headerTitle: () => <Text className="text-foreground text-lg font-bold">Profile</Text>,
+          headerShown: true,
+          headerShadowVisible: false,
+          headerTitleAlign: "center",
+        }}
+      />
 
-					<View className="gap-2">
-						<Label nativeID="phone">Phone Number</Label>
-						<Input
-							nativeID="phone"
-							className="h-12 rounded-xl"
-							defaultValue="(555) 123-4567"
-							keyboardType="phone-pad"
-						/>
-					</View>
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="pb-12"
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="items-center pt-4 pb-6">
+          <View className="relative">
+            <Avatar
+              name="John Smith"
+              size="xl"
+              className="bg-primary/10 border-background border-4"
+            />
+            <View className="bg-secondary border-background absolute right-0 bottom-0 rounded-full border-4 p-2">
+              <Icon as={Camera} className="text-secondary-foreground size-4" />
+            </View>
+          </View>
+        </View>
 
-					<View className="gap-2">
-						<Label nativeID="company">Company</Label>
-						<Input
-							nativeID="company"
-							className="h-12 rounded-xl"
-							defaultValue="Smith Electrical LLC"
-						/>
-					</View>
+        <View className="gap-5 px-4">
+          <FormField label="Full Name" nativeID="settingsName">
+            <Input nativeID="settingsName" size="lg" value={name} onChangeText={setName} />
+          </FormField>
+          <FormField label="Email" nativeID="settingsEmail" hint="Email cannot be changed.">
+            <Input
+              nativeID="settingsEmail"
+              size="lg"
+              defaultValue="john@smithelectrical.com"
+              editable={false}
+            />
+          </FormField>
+          <FormField label="Phone Number" nativeID="settingsPhone">
+            <Input
+              nativeID="settingsPhone"
+              size="lg"
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+            />
+          </FormField>
+          <FormField label="Company" nativeID="settingsCompany">
+            <Input nativeID="settingsCompany" size="lg" value={company} onChangeText={setCompany} />
+          </FormField>
 
-					{/* Save Button - Integrated into scroll view */}
-					<View className="mt-6">
-						<Button className="h-12 rounded-xl">
-							<Text className="text-base font-semibold">Save Changes</Text>
-						</Button>
-					</View>
-				</View>
+          <Button className="h-12 rounded-xl" onPress={handleSave}>
+            <Text className="text-primary-foreground text-base font-semibold">Save Changes</Text>
+          </Button>
+        </View>
 
-				{/* Developer Section - Only show in development */}
-				{__DEV__ && (
-					<View className="border-border mt-12 border-t pt-8">
-						<Text className="text-foreground mb-4 text-lg font-bold">
-							Developer Tools
-						</Text>
+        <ListSection title="Notifications">
+          <ListRow
+            icon={FileText}
+            label="Plan Updates"
+            right={<Switch checked={notifyPlans} onCheckedChange={setNotifyPlans} />}
+          />
+          <ListRow
+            icon={Camera}
+            label="Photo Alerts"
+            right={<Switch checked={notifyPhotos} onCheckedChange={setNotifyPhotos} />}
+          />
+          <ListRow
+            icon={Bell}
+            label="Daily Reports"
+            right={<Switch checked={notifyReports} onCheckedChange={setNotifyReports} />}
+          />
+        </ListSection>
 
-						<View className="gap-3">
-							<View className="gap-2">
-								<Text className="text-muted-foreground px-1 text-sm">
-									Clear local database if you encounter schema mismatch errors
-									(MaterializerHashMismatchError).
-								</Text>
-								<Button
-									variant="destructive"
-									className="h-12 flex-row items-center gap-2 rounded-xl"
-									onPress={handleClearDatabase}
-									disabled={isClearing}
-								>
-									<Icon
-										as={Database}
-										className="text-destructive-foreground size-5"
-									/>
-									<Text className="text-destructive-foreground text-base font-semibold">
-										{isClearing ? "Clearing..." : "Clear Database & Restart"}
-									</Text>
-								</Button>
-							</View>
-						</View>
-					</View>
-				)}
-			</ScrollView>
-		</View>
-	);
+        <ListSection title="Offline">
+          <ListRow
+            icon={Download}
+            label="Auto-download Plans"
+            right={<Switch checked={autoDownload} onCheckedChange={setAutoDownload} />}
+          />
+          <ListRow icon={Trash2} label="Clear Cache" value="128.4 MB" onPress={() => {}} />
+        </ListSection>
+
+        <ListSection title="Account">
+          <ListRow
+            icon={CreditCard}
+            label="Subscription"
+            sublabel="Pro Trial · 12 days left"
+            onPress={() => router.push("/subscription" as any)}
+          />
+          <ListRow icon={HelpCircle} label="Help" onPress={() => router.push("/help" as any)} />
+          <ListRow
+            icon={Lightbulb}
+            label="Feature Request"
+            onPress={() => router.push("/feature-request" as any)}
+          />
+          <ListRow icon={LogOut} label="Sign Out" destructive onPress={() => {}} />
+        </ListSection>
+      </ScrollView>
+
+      <Toast message="Changes saved" visible={saved} onDismiss={handleDismissToast} />
+    </View>
+  )
 }

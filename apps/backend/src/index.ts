@@ -209,11 +209,17 @@ export default {
           }
         }
 
-        const object = await env.R2_BUCKET.get(r2Path, rangeStart !== undefined ? {
-          range: rangeEnd !== undefined
-            ? { offset: rangeStart, length: rangeEnd - rangeStart + 1 }
-            : { offset: rangeStart },
-        } : undefined)
+        const object = await env.R2_BUCKET.get(
+          r2Path,
+          rangeStart !== undefined
+            ? {
+                range:
+                  rangeEnd !== undefined
+                    ? { offset: rangeStart, length: rangeEnd - rangeStart + 1 }
+                    : { offset: rangeStart },
+              }
+            : undefined,
+        )
 
         if (!object) {
           return Response.json({ error: "Not found", path: r2Path }, { status: 404 })
@@ -230,7 +236,8 @@ export default {
 
         if (rangeStart !== undefined) {
           const end = rangeEnd !== undefined ? rangeEnd : object.size - 1
-          const length = rangeEnd !== undefined ? rangeEnd - rangeStart + 1 : object.size - rangeStart
+          const length =
+            rangeEnd !== undefined ? rangeEnd - rangeStart + 1 : object.size - rangeStart
           headers.set("Content-Range", `bytes ${rangeStart}-${end}/${object.size}`)
           headers.set("Content-Length", String(length))
           const response = new Response(object.body, { status: 206, headers })

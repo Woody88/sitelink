@@ -1,0 +1,29 @@
+{
+  "printWidth": 100,
+  "tabWidth": 2,
+  "useTabs": false,
+  "semi": false,
+  "singleQuote": false,
+  "trailingComma": "all",
+  "bracketSpacing": true,
+  "arrowParens": "always",
+  "sortPackageJson": false,
+  "tailwindcss": {
+    "stylesheet": "./apps/mobile/global.css",
+    "functions": ["clsx", "cn"],
+    "preserveWhitespace": true
+  },
+  "ignorePatterns": [
+    "dist",
+    "node_modules",
+    ".bun",
+    ".cache",
+    "coverage",
+    ".git",
+    "*.pen",
+    "storybook-static",
+    "mobileclip2_b.ts",
+    "archive",
+    "tmp"
+  ]
+}

@@ -1,8 +1,8 @@
-import { queryDb } from '@livestore/livestore'
-import { tables } from '@sitelink/domain'
-import { useMemo } from 'react'
-import { useSessionContext } from '@/lib/session-context'
-import { useAppStore } from '@/livestore/store'
+import { queryDb } from "@livestore/livestore"
+import { tables } from "@sitelink/domain"
+import { useMemo } from "react"
+import { useSessionContext } from "@/lib/session-context"
+import { useAppStore } from "@/livestore/store"
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BETTER_AUTH_URL
 
@@ -25,7 +25,7 @@ export interface Sheet {
   maxZoom?: number | null
 }
 
-export type PlanStatus = 'uploaded' | 'processing' | 'completed' | 'failed'
+export type PlanStatus = "uploaded" | "processing" | "completed" | "failed"
 
 export interface SheetFolder {
   id: string
@@ -42,7 +42,7 @@ export function useSheets(projectId: string) {
   const store = useAppStore(organizationId!, sessionToken, sessionId)
 
   const sheets = store.useQuery(
-    queryDb(tables.sheets.where({ projectId }).orderBy('sortOrder', 'asc'))
+    queryDb(tables.sheets.where({ projectId }).orderBy("sortOrder", "asc")),
   )
 
   const plans = store.useQuery(queryDb(tables.plans.where({ projectId })))
@@ -59,14 +59,14 @@ export function useSheets(projectId: string) {
         progress: plan.processingProgress,
       })
       if (plan.fileName) {
-        planNameMap.set(plan.id, plan.fileName.replace(/\.pdf$/i, ''))
+        planNameMap.set(plan.id, plan.fileName.replace(/\.pdf$/i, ""))
       }
     })
 
     const groupedByPlan: Record<string, { planId: string; planName: string; sheets: Sheet[] }> = {}
 
     sheetsArray.forEach((sheet) => {
-      const planName = planNameMap.get(sheet.planId) || sheet.planName || 'Unfiled sheets'
+      const planName = planNameMap.get(sheet.planId) || sheet.planName || "Unfiled sheets"
       const planId = sheet.planId
 
       if (!groupedByPlan[planId]) {
@@ -76,7 +76,7 @@ export function useSheets(projectId: string) {
       // Transform imagePath to full URL
       const transformedSheet = {
         ...sheet,
-        imagePath: sheet.imagePath?.startsWith('/api/')
+        imagePath: sheet.imagePath?.startsWith("/api/")
           ? `${BACKEND_URL}${sheet.imagePath}`
           : sheet.imagePath,
       }
@@ -88,14 +88,14 @@ export function useSheets(projectId: string) {
       ({ planId, planName, sheets: planSheets }) => {
         const planInfo = planStatusMap.get(planId)
         return {
-          id: planName.toLowerCase().replace(/\s+/g, '-'),
+          id: planName.toLowerCase().replace(/\s+/g, "-"),
           planId,
           name: planName,
           sheets: planSheets,
-          status: planInfo?.status ?? 'completed',
+          status: planInfo?.status ?? "completed",
           processingProgress: planInfo?.progress ?? null,
         }
-      }
+      },
     )
 
     return folders

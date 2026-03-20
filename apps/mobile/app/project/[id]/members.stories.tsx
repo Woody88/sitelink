@@ -1,17 +1,17 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { MembersScreen } from "@/app/_story-components";
+import type { Meta, StoryObj } from "@storybook/react"
+import { MembersScreen } from "@/app/_story-components"
 
 function MembersStory() {
-	return <MembersScreen />;
+  return <MembersScreen />
 }
 
 const meta: Meta<typeof MembersStory> = {
-	title: "Screens/Members",
-	component: MembersStory,
-	parameters: { layout: "fullscreen" },
-};
+  title: "Screens/Members",
+  component: MembersStory,
+  parameters: { layout: "fullscreen" },
+}
 
-export default meta;
-type Story = StoryObj<typeof MembersStory>;
+export default meta
+type Story = StoryObj<typeof MembersStory>
 
-export const Default: Story = {};
+export const Default: Story = {}

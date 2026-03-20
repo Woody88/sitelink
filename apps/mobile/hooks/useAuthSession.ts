@@ -1,5 +1,5 @@
 // apps/mobile/hooks/useAuthSession.ts
-import { useSessionContext } from "@/lib/session-context";
+import { useSessionContext } from "@/lib/session-context"
 
 /**
  * Hook for retrieving session token for sync purposes only.
@@ -10,10 +10,10 @@ import { useSessionContext } from "@/lib/session-context";
  * Consider using useSessionContext() directly in new code.
  */
 export function useAuthSession() {
-	const { sessionToken, isPending } = useSessionContext();
+  const { sessionToken, isPending } = useSessionContext()
 
-	return {
-		sessionToken,
-		isLoading: isPending,
-	};
+  return {
+    sessionToken,
+    isLoading: isPending,
+  }
 }

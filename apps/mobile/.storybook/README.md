@@ -25,6 +25,7 @@ The core challenge: `vite-plugin-rnw` sets `resolve.alias: { "react-native": "re
 The `uniwindRewritePlugin()` in `main.ts` solves this with a `transform` hook that rewrites `from "react-native"` to the absolute path of Uniwind's web components **before** Vite analyzes imports. This bypasses the alias entirely.
 
 The transform only applies to:
+
 - App source files (under `apps/mobile/`, excluding `node_modules/`)
 - `@rn-primitives` packages (which also import from `react-native`)
 
@@ -33,6 +34,7 @@ The transform only applies to:
 `storybook.css` provides the Tailwind v4 theme. Colors **must** be in the `@theme` block (not `@layer theme { :root {} }`) for Tailwind v4 to generate utility classes like `bg-primary`.
 
 This file mirrors `global.css` but without:
+
 - `@import "uniwind"` (handled by the transform plugin)
 - `hairlineWidth()` custom function (LightningCSS-specific, not available in browser)
 - Dark mode overrides (avoided to prevent invisible text on white Storybook background)
@@ -43,10 +45,10 @@ Stories go in the same directory as the component with a `.stories.tsx` suffix.
 
 ```tsx
 // components/ui/badge.stories.tsx
-import type { Meta, StoryObj } from "@storybook/react";
-import { View } from "react-native";
-import { Badge } from "./badge";
-import { Text } from "./text";
+import type { Meta, StoryObj } from "@storybook/react"
+import { View } from "react-native"
+import { Badge } from "./badge"
+import { Text } from "./text"
 
 const meta: Meta<typeof Badge> = {
   title: "UI/Badge",
@@ -58,10 +60,10 @@ const meta: Meta<typeof Badge> = {
       </View>
     ),
   ],
-};
+}
 
-export default meta;
-type Story = StoryObj<typeof Badge>;
+export default meta
+type Story = StoryObj<typeof Badge>
 
 export const Default: Story = {
   render: () => (
@@ -69,10 +71,11 @@ export const Default: Story = {
       <Text>Badge</Text>
     </Badge>
   ),
-};
+}
 ```
 
 Key points:
+
 - Import `View`, `Text`, `Pressable` etc. from `react-native` as usual - the transform plugin handles the rewrite
 - Use the same component APIs as in the real app
 - Story files are auto-discovered from `components/**/*.stories.tsx`

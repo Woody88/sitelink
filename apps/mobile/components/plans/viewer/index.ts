@@ -18,8 +18,8 @@
  * ```
  */
 
-export { MarkerDetailSheet, MarkerInfoCard } from "./marker-detail-sheet";
-export { default as OpenSeadragonViewer } from "./openseadragon-viewer";
-export { default, PlanViewer } from "./plan-viewer";
-export { CompactSheetInfo, SheetInfoBar } from "./sheet-info-bar";
-export { ViewerControls, ZoomSlider } from "./viewer-controls";
+export { MarkerDetailSheet, MarkerInfoCard } from "./marker-detail-sheet"
+export { default as OpenSeadragonViewer } from "./openseadragon-viewer"
+export { default, PlanViewer } from "./plan-viewer"
+export { CompactSheetInfo, SheetInfoBar } from "./sheet-info-bar"
+export { ViewerControls, ZoomSlider } from "./viewer-controls"

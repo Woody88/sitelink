@@ -1,164 +1,169 @@
-import React, { useState, useEffect, useRef } from "react";
-import { createRoot } from "react-dom/client";
+import React, { useState, useEffect, useRef } from "react"
+import { createRoot } from "react-dom/client"
 
 interface Metrics {
-  total_reviewed: number;
-  correct: number;
-  false_positives: number;
-  misclassified: number;
-  accuracy: number;
-  false_positive_rate: number;
-  precision_by_class: Record<string, number>;
+  total_reviewed: number
+  correct: number
+  false_positives: number
+  misclassified: number
+  accuracy: number
+  false_positive_rate: number
+  precision_by_class: Record<string, number>
 }
 
 interface Sheet {
-  id: string;
-  sheet_number: string;
-  sheet_type: string | null;
-  sheet_title: string | null;
-  page_number: number;
-  width: number;
-  height: number;
-  image_url: string;
+  id: string
+  sheet_number: string
+  sheet_type: string | null
+  sheet_title: string | null
+  page_number: number
+  width: number
+  height: number
+  image_url: string
 }
 
 interface Entity {
-  id: string;
-  sheet_id: string;
-  class_label: string;
-  ocr_text: string | null;
-  confidence: number | null;
-  bbox_x1: number;
-  bbox_y1: number;
-  bbox_x2: number;
-  bbox_y2: number;
-  identifier: string | null;
-  target_sheet: string | null;
-  sheet_number?: string;
-  yolo_confidence: number | null;
-  ocr_confidence: number | null;
-  detection_method: string | null;
-  standard: string | null;
-  raw_ocr_text: string | null;
-  crop_image_path: string | null;
+  id: string
+  sheet_id: string
+  class_label: string
+  ocr_text: string | null
+  confidence: number | null
+  bbox_x1: number
+  bbox_y1: number
+  bbox_x2: number
+  bbox_y2: number
+  identifier: string | null
+  target_sheet: string | null
+  sheet_number?: string
+  yolo_confidence: number | null
+  ocr_confidence: number | null
+  detection_method: string | null
+  standard: string | null
+  raw_ocr_text: string | null
+  crop_image_path: string | null
 }
 
 interface Provenance {
-  entity: Entity;
+  entity: Entity
   source_location: {
-    sheet_id: string;
-    sheet_number: string;
-    image_url: string;
-    bbox: { x1: number; y1: number; x2: number; y2: number };
-  };
-  references: Entity[];
-  referenced_by: Entity[];
+    sheet_id: string
+    sheet_number: string
+    image_url: string
+    bbox: { x1: number; y1: number; x2: number; y2: number }
+  }
+  references: Entity[]
+  referenced_by: Entity[]
 }
 
 const CLASS_COLORS: Record<string, string> = {
   detail_callout: "#22c55e",
   elevation_callout: "#3b82f6",
   title_callout: "#a855f7",
-};
+}
 
 function App() {
-  const [sheets, setSheets] = useState<Sheet[]>([]);
-  const [selectedSheet, setSelectedSheet] = useState<Sheet | null>(null);
-  const [entities, setEntities] = useState<Entity[]>([]);
-  const [selectedEntity, setSelectedEntity] = useState<Entity | null>(null);
-  const [provenance, setProvenance] = useState<Provenance | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [retraining, setRetraining] = useState(false);
-  const [detecting, setDetecting] = useState(false);
-  const [metrics, setMetrics] = useState<Metrics | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [scale, setScale] = useState(1);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [useYOLO, setUseYOLO] = useState(true);
-  const [showLowConfidence, setShowLowConfidence] = useState(true);
-  const [confThreshold, setConfThreshold] = useState(0.1);
+  const [sheets, setSheets] = useState<Sheet[]>([])
+  const [selectedSheet, setSelectedSheet] = useState<Sheet | null>(null)
+  const [entities, setEntities] = useState<Entity[]>([])
+  const [selectedEntity, setSelectedEntity] = useState<Entity | null>(null)
+  const [provenance, setProvenance] = useState<Provenance | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
+  const [retraining, setRetraining] = useState(false)
+  const [detecting, setDetecting] = useState(false)
+  const [metrics, setMetrics] = useState<Metrics | null>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [scale, setScale] = useState(1)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [useYOLO, setUseYOLO] = useState(true)
+  const [showLowConfidence, setShowLowConfidence] = useState(true)
+  const [confThreshold, setConfThreshold] = useState(0.1)
 
   useEffect(() => {
-    fetchSheets();
-    fetchMetrics();
-  }, []);
+    fetchSheets()
+    fetchMetrics()
+  }, [])
 
   useEffect(() => {
     if (selectedSheet) {
-      fetchEntities(selectedSheet.id);
+      fetchEntities(selectedSheet.id)
     }
-  }, [selectedSheet]);
+  }, [selectedSheet])
 
   useEffect(() => {
     if (selectedSheet && entities.length >= 0) {
-      drawSheetWithCallouts();
+      drawSheetWithCallouts()
     }
-  }, [selectedSheet, entities, selectedEntity, scale, showLowConfidence, confThreshold]);
+  }, [selectedSheet, entities, selectedEntity, scale, showLowConfidence, confThreshold])
 
   useEffect(() => {
     if (selectedEntity) {
-      fetchProvenance(selectedEntity.id);
+      fetchProvenance(selectedEntity.id)
     } else {
-      setProvenance(null);
+      setProvenance(null)
     }
-  }, [selectedEntity]);
+  }, [selectedEntity])
 
   async function fetchSheets() {
-    const res = await fetch("/api/sheets");
-    const data = await res.json() as { sheets: Sheet[] };
-    setSheets(data.sheets);
+    const res = await fetch("/api/sheets")
+    const data = (await res.json()) as { sheets: Sheet[] }
+    setSheets(data.sheets)
     if (data.sheets.length > 0) {
-      setSelectedSheet(data.sheets[0]!);
+      setSelectedSheet(data.sheets[0]!)
     }
-    setLoading(false);
+    setLoading(false)
   }
 
   async function fetchMetrics() {
-    const res = await fetch("/api/metrics");
-    const data = await res.json() as Metrics;
-    setMetrics(data);
+    const res = await fetch("/api/metrics")
+    const data = (await res.json()) as Metrics
+    setMetrics(data)
   }
 
   async function handleUpload(file: File) {
-    setUploading(true);
+    setUploading(true)
     try {
-      const formData = new FormData();
-      formData.append("pdf", file);
+      const formData = new FormData()
+      formData.append("pdf", file)
 
-      const endpoint = useYOLO ? "/api/detect" : "/api/upload";
+      const endpoint = useYOLO ? "/api/detect" : "/api/upload"
 
       if (useYOLO) {
-        formData.append("options", JSON.stringify({
-          dpi: 300,
-          confThreshold: confThreshold,
-        }));
+        formData.append(
+          "options",
+          JSON.stringify({
+            dpi: 300,
+            confThreshold: confThreshold,
+          }),
+        )
       }
 
       const res = await fetch(endpoint, {
         method: "POST",
         body: formData,
-      });
+      })
 
-      const result = await res.json();
+      const result = await res.json()
       if (result.success) {
-        const methodLabel = useYOLO ? "YOLO" : "Legacy";
-        alert(`Processed ${result.pdf_name} (${methodLabel}):\n- ${result.sheets_created} sheets\n- ${result.entities_found} entities\n- ${result.needs_review ?? 0} need review\n- ${result.relationships_created} relationships`);
-        fetchSheets();
-        fetchMetrics();
+        const methodLabel = useYOLO ? "YOLO" : "Legacy"
+        alert(
+          `Processed ${result.pdf_name} (${methodLabel}):\n- ${result.sheets_created} sheets\n- ${result.entities_found} entities\n- ${result.needs_review ?? 0} need review\n- ${result.relationships_created} relationships`,
+        )
+        fetchSheets()
+        fetchMetrics()
       } else {
-        alert(`Error: ${result.error}\n${result.details || ""}`);
+        alert(`Error: ${result.error}\n${result.details || ""}`)
       }
     } catch (error) {
-      alert(`Upload failed: ${error}`);
+      alert(`Upload failed: ${error}`)
     }
-    setUploading(false);
+    setUploading(false)
   }
 
   async function handleDetectSheet() {
-    if (!selectedSheet) return;
+    if (!selectedSheet) return
 
-    setDetecting(true);
+    setDetecting(true)
     try {
       const res = await fetch(`/api/sheets/${selectedSheet.id}/detect`, {
         method: "POST",
@@ -166,158 +171,167 @@ function App() {
         body: JSON.stringify({
           confThreshold: confThreshold,
         }),
-      });
+      })
 
-      const result = await res.json();
+      const result = await res.json()
       if (result.success) {
-        alert(`Detected ${result.entities_detected} entities on sheet ${result.sheet_number}`);
-        fetchEntities(selectedSheet.id);
+        alert(`Detected ${result.entities_detected} entities on sheet ${result.sheet_number}`)
+        fetchEntities(selectedSheet.id)
       } else {
-        alert(`Error: ${result.error}\n${result.details || ""}`);
+        alert(`Error: ${result.error}\n${result.details || ""}`)
       }
     } catch (error) {
-      alert(`Detection failed: ${error}`);
+      alert(`Detection failed: ${error}`)
     }
-    setDetecting(false);
+    setDetecting(false)
   }
 
   async function handleRetrain() {
-    if (!confirm("This will re-run detection with learned corrections.\n\nFalse positives will be removed and misclassifications will be fixed.\n\nContinue?")) {
-      return;
+    if (
+      !confirm(
+        "This will re-run detection with learned corrections.\n\nFalse positives will be removed and misclassifications will be fixed.\n\nContinue?",
+      )
+    ) {
+      return
     }
 
-    setRetraining(true);
+    setRetraining(true)
     try {
-      const res = await fetch("/api/retrain", { method: "POST" });
-      const result = await res.json();
+      const res = await fetch("/api/retrain", { method: "POST" })
+      const result = await res.json()
 
       if (result.success) {
         alert(
           `Retraining Complete!\n\n` +
-          `Correction rules applied: ${result.correction_rules}\n` +
-          `Entities before: ${result.entities_before}\n` +
-          `Entities after: ${result.entities_after}\n` +
-          `False positives removed: ${result.false_positives_removed}\n` +
-          `Corrections applied: ${result.corrections_applied}`
-        );
-        fetchSheets();
-        fetchMetrics();
+            `Correction rules applied: ${result.correction_rules}\n` +
+            `Entities before: ${result.entities_before}\n` +
+            `Entities after: ${result.entities_after}\n` +
+            `False positives removed: ${result.false_positives_removed}\n` +
+            `Corrections applied: ${result.corrections_applied}`,
+        )
+        fetchSheets()
+        fetchMetrics()
         if (selectedSheet) {
-          fetchEntities(selectedSheet.id);
+          fetchEntities(selectedSheet.id)
         }
       } else {
-        alert(`Error: ${result.error}\n${result.details || ""}`);
+        alert(`Error: ${result.error}\n${result.details || ""}`)
       }
     } catch (error) {
-      alert(`Retrain failed: ${error}`);
+      alert(`Retrain failed: ${error}`)
     }
-    setRetraining(false);
+    setRetraining(false)
   }
 
   async function fetchEntities(sheetId: string) {
-    const res = await fetch(`/api/sheets/${sheetId}/entities`);
-    const data = await res.json() as { entities: Entity[] };
-    setEntities(data.entities);
-    setSelectedEntity(null);
+    const res = await fetch(`/api/sheets/${sheetId}/entities`)
+    const data = (await res.json()) as { entities: Entity[] }
+    setEntities(data.entities)
+    setSelectedEntity(null)
   }
 
   async function fetchProvenance(entityId: string) {
-    const res = await fetch(`/api/entities/${entityId}/provenance`);
-    const data = await res.json() as Provenance;
-    setProvenance(data);
+    const res = await fetch(`/api/entities/${entityId}/provenance`)
+    const data = (await res.json()) as Provenance
+    setProvenance(data)
   }
 
   function drawSheetWithCallouts() {
-    const canvas = canvasRef.current;
-    if (!canvas || !selectedSheet) return;
+    const canvas = canvasRef.current
+    if (!canvas || !selectedSheet) return
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
 
-    const img = new Image();
-    img.crossOrigin = "anonymous";
+    const img = new Image()
+    img.crossOrigin = "anonymous"
     img.onload = () => {
-      const maxWidth = 1400;
-      const maxHeight = 900;
-      const imgScale = Math.min(maxWidth / img.width, maxHeight / img.height) * scale;
+      const maxWidth = 1400
+      const maxHeight = 900
+      const imgScale = Math.min(maxWidth / img.width, maxHeight / img.height) * scale
 
-      canvas.width = img.width * imgScale;
-      canvas.height = img.height * imgScale;
+      canvas.width = img.width * imgScale
+      canvas.height = img.height * imgScale
 
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
 
-      const filteredEntities = entities.filter(e => {
+      const filteredEntities = entities.filter((e) => {
         if (!showLowConfidence && (e.confidence ?? 1) < confThreshold) {
-          return false;
+          return false
         }
-        return true;
-      });
+        return true
+      })
 
       for (const entity of filteredEntities) {
-        const x = entity.bbox_x1 * imgScale;
-        const y = entity.bbox_y1 * imgScale;
-        const w = (entity.bbox_x2 - entity.bbox_x1) * imgScale;
-        const h = (entity.bbox_y2 - entity.bbox_y1) * imgScale;
+        const x = entity.bbox_x1 * imgScale
+        const y = entity.bbox_y1 * imgScale
+        const w = (entity.bbox_x2 - entity.bbox_x1) * imgScale
+        const h = (entity.bbox_y2 - entity.bbox_y1) * imgScale
 
-        const isSelected = selectedEntity?.id === entity.id;
-        const isLowConf = (entity.confidence ?? 1) < confThreshold;
-        const color = CLASS_COLORS[entity.class_label] || "#888";
+        const isSelected = selectedEntity?.id === entity.id
+        const isLowConf = (entity.confidence ?? 1) < confThreshold
+        const color = CLASS_COLORS[entity.class_label] || "#888"
 
-        ctx.strokeStyle = isSelected ? "#facc15" : isLowConf ? "#666" : color;
-        ctx.lineWidth = isSelected ? 4 : 2;
-        ctx.setLineDash(isLowConf ? [5, 5] : []);
-        ctx.strokeRect(x, y, w, h);
-        ctx.setLineDash([]);
+        ctx.strokeStyle = isSelected ? "#facc15" : isLowConf ? "#666" : color
+        ctx.lineWidth = isSelected ? 4 : 2
+        ctx.setLineDash(isLowConf ? [5, 5] : [])
+        ctx.strokeRect(x, y, w, h)
+        ctx.setLineDash([])
 
         if (isSelected) {
-          ctx.fillStyle = "rgba(250, 204, 21, 0.3)";
-          ctx.fillRect(x, y, w, h);
+          ctx.fillStyle = "rgba(250, 204, 21, 0.3)"
+          ctx.fillRect(x, y, w, h)
         }
 
-        ctx.fillStyle = isSelected ? "#facc15" : isLowConf ? "#666" : color;
-        ctx.font = `bold ${Math.max(12, 14 * scale)}px sans-serif`;
-        const label = entity.ocr_text || "?";
-        const textWidth = ctx.measureText(label).width;
-        ctx.fillRect(x, y - 18 * scale, textWidth + 8, 18 * scale);
-        ctx.fillStyle = isLowConf ? "#aaa" : "#000";
-        ctx.fillText(label, x + 4, y - 4 * scale);
+        ctx.fillStyle = isSelected ? "#facc15" : isLowConf ? "#666" : color
+        ctx.font = `bold ${Math.max(12, 14 * scale)}px sans-serif`
+        const label = entity.ocr_text || "?"
+        const textWidth = ctx.measureText(label).width
+        ctx.fillRect(x, y - 18 * scale, textWidth + 8, 18 * scale)
+        ctx.fillStyle = isLowConf ? "#aaa" : "#000"
+        ctx.fillText(label, x + 4, y - 4 * scale)
       }
-    };
-    img.src = selectedSheet.image_url;
+    }
+    img.src = selectedSheet.image_url
   }
 
   function handleCanvasClick(e: React.MouseEvent<HTMLCanvasElement>) {
-    const canvas = canvasRef.current;
-    if (!canvas || !selectedSheet) return;
+    const canvas = canvasRef.current
+    if (!canvas || !selectedSheet) return
 
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const rect = canvas.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
 
     // Use same dimensions as drawSheetWithCallouts
-    const maxWidth = 1400;
-    const maxHeight = 900;
-    const imgScale = Math.min(maxWidth / selectedSheet.width, maxHeight / selectedSheet.height) * scale;
+    const maxWidth = 1400
+    const maxHeight = 900
+    const imgScale =
+      Math.min(maxWidth / selectedSheet.width, maxHeight / selectedSheet.height) * scale
 
     // Convert canvas coordinates to image coordinates
-    const imgX = x / imgScale;
-    const imgY = y / imgScale;
+    const imgX = x / imgScale
+    const imgY = y / imgScale
 
     // Find clicked entity
     for (const entity of entities) {
-      if (imgX >= entity.bbox_x1 && imgX <= entity.bbox_x2 &&
-          imgY >= entity.bbox_y1 && imgY <= entity.bbox_y2) {
-        setSelectedEntity(entity);
-        return;
+      if (
+        imgX >= entity.bbox_x1 &&
+        imgX <= entity.bbox_x2 &&
+        imgY >= entity.bbox_y1 &&
+        imgY <= entity.bbox_y2
+      ) {
+        setSelectedEntity(entity)
+        return
       }
     }
-    setSelectedEntity(null);
+    setSelectedEntity(null)
   }
 
   function navigateToSheet(sheetNumber: string) {
-    const sheet = sheets.find(s => s.sheet_number === sheetNumber);
+    const sheet = sheets.find((s) => s.sheet_number === sheetNumber)
     if (sheet) {
-      setSelectedSheet(sheet);
+      setSelectedSheet(sheet)
     }
   }
 
@@ -326,7 +340,7 @@ function App() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-xl text-gray-300">Loading sheets...</div>
       </div>
-    );
+    )
   }
 
   return (
@@ -335,7 +349,9 @@ function App() {
         <div className="flex items-center justify-between mb-3">
           <div>
             <h1 className="text-2xl font-bold">SiteLink Plan Explorer</h1>
-            <p className="text-gray-400">{sheets.length} sheets | {entities.length} callouts on current sheet</p>
+            <p className="text-gray-400">
+              {sheets.length} sheets | {entities.length} callouts on current sheet
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <input
@@ -389,7 +405,11 @@ function App() {
               onClick={handleRetrain}
               disabled={retraining || !metrics || metrics.total_reviewed === 0}
               className="px-4 py-2 bg-yellow-600 rounded hover:bg-yellow-500 disabled:opacity-50"
-              title={!metrics || metrics.total_reviewed === 0 ? "Review some entities first" : "Apply learned corrections"}
+              title={
+                !metrics || metrics.total_reviewed === 0
+                  ? "Review some entities first"
+                  : "Apply learned corrections"
+              }
             >
               {retraining ? "Retraining..." : "Retrain Model"}
             </button>
@@ -403,7 +423,9 @@ function App() {
           <div className="bg-gray-800 rounded-lg p-3 flex items-center gap-6">
             <div className="text-sm">
               <span className="text-gray-400">Model Accuracy:</span>
-              <span className={`ml-2 font-bold ${metrics.accuracy >= 70 ? 'text-green-400' : metrics.accuracy >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+              <span
+                className={`ml-2 font-bold ${metrics.accuracy >= 70 ? "text-green-400" : metrics.accuracy >= 50 ? "text-yellow-400" : "text-red-400"}`}
+              >
                 {metrics.accuracy}%
               </span>
             </div>
@@ -414,7 +436,10 @@ function App() {
             <div className="text-sm">
               <span className="text-gray-400">Reviewed:</span>
               <span className="ml-2">{metrics.total_reviewed}</span>
-              <span className="text-gray-500 ml-1">({metrics.correct} correct, {metrics.false_positives} FP, {metrics.misclassified} misclassified)</span>
+              <span className="text-gray-500 ml-1">
+                ({metrics.correct} correct, {metrics.false_positives} FP, {metrics.misclassified}{" "}
+                misclassified)
+              </span>
             </div>
             <div className="flex gap-2 ml-auto">
               {Object.entries(metrics.precision_by_class).map(([label, precision]) => (
@@ -432,18 +457,19 @@ function App() {
         <div className="w-48 flex-shrink-0">
           <h2 className="text-sm font-semibold text-gray-400 mb-2">SHEETS</h2>
           <div className="space-y-1">
-            {sheets.map(sheet => (
+            {sheets.map((sheet) => (
               <button
                 key={sheet.id}
                 onClick={() => setSelectedSheet(sheet)}
                 className={`w-full text-left px-3 py-2 rounded ${
-                  selectedSheet?.id === sheet.id
-                    ? "bg-blue-600"
-                    : "bg-gray-800 hover:bg-gray-700"
+                  selectedSheet?.id === sheet.id ? "bg-blue-600" : "bg-gray-800 hover:bg-gray-700"
                 }`}
               >
                 <div className="font-medium">{sheet.sheet_number}</div>
-                <div className="text-xs text-gray-400 truncate" title={sheet.sheet_title || sheet.sheet_type || "Sheet"}>
+                <div
+                  className="text-xs text-gray-400 truncate"
+                  title={sheet.sheet_title || sheet.sheet_type || "Sheet"}
+                >
                   {sheet.sheet_title || sheet.sheet_type || "Sheet"}
                 </div>
               </button>
@@ -478,20 +504,28 @@ function App() {
                 </label>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-400">Zoom:</span>
-                  <button onClick={() => setScale(Math.max(0.25, scale - 0.25))} className="px-2 py-1 bg-gray-700 rounded">-</button>
+                  <button
+                    onClick={() => setScale(Math.max(0.25, scale - 0.25))}
+                    className="px-2 py-1 bg-gray-700 rounded"
+                  >
+                    -
+                  </button>
                   <span className="w-12 text-center">{(scale * 100).toFixed(0)}%</span>
-                  <button onClick={() => setScale(Math.min(4, scale + 0.25))} className="px-2 py-1 bg-gray-700 rounded">+</button>
+                  <button
+                    onClick={() => setScale(Math.min(4, scale + 0.25))}
+                    className="px-2 py-1 bg-gray-700 rounded"
+                  >
+                    +
+                  </button>
                 </div>
               </div>
             </div>
             <div className="bg-gray-900 rounded overflow-auto max-h-[800px]">
-              <canvas
-                ref={canvasRef}
-                onClick={handleCanvasClick}
-                className="cursor-crosshair"
-              />
+              <canvas ref={canvasRef} onClick={handleCanvasClick} className="cursor-crosshair" />
             </div>
-            <p className="text-xs text-gray-500 mt-2">Click on a callout to see its provenance and references</p>
+            <p className="text-xs text-gray-500 mt-2">
+              Click on a callout to see its provenance and references
+            </p>
           </div>
         </div>
 
@@ -523,23 +557,28 @@ function App() {
                   </div>
                 )}
 
-                {selectedEntity.ocr_text && !selectedEntity.identifier && !selectedEntity.target_sheet && (
-                  <div className="mb-3">
-                    <div className="text-xs text-gray-500">OCR Text:</div>
-                    <div className="text-2xl font-mono font-bold text-yellow-400">
-                      {selectedEntity.ocr_text}
+                {selectedEntity.ocr_text &&
+                  !selectedEntity.identifier &&
+                  !selectedEntity.target_sheet && (
+                    <div className="mb-3">
+                      <div className="text-xs text-gray-500">OCR Text:</div>
+                      <div className="text-2xl font-mono font-bold text-yellow-400">
+                        {selectedEntity.ocr_text}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {!selectedEntity.ocr_text && !selectedEntity.identifier && !selectedEntity.target_sheet && (
-                  <div className="text-2xl font-mono font-bold text-gray-500">
-                    No text detected
-                  </div>
-                )}
+                {!selectedEntity.ocr_text &&
+                  !selectedEntity.identifier &&
+                  !selectedEntity.target_sheet && (
+                    <div className="text-2xl font-mono font-bold text-gray-500">
+                      No text detected
+                    </div>
+                  )}
 
                 <div className="text-xs text-gray-500 mt-3">
-                  Sheet {selectedEntity.sheet_number} at ({Math.round(selectedEntity.bbox_x1)}, {Math.round(selectedEntity.bbox_y1)})
+                  Sheet {selectedEntity.sheet_number} at ({Math.round(selectedEntity.bbox_x1)},{" "}
+                  {Math.round(selectedEntity.bbox_y1)})
                 </div>
               </div>
 
@@ -556,7 +595,8 @@ function App() {
                 </div>
               )}
 
-              {(selectedEntity.yolo_confidence != null || selectedEntity.ocr_confidence != null) && (
+              {(selectedEntity.yolo_confidence != null ||
+                selectedEntity.ocr_confidence != null) && (
                 <div className="border-t border-gray-700 pt-3">
                   <div className="text-sm text-gray-400 mb-2">Confidence Scores:</div>
                   <div className="space-y-2 text-sm">
@@ -566,11 +606,13 @@ function App() {
                         <div className="flex items-center gap-2">
                           <div className="w-24 h-2 bg-gray-700 rounded overflow-hidden">
                             <div
-                              className={`h-full ${selectedEntity.yolo_confidence >= 0.7 ? 'bg-green-500' : selectedEntity.yolo_confidence >= 0.5 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                              className={`h-full ${selectedEntity.yolo_confidence >= 0.7 ? "bg-green-500" : selectedEntity.yolo_confidence >= 0.5 ? "bg-yellow-500" : "bg-red-500"}`}
                               style={{ width: `${selectedEntity.yolo_confidence * 100}%` }}
                             />
                           </div>
-                          <span className="w-12 text-right">{(selectedEntity.yolo_confidence * 100).toFixed(0)}%</span>
+                          <span className="w-12 text-right">
+                            {(selectedEntity.yolo_confidence * 100).toFixed(0)}%
+                          </span>
                         </div>
                       </div>
                     )}
@@ -580,11 +622,13 @@ function App() {
                         <div className="flex items-center gap-2">
                           <div className="w-24 h-2 bg-gray-700 rounded overflow-hidden">
                             <div
-                              className={`h-full ${selectedEntity.ocr_confidence >= 0.7 ? 'bg-green-500' : selectedEntity.ocr_confidence >= 0.5 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                              className={`h-full ${selectedEntity.ocr_confidence >= 0.7 ? "bg-green-500" : selectedEntity.ocr_confidence >= 0.5 ? "bg-yellow-500" : "bg-red-500"}`}
                               style={{ width: `${selectedEntity.ocr_confidence * 100}%` }}
                             />
                           </div>
-                          <span className="w-12 text-right">{(selectedEntity.ocr_confidence * 100).toFixed(0)}%</span>
+                          <span className="w-12 text-right">
+                            {(selectedEntity.ocr_confidence * 100).toFixed(0)}%
+                          </span>
                         </div>
                       </div>
                     )}
@@ -599,16 +643,20 @@ function App() {
                     {selectedEntity.identifier && (
                       <div className="flex justify-between">
                         <span className="text-gray-500">Identifier:</span>
-                        <span className="font-mono text-green-400">{selectedEntity.identifier}</span>
+                        <span className="font-mono text-green-400">
+                          {selectedEntity.identifier}
+                        </span>
                       </div>
                     )}
                     {selectedEntity.target_sheet && (
                       <div className="flex justify-between">
                         <span className="text-gray-500">Target Sheet:</span>
-                        <span className="font-mono text-blue-400">{selectedEntity.target_sheet}</span>
+                        <span className="font-mono text-blue-400">
+                          {selectedEntity.target_sheet}
+                        </span>
                       </div>
                     )}
-                    {selectedEntity.standard && selectedEntity.standard !== 'auto' && (
+                    {selectedEntity.standard && selectedEntity.standard !== "auto" && (
                       <div className="flex justify-between">
                         <span className="text-gray-500">Standard:</span>
                         <span className="uppercase text-purple-400">{selectedEntity.standard}</span>
@@ -617,7 +665,9 @@ function App() {
                     {selectedEntity.detection_method && (
                       <div className="flex justify-between">
                         <span className="text-gray-500">Method:</span>
-                        <span className="uppercase text-gray-400">{selectedEntity.detection_method}</span>
+                        <span className="uppercase text-gray-400">
+                          {selectedEntity.detection_method}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -643,12 +693,12 @@ function App() {
                     References ({provenance.references.length}):
                   </div>
                   <div className="space-y-2">
-                    {provenance.references.map(ref => (
+                    {provenance.references.map((ref) => (
                       <button
                         key={ref.id}
                         onClick={() => {
-                          navigateToSheet(ref.sheet_number!);
-                          setTimeout(() => setSelectedEntity(ref), 100);
+                          navigateToSheet(ref.sheet_number!)
+                          setTimeout(() => setSelectedEntity(ref), 100)
                         }}
                         className="w-full px-3 py-2 bg-gray-700 rounded hover:bg-gray-600 text-left text-sm"
                       >
@@ -666,12 +716,12 @@ function App() {
                     Referenced by ({provenance.referenced_by.length}):
                   </div>
                   <div className="space-y-2">
-                    {provenance.referenced_by.map(ref => (
+                    {provenance.referenced_by.map((ref) => (
                       <button
                         key={ref.id}
                         onClick={() => {
-                          navigateToSheet(ref.sheet_number!);
-                          setTimeout(() => setSelectedEntity(ref), 100);
+                          navigateToSheet(ref.sheet_number!)
+                          setTimeout(() => setSelectedEntity(ref), 100)
                         }}
                         className="w-full px-3 py-2 bg-gray-700 rounded hover:bg-gray-600 text-left text-sm"
                       >
@@ -683,11 +733,12 @@ function App() {
                 </div>
               )}
 
-              {selectedEntity.raw_ocr_text && selectedEntity.raw_ocr_text !== selectedEntity.ocr_text && (
-                <div className="border-t border-gray-700 pt-3 text-xs text-gray-500">
-                  Raw OCR: {selectedEntity.raw_ocr_text}
-                </div>
-              )}
+              {selectedEntity.raw_ocr_text &&
+                selectedEntity.raw_ocr_text !== selectedEntity.ocr_text && (
+                  <div className="border-t border-gray-700 pt-3 text-xs text-gray-500">
+                    Raw OCR: {selectedEntity.raw_ocr_text}
+                  </div>
+                )}
 
               <div className="border-t border-gray-700 pt-3 text-xs text-gray-500">
                 Entity ID: {selectedEntity.id}
@@ -701,8 +752,8 @@ function App() {
         </div>
       </div>
     </div>
-  );
+  )
 }
 
-const root = createRoot(document.getElementById("root")!);
-root.render(<App />);
+const root = createRoot(document.getElementById("root")!)
+root.render(<App />)

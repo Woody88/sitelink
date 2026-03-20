@@ -626,13 +626,7 @@ export class PlanProcessingWorkflow extends WorkflowEntrypoint<Env, PlanProcessi
               timeout: "10 minutes",
             },
             async () => {
-              const imagePath = getR2Path(
-                organizationId,
-                projectId,
-                planId,
-                sheetId,
-                "source.png",
-              )
+              const imagePath = getR2Path(organizationId, projectId, planId, sheetId, "source.png")
               const imageData = await this.env.R2_BUCKET.get(imagePath)
               if (!imageData) {
                 console.warn(`[Workflow] Image not found at ${imagePath}, skipping extraction`)
@@ -646,12 +640,7 @@ export class PlanProcessingWorkflow extends WorkflowEntrypoint<Env, PlanProcessi
 
               for (const region of regions) {
                 try {
-                  const bboxJson = JSON.stringify([
-                    region.x,
-                    region.y,
-                    region.width,
-                    region.height,
-                  ])
+                  const bboxJson = JSON.stringify([region.x, region.y, region.width, region.height])
 
                   if (region.regionClass === "schedule") {
                     const response = await containerFetch(
@@ -799,9 +788,7 @@ export class PlanProcessingWorkflow extends WorkflowEntrypoint<Env, PlanProcessi
                 }
               }
 
-              const extractionProgress = Math.round(
-                70 + ((si + 1) / sheetsWithRegions.length) * 10,
-              )
+              const extractionProgress = Math.round(70 + ((si + 1) / sheetsWithRegions.length) * 10)
               await emitProgress(stub, organizationId, planId, extractionProgress)
             },
           )
