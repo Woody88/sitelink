@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from "expo-router"
+import { useLocalSearchParams, useRouter } from "expo-router"
 import { Download, type LucideIcon, Share2 } from "lucide-react-native"
 import * as React from "react"
 import { Pressable, ScrollView, View } from "react-native"
@@ -68,6 +68,7 @@ export default function ActivityScreen() {
 }
 
 function PrototypeActivityScreen() {
+  const router = useRouter()
   const todayPhotos = MOCK_TIMELINE_PHOTOS.find((c) => c.label === "Today")
   const protoStats = React.useMemo(() => {
     if (!todayPhotos) return { photoCount: 0, voiceNoteCount: 0, issueCount: 0 }
@@ -90,6 +91,15 @@ function PrototypeActivityScreen() {
     console.log("Offline mode")
   }, [])
 
+  const handleDailySummary = React.useCallback(() => {
+    router.push("/daily-summary" as any)
+  }, [router])
+
+  const handleManageMembers = React.useCallback(() => {
+    // Navigate to members screen - in prototype mode this is handled by workspace layout
+    console.log("Manage members")
+  }, [])
+
   const displayedMembers = MOCK_TEAM_MEMBERS.slice(0, 5)
 
   return (
@@ -98,14 +108,14 @@ function PrototypeActivityScreen() {
         <DailySummaryBanner
           summary={null}
           isLoading={false}
-          onGenerate={() => {}}
+          onGenerate={handleDailySummary}
           stats={protoStats}
         />
 
         <View>
           <Text className="text-foreground mb-3 text-lg font-bold">Quick Actions</Text>
           <View className="flex-row gap-2">
-            <QuickActionButton icon={Share2} label="Share" onPress={handleShare} />
+            <QuickActionButton icon={Share2} label="Share Report" onPress={handleShare} />
             <QuickActionButton icon={Download} label="Offline" onPress={handleOffline} />
           </View>
         </View>
@@ -113,7 +123,7 @@ function PrototypeActivityScreen() {
         <View>
           <View className="mb-3 flex-row items-end justify-between">
             <Text className="text-foreground text-lg font-bold">Team Members</Text>
-            <Pressable onPress={() => console.log("Manage members")}>
+            <Pressable onPress={handleManageMembers}>
               <Text className="text-primary text-sm font-medium">Manage</Text>
             </Pressable>
           </View>

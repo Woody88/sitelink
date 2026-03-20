@@ -85,7 +85,7 @@ function PrototypeWorkspaceLayout() {
         {activeView === "media" && <MediaScreen />}
         {activeView === "activity" && <ActivityScreen />}
 
-        <WorkspaceFAB onPress={handleFABPress} icon={getFABIcon()} />
+        {activeView !== "activity" && <WorkspaceFAB onPress={handleFABPress} icon={getFABIcon()} />}
       </View>
     </>
   )

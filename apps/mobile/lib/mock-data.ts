@@ -67,6 +67,7 @@ export interface MockTeamMember {
 
 export interface MockTimelinePhoto {
   id: string
+  seed: number
   timestamp: string
   timeLabel: string
   hasVoiceNote: boolean
@@ -422,6 +423,7 @@ export const MOCK_TIMELINE_PHOTOS: MockDateCluster[] = [
     photos: [
       {
         id: "ph-1",
+        seed: 401,
         timestamp: "2024-03-13T14:30:00",
         timeLabel: "2:30 PM",
         hasVoiceNote: true,
@@ -432,14 +434,19 @@ export const MOCK_TIMELINE_PHOTOS: MockDateCluster[] = [
       },
       {
         id: "ph-2",
+        seed: 402,
         timestamp: "2024-03-13T14:15:00",
         timeLabel: "2:15 PM",
-        hasVoiceNote: false,
+        hasVoiceNote: true,
+        voiceDuration: "0:14",
+        voiceTranscript:
+          "Exposed rebar at junction box, needs inspection before pour. Notified foreman.",
         isIssue: true,
         color: photoColor(1),
       },
       {
         id: "ph-3",
+        seed: 403,
         timestamp: "2024-03-13T11:45:00",
         timeLabel: "11:45 AM",
         hasVoiceNote: false,
@@ -448,6 +455,7 @@ export const MOCK_TIMELINE_PHOTOS: MockDateCluster[] = [
       },
       {
         id: "ph-4",
+        seed: 404,
         timestamp: "2024-03-13T10:20:00",
         timeLabel: "10:20 AM",
         hasVoiceNote: true,
@@ -458,14 +466,18 @@ export const MOCK_TIMELINE_PHOTOS: MockDateCluster[] = [
       },
       {
         id: "ph-5",
+        seed: 405,
         timestamp: "2024-03-13T09:00:00",
         timeLabel: "9:00 AM",
-        hasVoiceNote: false,
+        hasVoiceNote: true,
+        voiceDuration: "0:05",
+        voiceTranscript: "Anchor bolts installed per spec.",
         isIssue: false,
         color: photoColor(4),
       },
       {
         id: "ph-6",
+        seed: 406,
         timestamp: "2024-03-13T08:30:00",
         timeLabel: "8:30 AM",
         hasVoiceNote: false,
@@ -479,6 +491,7 @@ export const MOCK_TIMELINE_PHOTOS: MockDateCluster[] = [
     photos: [
       {
         id: "ph-7",
+        seed: 407,
         timestamp: "2024-03-12T16:00:00",
         timeLabel: "4:00 PM",
         hasVoiceNote: false,
@@ -487,6 +500,7 @@ export const MOCK_TIMELINE_PHOTOS: MockDateCluster[] = [
       },
       {
         id: "ph-8",
+        seed: 408,
         timestamp: "2024-03-12T14:30:00",
         timeLabel: "2:30 PM",
         hasVoiceNote: true,
@@ -497,14 +511,18 @@ export const MOCK_TIMELINE_PHOTOS: MockDateCluster[] = [
       },
       {
         id: "ph-9",
+        seed: 409,
         timestamp: "2024-03-12T11:00:00",
         timeLabel: "11:00 AM",
-        hasVoiceNote: false,
+        hasVoiceNote: true,
+        voiceDuration: "0:11",
+        voiceTranscript: "Formwork stripped on east side. Minor honeycombing visible.",
         isIssue: true,
         color: photoColor(8),
       },
       {
         id: "ph-10",
+        seed: 410,
         timestamp: "2024-03-12T09:15:00",
         timeLabel: "9:15 AM",
         hasVoiceNote: false,
@@ -518,6 +536,7 @@ export const MOCK_TIMELINE_PHOTOS: MockDateCluster[] = [
     photos: [
       {
         id: "ph-11",
+        seed: 411,
         timestamp: "2024-03-11T15:30:00",
         timeLabel: "3:30 PM",
         hasVoiceNote: false,
@@ -526,6 +545,7 @@ export const MOCK_TIMELINE_PHOTOS: MockDateCluster[] = [
       },
       {
         id: "ph-12",
+        seed: 412,
         timestamp: "2024-03-11T10:00:00",
         timeLabel: "10:00 AM",
         hasVoiceNote: false,

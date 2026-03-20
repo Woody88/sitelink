@@ -55,8 +55,24 @@ function PrototypePlansScreen() {
     )
   }
 
-  const handleSheetPress = React.useCallback(() => {
-    Alert.alert("Prototype Mode", "Plan viewer is not available in prototype mode.")
+  const [viewingSheet, setViewingSheet] = React.useState<{ number: string; title: string } | null>(
+    null,
+  )
+
+  // Map sheet numbers to bundled demo images
+  const DEMO_IMAGES: Record<string, number> = {
+    "S0.0": require("@/assets/demo/sheet-s1.png"),
+    "S1.0": require("@/assets/demo/sheet-s2.png"),
+    "S2.0": require("@/assets/demo/sheet-s3.png"),
+    "S3.0": require("@/assets/demo/sheet-s4.png"),
+  }
+
+  const handleSheetPress = React.useCallback((sheet: { number: string; title: string }) => {
+    if (DEMO_IMAGES[sheet.number]) {
+      setViewingSheet(sheet)
+    } else {
+      Alert.alert("Preview", `${sheet.number} — ${sheet.title}\n\nNo preview image available.`)
+    }
   }, [])
 
   const filteredFolders = MOCK_FOLDERS.map((folder) => ({
@@ -158,7 +174,7 @@ function PrototypePlansScreen() {
                       <Pressable
                         key={sheet.id}
                         className="mb-4 w-[48%] active:opacity-80"
-                        onPress={handleSheetPress}
+                        onPress={() => handleSheetPress(sheet)}
                       >
                         <View className="bg-muted/20 border-border/50 aspect-[3/2] overflow-hidden rounded-xl border">
                           <View className="flex-1 items-center justify-center">
@@ -188,7 +204,7 @@ function PrototypePlansScreen() {
                       <Pressable
                         key={sheet.id}
                         className="active:bg-muted/10 flex-row items-center gap-4 rounded-lg px-2 py-3"
-                        onPress={handleSheetPress}
+                        onPress={() => handleSheetPress(sheet)}
                       >
                         <View className="bg-muted/20 size-10 items-center justify-center rounded-lg">
                           <Icon as={FileText} className="text-muted-foreground size-5" />
@@ -222,6 +238,124 @@ function PrototypePlansScreen() {
           </Collapsible>
         ))}
       </ScrollView>
+
+      {/* Fullscreen Plan Viewer Modal (matches Storybook) */}
+      <Modal visible={!!viewingSheet} animationType="fade" statusBarTranslucent>
+        <View style={{ flex: 1, backgroundColor: "#0a0a0a" }}>
+          {viewingSheet && DEMO_IMAGES[viewingSheet.number] && (
+            <Image
+              source={DEMO_IMAGES[viewingSheet.number]}
+              style={{ position: "absolute", width: "100%", height: "100%" }}
+              resizeMode="contain"
+            />
+          )}
+
+          {/* Close button (top-left) */}
+          <View style={{ position: "absolute", top: 48, left: 16, zIndex: 20 }}>
+            <Pressable
+              onPress={() => setViewingSheet(null)}
+              className="items-center justify-center rounded-full"
+              style={{ width: 44, height: 44, backgroundColor: "rgba(0,0,0,0.6)" }}
+            >
+              <Icon as={Layers} className="size-5 text-white" />
+            </Pressable>
+          </View>
+
+          {/* Right toolbar (zoom + tools) */}
+          <View
+            style={{
+              position: "absolute",
+              top: 48,
+              right: 16,
+              zIndex: 20,
+              gap: 12,
+              alignItems: "center",
+            }}
+          >
+            <View
+              className="items-center justify-center rounded-xl"
+              style={{
+                backgroundColor: "rgba(0,0,0,0.6)",
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+              }}
+            >
+              <Text style={{ color: "#fff", fontSize: 13, fontWeight: "600" }}>42%</Text>
+            </View>
+            <View
+              className="items-center overflow-hidden rounded-2xl"
+              style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
+            >
+              <Pressable className="items-center justify-center" style={{ width: 44, height: 44 }}>
+                <Icon as={Search} className="size-5 text-white" />
+              </Pressable>
+              <View
+                style={{
+                  height: 1,
+                  backgroundColor: "rgba(255,255,255,0.1)",
+                  alignSelf: "stretch",
+                }}
+              />
+              <Pressable className="items-center justify-center" style={{ width: 44, height: 44 }}>
+                <Icon as={Maximize2} className="size-5 text-white" />
+              </Pressable>
+            </View>
+          </View>
+
+          {/* Bottom info bar */}
+          <View
+            style={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              zIndex: 20,
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: "rgba(0,0,0,0.75)",
+                paddingHorizontal: 20,
+                paddingVertical: 16,
+                paddingBottom: 40,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <View className="flex-row items-center gap-2">
+                <View
+                  className="items-center justify-center rounded-lg"
+                  style={{ width: 32, height: 32, backgroundColor: "rgba(255,255,255,0.1)" }}
+                >
+                  <Icon as={FileText} className="size-4 text-white" />
+                </View>
+                <View>
+                  <Text style={{ color: "#fff", fontSize: 14, fontWeight: "700" }}>
+                    {viewingSheet?.number}
+                  </Text>
+                  <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 11 }}>
+                    {viewingSheet?.title}
+                  </Text>
+                </View>
+              </View>
+              <View
+                className="flex-row items-center gap-1 rounded-full px-2.5 py-1"
+                style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
+              >
+                <Icon as={Layers} className="size-3 text-white" />
+                <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, fontWeight: "600" }}>
+                  {viewingSheet?.number === "S1.0"
+                    ? "91 markers"
+                    : viewingSheet?.number === "S3.0"
+                      ? "26 markers"
+                      : "4 markers"}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }
